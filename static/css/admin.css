@@ -1,0 +1,76 @@
+table {
+  border-collapse: collapse;
+  width: 90%;
+  user-select: text;
+}
+
+td, th {
+  text-align: left;
+  padding: 4px;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+td {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+
+hr {
+  border: 0;
+  border-top: 1px dashed #dddddd;
+  border-width: medium;
+  margin: 10px auto;
+}
+
+.admin-panel {
+  display: flex;
+  padding: 5px 0 0;
+  width: 410px;
+  margin: 0 auto;
+}
+
+.admin-card {
+  min-width: 425px;
+}
+
+.users-list {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-admin {
+  width: 100%;
+  padding: 5px;
+  margin: 0 2px 0;
+  border-radius: 5px;
+}
+
+.pwd {
+  -webkit-text-security: disc;
+}
+
+.db-size {
+  display: flex;
+  justify-content: end;
+  font-size: 12px;
+  opacity: .5;
+  padding: 10px 25px 0;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+#right-container {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.login {
+  margin: 50px auto !important;
+}

@@ -1,0 +1,31 @@
+html {
+  filter: invert(1) hue-rotate(180deg) contrast(0.8);
+}
+
+.btn-sm {
+  filter: grayscale(1) invert(1);
+}
+
+.navbar {
+  filter: invert(1) grayscale();
+}
+
+#redhead {
+  filter: invert(1);
+}
+
+.wait_in {
+  filter: invert(1);
+}
+
+#redDialogWrap {
+  filter: invert(1) contrast(0.8);
+}
+
+#redDialogOverLay {
+  filter: invert(1);
+}
+
+#conn_lost {
+  filter: invert(1);
+}
