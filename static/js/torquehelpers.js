@@ -200,6 +200,7 @@ updCharts = ()=>{
             }
             gData.forEach(v=>$('#Summary-Container>div>table>tbody').append(trData(v)));
             $(".line").peity("line", {width: '50'});
+            if ($('#plot_data').chosen().val() == null) updCharts();
 	}
 	catch(e) {
             const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html('No Data')));

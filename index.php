@@ -117,8 +117,6 @@ if (isset($sids[0])) {
 <html lang="en">
 <head>
 <?php include("head.php");?>
-<script>if (window.history.replaceState) window.history.replaceState(null,null,window.location.href)</script>
-
     <!-- Flot Local Javascript files -->
     <script src="static/js/jquery.flot.js"></script>
     <script src="static/js/jquery.flot.axislabels.js"></script>
@@ -131,32 +129,13 @@ if (isset($sids[0])) {
     <script src="static/js/jquery.flot.resize.min.js"></script>
     <script src="static/js/jquery.flot.navigate.js"></script>
     <!-- Configure Jquery Flot graph and plot code -->
-<script>
+    <script>
       $(document).ready(function(){
-<?php   $i=1; ?>
-<?php   while ( isset(${'var' . $i }) && !empty(${'var' . $i }) ) { ?>
-        var <?php echo "s$i"; ?> = [<?php foreach(${"d".$i} as $b) {echo "[".$b[0].", ".((is_numeric($b[1]))?$b[1]:0)."],";} ?>];
-<?php     $i = $i + 1; ?>
-<?php   } ?>
-
-        flotData = [
-<?php   $i=1; ?>
-<?php   while ( isset(${'var' . $i }) && !empty(${'var' . $i }) ) { ?>
-            { data: <?php echo "s$i"; ?>, label: <?php echo "${'v'.$i.'_label'}"; ?> }<?php if ( isset(${'var'.($i+1)}) ) echo ","; ?>
-<?php     $i = $i + 1; ?>
-<?php   } ?>
-        ];
-        $('#plot_data').chosen().change(updCharts);
-<?php if ( $var1 <> "" ) { ?>
-          doPlot("right");
-<?php } else { ?>
-          updCharts();
-<?php } ?>
-        $("button").click(function () {
-            doPlot($(this).text());
-        });
+	let plotData = $('#plot_data').chosen();
+	plotData.change(updCharts);
+	if (window.history.replaceState) window.history.replaceState(null,null,window.location.href);
       });
-</script>
+    </script>
   </head>
   <body>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
@@ -548,13 +527,6 @@ function maintenance() {
   };
  redDialog.make(dialogOpt);
 }
-$(document).ready(function() {
- var sw_pwd;
-     $(".pwd").on('click', function(e) {
-      sw_pwd  = !sw_pwd;
-      $(".pwd").css("-webkit-text-security", sw_pwd ? "none" : "disk");
-     });
-});
 </script>
 <div class="admin-card">
     <link rel="stylesheet" href="static/css/admin.css">

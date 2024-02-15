@@ -52,10 +52,6 @@ hr {
   border-radius: 5px;
 }
 
-.pwd {
-  -webkit-text-security: disc;
-}
-
 .db-size {
   display: flex;
   justify-content: end;
