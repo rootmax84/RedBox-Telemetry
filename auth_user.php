@@ -49,6 +49,7 @@ setcookie("stream", false);
                 <input class="form-control" type="password" name="pass" value="" placeholder="(Password)" autocomplete="off"><br>
                 <div id="captcha"><input class="form-control" style="width:70%;" type="number" min="0" max="9999" name="captcha" placeholder="(Captcha)" autocomplete="off" onkeydown="javascript: return event.keyCode == 69 ? false : true"></div><br>
                 <button id="login-btn" class="btn btn-info btn-sm" type="submit" name="Login" style="width:100%; height:35px" onClick="this.form.submit(); signIn()">Login</button>
+                <div style="text-align:center; margin:15px 0 -20px; font-size:12px; opacity:.6"><a href="https://github.com/rootmax84/RedBox-Telemetry" target="_blank">Project on Github</a></div>
             </form>
 	</div>
 <script>
