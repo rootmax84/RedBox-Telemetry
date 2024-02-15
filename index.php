@@ -347,12 +347,8 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
     <a class="btn btn-default func-btn" href="javascript:showToken()">Token</a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" href="./notify.php">Notifications</a>
+    <a class="btn btn-default func-btn" href="./users_settings.php">Settings</a>
    </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" href="./change_password.php">Change password</a>
-   </div>
-
 </div>
 <br>
 

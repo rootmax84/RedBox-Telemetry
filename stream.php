@@ -4,6 +4,7 @@ if (!$_COOKIE['stream']) {
 }
 require_once('db.php');
 include ("timezone.php");
+require_once('parse_functions.php');
 
 if (isset($_SESSION['admin'])) header("Refresh:0; url=/");
 
@@ -11,6 +12,12 @@ if(isset($_GET["update"])) {
  $r = $db->query("SELECT * FROM $db_table ORDER BY time DESC LIMIT 1"); //Select last row from raw data table
  $s = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 ORDER by description ASC");  //Check if pid in stream
  $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
+
+ //Get units conversion settings
+ $setqry = $db->execute_query("SELECT speed,temp,pressure FROM $db_users WHERE user=?", [$username])->fetch_row();
+ $speed = $setqry[0];
+ $temp = $setqry[1];
+ $pressure = $setqry[2];
 
   if ($s->num_rows) {
    while ($key = $s->fetch_array()) {
@@ -29,11 +36,47 @@ else {
 
     //Print last record from logs table
     for ($i = 0; $i < count($pid); $i++) {
+
+	switch ($speed) {
+	    case "km to miles":
+	    $spd_unit = "mph";
+	    break;
+	    case "miles to km":
+	    $spd_unit = "km/h";
+	    break;
+	    default:
+	    $spd_unit = $unit[$i];
+	    break;
+	}
+	switch ($temp) {
+	    case "Celsius to Fahrenheit":
+	    $temp_unit = "°F";
+	    break;
+	    case "Fahrenheit to Celsius":
+	    $temp_unit = "°C";
+	    break;
+	    default:
+	    $temp_unit = $unit[$i];
+	    break;
+	}
+	switch ($pressure) {
+	    case "Psi to Bar":
+	    $press_unit = "Bar";
+	    break;
+	    case "Bar to Psi":
+	    $press_unit = "Psi";
+	    break;
+	    default:
+	    $press_unit = $unit[$i];
+	    break;
+	}
+
 	echo "<tr>";
 	echo "<td>".$des[array_search($pid[$i],$pid)]."</td>"; //pid description
 	if ($row[$pid[$i]] == '') echo "<td title='No data available' tabindex='0'>-</td>"; // '-' if no data
-	else if ($pid[$i] == 'kff1202' && $id != 'RedManage') echo "<td><samp>".sprintf("%.2f", round($row['kff1202']/14.504,2))."</samp></td>"; // boost conversion from torque PSI to bar
-	else if ($pid[$i] == 'kff1202') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // boost from redmanage no conversion needed
+	else if ($pid[$i] == 'kff1202' || substri_count($des[$i], 'Pressure') > 0) echo "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $pressure, $id)."</samp></td>"; // boost/pressures conversion
+	else if (substri_count($des[$i], 'Temp') > 0) echo "<td><samp>".temp_conv($row[$pid[$i]], $temp, $id)."</samp></td>"; // temp conversion
+	else if (substri_count($des[$i], 'Speed') > 0) echo "<td><samp>".speed_conv(round($row[$pid[$i]]), $speed, $id)."</samp></td>"; // speed conversion
 	else if ($pid[$i] == 'k2111') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // oil pressure 2 digits
 	else if ($pid[$i] == 'k2119') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // fuel pressure 2 digits
 	else if ($pid[$i] == 'k2122' && $row[$pid[$i]] == 0) echo "<td><samp>OFF</samp></td>"; // fan off state
@@ -46,7 +89,6 @@ else {
 	else if ($pid[$i] == 'k2124' && $row[$pid[$i]] == 255) echo "<td><samp>N/A</samp></td>"; // Gear disabled state
 	else if ($pid[$i] == 'k21fa' && $row[$pid[$i]] == 0) echo "<td><samp id='rollback'>OK</samp></td>"; // OK rollback
 	else if ($pid[$i] == 'k21fa' && $row[$pid[$i]] != 0) echo "<td><samp id='rollback' style='color:red;font-weight:bold'>".$row[$pid[$i]]."</samp></td>"; // Coloring active rollback code
-	else if ($pid[$i] == 'kff1001' && $row[$pid[$i]] != 0) echo "<td><samp>".round($row[$pid[$i]])."</samp></td>"; // GPS speed round
 	else if ($pid[$i] == 'ke') echo "<td><samp>".sprintf("%.1f", $row[$pid[$i]])."</samp></td>"; // timing advance 1 digit
 	else if ($pid[$i] == 'kff1214') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // O2S1 2 digits
 	else if ($pid[$i] == 'kff1218') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // O2S2 2 digits
@@ -55,6 +97,9 @@ else {
 	else if ($pid[$i] == 'kc') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]]/100)."</samp></td>"; // RPM divide by 100
 	else echo "<td><samp>".$row[$pid[$i]]."</samp></td>"; // REST DATA
 	if ($pid[$i] == 'k1f') 	echo "<td><samp>h:m:s</samp></td>"; // runtime custom unit
+	else if ($pid[$i] == 'kff1202' || substri_count($des[$i], 'Pressure') > 0) echo "<td><samp>".$press_unit."</samp></td>"; // boost/pressures unit
+	else if (substri_count($des[$i], 'Temp') > 0) echo "<td><samp>".$temp_unit."</samp></td>"; // temp unit
+	else if (substri_count($des[$i], 'Speed') > 0) echo "<td><samp>".$spd_unit."</samp></td>"; // speed unit
 	else echo "<td><samp>".$unit[array_search($pid[$i],$pid)]."</samp></td>"; // REST PID UNITS
 	echo "</tr>";
     }

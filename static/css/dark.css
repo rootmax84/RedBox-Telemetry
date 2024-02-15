@@ -29,3 +29,9 @@ html {
 #conn_lost {
   filter: invert(1);
 }
+
+.form-control {
+  background-color: #1a1a1a;
+  color: #fff;
+  filter: invert(1) hue-rotate(180deg);
+}

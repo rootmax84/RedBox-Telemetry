@@ -15,7 +15,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - Admin panel
 - Notifications via Telegram
 - PWA support
-- Dynamic layout
+- Dynamic layout/units conversion
 - and more ...
 
 ### Requirements:

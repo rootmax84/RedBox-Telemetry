@@ -30,14 +30,6 @@ $admin = "admin";
 
 if ($username == $admin) $_SESSION['admin'] = true;
 
-//Just 'settings', could be moved to a config file later.
-$source_is_fahrenheit = false;
-$use_fahrenheit = false;
-
-$source_is_miles = false;
-$use_miles = false;
-$use_bar = true;
-
 $show_session_length = true;
 $max_load_avg = 10; //Server load average limit on logs upload. 0 - disabled
 $live_data_rate = 500; //Live data response in ms

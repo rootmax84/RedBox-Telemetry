@@ -67,26 +67,21 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		$columns_total = $sql->field_count;
 
 		// Get The Field Name
-		$boost = 0;
 	        $properties = $sql->fetch_fields();
 		$cnt = 0;
 		foreach ($properties as $property) {
 		$p = $property->name;
 		    $cnt++;
-		    if ($p == "kff1202") $boost = $cnt - 1;
-		    if ($p != "session" && $p != "id" && $p != "time")
+		    if ($p != "session" && $p != "time")
 		    $output .='"'.$property->name.'",';
 		}
 		$output .="\n";
 
 		// Get Records from the table
-		$skip_boost_calc = false;
 		while ($row = $sql->fetch_array()) {
 			for ($i = 0; $i < $columns_total; $i++) {
-			 if ($row["$i"] == "RedManage") $skip_boost_calc = true;
-			 if ($i > 2) { //Skip first 3 columns
-			    if ($i == $boost && $use_bar && !$skip_boost_calc) $output .='"'.round($row["$i"]/14.504,2).'",'; //round float by 2 psi/bar conversion
-			    else $output .='"'.$row["$i"].'",';
+			 if ($i > 1) { //Skip first 3 columns
+			     $output .='"'.$row["$i"].'",';
 			    }
 			}
 			$output .="\n";
@@ -105,13 +100,6 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		$rows = array();
 		while($r = $sql->fetch_assoc()) {
 			$rows[] = $r;
-		}
-
-		if ($rows[0]["id"] != "RedManage") {
-		    for ($i = 0; $i < sizeof($rows); $i++){ //convert boost
-		      if (!$use_bar) break;
-			$rows[$i]["kff1202"] = round($rows[$i]["kff1202"]/14.504,2);
-		    }
 		}
 
 		for ($i = 0; $i < sizeof($rows); $i++){ //Skip fist 3 columns

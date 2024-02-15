@@ -19,33 +19,51 @@ function average($arr)
     return $sum / count($arr);
 }
 
-// Calculate percentile
-function calc_percentile($data, $percentile){
-    if( 0 < $percentile && $percentile < 1 ) {
-        $p = $percentile;
-    }else if( 1 < $percentile && $percentile <= 100 ) {
-        $p = $percentile * .01;
-    }else {
-        return "";
-    }
-    $count = count($data);
-    $allindex = ($count-1)*$p;
-    $intvalindex = intval($allindex);
-    $floatval = $allindex - $intvalindex;
-    sort($data);
-    if(!is_float($floatval)){
-        $result = $data[$intvalindex];
-    }else {
-        if($count > $intvalindex+1)
-            $result = $floatval*($data[$intvalindex+1] - $data[$intvalindex]) + $data[$intvalindex];
-        else
-            $result = $data[$intvalindex];
-    }
-    return $result;
+//Pressure Conversion
+function pressure_conv($val, $unit, $id) {
+    switch($unit) {
+     case "Psi to Bar":
+	$tmp = $id != "RedManage" ? $val/14.504 : $val;
+     break;
+     case "Bar to Psi":
+	$tmp = $val*14.504;
+     break;
+     default:
+	$tmp = $val;
+     break;
+ }
+ return round($tmp,2);
 }
 
-// Make comma separated string for sparkline data.
-function make_spark_data($sparkarry) {
-    return implode(",", array_reverse($sparkarray));
+//Speed Conversion
+function speed_conv($val, $unit, $id) {
+    switch($unit) {
+     case "km to miles":
+	$tmp = $val*0.621371;
+     break;
+     case "miles to km":
+	$tmp = $id != "RedManage" ? $val*1.609344 : $val;
+     break;
+     default:
+	$tmp = $val;
+     break;
+ }
+ return round($tmp);
+}
+
+//Temperature Conversion
+function temp_conv($val, $unit, $id) {
+    switch($unit) {
+     case "Celsius to Fahrenheit":
+	$tmp = $val*9.0/5.0+32.0;
+     break;
+     case "Fahrenheit to Celsius":
+	$tmp = $id != "RedManage" ? ($val-32.0)*5.0/9.0 : $val;
+     break;
+     default:
+	$tmp = $val;
+     break;
+ }
+ return round($tmp,1);
 }
 ?>

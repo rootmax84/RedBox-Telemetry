@@ -22,13 +22,6 @@ tr:nth-child(even) {
   background-color: #dddddd;
 }
 
-hr {
-  border: 0;
-  border-top: 1px dashed #dddddd;
-  border-width: medium;
-  margin: 10px auto;
-}
-
 .admin-panel {
   display: flex;
   padding: 5px 0 0;

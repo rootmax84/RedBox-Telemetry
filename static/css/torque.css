@@ -566,6 +566,10 @@ img {
   .wide-h {
     text-align: center;
   }
+
+  .settings-unit {
+    width: 30%;
+  }
 }
 
 @media screen and (max-width: 55em) {
@@ -581,6 +585,10 @@ img {
   #Chart-Container {
     height: auto !important;
   }
+
+  .settings-unit {
+    width: 90%;
+  }
 }
 
 .nogps {
@@ -591,4 +599,24 @@ img {
 .table-sum td:nth-child(2),
 .table-sum td:nth-child(3) {
   font-family: monospace;
+}
+
+hr {
+  border: 0;
+  border-top: 1px dashed #dddddd;
+  border-width: medium;
+  margin: 10px auto;
+}
+
+.settings-unit {
+  margin: 20px auto;
+}
+
+.settings-container {
+  padding: 50px 0;
+}
+
+.cntr {
+  display: flex;
+  justify-content: center;
 }
