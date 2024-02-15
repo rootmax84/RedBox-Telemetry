@@ -278,7 +278,7 @@ if (isset($sids[0])) {
   <div <?php if($imapdata) { ?> class="pure-u-md-1-2" <?php } ?>>
     <!-- Chart Block -->
     <?php if($imapdata) { ?> <h4 class="wide-h">Chart</h4>
-    <?php } else { ?> <h4>Chart <span class="nogps">(no GPS data in current session)</span></h4> <?php } ?>
+    <?php } else { ?> <h4>Chart <span class="nogps">(no GPS data)</span></h4> <?php } ?>
     <div id="Chart-Container" class="row center-block" style="z-index:1;position:relative;">
     <?php   if ( $var1 <> "" ) { ?>
     <div class="demo-container">
@@ -296,7 +296,6 @@ if (isset($sids[0])) {
     <!-- MAP -->
     <h4 class="wide-h">Tracking</h4>
     <div id="map-div"><div class="row center-block" style="width:100%; height:300px; z-index:1;" id="map"></div></div>
-    <div id="map-na" style="display:flex; justify-content:center;"><h5><span class="label label-default">No GPS data in current session</span></h5></div>
   </div>
 <?php } ?>
 </div>
@@ -673,9 +672,7 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
  const path = [<?php echo $imapdata; ?>]; //this would be a new variable containing speed data for each segment
  if (!path.length) {
     $('#map-div').hide();
-    $('#map-na').show();
  } else {
-    $('#map-na').hide();
     window.MapData = {path};
     initMap = initMapLeaflet;
     jsCBinitMap = ()=>$(document).ready(initMap);
