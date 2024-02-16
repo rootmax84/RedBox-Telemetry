@@ -14,10 +14,11 @@ if(isset($_GET["update"])) {
  $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
 
  //Get units conversion settings
- $setqry = $db->execute_query("SELECT speed,temp,pressure FROM $db_users WHERE user=?", [$username])->fetch_row();
+ $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username])->fetch_row();
  $speed = $setqry[0];
  $temp = $setqry[1];
  $pressure = $setqry[2];
+ $boost = $setqry[3];
 
   if ($s->num_rows) {
    while ($key = $s->fetch_array()) {
@@ -73,11 +74,23 @@ else {
 	    $press_unit = $unit[$i];
 	    break;
 	}
+	switch ($boost) {
+	    case "Psi to Bar":
+	    $boost_unit = "Bar";
+	    break;
+	    case "Bar to Psi":
+	    $boost_unit = "Psi";
+	    break;
+	    default:
+	    $boost_unit = $unit[$i];
+	    break;
+	}
 
 	echo "<tr>";
 	echo "<td>".$des[array_search($pid[$i],$pid)]."</td>"; //pid description
 	if ($row[$pid[$i]] == '') echo "<td title='No data available' tabindex='0'>-</td>"; // '-' if no data
-	else if ($pid[$i] == 'kff1202' || substri_count($des[$i], 'Pressure') > 0) echo "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $pressure, $id)."</samp></td>"; // boost/pressures conversion
+	else if ($pid[$i] == 'kff1202') echo "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $boost, $id)."</samp></td>"; // boost conversion
+	else if (substri_count($des[$i], 'Pressure') > 0 && $pid[$i] != 'kb') echo "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $pressure, $id)."</samp></td>"; // pressures conversion except intake manifold pressure
 	else if (substri_count($des[$i], 'Temp') > 0) echo "<td><samp>".temp_conv($row[$pid[$i]], $temp, $id)."</samp></td>"; // temp conversion
 	else if (substri_count($des[$i], 'Speed') > 0) echo "<td><samp>".speed_conv(round($row[$pid[$i]]), $speed, $id)."</samp></td>"; // speed conversion
 	else if ($pid[$i] == 'k2111') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // oil pressure 2 digits
@@ -99,7 +112,8 @@ else {
 	else if ($pid[$i] == 'kc') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]]/100)."</samp></td>"; // RPM divide by 100
 	else echo "<td><samp>".$row[$pid[$i]]."</samp></td>"; // REST DATA
 	if ($pid[$i] == 'k1f') 	echo "<td><samp>h:m:s</samp></td>"; // runtime custom unit
-	else if ($pid[$i] == 'kff1202' || substri_count($des[$i], 'Pressure') > 0) echo "<td><samp>".$press_unit."</samp></td>"; // boost/pressures unit
+	else if ($pid[$i] == 'kff1202') echo "<td><samp>".$boost_unit."</samp></td>"; // boost unit
+	else if (substri_count($des[$i], 'Pressure') > 0 && $pid[$i] != 'kb') echo "<td><samp>".$press_unit."</samp></td>"; // pressures unit
 	else if (substri_count($des[$i], 'Temp') > 0) echo "<td><samp>".$temp_unit."</samp></td>"; // temp unit
 	else if (substri_count($des[$i], 'Speed') > 0) echo "<td><samp>".$spd_unit."</samp></td>"; // speed unit
 	else if ($pid[$i] == 'kff1204' || $pid[$i] == 'kff120c' ) echo "<td><samp>".$trip_unit."</samp></td>"; // Trip/ODO unit

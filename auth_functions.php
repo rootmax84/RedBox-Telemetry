@@ -86,6 +86,7 @@ function create_users_table()
 	speed enum('No conversion','km to miles','miles to km') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	temp enum('No conversion','Celsius to Fahrenheit','Fahrenheit to Celsius') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	pressure enum('No conversion','Psi to Bar','Bar to Psi') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
+	boost enum('No conversion','Psi to Bar','Bar to Psi') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	PRIMARY KEY (id),
 	UNIQUE KEY user (user),
 	UNIQUE KEY token (token),

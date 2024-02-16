@@ -3,8 +3,8 @@ require_once ('token_functions.php');
 require_once ('auth_functions.php');
 require_once ('db.php');
 
-if (isset($_POST['speed']) && isset($_POST['temp']) && isset($_POST['pressure']) && isset($username) && $username != $admin){ //Get current user token
-    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=? WHERE user=?", [$_POST['speed'], $_POST['temp'], $_POST['pressure'], $username]);
+if (isset($_POST['speed']) && isset($_POST['temp']) && isset($_POST['pressure']) && isset($_POST['boost']) && isset($username) && $username != $admin){ //Get current user token
+    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=? WHERE user=?", [$_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $username]);
     $db->close();
     die("Conversion settings updated");
 }

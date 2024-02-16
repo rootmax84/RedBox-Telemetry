@@ -6,23 +6,8 @@ if (!isset($sids) && !isset($_SESSION['admin'])) { //this is to default to get t
 	$json = [];
 }
 // Convert data units
-//Trip round
-$trip = function ($trip) { return round($trip,1); };
-
-//Trip (Stored in profile) round
-$trip_s = function ($trip_s) { return round($trip_s,1); };
-
 //gx rpm devider
 $temp_rpm_dev = function ($rpm_dev) { return $rpm_dev/100; };
-
-//gx EOP round
-$tmp_eop = function ($eop) { return round($eop,2); };
-
-//gx FP round
-$tmp_fp = function ($fp) { return round($fp,1); };
-
-//gx INJ duty round
-$tmp_injd = function ($injd) { return round($injd,0); };
 
 //gx MHS round
 $tmp_mhs = function ($mhs) { return round($mhs,0); };
@@ -42,10 +27,11 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
     $id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
 
     //Get units conversion settings
-    $setqry = $db->execute_query("SELECT speed,temp,pressure FROM $db_users WHERE user=?", [$username])->fetch_row();
+    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username])->fetch_row();
     $speed = $setqry[0];
     $temp = $setqry[1];
     $pressure = $setqry[2];
+    $boost = $setqry[3];
 
     // Get the torque key->val mappings
     $keyquery = $db->query("SELECT id,description,units FROM $db_pids_table");
@@ -71,6 +57,7 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 	if (!$sessionqry->num_rows) die;
 	while($row = $sessionqry->fetch_assoc()) {
 	    $i = 1;
+	    while (isset(${'v' . $i})) {
 		switch ($speed) {
 		    case "km to miles":
 		    $spd_unit = " (mph)";
@@ -107,7 +94,17 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 		    $press_unit = ' ('.$keyarr[${'v' . $i}][1].')';
 		    break;
 		}
-		while (isset(${'v' . $i})) {
+		switch ($boost) {
+		    case "Psi to Bar":
+		    $boost_unit = " (Bar)";
+		    break;
+		    case "Bar to Psi":
+		    $boost_unit = " (Psi)";
+		    break;
+		    default:
+		    $boost_unit = ' ('.$keyarr[${'v' . $i}][1].')';
+		    break;
+		}
 	        if (substri_count($keyarr[${'v' . $i}][0], "Speed") > 0) {
 	            $x = speed_conv($row[${'v' . $i}], $speed, $id);
 	            ${'v' . $i . '_measurand'} = $spd_unit;
@@ -121,22 +118,13 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 		     $x = $row[${'v' . $i}];
 		     ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';
 		} elseif (substri_count($keyarr[${'v' . $i}][0], "Boost") > 0) {
-		     $x = pressure_conv($row[${'v' . $i}], $pressure, $id);
-		     ${'v' . $i . '_measurand'} = $press_unit;
-		} elseif (substri_count($keyarr[${'v' . $i}][0], "Pressure") > 0) {
+		     $x = pressure_conv($row[${'v' . $i}], $boost, $id);
+		     ${'v' . $i . '_measurand'} = $boost_unit;
+		} elseif (substri_count($keyarr[${'v' . $i}][0], "Pressure") > 0 && !substri_count($keyarr[${'v' . $i}][0], "Manifold")) {
 		     $x = pressure_conv($row[${'v' . $i}], $pressure, $id);
 		     ${'v' . $i . '_measurand'} = $press_unit;
 		} elseif (substri_count($keyarr[${'v' . $i}][1], "rpm") > 0) {
 		    $x = $temp_rpm_dev ($row[${'v' . $i}]);
-		    ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';
-		} elseif (substri_count($keyarr[${'v' . $i}][0], "Engine Oil Pressure") > 0) {
-		    $x = $tmp_eop ($row[${'v' . $i}]);
-		    ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';
-		} elseif (substri_count($keyarr[${'v' . $i}][0], "Fuel Pressure") > 0) {
-		    $x = $tmp_fp ($row[${'v' . $i}]);
-		    ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';
-		} elseif (substri_count($keyarr[${'v' . $i}][0], "Injector duty") > 0) {
-		    $x = $tmp_injd ($row[${'v' . $i}]);
 		    ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';
 		} elseif (substri_count($keyarr[${'v' . $i}][0], "Motorhours") > 0) {
 		    $x = $tmp_mhs ($row[${'v' . $i}]);
@@ -147,12 +135,6 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 		} elseif (substri_count($keyarr[${'v' . $i}][0], "Run Time Since Engine Start") > 0) {
 		    $x = $tmp_ert ($row[${'v' . $i}]);
 		    ${'v' . $i . '_measurand'} = ' (m)';
-		} elseif (substri_count($keyarr[${'v' . $i}][0], "Trip Distance") > 0) {
-		    $x = $trip ($row[${'v' . $i}]);
-		    ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';
-		} elseif (substri_count($keyarr[${'v' . $i}][0], "Trip Distance (Stored in Vehicle Profile)") > 0) {
-		    $x = $trip_s ($row[${'v' . $i}]);
-		    ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';
 		} elseif (substri_count($keyarr[${'v' . $i}][0], "Gear") > 0) {
 		    $x = $tmp_gear ($row[${'v' . $i}]);
 		    ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';

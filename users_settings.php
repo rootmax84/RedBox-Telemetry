@@ -3,10 +3,11 @@
     require_once('db_limits.php');
 
     //Conversion settings
-    $setqry = $db->execute_query("SELECT speed,temp,pressure FROM $db_users WHERE user=?", [$username])->fetch_row();
+    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username])->fetch_row();
     $speed = $setqry[0];
     $temp = $setqry[1];
     $pressure = $setqry[2];
+    $boost = $setqry[3];
 
     //Telegram token/chatid
     $row = $db->execute_query("SELECT tg_token, tg_chatid FROM $db_users WHERE user=?", [$username])->fetch_assoc();
@@ -58,10 +59,15 @@
 		    <option value="2"<?php if ($temp == "Celsius to Fahrenheit") echo ' selected'; ?>>Celsius to Fahrenheit</option>
 		    <option value="3"<?php if ($temp == "Fahrenheit to Celsius") echo ' selected'; ?>>Fahrenheit to Celsius</option>
 		</select>
-		 <label>Pressure</label><select class="form-control" name="pressure">
+		 <label>Pressure (oil, fuel, etc)</label><select class="form-control" name="pressure">
 		    <option value="1"<?php if ($pressure == "No conversion") echo ' selected'; ?>>No conversion</option>
 		    <option value="2"<?php if ($pressure == "Psi to Bar") echo ' selected'; ?>>Psi to Bar</option>
 		    <option value="3"<?php if ($pressure == "Bar to Psi") echo ' selected'; ?>>Bar to Psi</option>
+		</select>
+		 <label>Boost</label><select class="form-control" name="boost">
+		    <option value="1"<?php if ($boost == "No conversion") echo ' selected'; ?>>No conversion</option>
+		    <option value="2"<?php if ($boost == "Psi to Bar") echo ' selected'; ?>>Psi to Bar</option>
+		    <option value="3"<?php if ($boost == "Bar to Psi") echo ' selected'; ?>>Bar to Psi</option>
 		</select>
 		 <br>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit">Save</button></div>
