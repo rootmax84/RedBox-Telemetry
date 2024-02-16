@@ -74,12 +74,15 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 		switch ($speed) {
 		    case "km to miles":
 		    $spd_unit = " (mph)";
+		    $trip_unit = " (miles)";
 		    break;
 		    case "miles to km":
 		    $spd_unit = " (km/h)";
+		    $trip_unit = " (km)";
 		    break;
 		    default:
 		    $spd_unit = ' ('.$keyarr[${'v' . $i}][1].')';
+		    $trip_unit = ' ('.$keyarr[${'v' . $i}][1].')';
 		    break;
 		}
 		switch ($temp) {
@@ -108,9 +111,15 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 	        if (substri_count($keyarr[${'v' . $i}][0], "Speed") > 0) {
 	            $x = speed_conv($row[${'v' . $i}], $speed, $id);
 	            ${'v' . $i . '_measurand'} = $spd_unit;
+	        } elseif (substri_count($keyarr[${'v' . $i}][0], "Distance") > 0) {
+	            $x = speed_conv($row[${'v' . $i}], $speed, $id);
+	            ${'v' . $i . '_measurand'} = $trip_unit;
 	        } elseif (substri_count($keyarr[${'v' . $i}][0], "Temp") > 0) {
 	            $x = temp_conv($row[${'v' . $i}], $temp, $id);
 	            ${'v' . $i . '_measurand'} = $temp_unit;
+		} elseif (substri_count($keyarr[${'v' . $i}][0], "Boost Solenoid Duty") > 0) {
+		     $x = $row[${'v' . $i}];
+		     ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';
 		} elseif (substri_count($keyarr[${'v' . $i}][0], "Boost") > 0) {
 		     $x = pressure_conv($row[${'v' . $i}], $pressure, $id);
 		     ${'v' . $i . '_measurand'} = $press_unit;

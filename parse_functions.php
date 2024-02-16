@@ -48,7 +48,7 @@ function speed_conv($val, $unit, $id) {
 	$tmp = $val;
      break;
  }
- return round($tmp);
+ return round($tmp,1);
 }
 
 //Temperature Conversion
