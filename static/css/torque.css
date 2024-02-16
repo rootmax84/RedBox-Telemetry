@@ -530,13 +530,14 @@ img {
 .pages {
   text-align: center;
   font-family: monospace;
-  padding-bottom: 10px;
+  padding: 5px 20px 5px;
 }
 
 .current-page {
   font-weight: 900;
   font-size: 18px;
   font-family: monospace;
+  padding: 5px 20px 5px;
 }
 
 .pure-g {

@@ -68,10 +68,8 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 
 		// Get The Field Name
 	        $properties = $sql->fetch_fields();
-		$cnt = 0;
 		foreach ($properties as $property) {
 		$p = $property->name;
-		    $cnt++;
 		    if ($p != "session" && $p != "time")
 		    $output .='"'.$property->name.'",';
 		}
@@ -80,7 +78,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		// Get Records from the table
 		while ($row = $sql->fetch_array()) {
 			for ($i = 0; $i < $columns_total; $i++) {
-			 if ($i > 1) { //Skip first 3 columns
+			 if ($i > 1) { //Skip first 2 columns
 			     $output .='"'.$row["$i"].'",';
 			    }
 			}
@@ -102,8 +100,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 			$rows[] = $r;
 		}
 
-		for ($i = 0; $i < sizeof($rows); $i++){ //Skip fist 3 columns
-		    unset($rows[$i]["id"]);
+		for ($i = 0; $i < sizeof($rows); $i++){ //Skip fist 2 columns
 		    unset($rows[$i]["session"]);
 		    unset($rows[$i]["time"]);
 		}
