@@ -243,10 +243,11 @@ die("User added");
 	$sessions_table = "DROP TABLE ".$login.$db_sessions_prefix;
 	$pids_table = "DROP TABLE ".$login.$db_pids_prefix;
 	$user_entry = "DELETE FROM $db_users WHERE user=" . quote_value($login);
-
-	$db->query($logs_table);
-	$db->query($sessions_table);
-	$db->query($pids_table);
+	try {
+	    $db->query($logs_table);
+	    $db->query($sessions_table);
+	    $db->query($pids_table);
+	} catch (Exception $e) { die("User has no tables and cannot be deleted!"); }
 	$db->query($user_entry);
 	$db->close();
 	die("User deleted");

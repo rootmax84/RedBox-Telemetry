@@ -78,7 +78,7 @@ function create_users_table()
   $table = "CREATE TABLE IF NOT EXISTS " . $db_users . " (
 	id bigint unsigned NOT NULL AUTO_INCREMENT,
 	s bigint NOT NULL DEFAULT 100,
-	user varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
+	user varchar(190) COLLATE utf8mb4_bin NOT NULL,
 	pass varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
 	token varchar(190) COLLATE utf8mb4_unicode_ci NULL,
 	tg_token varchar(190) COLLATE utf8mb4_unicode_ci NULL,
