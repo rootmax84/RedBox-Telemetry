@@ -70,7 +70,6 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 	        $properties = $sql->fetch_fields();
 		foreach ($properties as $property) {
 		$p = $property->name;
-		    if ($p != "session" && $p != "time")
 		    $output .='"'.$property->name.'",';
 		}
 		$output .="\n";
@@ -78,9 +77,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		// Get Records from the table
 		while ($row = $sql->fetch_array()) {
 			for ($i = 0; $i < $columns_total; $i++) {
-			 if ($i > 1) { //Skip first 2 columns
 			     $output .='"'.$row["$i"].'",';
-			    }
 			}
 			$output .="\n";
 		}
@@ -98,11 +95,6 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		$rows = array();
 		while($r = $sql->fetch_assoc()) {
 			$rows[] = $r;
-		}
-
-		for ($i = 0; $i < sizeof($rows); $i++){ //Skip fist 2 columns
-		    unset($rows[$i]["session"]);
-		    unset($rows[$i]["time"]);
 		}
 
 		$jsonrows = json_encode($rows);
