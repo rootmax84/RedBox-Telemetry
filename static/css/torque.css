@@ -621,3 +621,9 @@ hr {
   display: flex;
   justify-content: center;
 }
+
+.no-data-url-list {
+  width: fit-content;
+  margin: 0 auto 10px;
+  text-align: left;
+}

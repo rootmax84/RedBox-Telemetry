@@ -615,7 +615,11 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
 <div class="login" style="text-align:center; width:400px;">
     <h4>No data to show</h4>
     <h6>Upload data via internet or via file(s)</h6>
-    <h6><a href="javascript:showToken()">Show token for upload via internet</a></h6>
+<ul class="no-data-url-list">
+    <li><a href="javascript:showToken()">Show token for upload via internet</a></li>
+    <li><a href="users_settings.php">Maybe you want to switch some settings</a></li>
+    <li><a href="pid_edit.php">Or edit some PIDs</a></li>
+</ul>
 <div id="log">
     <div style="display:flex; justify-content:center; margin-bottom:10px;">
 	     <span class="label label-default" id="log-msg-def">Select/Drop RedManage logger file(s) to upload</span>
