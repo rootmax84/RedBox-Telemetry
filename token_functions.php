@@ -14,7 +14,7 @@ function getBearerToken() : ?string {
 
 // Session upload notification to telegram
 function notify($text, $tg_token, $tg_chatid) {
-  if (!strlen($tg_token) || !strlen($tg_chatid)) die;
+  if (!strlen($tg_token) || !strlen($tg_chatid)) return;
     include('creds.php');
     $ch = curl_init();
     curl_setopt_array(
