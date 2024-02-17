@@ -668,7 +668,6 @@ function submitLog(el) {
   up_btn.hide();
   msg_err.innerHTML = "";
   msg_def.innerHTML = "";
-  msg_ok.innerHTML = "Uploading ...";
 
   var xhr = new XMLHttpRequest();
   xhr.onload = function() {
@@ -678,6 +677,13 @@ function submitLog(el) {
       msg_err.innerHTML = xhr.responseText;
     }
     logFile.removeAttribute("disabled");
+  }
+  xhr.upload.onprogress = p => {
+    progress = Math.round((p.loaded / p.total) * 100);
+    if (progress < 100)
+	msg_ok.innerHTML = "Uploading: " + progress + '%';
+    else
+	msg_ok.innerHTML = "Processing ...";
   }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
