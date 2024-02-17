@@ -481,6 +481,7 @@ img {
         border: 1px solid;
         width: fit-content;
         padding: 3px;
+        min-width: 100px;
       }
 }
 
