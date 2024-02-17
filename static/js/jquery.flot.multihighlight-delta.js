@@ -233,7 +233,7 @@ function calculate(number) {
           this.plot.highlight(seriesData, dataPoint);
 
 	var rlbc;
-	if (seriesData['label'] === 'Rollback ()'){
+	if (seriesData['label'].includes('Rollback')) {
 	     rlbc = calculate(dataPoint[1]);
 	}
 	else rlbc = "";
