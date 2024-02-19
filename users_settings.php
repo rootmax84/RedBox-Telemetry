@@ -84,7 +84,6 @@
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit">Save</button></div>
 		</form>
         </div>
-	<hr>
 </div>
 <script>
 "use strict";

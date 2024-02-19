@@ -551,6 +551,12 @@ img {
   align-content: flex-start;
 }
 
+.map-container {
+  height: 302px;
+  z-index: 1;
+  border-radius: 5px;
+}
+
 @media screen and (min-width: 55em) {
   .pure-u-md-1-2 {
     display: inline-block;
@@ -561,8 +567,9 @@ img {
     width: 50%;
   }
 
-  #map-div {
-    margin-top: 18px;
+  .map-container {
+    margin-top: 17px;
+    border-radius: 0;
   }
 
   .wide-h {

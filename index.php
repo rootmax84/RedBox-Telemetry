@@ -274,7 +274,7 @@ if (isset($sids[0])) {
  <div class="pure-u-md-1-2">
     <!-- MAP -->
     <h4 class="wide-h">Tracking</h4>
-    <div id="map-div"><div class="row center-block" style="width:100%; height:300px; z-index:1;" id="map"></div></div>
+    <div id="map-div"><div class="row center-block map-container" id="map"></div></div>
   </div>
 <?php } ?>
 </div>
