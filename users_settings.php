@@ -69,6 +69,10 @@
 		    <option value="2"<?php if ($boost == "Psi to Bar") echo ' selected'; ?>>Psi to Bar</option>
 		    <option value="3"<?php if ($boost == "Bar to Psi") echo ' selected'; ?>>Bar to Psi</option>
 		</select>
+		 <label>Time format (stored in LocalStorage/Cookies)</label><select class="form-control" id="time-format">
+		    <option value="1">24 hours</option>
+		    <option value="2">12 hours</option>
+		</select>
 		 <br>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit">Save</button></div>
 		</form>
@@ -92,6 +96,15 @@ function submitForm(el) {
   xhr.onload = function(){ xhrResponse(xhr.responseText); }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
+
+ switch ($("#time-format").val()) {
+    case "1":
+	localStorage.removeItem("timeformat12");
+    break;
+    case "2":
+	localStorage.setItem("timeformat12", "1");
+    break;
+ }
   return false;
 }
 
@@ -104,6 +117,9 @@ function xhrResponse(text) {
  };
  redDialog.make(dialogOpt);
 }
+
+$("#time-format").val(localStorage.getItem("timeformat12") ? "2" : "1");
+
 </script>
  </body>
 </html>

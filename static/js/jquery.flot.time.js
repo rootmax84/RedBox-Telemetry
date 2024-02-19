@@ -55,13 +55,13 @@ API.txt for details.
 
 		var hours12;
 
-		//if (hours > 12) {
-		//	hours12 = hours - 12;
-		//} else if (hours == 0) {
-		//	hours12 = 12;
-		//} else {
+		if (hours > 12) {
+			hours12 = hours - 12;
+		} else if (hours == 0) {
+			hours12 = 12;
+		} else {
 			hours12 = hours;
-		//}
+		}
 
 		for (var i = 0; i < fmt.length; ++i) {
 
@@ -85,8 +85,8 @@ API.txt for details.
 					case 'S': c = leftPad(d.getSeconds()); break;
 					case 'y': c = leftPad(d.getFullYear() % 100); break;
 					case 'Y': c = "" + d.getFullYear(); break;
-					case 'p': c = (isAM) ? ("") : (""); break;
-//					case 'P': c = (isAM) ? ("" + "AM") : ("" + "PM"); break;
+					case 'p': c = (isAM) ? ("" + "am") : ("" + "pm"); break;
+					case 'P': c = (isAM) ? ("" + "AM") : ("" + "PM"); break;
 					case 'w': c = "" + d.getDay(); break;
 				}
 				r.push(c);

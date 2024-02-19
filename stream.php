@@ -123,7 +123,8 @@ else {
 
     if ($row['time'] != ''){ //Last record date
 	$seconds = intval($row['time'] / 1000);
-	echo "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>Last record at: ".date("d.m.Y H:i:s", $seconds)."</span></td></tr>";
+	$time_format = $_COOKIE['timeformat'] == "F d, Y h:ia" ? "d.m.Y h:i:sa" : "d.m.Y H:i:s";
+	echo "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>Last record at: ".date($time_format, $seconds)."</span></td></tr>";
     }
     else echo "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>No data available</span></td></tr>";
   }

@@ -251,7 +251,7 @@ function calculate(number) {
 		  childrenTexts.push(text);
 		  // 2015.08.17 - edit by surfrock66 - populate the variable to be passed to display the time in the tooltip
 		  var timestamp = new Date(dataPoint[0]);
-		  var xDateFormat =  "%m/%d/%Y  %I:%M:%S%p";
+		  var xDateFormat =  localStorage.getItem("timeformat12") ? "%m/%d/%Y  %I:%M:%S%p" : "%m/%d/%Y  %H:%M:%S";
 		  timeArray[0] = $.plot.formatDate(timestamp, xDateFormat);
 //		  timeArray[0] = dataPoint[0];
         }

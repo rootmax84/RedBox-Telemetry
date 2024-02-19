@@ -1,35 +1,6 @@
-//$(document).ready(()=>chartTooltip); //changed this to be able to create attach the listener when plot is created via js code
 chartTooltip = () => {
     var previousPoint = null;
     $("#placeholder").bind("plothover", function (event, pos, item) {
-        var a_p = "";
-        var d = new Date(parseInt(pos.x.toFixed(0)));
-        var curr_hour = d.getHours();
-        if (curr_hour < 12) {
-           a_p = "AM";
-           }
-        else {
-           a_p = "PM";
-           }
-        if (curr_hour == 0) {
-           curr_hour = 12;
-           }
-        if (curr_hour > 12) {
-           curr_hour = curr_hour - 12;
-           }
-        var curr_min = d.getMinutes() + "";
-        if (curr_min.length == 1) {
-           curr_min = "0" + curr_min;
-           }
-        var curr_sec = d.getSeconds() + "";
-        if (curr_sec.length == 1) {
-            curr_sec = "0" + curr_sec;
-        }
-        var formattedTime = curr_hour + ":" + curr_min + ":" + curr_sec + " " + a_p;
-        $(".x").text(formattedTime);
-        $("#y1").text(pos.y.toFixed(2));
-        $("#y2").text(pos.y1.toFixed(2));
-        
         if (typeof window.markerUpd==='function') markerUpd(item);
 
         if ($("#enableTooltip:checked").length > 0) {
@@ -67,19 +38,6 @@ $(document).ready(function(){
   $("div#selmonth_chosen a.chosen-single span").attr('align', 'center');
   $("select#plot_data").chosen({no_results_text: "Oops, nothing found!"});
   $("select#plot_data").chosen({placeholder_text_multiple: "Choose data.."});
-  // When the selection drop down is open, force all elements to align left with padding
-/*
-  $('select#seshidtag').on('chosen:showing_dropdown', function() { $('li.active-result').attr('align', 'left');});
-  $('select#seshidtag').on('chosen:showing_dropdown', function() { $('li.active-result').css('padding-left', '20px');});
-  $('select#selprofile').on('chosen:showing_dropdown', function() { $('li.active-result').attr('align', 'left');});
-  $('select#selprofile').on('chosen:showing_dropdown', function() { $('li.active-result').css('padding-left', '20px');});
-  $('select#selyear').on('chosen:showing_dropdown', function() { $('li.active-result').attr('align', 'left');});
-  $('select#selyear').on('chosen:showing_dropdown', function() { $('li.active-result').css('padding-left', '20px');});
-  $('select#selmonth').on('chosen:showing_dropdown', function() { $('li.active-result').attr('align', 'left');});
-  $('select#selmonth').on('chosen:showing_dropdown', function() { $('li.active-result').css('padding-left', '20px');});
-  $('select#plot_data').on('chosen:showing_dropdown', function() { $('li.active-result').attr('align', 'left');});
-  $('select#plot_data').on('chosen:showing_dropdown', function() { $('li.active-result').css('padding-left', '20px');});
-*/
 });
 
 $(document).on('click', '.panel-heading span.clickable', function(e){
@@ -110,8 +68,7 @@ function doPlot(position) {
             mode: "time",
             timezone: "browser",
             axisLabel: "Time",
-            timeformat: "%I:%M%p",
-            twelveHourClock: true
+            timeformat: localStorage.getItem("timeformat12") ? "%I:%M%p" : "%H:%M"
         } ],
         yaxes: [ { axisLabel: "" }, {
             alignTicksWithAxis: position == "right" ? 1 : null,
@@ -130,16 +87,6 @@ function doPlot(position) {
             clickable: false
         },
         multihighlightdelta: { mode: 'x' },
-        tooltip: false,
-        tooltipOpts: {
-            //content: "%s at %x: %y",
-            content: "%x",
-            xDateFormat: "%m/%d/%Y %I:%M:%S%p",
-            twelveHourClock: true,
-            onHover: function(flotItem, $tooltipEl) {
-            console.log(flotItem, $tooltipEl);
-            }
-        }
     });
     chartTooltip();
     //Trim by plot Select
@@ -147,7 +94,7 @@ function doPlot(position) {
         const [a,b] = [jsTimeMap.findIndex(e=>e>=range.xaxis.from),jsTimeMap.findIndex(e=>e>=range.xaxis.to)];
         $("#slider-range11").slider('values',0,a);
         $("#slider-range11").slider('values',1,b);
-        $( "#slider-time" ).val( (new Date(jsTimeMap[a])).toLocaleTimeString() + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString());
+        $( "#slider-time" ).val( (new Date(jsTimeMap[a])).toLocaleTimeString(localStorage.getItem("timeformat12") ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString(localStorage.getItem("timeformat12") ? 'en-US' : 'ru-RU'));
         chartUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
 	try {
     	    mapUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
@@ -301,7 +248,7 @@ initSlider = (jsTimeMap,minTimeStart,maxTimeEnd)=>{
 
     function ctime(t) {//covert the epoch time to local readable 
         var date = new Date(t);
-        return  date.toLocaleTimeString();
+        return  date.toLocaleTimeString(localStorage.getItem("timeformat12") ? 'en-US' : 'ru-RU');
     }
 
     var sv = $(function() {//jquery range slider

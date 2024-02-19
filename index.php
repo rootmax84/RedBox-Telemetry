@@ -124,7 +124,6 @@ if (isset($sids[0])) {
     <script src="static/js/jquery.flot.multihighlight-delta.js"></script>
     <script src="static/js/jquery.flot.selection.js"></script>
     <script src="static/js/jquery.flot.time.js"></script>
-    <script src="static/js/jquery.flot.tooltip.min.js"></script>
     <script src="static/js/jquery.flot.updater.js"></script>
     <script src="static/js/jquery.flot.resize.min.js"></script>
     <script src="static/js/jquery.flot.navigate.js"></script>
@@ -214,7 +213,7 @@ if (isset($sids[0])) {
 	     <select id="seshidtag" name="seshidtag" class="form-control chosen-select" onchange="document.getElementById('wait_layout').style.display = 'block';this.form.submit()" data-placeholder="Select Session...">
 	      <option value="" disabled>Select Session...</option>
 <?php foreach ($seshdates as $dateid => $datestr) { ?>
-	      <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo ' (Current Session)'; ?></option>
+	      <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo date($_COOKIE['timeformat'], $datestr); echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo ' (Current Session)'; ?></option>
 <?php } ?>
 	    </select>
 <?php   if ( $filterprofile <> "" ) { ?>

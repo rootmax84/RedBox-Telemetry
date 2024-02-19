@@ -105,8 +105,8 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
 ?>
           <tr>
             <td><input type="checkbox" name="<?php echo $x['session']; ?>" <?php if ($x['session'] == $mergesession) { echo "checked disabled"; } ?>></td>
-            <td id="start:<?php echo $x['session']; ?>"><?php echo date("F d, Y H:i", substr($x["timestart"], 0, -3)); ?></td>
-            <td id="end:<?php echo $x['session']; ?>"><?php echo date("F d, Y H:i", substr($x["timeend"], 0, -3)); ?></td>
+            <td id="start:<?php echo $x['session']; ?>"><?php echo date($_COOKIE['timeformat'], substr($x["timestart"], 0, -3)); ?></td>
+            <td id="end:<?php echo $x['session']; ?>"><?php echo date($_COOKIE['timeformat'], substr($x["timeend"], 0, -3)); ?></td>
             <td id="length:<?php echo $x['session']; ?>"><?php echo gmdate("H:i:s", intval(($x["timeend"] - $x["timestart"])/1000)); ?></td>
             <td id="size:<?php echo $x['session']; ?>"><?php echo $x["sessionsize"]; ?></td>
             <td id="profile:<?php echo $x['session']; ?>"><?php echo $x["profileName"]; ?></td>

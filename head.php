@@ -27,12 +27,16 @@
 <script src="static/js/locate.js"></script>
 <script src="static/js/nosleep.js"></script>
 <script>
+    var timeformat = "";
+     if (localStorage.getItem("timeformat12")) timeformat = "F d, Y h:ia";
+     else timeformat = "F d, Y H:i";
+
     $(document).ready(function() {
             var visitortimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             $.ajax({
                 type: "GET",
                 url: "timezone.php",
-                data: 'time='+ visitortimezone,
+                data: 'time=' + visitortimezone + '&format=' + timeformat,
             });
       $("#theme-switch").click( function() {
        toggle_dark();
