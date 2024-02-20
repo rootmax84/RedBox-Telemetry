@@ -68,7 +68,7 @@ function doPlot(position) {
             mode: "time",
             timezone: "browser",
             axisLabel: "Time",
-            timeformat: localStorage.getItem("timeformat12") ? "%I:%M%p" : "%H:%M"
+            timeformat: $.cookie('timeformat') == '12' ? "%I:%M%p" : "%H:%M"
         } ],
         yaxes: [ { axisLabel: "" }, {
             alignTicksWithAxis: position == "right" ? 1 : null,
@@ -94,7 +94,7 @@ function doPlot(position) {
         const [a,b] = [jsTimeMap.findIndex(e=>e>=range.xaxis.from),jsTimeMap.findIndex(e=>e>=range.xaxis.to)];
         $("#slider-range11").slider('values',0,a);
         $("#slider-range11").slider('values',1,b);
-        $( "#slider-time" ).val( (new Date(jsTimeMap[a])).toLocaleTimeString(localStorage.getItem("timeformat12") ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString(localStorage.getItem("timeformat12") ? 'en-US' : 'ru-RU'));
+        $( "#slider-time" ).val( (new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
         chartUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
 	try {
     	    mapUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
@@ -248,7 +248,7 @@ initSlider = (jsTimeMap,minTimeStart,maxTimeEnd)=>{
 
     function ctime(t) {//covert the epoch time to local readable 
         var date = new Date(t);
-        return  date.toLocaleTimeString(localStorage.getItem("timeformat12") ? 'en-US' : 'ru-RU');
+        return  date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU');
     }
 
     var sv = $(function() {//jquery range slider

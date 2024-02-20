@@ -3,11 +3,12 @@
     require_once('db_limits.php');
 
     //Conversion settings
-    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username])->fetch_row();
+    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time FROM $db_users WHERE user=?", [$username])->fetch_row();
     $speed = $setqry[0];
     $temp = $setqry[1];
     $pressure = $setqry[2];
     $boost = $setqry[3];
+    $time = $setqry[4];
 
     //Telegram token/chatid
     $row = $db->execute_query("SELECT tg_token, tg_chatid FROM $db_users WHERE user=?", [$username])->fetch_assoc();
@@ -69,9 +70,9 @@
 		    <option value="2"<?php if ($boost == "Psi to Bar") echo ' selected'; ?>>Psi to Bar</option>
 		    <option value="3"<?php if ($boost == "Bar to Psi") echo ' selected'; ?>>Bar to Psi</option>
 		</select>
-		 <label>Time format (stored in LocalStorage/Cookies)</label><select class="form-control" id="time-format">
-		    <option value="1">24 hours</option>
-		    <option value="2">12 hours</option>
+		 <label>Time</label><select class="form-control" name="time">
+		    <option value="1"<?php if ($time == "24") echo ' selected'; ?>>24 Hours</option>
+		    <option value="2"<?php if ($time == "12") echo ' selected'; ?>>12 Hours</option>
 		</select>
 		 <br>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit">Save</button></div>
@@ -96,15 +97,6 @@ function submitForm(el) {
   xhr.onload = function(){ xhrResponse(xhr.responseText); }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
-
- switch ($("#time-format").val()) {
-    case "1":
-	localStorage.removeItem("timeformat12");
-    break;
-    case "2":
-	localStorage.setItem("timeformat12", "1");
-    break;
- }
   return false;
 }
 
@@ -117,9 +109,6 @@ function xhrResponse(text) {
  };
  redDialog.make(dialogOpt);
 }
-
-$("#time-format").val(localStorage.getItem("timeformat12") ? "2" : "1");
-
 </script>
  </body>
 </html>

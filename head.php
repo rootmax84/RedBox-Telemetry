@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="static/css/chosen.min.css">
 <link rel="stylesheet" href="static/css/torque.css">
 <script src="static/js/jquery.min.js"></script>
+<script src="static/js/jquery.cookie.min.js"></script>
 <script src="static/js/jquery-ui.min.js"></script>
 <script src="static/js/bootstrap.min.js"></script>
 <script src="static/js/jquery.peity.min.js"></script>
@@ -27,16 +28,12 @@
 <script src="static/js/locate.js"></script>
 <script src="static/js/nosleep.js"></script>
 <script>
-    var timeformat = "";
-     if (localStorage.getItem("timeformat12")) timeformat = "F d, Y h:ia";
-     else timeformat = "F d, Y H:i";
-
     $(document).ready(function() {
             var visitortimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             $.ajax({
                 type: "GET",
                 url: "timezone.php",
-                data: 'time=' + visitortimezone + '&format=' + timeformat,
+                data: 'time=' + visitortimezone
             });
       $("#theme-switch").click( function() {
        toggle_dark();

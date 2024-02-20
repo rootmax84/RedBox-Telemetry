@@ -213,7 +213,7 @@ if (isset($sids[0])) {
 	     <select id="seshidtag" name="seshidtag" class="form-control chosen-select" onchange="document.getElementById('wait_layout').style.display = 'block';this.form.submit()" data-placeholder="Select Session...">
 	      <option value="" disabled>Select Session...</option>
 <?php foreach ($seshdates as $dateid => $datestr) { ?>
-	      <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo date($_COOKIE['timeformat'], $datestr); echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo ' (Current Session)'; ?></option>
+	      <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo ' (Current Session)'; ?></option>
 <?php } ?>
 	    </select>
 <?php   if ( $filterprofile <> "" ) { ?>
@@ -554,7 +554,7 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
 	    $last = $db->query("SELECT time FROM ".$row["user"].$db_log_prefix." ORDER BY time DESC LIMIT 1")->fetch_array();
 	    if ($last) {
 	     $seconds = intval($last[0]/1000);
-	     $last = date("d.m.Y H:i:s",$seconds);
+	     $last = date($admin_timeformat_12 ? "d.m.Y h:i:sa" : "d.m.Y H:i:s", $seconds);
 	    }
 	}
 	echo "<tr>";

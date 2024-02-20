@@ -50,7 +50,7 @@ function auth_user()
     $pass = preg_replace('/\s+/', '', get_pass());
 
   try {
-      $userqry = $db->execute_query("SELECT user, pass, s FROM $db_users WHERE user=?", [$user]);
+      $userqry = $db->execute_query("SELECT user, pass, s, time FROM $db_users WHERE user=?", [$user]);
   } catch(Exception $e) { return; }
 	if (!$userqry->num_rows) return false;
 	else {
@@ -60,6 +60,8 @@ function auth_user()
 		$_SESSION['torque_pass'] = $row["pass"];
 		$_SESSION['torque_limit'] = $row["s"];
 		setcookie("stream", true);
+		setcookie("timeformat", $row["time"]);
+		$_COOKIE['timeformat'] = $row["time"];
 		$db->close();
 		return true;
 	    }

@@ -97,7 +97,7 @@ while($row = $sessionqry->fetch_assoc()) {
     $session_ip = $row["ip"];
     $sid = $row["session"];
     $sids[] = preg_replace('/\D/', '', $sid);
-    $seshdates[$sid] = substr($sid, 0, -3);
+    $seshdates[$sid] = date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", substr($sid, 0, -3));
     $seshsizes[$sid] = " (Length $session_duration_str)";
     $seshprofile[$sid] = " ($session_profileName Profile)";
     $seship[$sid] = " (From ip $session_ip)";

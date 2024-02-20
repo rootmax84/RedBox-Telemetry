@@ -34,7 +34,7 @@ if (!$logged_in && $captcha)
 $_SESSION['torque_logged_in'] = $logged_in;
 
 if (!$logged_in) {
-setcookie("stream", false);
+ setcookie("stream", "");
 ?><!DOCTYPE html>
 <html lang="en">
     <head>

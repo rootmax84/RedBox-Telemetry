@@ -3,9 +3,10 @@ require_once ('token_functions.php');
 require_once ('auth_functions.php');
 require_once ('db.php');
 
-if (isset($_POST['speed']) && isset($_POST['temp']) && isset($_POST['pressure']) && isset($_POST['boost']) && isset($username) && $username != $admin){ //Get current user token
-    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=? WHERE user=?", [$_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $username]);
+if (isset($_POST['speed']) && isset($_POST['temp']) && isset($_POST['pressure']) && isset($_POST['boost']) && isset($_POST['time']) && isset($username) && $username != $admin){ //Update users settings
+    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=? WHERE user=?", [$_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $username]);
     $db->close();
+    setcookie("timeformat", $_POST['time'] == '1' ? '24' : '12');
     die("Conversion settings updated");
 }
 
