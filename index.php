@@ -124,9 +124,7 @@ if (isset($sids[0])) {
     <script src="static/js/jquery.flot.multihighlight-delta.js"></script>
     <script src="static/js/jquery.flot.selection.js"></script>
     <script src="static/js/jquery.flot.time.js"></script>
-    <script src="static/js/jquery.flot.updater.js"></script>
     <script src="static/js/jquery.flot.resize.min.js"></script>
-    <script src="static/js/jquery.flot.navigate.js"></script>
     <!-- Configure Jquery Flot graph and plot code -->
     <script>
       $(document).ready(function(){
