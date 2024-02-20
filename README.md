@@ -34,7 +34,8 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 6. Create empty file with name 'install' in root folder of installation (Make sure web-server have write rights on folder)
 7. Sign in with admin login and admin password (default password: admin) (Users table will be created while sign in)
 8. Create new user in admin panel and change admin password
-9. Done!
+9. For upload data from Torque PRO/RedManage use URL - https://your.site/ul.php
+10. Done!
 
 ### Screenshots:
 ![](https://redbox.pw/wp-content/uploads/2024/02/interface_main.png?1)
