@@ -675,13 +675,8 @@ function submitLog(el) {
     }
     logFile.removeAttribute("disabled");
   }
-  xhr.upload.onprogress = p => {
-    progress = Math.round((p.loaded / p.total) * 100);
-    if (progress < 100)
-	msg_ok.innerHTML = "Uploading: " + progress + '%';
-    else
-	msg_ok.innerHTML = "Processing ...";
-  }
+  xhr.upload.onprogress = p => { msg_ok.innerHTML = "Uploading: " + Math.round((p.loaded / p.total) * 100) + '%' }
+  xhr.upload.onloadend = () => { msg_ok.innerHTML = "Processing ..." }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
   logFile.setAttribute("disabled", "");
