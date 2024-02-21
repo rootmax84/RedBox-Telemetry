@@ -78,7 +78,7 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
-    <form style="margin-top:50px;" action="javascript:void(0);">
+    <form style="padding:50px 0 0;" action="javascript:void(0);">
       <div style="padding:10px; display:flex; justify-content:center;"><input class="btn btn-info btn-sm" type="submit" value="Apply" id="btn-apply"></div>
     <table class="table table-del-merge-pid">
       <thead>

@@ -54,7 +54,7 @@ if (isset($delsession)) {
         </div>
       </div>
     </div>
-    <form style="margin-top:50px;" action="del_sessions.php" method="get" id="formdel" >
+    <form style="padding:50px 0 0;" action="del_sessions.php" method="get" id="formdel" >
       <input type="hidden" name="delsession" value="<?php echo $delsession; ?>">
       <div style="padding:10px; display:flex; justify-content:center"><input class="btn btn-info btn-sm" type="submit" value="Delete Selected Sessions" id="del-btn"></div>
       <table class="table table-del-merge-pid">
@@ -125,7 +125,7 @@ if (isset($delsession)) {
         btnClassFail: "btn btn-info btn-sm",
         message : "Delete selected sessions?",
         onResolve: function(){
-         document.getElementById("wait_layout").style.display = "block";
+         $("#wait_layout").show();
          document.getElementById("formdel").submit();
         }
      };

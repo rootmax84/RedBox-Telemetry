@@ -78,7 +78,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
         </div>
       </div>
     </div>
-    <form style="margin-top:50px;" action="merge_sessions.php" method="get" id="formmerge" >
+    <form style="padding:50px 0 0;" action="merge_sessions.php" method="get" id="formmerge" >
       <input type="hidden" name="mergesession" value="<?php echo $mergesession; ?>">
       <div style="padding:10px; display:flex; justify-content:center;"><input class="btn btn-info btn-sm" type="submit" value="Merge Selected Sessions" id="merge-btn"></div>
       <table class="table table-del-merge-pid">
@@ -143,7 +143,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
      var dialogOpt = {
         message : "Merge selected session(s) with session <?php echo $mergesession; ?>?",
         onResolve: function(){
-         document.getElementById("wait_layout").style.display = "block";
+         $("#wait_layout").show();
          document.getElementById("formmerge").submit();
         }
      };

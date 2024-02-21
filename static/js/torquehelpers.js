@@ -316,7 +316,6 @@ document.querySelector('html').style.transition = ".2s"
 }
 
 function logout() {
- document.getElementById('wait_layout').style.display = 'block';
  location.href='/?logout=true';
 }
 

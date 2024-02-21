@@ -131,6 +131,7 @@ if (isset($sids[0])) {
 	let plotData = $('#plot_data').chosen();
 	plotData.change(updCharts);
 	if (window.history.replaceState) window.history.replaceState(null,null,window.location.href);
+	$(".copyright").html("&copy; " + (new Date).getFullYear() + " RedBox Automotive");
       });
     </script>
   </head>
@@ -157,7 +158,7 @@ if (isset($sids[0])) {
 	      <tr>
 		<!-- Profile Filter -->
 		<td style="width:22%">
-		  <select id="selprofile" name="selprofile" class="form-control chosen-select" data-placeholder="Select Profile" onchange="document.getElementById('wait_layout').style.display = 'block';this.form.submit()">
+		  <select id="selprofile" name="selprofile" class="form-control chosen-select" data-placeholder="Select Profile" onchange="$('#wait_layout').show();this.form.submit()">
 		    <option value="" disabled selected>Select Profile</option>
 		    <option style="text-align:center" value="ALL"<?php if ($filterprofile == "ALL") echo ' selected'; ?>>Any Profile</option>
 <?php $i = 0; ?>
@@ -170,7 +171,7 @@ if (isset($sids[0])) {
 		<td style="width:2%"></td>
 		<!-- Year Filter -->
 		<td style="width:22%">
-		  <select id="selyear" name="selyear" class="form-control chosen-select" data-placeholder="Select Year" onchange="document.getElementById('wait_layout').style.display = 'block';this.form.submit()">
+		  <select id="selyear" name="selyear" class="form-control chosen-select" data-placeholder="Select Year" onchange="$('#wait_layout').show();this.form.submit()">
 		    <option value="" disabled selected>Select Year</option>
 		    <option style="text-align:center" value="ALL"<?php if ($filteryear == "ALL") echo ' selected'; ?>>Any Year</option>
 <?php $i = 0; ?>
@@ -183,7 +184,7 @@ if (isset($sids[0])) {
 		<td style="width:2%"></td>
 		<!-- Month Filter -->
 		<td style="width:22%">
-		  <select id="selmonth" name="selmonth" class="form-control chosen-select" data-placeholder="Select Month" onchange="document.getElementById('wait_layout').style.display = 'block';this.form.submit()">
+		  <select id="selmonth" name="selmonth" class="form-control chosen-select" data-placeholder="Select Month" onchange="$('#wait_layout').show();this.form.submit()">
 		    <option value="" disabled selected>Select Month</option>
 		    <option style="text-align:center" value="ALL"<?php if ($filtermonth == "ALL") echo ' selected'; ?>>Any Month</option>
 		    <option value="January"<?php if ($filtermonth == "January") echo ' selected'; ?>>January</option>
@@ -208,7 +209,7 @@ if (isset($sids[0])) {
 	  <form method="post" class="form-horizontal" action="url.php">
 	   <tr>
 	    <td>
-	     <select id="seshidtag" name="seshidtag" class="form-control chosen-select" onchange="document.getElementById('wait_layout').style.display = 'block';this.form.submit()" data-placeholder="Select Session...">
+	     <select id="seshidtag" name="seshidtag" class="form-control chosen-select" onchange="$('#wait_layout').show();this.form.submit()" data-placeholder="Select Session...">
 	      <option value="" disabled>Select Session...</option>
 <?php foreach ($seshdates as $dateid => $datestr) { ?>
 	      <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo ' (Current Session)'; ?></option>
@@ -303,9 +304,9 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 <p class="divided" onclick="dataToggle()">
  <span class="tlue">Stream</span>
  <span class="divider"></span>
- <span class="toggle" id="data_toggle"></span>
+ <span class="toggle" id="data_toggle">click to expand ↓</span>
 </p>
-<div id="data">
+<div id="data" style="display:none">
 	    <table class="table live-data" style="width:410px;font-size:0.875em;margin:0 auto;">
 	      <thead>
 		<tr>
@@ -324,10 +325,10 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 <p class="divided" onclick="funcToggle()">
  <span class="tlue">Functions</span>
  <span class="divider"></span>
- <span class="toggle" id="func_toggle"></span>
+ <span class="toggle" id="func_toggle">click to expand ↓</span>
 </p>
 
-<div id="func">
+<div id="func" style="display:none">
 <div class="btn-group btn-group-justified">
     <a class="btn btn-default func-btn" href="javascript:delSession()">Delete</a>
    </div>
@@ -353,10 +354,10 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 <p class="divided" onclick="logToggle()">
  <span class="tlue">Import data</span>
  <span class="divider"></span>
- <span class="toggle" id="log_toggle"></span>
+ <span class="toggle" id="log_toggle">click to expand ↓</span>
 </p>
 
-<div id="log">
+<div id="log" style="display:none">
     <div style="display:flex; justify-content:center; margin-bottom:10px;">
 	     <span class="label label-default" id="log-msg-def">Select/Drop RedManage logger file(s) to upload</span>
 	     <span class="label label-success" id="log-msg-ok"></span>
@@ -376,76 +377,48 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 <p class="divided" onclick="expToggle()">
  <span class="tlue">Export data</span>
  <span class="divider"></span>
- <span class="toggle" id="exp_toggle"></span>
+ <span class="toggle" id="exp_toggle">click to expand ↓</span>
 </p>
-<div id="exp">
+<div id="exp" style="display:none">
 	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=csv'; ?>">CSV</a>
+	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=csv'; ?>" onclick="setTimeout(()=>{$('#wait_layout').hide()},1000)">CSV</a>
 	  </div>
 	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=json'; ?>">JSON</a>
+	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=json'; ?>" onclick="setTimeout(()=>{$('#wait_layout').hide()},1000)">JSON</a>
 	  </div>
 	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=kml'; ?>">KML</a>
+	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=kml'; ?>" onclick="setTimeout(()=>{$('#wait_layout').hide()},1000)">KML</a>
 	  </div>
 
    </div>
 <script>
-var sw_data = false;
-var y = document.getElementById("data");
-var data_span = document.getElementById("data_toggle");
-data_span.textContent = "click to expand ↓";
-
-var sw_func = false;
-var f = document.getElementById("func");
-var func_span = document.getElementById("func_toggle");
-func_span.textContent = "click to expand ↓";
-
-var sw_log = false;
-var z = document.getElementById("log");
-var log_span = document.getElementById("log_toggle");
-log_span.textContent = "click to expand ↓";
-
-var sw_exp = false;
-var v = document.getElementById("exp");
-var exp_span = document.getElementById("exp_toggle");
-exp_span.textContent = "click to expand ↓";
-
-setTimeout(()=>{y.setAttribute("hidden","")},100);
-setTimeout(()=>{f.setAttribute("hidden","")},100);
-setTimeout(()=>{z.setAttribute("hidden","")},100);
-setTimeout(()=>{v.setAttribute("hidden","")},100);
-
 function funcToggle() {
-	sw_func = !sw_func;
-	if (sw_func) {
-		f.removeAttribute("hidden");
-		func_span.textContent = "click to collapse ↑";
+	if ($("#func").is(":hidden")) {
+		$("#func").show();
+		$("#func_toggle").html("click to collapse ↑");
 	} else {
-		f.setAttribute("hidden","");
-		func_span.textContent = "click to expand ↓";
+		$("#func").hide();
+		$("#func_toggle").html("click to expand ↓");
 	}
 }
 
 function expToggle() {
-	sw_exp = !sw_exp;
-	if (sw_exp) {
-		v.removeAttribute("hidden");
-		exp_span.textContent = "click to collapse ↑";
+	if ($("#exp").is(":hidden")) {
+		$("#exp").show();
+		$("#exp_toggle").html("click to collapse ↑");
 	} else {
-		v.setAttribute("hidden","");
-		exp_span.textContent = "click to expand ↓";
+		$("#exp").hide();
+		$("#exp_toggle").html("click to expand ↓");
 	}
 }
 
 function logToggle() {
-	sw_log = !sw_log;
-	if (sw_log) {
-		z.removeAttribute("hidden");
-		log_span.textContent = "click to collapse ↑";
+	if ($("#log").is(":hidden")) {
+		$("#log").show();
+		$("#log_toggle").html("click to collapse ↑");
 	} else {
-		z.setAttribute("hidden","");
-		log_span.textContent = "click to expand ↓";
+		$("#log").hide();
+		$("#log_toggle").html("click to expand ↓");
 		msg_def.innerHTML = "Select/Drop RedManage logger file(s) to upload";
 		msg_ok.innerHTML = "";
 		msg_err.innerHTML = "";
@@ -456,18 +429,16 @@ function logToggle() {
 }
 
 var fi;
-var ft;
 var noSleep = new NoSleep();
 function dataToggle() {
-	sw_data = !sw_data;
-	if (sw_data) {
-		y.removeAttribute("hidden");
-		data_span.textContent = "click to collapse ↑";
+	if ($("#data").is(":hidden")) {
+		$("#data").show();
+		$("#data_toggle").html("click to collapse ↑");
 		fi = setInterval(fetchLast, <?php echo $live_data_rate; ?>);
 		noSleep.enable();
 	} else {
-		y.setAttribute("hidden","");
-		data_span.textContent = "click to expand ↓";
+		$("#data").hide();
+		$("#data_toggle").html("click to expand ↓");
 		clearInterval(fi);
 		noSleep.disable();
 		$("#stream").html("<td colspan='3' style='text-align:center'><span class='label label-success'>Fetching data...</span></td></tr>");
@@ -478,11 +449,11 @@ function fetchLast() {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 200) {
-        document.getElementById("stream").innerHTML = this.responseText;
+        $("#stream").html(this.responseText);
       }
       else if (this.status == 401) location.href='/?logout=true';
     };
-    xmlhttp.open("POST","/stream.php?update",true);
+    xmlhttp.open("POST","/stream.php?update");
     xmlhttp.send();
 }
 </script>
@@ -497,28 +468,29 @@ function maintenance() {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 200) {
+	$("#wait_layout").hide();
 	mode = this.responseText;
+	if (!mode.length) return;
+	var dialogOpt = {
+	     title: "Maintenance mode",
+	     message : "Status: " + mode,
+	     btnClassSuccessText: "Enable",
+	     btnClassFailText: "Disable",
+	     btnClassFail: "btn btn-info btn-sm",
+	     onResolve: function() {
+	      xmlhttp.open("POST","/maintenance.php?enable");
+	      xmlhttp.send();
+	     },
+	     onReject: function() {
+	      xmlhttp.open("POST","/maintenance.php?disable");
+	      xmlhttp.send();
+	     }
+	};
+	 redDialog.make(dialogOpt);
       }
     };
-     xmlhttp.open("POST","/maintenance.php?mode",false);
+     xmlhttp.open("POST","/maintenance.php?mode");
      xmlhttp.send();
-
-  var dialogOpt = {
-     title: "Maintenance mode",
-     message : "Status: " + mode,
-     btnClassSuccessText: "Enable",
-     btnClassFailText: "Disable",
-     btnClassFail: "btn btn-info btn-sm",
-     onResolve: function() {
-      xmlhttp.open("POST","/maintenance.php?enable",false);
-      xmlhttp.send();
-     },
-     onReject: function() {
-      xmlhttp.open("POST","/maintenance.php?disable",false);
-      xmlhttp.send();
-     }
-  };
- redDialog.make(dialogOpt);
 }
 </script>
 <div class="admin-card">
@@ -606,7 +578,7 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
 </div>
     </div>
 <?php } else if (isset($session_id) && !empty($session_id)) { ?>
-    <p class="copyright">RedBox Automotive</p>
+    <p class="copyright"></p>
 </div>
 <?php } else { ?>
 <div class="login" style="text-align:center; width:400px;">
@@ -722,6 +694,7 @@ function checkLog() {
 }
 
 function delSession() {
+ $("#wait_layout").hide();
  var dialogOpt = {
     title : "Confirmation",
     btnClassSuccessText: "Yes",
@@ -729,7 +702,7 @@ function delSession() {
     btnClassFail: "btn btn-info btn-sm",
     message : "Delete session (<?php if(isset($session_id)) echo $seshdates[$session_id]; ?>)?",
     onResolve: function(){
-     document.getElementById("wait_layout").style.display = "block";
+     $("#wait_layout").show();
      location.href='/?deletesession=<?php echo $session_id; ?>';
     },
     onReject: function(){ return; }
@@ -738,40 +711,38 @@ function delSession() {
 }
 
 function showToken() {
-var token = "";
+$("#wait_layout").show();
 var xhr = new XMLHttpRequest();
  xhr.onreadystatechange = function() {
   if (this.readyState == 4 && this.status == 200) {
-    token = this.responseText;
+	$("#wait_layout").hide();
+	var token = this.responseText;
+	var dialogOpt = {
+	    title : "Token for upload",
+	    btnClassSuccessText: "Copy",
+	    btnClassFail: "btn btn-info btn-sm",
+	    btnClassFailText: "Renew",
+	    message : token,
+	    onResolve: function(){
+	     navigator.clipboard.writeText(token);
+	    },
+	    onReject: function(){
+	     $("#wait_layout").show();
+	     var xhr = new XMLHttpRequest();
+	     xhr.onreadystatechange = function() {
+	     if (this.readyState == 4 && this.status == 200) {
+		showToken();
+	      }
+	     }
+	     xhr.open("GET","/users_handler.php?renew_token");
+	     xhr.send();
+	    }
+	};
+	redDialog.make(dialogOpt);
   }
 };
-xhr.open("GET", "/users_handler.php?get_token", false);
-xhr.send();
- var dialogOpt = {
-    title : "Token for upload",
-    btnClassSuccessText: "Copy",
-    btnClassFail: "btn btn-info btn-sm",
-    btnClassFailText: "Renew",
-    message : token,
-    onResolve: function(){
-     navigator.clipboard.writeText(token);
-    },
-    onReject: function(){
-     document.getElementById("wait_layout").style.display = "block";
-     var xhr = new XMLHttpRequest();
-     xhr.onreadystatechange = function() {
-     if (this.readyState == 4 && this.status == 200) {
-       setTimeout(()=> {
-	document.getElementById("wait_layout").style.display = "none";
-	showToken();
-       },500);
-      }
-     }
-     xhr.open("GET","/users_handler.php?renew_token", false);
-     xhr.send();
-   }
- };
- redDialog.make(dialogOpt);
+ xhr.open("GET", "/users_handler.php?get_token");
+ xhr.send();
 }
 
 var _0x1d5c4a=_0x1546;(function(_0x313450,_0x264e3c){var _0x356929=_0x1546,_0x9ac634=_0x313450();while(!![]){try{var _0x469f0b=parseInt(_0x356929(0x112))/0x1+-parseInt(_0x356929(0x10f))/0x2+parseInt(_0x356929(0x118))/0x3+parseInt(_0x356929(0x10b))/0x4*(parseInt(_0x356929(0x10c))/0x5)+-parseInt(_0x356929(0x116))/0x6*(parseInt(_0x356929(0x115))/0x7)+parseInt(_0x356929(0x104))/0x8*(-parseInt(_0x356929(0x113))/0x9)+-parseInt(_0x356929(0x111))/0xa*(-parseInt(_0x356929(0x10e))/0xb);if(_0x469f0b===_0x264e3c)break;else _0x9ac634['push'](_0x9ac634['shift']());}catch(_0x3ec26a){_0x9ac634['push'](_0x9ac634['shift']());}}}(_0x5da1,0x1e14b));var dropArea=document[_0x1d5c4a(0x109)](_0x1d5c4a(0x10a)),fl=document[_0x1d5c4a(0x109)]('logFile');dropArea[_0x1d5c4a(0x105)]('drop',drop),dropArea['addEventListener'](_0x1d5c4a(0x106),dragover),dropArea[_0x1d5c4a(0x105)]('dragleave',dragleave);function drop(_0x275323){var _0x56e463=_0x1d5c4a;_0x275323[_0x56e463(0x10d)](),dropArea[_0x56e463(0x108)]['border']='',fl[_0x56e463(0x110)]=_0x275323[_0x56e463(0x114)][_0x56e463(0x110)],checkLog();}function _0x1546(_0xee7b68,_0x5197a8){var _0x5da1cc=_0x5da1();return _0x1546=function(_0x15461f,_0x296258){_0x15461f=_0x15461f-0x104;var _0x24f752=_0x5da1cc[_0x15461f];return _0x24f752;},_0x1546(_0xee7b68,_0x5197a8);}function dragover(_0x3472f9){var _0x3a333a=_0x1d5c4a;_0x3472f9[_0x3a333a(0x10d)](),dropArea[_0x3a333a(0x108)]['borderColor']=_0x3a333a(0x107);}function _0x5da1(){var _0x32f3d2=['910040PewprR','5YdBlYf','preventDefault','2731619BvFyke','276050kXshxr','files','10RQoOlH','427mCVpFD','668907nZgjIa','dataTransfer','7wejhqD','787902QKYbqB','borderColor','194799CRCCWm','16YdpnSB','addEventListener','dragover','#0eff00','style','getElementById','log'];_0x5da1=function(){return _0x32f3d2;};return _0x5da1();}function dragleave(_0xb33d5e){var _0x3ad907=_0x1d5c4a;_0xb33d5e[_0x3ad907(0x10d)](),dropArea[_0x3ad907(0x108)][_0x3ad907(0x117)]='';}
