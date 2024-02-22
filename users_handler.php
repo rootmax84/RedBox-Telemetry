@@ -56,7 +56,7 @@ if (!isset($_SESSION['admin'])) {
     die;
 }
 else
-{
+{ try {
     if (isset($_POST['e_login'])){ //edit user
 	$login = $_POST['e_login'];
 	$password = $_POST['e_pass'];
@@ -274,5 +274,9 @@ die("User added");
 	header("Location: /");
 	die;
     }
+  }
+  catch (Exception $e) {
+    die($e);
+  }
 }
 ?>
