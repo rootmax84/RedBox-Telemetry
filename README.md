@@ -40,6 +40,6 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 ### Screenshots:
 ![](https://redbox.pw/wp-content/uploads/2024/02/interface_main.png?1)
 
-![](https://redbox.pw/wp-content/uploads/2024/02/interface_settings.png?1)
+![](https://redbox.pw/wp-content/uploads/2024/02/interface_settings.png?2)
 
 ![](https://redbox.pw/wp-content/uploads/2024/02/interface_admin.png)
