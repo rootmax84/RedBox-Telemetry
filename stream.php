@@ -110,6 +110,7 @@ else {
 	else if ($pid[$i] == 'kff1218') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // O2S2 2 digits
 	else if ($pid[$i] == 'kff1204' || $pid[$i] == 'kff120c') echo "<td><samp>".speed_conv($row[$pid[$i]], $speed, $id)."</samp></td>"; // Trip Distance (ODO) conversion
 	else if ($pid[$i] == 'kc') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]]/100)."</samp></td>"; // RPM divide by 100
+	else if ($pid[$i] == 'k11') echo "<td><samp>".round($row[$pid[$i]])."</samp></td>"; // Throttle position round
 	else echo "<td><samp>".$row[$pid[$i]]."</samp></td>"; // REST DATA
 	if ($pid[$i] == 'k1f') 	echo "<td><samp>h:m:s</samp></td>"; // runtime custom unit
 	else if ($pid[$i] == 'kff1202') echo "<td><samp>".$boost_unit."</samp></td>"; // boost unit
