@@ -71,7 +71,7 @@ if (isset($sids[0])) {
 	$yearquery = $db->query("SELECT YEAR(FROM_UNIXTIME(session/1000)) as 'year'
 		FROM $db_sessions_table WHERE session <> ''
 		GROUP BY YEAR(FROM_UNIXTIME(session/1000)) 
-		ORDER BY YEAR(FROM_UNIXTIME(session/1000))");
+		ORDER BY YEAR(FROM_UNIXTIME(session/1000)) DESC");
 	$yeararray = array();
 	$i = 0;
 	while($row = $yearquery->fetch_assoc()) {

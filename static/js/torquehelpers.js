@@ -92,14 +92,12 @@ function doPlot(position) {
     //Trim by plot Select
     $("#placeholder").bind("plotselected", (evt,range)=>{
         const [a,b] = [jsTimeMap.findIndex(e=>e>=range.xaxis.from),jsTimeMap.findIndex(e=>e>=range.xaxis.to)];
+        if (Math.abs(a-b)<3) return;
         $("#slider-range11").slider('values',0,a);
         $("#slider-range11").slider('values',1,b);
         $( "#slider-time" ).val( (new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
         chartUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
-	try {
-    	    mapUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
-	}
-	catch(e) { console.log("No GPS data to trim") }
+        mapUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
         plot.clearSelection();
     });
     //End Trim by plot Select
@@ -203,17 +201,7 @@ initMapLeaflet = () => {
 
     mapUpdRange = (a,b) => {//new function to update the map sources according to the trim slider
         path = window.MapData.path.slice(a,b).filter(([a,b])=>(a>0||a<0||b>0||b<0));
-        if (path.length==0) {
-	 var dialogOpt = {
-	    title : "Warning",
-	    btnClassSuccessText: "OK",
-	    btnClassFail: "hidden",
-	    message : "Time range has no data.",
-	    onResolve: function(){ return; }
-	};
-	redDialog.make(dialogOpt);
-	    return;
-	}
+        if (!path.length) return;
         polyline.setLatLngs(path);
         startcir.setLatLng(path[path.length-1]);
         endcir.setLatLng(path[0]);
@@ -266,27 +254,11 @@ initSlider = (jsTimeMap,minTimeStart,maxTimeEnd)=>{
             $('#slider-time').attr("sv0", jsTimeMap[$('#slider-range11').slider("values", 0)])
             $('#slider-time').attr("sv1", jsTimeMap[$('#slider-range11').slider("values", 1)])
             const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];
+            if (Math.abs(a-b)<3) return;
             if (typeof mapUpdRange=='function') mapUpdRange(a,b);
             if (typeof chartUpdRange=='function') chartUpdRange(a,b);
         });
     } );
-
-    window.settimev = () => {//set post array for slider
-        var sv0 =  document.getElementById("slider-time").getAttribute("sv0");
-        var sv1 =  document.getElementById("slider-time").getAttribute("sv1");
-        var sv3 = timestartval;
-
-        if (sv0 <= 0 && sv1 <= 0){
-            var sv0 = timestartval;
-            var sv1 = timeendval;
-        }
-        if (sv0 == -1 && sv1 == -1){
-            var sv0 = minTimeStart;
-            var sv1 = maxTimeEnd;
-        }
-        var svarr = [sv0,sv1];
-        document.getElementById("formplotdata").svdata.value = svarr;
-    }
 }
 //End slider js code
 
