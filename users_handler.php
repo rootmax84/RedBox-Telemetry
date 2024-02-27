@@ -17,12 +17,7 @@ if (isset($_GET['get_token']) && isset($username) && $username != $admin){ //Get
     die($token);
 }
 else if (isset($_GET['renew_token']) && isset($username) && $username != $admin){ //Renew token by user action
-    do { //Check for duplicates
-      $token = generate_token($username);
-      $dup = $db->execute_query("SELECT token FROM $db_users WHERE token=?", [$token]);
-    } while ($dup->num_rows);
-
-    $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [$token, $username]);
+    $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [generate_token($username), $username]);
     $db->close();
     die("Token updated");
 }
@@ -89,7 +84,7 @@ else
 	$password = $_POST['reg_pass'];
 
 	$userqry = $db->execute_query("SELECT user, pass, s FROM $db_users WHERE user=?", [$ogin]);
-	if ($userqry->num_rows || strlen($login) < 1) die("User already exist or login empty");
+	if ($userqry->num_rows || strlen($login) < 1 || $login == $admin) die("User already exist or login empty");
 
 	if (strlen($password) < 5) die("Password too short");
 
