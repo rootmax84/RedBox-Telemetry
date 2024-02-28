@@ -1,7 +1,7 @@
 <?php
-$colqry = $db->query("SELECT id,description FROM $db_pids_table WHERE populated = 1 ORDER BY description");
+$colqry = $db->query("SELECT id,description,favorite FROM $db_pids_table WHERE populated = 1 ORDER BY description");
 while ($x = $colqry->fetch_array()) {
-    $coldata[] = array("colname"=>$x[0], "colcomment"=>$x[1]);
+    $coldata[] = array("colname"=>$x[0], "colcomment"=>$x[1], "colfavorite"=>$x[2]);
 }
 
 if (isset($coldata)) $numcols = strval(count($coldata)+1);

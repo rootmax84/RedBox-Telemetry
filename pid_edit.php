@@ -5,10 +5,10 @@ require_once('auth_user.php');
 require_once('creds.php');
 require_once('db_limits.php');
 
-$keyqry = $db->query("SELECT id,description,units,populated,stream FROM ".$db_pids_table." WHERE id != 'kff1005' AND id != 'kff1006' AND id != 'kff1007' ORDER BY description");
+$keyqry = $db->query("SELECT id,description,units,populated,stream,favorite FROM ".$db_pids_table." WHERE id != 'kff1005' AND id != 'kff1006' AND id != 'kff1007' ORDER BY description");
 $i = 0;
 while ($x = $keyqry->fetch_array()) {
-		$keydata[$i] = array("id"=>$x[0], "description"=>$x[1], "units"=>$x[2], "populated"=>$x[3], "stream"=>$x[4]);
+		$keydata[$i] = array("id"=>$x[0], "description"=>$x[1], "units"=>$x[2], "populated"=>$x[3], "stream"=>$x[4], "favorite"=>$x[5]);
 		$i++;
 }
 $db->close();
@@ -86,8 +86,9 @@ $(document).ready(function() {
         <th>ID</th>
         <th>Description</th>
         <th>Units</th>
-        <th>In Chart?</th>
-        <th>In Stream?</th>
+        <th>Chart</th>
+        <th>Stream</th>
+        <th>Favorite</th>
         </tr>
       </thead>
       <tbody>
@@ -99,6 +100,7 @@ $(document).ready(function() {
           <td id="units:<?php echo $keycol['id']; ?>" contenteditable="true"><?php echo $keycol['units']; ?></td>
           <td><input type="checkbox" id="populated:<?php echo $keycol['id']; ?>" contenteditable="true"<?php if ( $keycol['populated'] ) echo " CHECKED"; ?>></td>
           <td><input type="checkbox" id="stream:<?php echo $keycol['id']; ?>" contenteditable="true"<?php if ( $keycol['stream'] ) echo " CHECKED"; ?>></td>
+          <td><input type="checkbox" id="favorite:<?php echo $keycol['id']; ?>" contenteditable="true"<?php if ( $keycol['favorite'] ) echo " CHECKED"; ?>></td>
         </tr>
 <?php   $i = $i + 1; ?>
 <?php } ?>

@@ -15,7 +15,7 @@ if(!empty($_POST)) {
     $id = $split_data[1];
     $field_name = $split_data[0];
     if(!empty($id) && !empty($field_name) && isset($val)) {
-      if($field_name == 'populated' || $field_name == 'stream') {
+      if($field_name == 'populated' || $field_name == 'stream' || $field_name == 'favorite') {
         if($val == 'true'){
           $val=1;
           $query = "ALTER TABLE $db_table ADD IF NOT EXISTS ".quote_name($id)." float NOT NULL DEFAULT '0'"; //add enabled column

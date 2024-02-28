@@ -120,8 +120,8 @@ if (sizeof($_GET) > 0) {
         // Add field if it's a string, specifically varchar(255)
         $sqlalter = "ALTER TABLE $db_table ADD IF NOT EXISTS".quote_name($key)." VARCHAR(255) NOT NULL default '0'";
       }
-      $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream) VALUES (?,?,?,?)";
-      $db->execute_query($sqlalterkey, [$key, $key, '1', '1']);
+      $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite) VALUES (?,?,?,?,?)";
+      $db->execute_query($sqlalterkey, [$key, $key, '1', '1', '0']);
       $db->query($sqlalter);
     }
   }
