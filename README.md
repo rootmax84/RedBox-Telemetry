@@ -118,5 +118,6 @@ plugin-load-add=ha_rocksdb.so
 #rocksdb_default_cf_options=compression=kZSTDNotFinalCompression;bottommost_compression=kZSTDNotFinalCompression
 #Better performance
 rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kLZ4Compression
-
+#Recommended
+rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kZSTDNotFinalCompression
 ```
