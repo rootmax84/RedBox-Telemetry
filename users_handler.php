@@ -83,7 +83,7 @@ else
 	$login = $_POST['reg_login'];
 	$password = $_POST['reg_pass'];
 
-	$userqry = $db->execute_query("SELECT user, pass, s FROM $db_users WHERE user=?", [$ogin]);
+	$userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
 	if ($userqry->num_rows || strlen($login) < 1 || $login == $admin) die("User already exist or login empty");
 
 	if (strlen($password) < 5) die("Password too short");
