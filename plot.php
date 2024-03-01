@@ -120,7 +120,7 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 		} elseif (substri_count($keyarr[${'v' . $i}][0], "Boost") > 0) {
 		     $x = pressure_conv($row[${'v' . $i}], $boost, $id);
 		     ${'v' . $i . '_measurand'} = $boost_unit;
-		} elseif (substri_count($keyarr[${'v' . $i}][0], "Pressure") > 0 && !substri_count($keyarr[${'v' . $i}][0], "Manifold")) {
+		} elseif (substri_count($keyarr[${'v' . $i}][0], "Pressure") > 0 && !substri_count($keyarr[${'v' . $i}][0], "Manifold") && !substri_count($keyarr[${'v' . $i}][0], "Barometric") && !substri_count($keyarr[${'v' . $i}][0], "Evap System") && !substri_count($keyarr[${'v' . $i}][0], "Fuel Pressure legacy") && !substri_count($keyarr[${'v' . $i}][0], "Fuel Rail Pressure")) { //Skip (k)Pa things
 		     $x = pressure_conv($row[${'v' . $i}], $pressure, $id);
 		     ${'v' . $i . '_measurand'} = $press_unit;
 		} elseif (substri_count($keyarr[${'v' . $i}][1], "rpm") > 0) {

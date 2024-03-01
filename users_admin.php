@@ -45,7 +45,8 @@ else if ($_GET['action'] == "reg") {
 ?>
 	    <h4>Register user</h4>
 		<input class="form-control" type="text" name="reg_login" value="" placeholder="(Username)"><br>
-		<input class="form-control" type="password" name="reg_pass" value="" placeholder="(Password)" autocomplete="new-password"><br>
+		<input class="form-control" type="password" name="reg_pass" value="" placeholder="(Password)" autocomplete="new-password">
+		<div style="padding:15px 0"><label style="font-size:13px;font-family:'Open Sans'"><input type="checkbox" name="reg_legacy"> Generic OBD device</label></div>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Register</button>
 <?php
 }

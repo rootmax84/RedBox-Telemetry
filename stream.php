@@ -90,7 +90,7 @@ else {
 	echo "<td>".$des[array_search($pid[$i],$pid)]."</td>"; //pid description
 	if ($row[$pid[$i]] == '') echo "<td title='No data available' tabindex='0'>-</td>"; // '-' if no data
 	else if ($pid[$i] == 'kff1202') echo "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $boost, $id)."</samp></td>"; // boost conversion
-	else if (substri_count($des[$i], 'Pressure') > 0 && $pid[$i] != 'kb') echo "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $pressure, $id)."</samp></td>"; // pressures conversion except intake manifold pressure
+	else if (substri_count($des[$i], 'Pressure') > 0 && $pid[$i] != 'kb' && $pid[$i] != 'k33' && $pid[$i] != 'k32' && $pid[$i] != 'ka' && $pid[$i] != 'k23' && $pid[$i] != 'k22') echo "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $pressure, $id)."</samp></td>"; // pressures conversion. Skip (k)Pa things
 	else if (substri_count($des[$i], 'Temp') > 0) echo "<td><samp>".temp_conv($row[$pid[$i]], $temp, $id)."</samp></td>"; // temp conversion
 	else if (substri_count($des[$i], 'Speed') > 0) echo "<td><samp>".speed_conv(round($row[$pid[$i]]), $speed, $id)."</samp></td>"; // speed conversion
 	else if ($pid[$i] == 'k2111') echo "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // oil pressure 2 digits
@@ -114,7 +114,7 @@ else {
 	else echo "<td><samp>".$row[$pid[$i]]."</samp></td>"; // REST DATA
 	if ($pid[$i] == 'k1f') 	echo "<td><samp>h:m:s</samp></td>"; // runtime custom unit
 	else if ($pid[$i] == 'kff1202') echo "<td><samp>".$boost_unit."</samp></td>"; // boost unit
-	else if (substri_count($des[$i], 'Pressure') > 0 && $pid[$i] != 'kb') echo "<td><samp>".$press_unit."</samp></td>"; // pressures unit
+	else if (substri_count($des[$i], 'Pressure') > 0 && $pid[$i] != 'kb' && $pid[$i] != 'k33' && $pid[$i] != 'k32' && $pid[$i] != 'ka' && $pid[$i] != 'k23' && $pid[$i] != 'k22') echo "<td><samp>".$press_unit."</samp></td>"; // pressures unit
 	else if (substri_count($des[$i], 'Temp') > 0) echo "<td><samp>".$temp_unit."</samp></td>"; // temp unit
 	else if (substri_count($des[$i], 'Speed') > 0) echo "<td><samp>".$spd_unit."</samp></td>"; // speed unit
 	else if ($pid[$i] == 'kff1204' || $pid[$i] == 'kff120c' ) echo "<td><samp>".$trip_unit."</samp></td>"; // Trip/ODO unit
