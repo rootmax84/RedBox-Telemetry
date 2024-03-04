@@ -57,23 +57,23 @@ else
 	$password = $_POST['e_pass'];
 	$e_limit = $_POST['e_limit'];
 
-	$row = $db->execute_query("SELECT id, user, pass, s FROM $db_users WHERE user=?", [$login])->fetch_assoc();
-	if (!$row) die("User not found");
+	$row = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login])->fetch_assoc();
+	if (!$row) die("User $login not found");
 
 	if (strlen($password) > 1 && strlen($password) < 5) die("Password too short");
 	if (!strlen($e_limit) && !strlen($password)) die("Nothing to do");
 
 	if (!strlen($password) && strlen($e_limit)) { //Change only limit
 	 $db->execute_query("UPDATE $db_users SET s=? WHERE id=?", [$e_limit, $row['id']]);
-	 $msg = "Limit changed";
+	 $msg = "User $login limit changed";
 	}
 	else if (strlen($password) && !strlen($e_limit)) { //Change only password
 	 $db->execute_query("UPDATE $db_users SET pass=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $row['id']]);
-	 $msg = "Password changed";
+	 $msg = "User $login password changed";
 	}
 	else { // Change password and limit
 	 $db->execute_query("UPDATE $db_users SET pass=?, s=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $e_limit, $row['id']]);
-	 $msg = "Limit and password changed";
+	 $msg = "User $login limit and password changed";
 	}
 	$db->close();
 	die($msg);
@@ -356,13 +356,13 @@ if ($db_engine == "INNODB" && $db_innodb_compression) {
 //Insert user entry to users table
 $db->execute_query("INSERT INTO $db_users (user, pass, s, token) VALUES (?,?,?,?)", [$login, password_hash($password, PASSWORD_DEFAULT, $salt), $def_limit, 'Welcome, '.$login.'! Click renew to create token.']);
 $db->close();
-die("User added");
+die("User $login added");
 }
 
     else if (isset($_POST['del_login'])){ //delete user
 	$login = $_POST['del_login'];
 
-	$userqry = $db->execute_query("SELECT user, pass, s FROM $db_users WHERE user=?", [$login]);
+	$userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
 	if (!$userqry->num_rows || strlen($login) < 1) die("User not found");
 	else if ($login == $admin) die("Admin cannot be deleted!");
 
@@ -374,17 +374,18 @@ die("User added");
 	    $db->query($logs_table);
 	    $db->query($sessions_table);
 	    $db->query($pids_table);
-	} catch (Exception $e) { die("User has no tables and cannot be deleted!"); }
+	} catch (Exception $e) { die("User $login has no tables and cannot be deleted!"); }
 	$db->query($user_entry);
 	$db->close();
-	die("User deleted");
+	die("User $login deleted");
     }
 
     else if (isset($_POST['trunc_login'])){ //truncate user db
 	$login = $_POST['trunc_login'];
 
-	$userqry = $db->execute_query("SELECT user, pass, s FROM $db_users WHERE user=?", [$login]);
+	$userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
 	if (!$userqry->num_rows || strlen($login) < 1) die("User not found");
+	else if ($login == $admin) die("Admin cannot be truncated!");
 
 	$logs_table = "TRUNCATE TABLE ".$login.$db_log_prefix;
 	$sessions_table = "TRUNCATE TABLE ".$login.$db_sessions_prefix;
@@ -392,7 +393,7 @@ die("User added");
 	$db->query($logs_table);
 	$db->query($sessions_table);
 	$db->close();
-	die("User database truncated");
+	die("User $login database truncated");
     }
 
     else {
