@@ -429,33 +429,20 @@ function logToggle() {
 	}
 }
 
-var fi;
 var noSleep = new NoSleep();
 function dataToggle() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
 		$("#data_toggle").html("click to collapse ↑");
-		fi = setInterval(fetchLast, <?php echo $live_data_rate; ?>);
+		src = new EventSource("stream.php");
+		src.onmessage = e => {$("#stream").html(e.data)};
 		noSleep.enable();
 	} else {
 		$("#data").hide();
 		$("#data_toggle").html("click to expand ↓");
-		clearInterval(fi);
+		src.close();
 		noSleep.disable();
-		$("#stream").html("<td colspan='3' style='text-align:center'><span class='label label-success'>Fetching data...</span></td></tr>");
 	}
-}
-
-function fetchLast() {
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-        $("#stream").html(this.responseText);
-      }
-      else if (this.status == 401) location.href='/?logout=true';
-    };
-    xmlhttp.open("POST","/stream.php?update");
-    xmlhttp.send();
 }
 </script>
 	</div>
