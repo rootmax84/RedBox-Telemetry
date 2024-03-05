@@ -502,7 +502,7 @@ $usrqry = $db->query("SELECT COUNT(*) FROM $db_users");
 $number_of_result = $usrqry->fetch_row()[0];
 $number_of_page = ceil ($number_of_result / $results_per_page);
 
-$res = $db->query("SELECT TABLE_SCHEMA AS 'torque', ROUND(SUM(DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) AS 'Size (MB)' FROM information_schema.TABLES WHERE TABLE_SCHEMA='torque'")->fetch_array();
+$res = $db->query("SELECT TABLE_SCHEMA AS '$db_name', ROUND(SUM(DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) AS 'Size (MB)' FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db_name'")->fetch_array();
 $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . "," . $results_per_page);
  if ($r->num_rows > 0) {
    while ($row = $r->fetch_assoc()) {
