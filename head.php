@@ -75,7 +75,7 @@ function auth() {
       else if (this.readyState == 4 && this.status != 200) $("#offline_layout").show();
       else if (this.readyState == 4 && this.status == 200) $("#offline_layout").hide();
     };
-    xmlhttp.open("POST","/auth.php",true);
+    xmlhttp.open("HEAD","/auth.php");
     xmlhttp.send();
 }
 
