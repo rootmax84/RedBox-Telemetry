@@ -8,7 +8,8 @@ header('Access-Control-Max-Age: 86400');
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') die; //Respond to preflights
 
 //Check if token header is present and non empty than go to database
-if (getBearerToken() != NULL && getBearerToken() != '') {
+$token = getBearerToken();
+if ($token != NULL && $token != '') {
 
  //Maintenance mode
  if (file_exists('maintenance')){
@@ -27,7 +28,7 @@ if (getBearerToken() != NULL && getBearerToken() != '') {
  }
 
  //Check auth via Bearer token
- $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid FROM $db_users WHERE token=?", [getBearerToken()]);
+ $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid FROM $db_users WHERE token=?", [$token]);
   if (!$userqry->num_rows) $access = 0;
   else {
     $row = $userqry->fetch_assoc();
