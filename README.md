@@ -54,7 +54,14 @@ server {
 
 server {
     root /var/www/RedBox-Telemetry;
+
+    #nginx < 1.25
     listen 443 ssl http2;
+
+    #nginx 1.25+
+    #listen 443 ssl;
+    #http2 on;
+
     server_name your.site;
     aio threads;
 
