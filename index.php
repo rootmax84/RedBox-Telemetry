@@ -436,11 +436,13 @@ function dataToggle() {
 		$("#data_toggle").html("click to collapse ↑");
 		src = new EventSource("stream.php");
 		src.onmessage = e => {$("#stream").html(e.data)};
+		alarm.muted = false;
 		noSleep.enable();
 	} else {
 		$("#data").hide();
 		$("#data_toggle").html("click to expand ↓");
 		src.close();
+		alarm.muted = true;
 		noSleep.disable();
 	}
 }
