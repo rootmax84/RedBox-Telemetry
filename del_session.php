@@ -11,6 +11,6 @@ elseif (isset($_GET["deletesession"])) {
 if (isset($deletesession) && !empty($deletesession)) {
     $db->execute_query("DELETE FROM $db_table WHERE session=?", [$deletesession]);
     $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$deletesession]);
-    header("Location: /");
+    header("Location: .");
 }
 ?>

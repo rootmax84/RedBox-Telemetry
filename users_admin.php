@@ -5,12 +5,12 @@ require_once ('db.php');
 
 if (!isset($_SESSION['admin'])) {
     header('HTTP/1.0 403 Forbidden');
-    header("Location: /");
+    header("Location: .");
     die;
 }
 
 if (!isset($_GET['action'])) {
- header("Location: /");
+ header("Location: .");
  die;
 }
 ?>

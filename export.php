@@ -5,7 +5,7 @@ require_once('auth_functions.php');
 require_once('auth_user.php');
 
 if(!isset($username) || $username == $admin){
-    header("Location:/");
+    header("Location: .");
     die;
 }
 
@@ -108,7 +108,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 	}
 }
 
-else header('Location:/');
+else header('Location: .');
 
 $db->close();
 

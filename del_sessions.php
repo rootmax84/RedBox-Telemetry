@@ -33,8 +33,8 @@ if (isset($delsession)) {
 	    $db->execute_query("DELETE FROM $db_sessions_table WHERE session = ?", [$value]);
 	}
     }
-    if (!empty($_SESSION["page"])) header('Location: /del_sessions.php?page='.$_SESSION["page"]);
-    else header('Location: /del_sessions.php');
+    if (!empty($_SESSION["page"])) header('Location: del_sessions.php?page='.$_SESSION["page"]);
+    else header('Location: del_sessions.php');
 } else {
 ?>
 <!DOCTYPE html>

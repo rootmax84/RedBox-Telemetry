@@ -58,7 +58,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
         }
     }
     //Show merged session
-    header('Location: /?id=' . $newsession);
+    header('Location: .?id=' . $newsession);
 } elseif (isset($mergesession) && !empty($mergesession)) {
 ?>
 <!DOCTYPE html>
@@ -155,6 +155,6 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
 </html>
 <?php
 }
-else header('Location: /');
+else header('Location: .');
 $db->close();
 ?>

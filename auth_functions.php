@@ -107,7 +107,7 @@ function create_users_table()
 function logout_user()
 {
     session_destroy();
-    header("Location: ./");
+    header("Location: .");
     die;
 }
 

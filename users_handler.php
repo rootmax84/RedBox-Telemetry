@@ -47,7 +47,7 @@ else if (isset($_POST['tg_token']) && isset($_POST['tg_chatid']) && isset($usern
 }
 
 if (!isset($_SESSION['admin'])) {
-    header("Location: /");
+    header("Location: .");
     die;
 }
 else
@@ -398,7 +398,7 @@ die("User $login added");
 
     else {
 	header('HTTP/1.0 403 Forbidden');
-	header("Location: /");
+	header("Location: .");
 	die;
     }
   }

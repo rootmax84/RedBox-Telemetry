@@ -43,7 +43,7 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 	$i = 1;
 	while ( isset($_GET["s$i"]) ) {
 
-	if ($_GET["s$i"] == ''){header('Location:/');} //gx
+	if ($_GET["s$i"] == ''){header('Location: .');} //gx
 
 		${'v' . $i} = $_GET["s$i"];
 		$selectstring = $selectstring.",".quote_name(${'v' . $i});

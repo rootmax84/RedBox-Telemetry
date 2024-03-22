@@ -57,7 +57,7 @@ if (isset($sids[0])) {
 	}
 
 	if ($session_id == ''){
-		header('Location:/');
+		header('Location: .');
 	}
 
 	//For the merge function, we need to find out, what would be the next session
