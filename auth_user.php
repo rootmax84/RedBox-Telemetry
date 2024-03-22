@@ -59,7 +59,7 @@ function signIn() {
 }
 
 $(document).ready(function(){
-    $("#captcha").css("background", "url(/captcha.php?r=" + Math.random() + ") no-repeat right");
+    $("#captcha").css("background", "url(captcha.php?r=" + Math.random() + ") no-repeat right");
     $("#login-form").css({"opacity":"1", "margin":"10% auto"});
 });
 </script>
