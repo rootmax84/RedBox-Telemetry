@@ -276,7 +276,7 @@ document.querySelector('html').style.transition = ".2s"
    let head = document.getElementsByTagName('head')[0];
    let link = document.createElement('link');
    link.rel = 'stylesheet';
-   link.href = '/static/css/dark.css';
+   link.href = 'static/css/dark.css';
    head.appendChild(link);
   break;
   case "dark":
