@@ -46,6 +46,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 
 ### Typical nginx host configuration:
 ```
+#vhost
 server {
     listen 80;
     server_name your.site;
@@ -115,6 +116,15 @@ server {
     }
   error_page 404 =200 /;
 }
+
+#nginx.conf
+http {
+   client_max_body_size 50m;
+   client_header_timeout 900;
+   client_body_timeout 900;
+   fastcgi_read_timeout 900;
+}
+
 ```
 
 ### RocksDB compression configuration:
@@ -127,4 +137,11 @@ plugin-load-add=ha_rocksdb.so
 rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kLZ4Compression
 #Recommended
 rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kZSTDNotFinalCompression
+```
+
+### PHP configuration for proper logs upload
+```
+#php.ini
+post_max_size = 50M
+upload_max_filesize = 5M
 ```
