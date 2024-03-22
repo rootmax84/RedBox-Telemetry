@@ -144,7 +144,7 @@ if (isset($sids[0])) {
       <div class="container">
        <div id="theme-switch"></div>
 	<div class="navbar-header">
-	    <a class="navbar-brand" href="/"><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
+	    <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
 	</div>
       </div>
     </div>
@@ -466,18 +466,18 @@ function maintenance() {
 	     btnClassFailText: "Disable",
 	     btnClassFail: "btn btn-info btn-sm",
 	     onResolve: function() {
-	      xmlhttp.open("POST","/maintenance.php?enable");
+	      xmlhttp.open("POST","maintenance.php?enable");
 	      xmlhttp.send();
 	     },
 	     onReject: function() {
-	      xmlhttp.open("POST","/maintenance.php?disable");
+	      xmlhttp.open("POST","maintenance.php?disable");
 	      xmlhttp.send();
 	     }
 	};
 	 redDialog.make(dialogOpt);
       }
     };
-     xmlhttp.open("POST","/maintenance.php?mode");
+     xmlhttp.open("POST","maintenance.php?mode");
      xmlhttp.send();
 }
 </script>
@@ -692,7 +692,7 @@ function delSession() {
     message : "Delete session (<?php if(isset($session_id)) echo $seshdates[$session_id]; ?>)?",
     onResolve: function(){
      $("#wait_layout").show();
-     location.href='/?deletesession=<?php echo $session_id; ?>';
+     location.href='.?deletesession=<?php echo $session_id; ?>';
     },
     onReject: function(){ return; }
  };
@@ -723,14 +723,14 @@ var xhr = new XMLHttpRequest();
 		showToken();
 	      } else tokenError();
 	     }
-	     xhr.open("GET","/users_handler.php?renew_token");
+	     xhr.open("GET","users_handler.php?renew_token");
 	     xhr.send();
 	    }
 	};
 	redDialog.make(dialogOpt);
   }
 };
- xhr.open("GET", "/users_handler.php?get_token");
+ xhr.open("GET", "users_handler.php?get_token");
  xhr.send();
 }
 

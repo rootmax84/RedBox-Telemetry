@@ -5,7 +5,7 @@ if (!$_COOKIE['stream']) {
 require_once('db.php');
 include ("timezone.php");
 
-if (isset($_SESSION['admin'])) header("Refresh:0; url=/");
+if (isset($_SESSION['admin'])) header("Refresh:0; url=.");
 
 $db_limit = $db->execute_query("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024) FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?", [$db_name, $db_table])->fetch_row()[0];
 

@@ -5,7 +5,7 @@ require_once('db.php');
 include ("timezone.php");
 require_once('parse_functions.php');
 
-if (isset($_SESSION['admin'])) header("Refresh:0; url=/");
+if (isset($_SESSION['admin'])) header("Refresh:0; url=.");
 
  header('Content-Type: text/event-stream');
  header('Cache-Control: no-cache');

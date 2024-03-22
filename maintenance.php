@@ -17,7 +17,7 @@ require_once('creds.php');
 
     if (file_exists('maintenance') && $username != $admin){
 	header('HTTP/1.0 423 Locked');
-	header("Refresh:30; url=/maintenance.php");
+	header("Refresh:30; url=maintenance.php");
     ?>
 
 <html lang="en">
@@ -29,7 +29,7 @@ require_once('creds.php');
             <div class="container">
                 <div id="theme-switch"></div>
                 <div class="navbar-header">
-		<a class="navbar-brand" href="/"><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
+		<a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
                 </div>
               </div>
             </div>
@@ -44,6 +44,6 @@ require_once('creds.php');
 <?php
     }
 else {
-	header("Refresh:0; url=/");
+	header("Refresh:0; url=.");
  }
 ?>

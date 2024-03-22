@@ -13,7 +13,7 @@ if (isset($_GET["seshid"])) {
 	$seshid = $_SESSION['recent_session_id'];
 }
 
-$baselink = "/";
+$baselink = ".";
 
 $outurl = $baselink."?id=".$seshid;
 

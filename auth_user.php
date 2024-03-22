@@ -44,7 +44,7 @@ if (!$logged_in) {
         <div class="login" id="login-form" style="margin:5% auto; opacity:0; transition:.5s;">
             <div style="font-weight:bold; color:red; text-align:center; width:100%; font-size:16px; letter-spacing:1.5px">RedB<img src="static/img/logo.svg" alt style="height:10px; width:12px; margin-right:1px">x Telemetry</div>
             <h4 style="text-align:center">Login</h4>
-                <form method="post" class="form-group" action="/">
+                <form method="post" class="form-group" action=".">
                 <input class="form-control" type="text" name="user" value="" placeholder="(Username)" autocomplete="off"><br>
                 <input class="form-control" type="password" name="pass" value="" placeholder="(Password)" autocomplete="off"><br>
                 <div id="captcha"><input class="form-control" style="width:70%;" type="number" min="0" max="9999" name="captcha" placeholder="(Captcha)" autocomplete="off" onkeydown="javascript: return event.keyCode == 69 ? false : true"></div><br>

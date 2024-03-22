@@ -69,13 +69,13 @@ function auth() {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 401) {
-       location.href='/?logout=true';
+       location.href='.?logout=true';
       }
-      else if (this.readyState == 4 && this.status == 307) location.href='/maintenance.php';
+      else if (this.readyState == 4 && this.status == 307) location.href='maintenance.php';
       else if (this.readyState == 4 && this.status != 200) $("#offline_layout").show();
       else if (this.readyState == 4 && this.status == 200) $("#offline_layout").hide();
     };
-    xmlhttp.open("HEAD","/auth.php");
+    xmlhttp.open("HEAD","auth.php");
     xmlhttp.send();
 }
 

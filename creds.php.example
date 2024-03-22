@@ -38,6 +38,6 @@ $results_per_page = 50; //Pagination count of items per page
 
 //Maintenance mode
 if (file_exists('maintenance') && !isset($_SESSION['admin'])){
-    header("Refresh:0; url=/maintenance.php");
+    header("Refresh:0; url=maintenance.php");
 }
 ?>
