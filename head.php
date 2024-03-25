@@ -65,18 +65,21 @@
     });
 
 function auth() {
-  setTimeout(function(){auth()},5000);
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 401) {
-       location.href='.?logout=true';
-      }
-      else if (this.readyState == 4 && this.status == 307) location.href='maintenance.php';
-      else if (this.readyState == 4 && this.status != 200) $("#offline_layout").show();
-      else if (this.readyState == 4 && this.status == 200) $("#offline_layout").hide();
-    };
-    xmlhttp.open("HEAD","auth.php");
-    xmlhttp.send();
+ setTimeout(auth,5000);
+ fetch("auth.php", {method: "HEAD"})
+    .then(resp => {
+        switch(resp.status) {
+            case 200:
+            $("#offline_layout").hide();
+            break;
+            case 401:
+            location.href='.?logout=true';
+            break;
+            case 307:
+            location.href='maintenance.php';
+            break;
+        }
+    }).catch(err => {$("#offline_layout").show()});
 }
 
 stream_alarm_handler();
