@@ -29,12 +29,8 @@
 <script src="static/js/nosleep.js"></script>
 <script>
     $(document).ready(function() {
-            var visitortimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            $.ajax({
-                type: "GET",
-                url: "timezone.php",
-                data: 'time=' + visitortimezone
-            });
+     const visitortimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+     fetch("timezone.php?time=" + visitortimezone);
       $("#theme-switch").click( function() {
        toggle_dark();
      });
