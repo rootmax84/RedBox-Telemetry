@@ -509,13 +509,13 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
  if ($r->num_rows > 0) {
    while ($row = $r->fetch_assoc()) {
 	$db_sz = $db->query("SHOW TABLE STATUS LIKE '".$row["user"].$db_log_prefix."'")->fetch_array();
-	if ($row["user"] == $admin) $last = "";
+	if ($row["user"] == $admin) $last = "-";
 	else {
 	    $last = $db->query("SELECT time FROM ".$row["user"].$db_log_prefix." ORDER BY time DESC LIMIT 1")->fetch_array();
 	    if ($last) {
 	     $seconds = intval($last[0]/1000);
 	     $last = date($admin_timeformat_12 ? "d.m.Y h:i:sa" : "d.m.Y H:i:s", $seconds);
-	    }
+	    } else $last= "-";
 	}
 	echo "<tr>";
 	echo "<td>".$i++."</td>";
