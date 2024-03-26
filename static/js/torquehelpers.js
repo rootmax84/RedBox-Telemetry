@@ -119,11 +119,9 @@ updCharts = ()=>{
         $("#chart-load").css("display","block");
         let varPrm = 'plot.php?id='+$('#seshidtag').chosen().val();
         $('#plot_data').chosen().val().forEach((v,i)=>varPrm+='&s'+(i+1)+'='+v);
-        $.get(varPrm,d=>{
+        fetch(varPrm).then(d => d.json()).then(gData => {
             flotData = [];
-	try {
             $("#chart-load").css("display","none");
-            const gData = JSON.parse(d);
             gData.forEach(v=>flotData.push({label:v[1],data:v[2].map(a=>[parseInt(a[0]),a[1]])}));
             if ($('#placeholder')[0]==undefined) { //this would only be true the first time we load the chart
                 $('#Chart-Container').empty();
@@ -146,15 +144,14 @@ updCharts = ()=>{
             gData.forEach(v=>$('#Summary-Container>div>table>tbody').append(trData(v)));
             $(".line").peity("line", {width: '50'});
             if ($('#plot_data').chosen().val() == null) updCharts();
-	}
-	catch(e) {
+        }).catch(err => {
             const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html('No Data')));
             const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html('No Data')));
             $('#Chart-Container').empty();
             $('#Chart-Container').append(noChart2);
             $('#Summary-Container').empty();
             $('#Summary-Container').append(noChart);
-	}
+            $('#chart-load').hide();
         });
     }
     else{
