@@ -655,7 +655,11 @@ function checkLog() {
  var size = 0;
 
  for (var i = 0; i < log_data.files.length; i++) {
-    log_list.innerHTML += "<li>" + log_data.files[i].name + "</li>";
+    let logDate = new Date(parseInt(log_data.files[i].name.replace(/\D/g, '')));
+    let dateDMY = logDate.getDate() + "/" + (logDate.getMonth() + 1) + "/" + logDate.getFullYear();
+    let dateTime =  $.cookie('timeformat') == '12' ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }) : logDate.getHours() + ":" + ('0' + logDate.getMinutes()).slice(-2);
+    let dateStr = isNaN(logDate) ? "" : " | " + dateDMY + " " + dateTime;
+    log_list.innerHTML += "<li style='font-family:monospace'>" + log_data.files[i].name + dateStr + "</li>";
     size += log_data.files[i].size;
  }
 

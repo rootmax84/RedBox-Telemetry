@@ -502,7 +502,6 @@ img {
 #log-list {
   display: grid;
   width: fit-content;
-  font-family: monospace;
   font-size: 12px;
   margin: 10px auto 0;
   text-align: left;
