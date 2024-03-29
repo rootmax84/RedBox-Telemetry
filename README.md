@@ -66,24 +66,15 @@ server {
     server_name your.site;
     aio threads;
 
+    #GZIP compression settings
     gzip on;
-    gzip_disable "msie6";
-    gzip_comp_level 6;
-    gzip_min_length 1100;
-    gzip_buffers 16 8k;
-    gzip_proxied any;
-    gzip_types
-    text/plain
-    text/css
-    text/js
-    text/xml
-    text/javascript
-    application/javascript
-    application/x-javascript
-    application/json
-    application/xml
-    application/rss+xml
-    image/svg+xml/javascript;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+    #Brotli compression settings (if supported)
+    #brotli_static   on;
+    #brotli          on;
+    #brotli_comp_level       6;
+    #brotli_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
 
     ssl_certificate /etc/letsencrypt/live/your.site/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/your.site/privkey.pem;
