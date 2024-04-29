@@ -3,7 +3,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 
 ### Key features:
 - True multiuser with separate data and global admin
-- Authentication on torque/redmange side by unique token for each user
+- Authentication on torque/redmange side by bearer token for each user
 - Leaflet MAP provider
 - Export KML
 - Live data streaming
