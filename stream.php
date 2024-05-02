@@ -11,7 +11,7 @@ if (isset($_SESSION['admin'])) header("Refresh:0; url=.");
  header('Cache-Control: no-cache');
 
  $r = $db->query("SELECT * FROM $db_table ORDER BY time DESC LIMIT 1"); //Select last row from raw data table
- $s = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 ORDER by description ASC");  //Check if pid in stream
+ $s = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 OR id = 'kff1005' OR id = 'kff1006' ORDER by description ASC");  //Check if pid in stream
  $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
 
  //Get units conversion settings
@@ -87,7 +87,7 @@ else {
 	    break;
 	}
 
-	$data = "<tr>";
+	$data = ($pid[$i] == 'kff1005' || $pid[$i] == 'kff1006') ? "<tr hidden>" : "<tr>";
 	$data.= "<td>".$des[array_search($pid[$i],$pid)]."</td>"; //pid description
 	if ($row[$pid[$i]] == '') $data.= "<td title='No data available' tabindex='0'>-</td>"; // '-' if no data
 	else if ($pid[$i] == 'kff1202') $data.= "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $boost, $id)."</samp></td>"; // boost conversion
@@ -112,6 +112,8 @@ else {
 	else if ($pid[$i] == 'kff1204' || $pid[$i] == 'kff120c') $data.= "<td><samp>".speed_conv($row[$pid[$i]], $speed, $id)."</samp></td>"; // Trip Distance (ODO) conversion
 	else if ($pid[$i] == 'kc') $data.= "<td><samp>".sprintf("%.2f", $row[$pid[$i]]/100)."</samp></td>"; // RPM divide by 100
 	else if ($pid[$i] == 'k11') $data.= "<td><samp>".round($row[$pid[$i]])."</samp></td>"; // Throttle position round
+	else if ($pid[$i] == 'kff1005') $data.= "<td id='lon'>".$row[$pid[$i]]."</td>"; // Longitude for map marker
+	else if ($pid[$i] == 'kff1006') $data.= "<td id='lat'>".$row[$pid[$i]]."</td>"; // Latitude for map marker
 	else $data.= "<td><samp>".$row[$pid[$i]]."</samp></td>"; // REST DATA
 	if ($pid[$i] == 'k1f') 	$data.= "<td><samp>h:m:s</samp></td>"; // runtime custom unit
 	else if ($pid[$i] == 'kff1202') $data.= "<td><samp>".$boost_unit."</samp></td>"; // boost unit

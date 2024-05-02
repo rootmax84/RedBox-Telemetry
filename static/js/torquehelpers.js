@@ -185,6 +185,16 @@ initMapLeaflet = () => {
 
     L.control.locate().addTo(map);
 
+    //Dynamic tracking marker when stream is open
+    setInterval(()=>{
+        let marker = null;
+        let lat = stream ? $('#lat').html() : null;
+        let lon = stream ? $('#lon').html() : null;
+        if (lat == null || lon == null) return;
+        if (stream) marker = new L.marker([lat, lon]).addTo(map);
+        setTimeout(()=>{map.removeLayer(marker)},1000);
+    },1000);
+
     // start and end point marker
     var pathL = path.length;
     var endCrd = path[0];

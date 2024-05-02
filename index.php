@@ -430,6 +430,7 @@ function logToggle() {
 }
 
 var noSleep = new NoSleep();
+var stream = false;
 function dataToggle() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
@@ -438,12 +439,14 @@ function dataToggle() {
 		src.onmessage = e => {$("#stream").html(e.data)};
 		alarm.muted = false;
 		noSleep.enable();
+		stream = true;
 	} else {
 		$("#data").hide();
 		$("#data_toggle").html("click to expand ↓");
 		src.close();
 		alarm.muted = true;
 		noSleep.disable();
+		stream = false;
 	}
 }
 </script>
