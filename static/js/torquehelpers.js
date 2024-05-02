@@ -191,7 +191,10 @@ initMapLeaflet = () => {
         let lat = stream ? $('#lat').html() : null;
         let lon = stream ? $('#lon').html() : null;
         if (lat == null || lon == null) return;
-        if (stream) marker = new L.marker([lat, lon]).addTo(map);
+        if (stream) {
+            marker = new L.marker([lat, lon]).addTo(map);
+            map.setView(marker.getLatLng(), map.getZoom());
+        }
         setTimeout(()=>{map.removeLayer(marker)},1000);
     },1000);
 
