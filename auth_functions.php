@@ -39,7 +39,12 @@ function get_pass()
 function auth_user()
 {
     include('creds.php');
-    if (!isset($db)) $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
+    try {
+        if (!isset($db)) $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
+    } catch (Exception $e) {
+        header('HTTP/1.0 503 Service unavailable');
+        die("No database connection!");
+    }
 
     if (file_exists('install')) {
 	create_users_table();
