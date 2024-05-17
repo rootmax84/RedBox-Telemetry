@@ -32,10 +32,10 @@ $(document).ready(function(){
   $("select#selmonth").chosen({width: "100%", disable_search: true, allow_single_deselect: true});
   $("select#plot_data").chosen({width: "100%"});
   // Center the selected element
-  $("div#seshidtag_chosen a.chosen-single span").attr('align', 'center');
-  $("div#selprofile_chosen a.chosen-single span").attr('align', 'center');
-  $("div#selyear_chosen a.chosen-single span").attr('align', 'center');
-  $("div#selmonth_chosen a.chosen-single span").attr('align', 'center');
+  $("div#seshidtag_chosen a.chosen-single span").css('text-align', 'center');
+  $("div#selprofile_chosen a.chosen-single span").css('text-align', 'center');
+  $("div#selyear_chosen a.chosen-single span").css('text-align', 'center');
+  $("div#selmonth_chosen a.chosen-single span").css('text-align', 'center');
   $("select#plot_data").chosen({no_results_text: "Oops, nothing found!"});
   $("select#plot_data").chosen({placeholder_text_multiple: "Choose data.."});
 });
