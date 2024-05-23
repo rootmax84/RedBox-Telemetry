@@ -460,6 +460,10 @@ img {
   margin: 0 auto;
 }
 
+.table-del-merge-pid tr:hover {
+    background: #eee;
+}
+
 #stream {
   td:first-child {
     font-weight: bold;

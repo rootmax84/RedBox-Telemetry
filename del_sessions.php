@@ -108,15 +108,20 @@ if (isset($delsession)) {
 ?>
 </div>
     <script>
-    window.addEventListener("load",function() {
-       document.getElementById("del-btn").addEventListener("click",function(e) {
-         e.preventDefault();
-	var isChecked = $("input[type=checkbox]").is(":checked");
-	if (!isChecked) {
+    $(document).ready(()=> {
+	$("#del-btn").on("click",(e)=> {
+	    e.preventDefault();
+	    var isChecked = $("input[type=checkbox]").is(":checked");
+	    if (!isChecked) {
 		 noSel();
-		}
-	else delSessions();
+	    }
+	    else delSessions();
        });
+	$(".table-del-merge-pid tr").click(function(e) {
+	    if (e.target.type !== "checkbox") {
+		$(":checkbox", this).trigger("click");
+	    }
+	});
      });
 
     function delSessions() {

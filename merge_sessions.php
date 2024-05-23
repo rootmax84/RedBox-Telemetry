@@ -132,11 +132,16 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
 ?>
 </div>
     <script>
-    window.addEventListener("load",function() {
-       document.getElementById("merge-btn").addEventListener("click",function(e) {
-         e.preventDefault();
-         mergeSession();
+    $(document).ready(()=> {
+	$("#merge-btn").on("click",(e)=> {
+	    e.preventDefault();
+	    mergeSession();
        });
+	$(".table-del-merge-pid tr").click(function(e) {
+	    if (e.target.type !== "checkbox") {
+		$(":checkbox", this).trigger("click");
+	    }
+	});
      });
 
     function mergeSession() {
