@@ -4,7 +4,6 @@
 <link rel="icon" type="image/png" sizes="16x16" href="static/img/favicon-16x16.png">
 <link rel="manifest" href="static/img/site.webmanifest">
 <link rel="mask-icon" href="static/img/safari-pinned-tab.svg" color="#5bbad5">
-<meta name="msapplication-TileColor" content="#da532c">
 <meta name="theme-color" content="#1a1a1a">
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
