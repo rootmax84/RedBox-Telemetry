@@ -83,9 +83,9 @@
              <h4>Change password</h4>
              <h6 style="color:#777">You can change your current password here</h6>
 		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
-		 <input class="form-control" type="password" name="old_p"  placeholder="(Current password)" maxlength="64" autocomplete="new-password"><br>
-		 <input class="form-control" type="password" name="new_p1" placeholder="(New password)" maxlength="64" autocomplete="new-password"><br>
-		 <input class="form-control" type="password" name="new_p2" placeholder="(Repeat new password)" maxlength="64" autocomplete="new-password"><br>
+		 <input class="form-control" type="password" name="old_p"  placeholder="(Current password)" maxlength="64" autocomplete="new-password" required><br>
+		 <input class="form-control" type="password" name="new_p1" placeholder="(New password)" maxlength="64" autocomplete="new-password" required><br>
+		 <input class="form-control" type="password" name="new_p2" placeholder="(Repeat new password)" maxlength="64" autocomplete="new-password" required><br>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit">Save</button></div>
 		</form>
         </div>
