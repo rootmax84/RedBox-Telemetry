@@ -214,6 +214,8 @@ $db->close();
 } catch (TypeError $e) {
     header('HTTP/1.0 406');
     echo $files[$f]['name'] . " is broken!";
+    $db->execute_query("DELETE FROM $db_table WHERE session=?", [$session]);
+    $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$session]);
     die;
 }
 ?>
