@@ -1,4 +1,5 @@
 <?php
+try {
 if (!$_COOKIE['stream']) {
  header('HTTP/1.0 401 Unauthorized');
 }
@@ -209,4 +210,10 @@ for ($f = 0; $f < count($files); $f++) {
 
 echo $ok . " files uploaded successfully";
 $db->close();
+
+} catch (TypeError $e) {
+    header('HTTP/1.0 406');
+    echo $files[$f]['name'] . " is broken!";
+    die;
+}
 ?>

@@ -35,7 +35,7 @@ if (!isset($_GET['action'])) {
 if ($_GET['action'] == "edit") {
 ?>
 	    <h4>Edit user</h4>
-		<input class="form-control" type="text" name="e_login" value="" placeholder="(Username)"></br>
+		<input class="form-control" type="text" name="e_login" value="" placeholder="(Username)" required></br>
 		<input class="form-control" type="password" name="e_pass" value="" placeholder="(New password)" autocomplete="new-password"></br>
 		<input class="form-control" type="number" min="-1" max="100000" name="e_limit" placeholder="(Limits in mb)"></br>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Edit</button>
@@ -44,8 +44,8 @@ if ($_GET['action'] == "edit") {
 else if ($_GET['action'] == "reg") {
 ?>
 	    <h4>Register user</h4>
-		<input class="form-control" type="text" name="reg_login" value="" placeholder="(Username)"><br>
-		<input class="form-control" type="password" name="reg_pass" value="" placeholder="(Password)" autocomplete="new-password">
+		<input class="form-control" type="text" name="reg_login" value="" placeholder="(Username)" required><br>
+		<input class="form-control" type="password" name="reg_pass" value="" placeholder="(Password)" autocomplete="new-password" required>
 		<div style="padding:15px 0"><label style="font-size:13px;font-family:'Open Sans'"><input type="checkbox" name="reg_legacy"> Generic OBD device</label></div>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Register</button>
 <?php
@@ -53,14 +53,14 @@ else if ($_GET['action'] == "reg") {
 else if ($_GET['action'] == "del") {
 ?>
 	    <h4>Delete user</h4>
-		<input class="form-control" type="text" name="del_login" value="" placeholder="(Username)"><br>
+		<input class="form-control" type="text" name="del_login" value="" placeholder="(Username)" required><br>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Delete</button>
 <?php
 }
 else if ($_GET['action'] == "trunc") {
 ?>
 	    <h4>Truncate user database</h4>
-		<input class="form-control" type="text" name="trunc_login" value="" placeholder="(Username)"></br>
+		<input class="form-control" type="text" name="trunc_login" value="" placeholder="(Username)" required></br>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Truncate</button>
 <?php
 }

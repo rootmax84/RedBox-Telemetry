@@ -390,6 +390,9 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 	  <div class="btn-group btn-group-justified func-btn">
 	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=kml'; ?>" onclick="setTimeout(()=>{$('#wait_layout').hide()},1000)">KML</a>
 	  </div>
+	  <div class="btn-group btn-group-justified func-btn">
+	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=txt'; ?>" onclick="setTimeout(()=>{$('#wait_layout').hide()},1000)">RBX</a>
+	  </div>
 
    </div>
 <script>
@@ -575,7 +578,7 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
     <p class="copyright"></p>
 </div>
 <?php } else { ?>
-<div class="login" style="text-align:center; width:400px;">
+<div class="login" style="text-align:center; width:fit-content;">
     <h4>No data to show</h4>
     <h6>Upload data via internet or via file(s)</h6>
 <ul class="no-data-url-list">

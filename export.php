@@ -15,6 +15,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 	$output = "";
 	$sql = $db->execute_query("SELECT * FROM $db_table WHERE session=? ORDER BY time ASC", [$session_id]);
 	$kml = $db->execute_query("SELECT kff1005,kff1006,kff1007 FROM $db_table join $db_sessions_table on $db_table.session = $db_sessions_table.session WHERE $db_table.session=? AND kff1005 > 0 ORDER BY $db_table.time DESC", [$session_id]);
+	$txt = $db->execute_query("SELECT $db_table.time,k5,k5c,kf,kb4,k46,k2101,kd,kc,kb,k10,k11,ke,k2112,k2100,k2113,k21cc,kff1214,kff1218,k78,k2111,k2119,k1f,k2118,k2120,k2122,k2124,k21e1,k21e2,k2125,k2126,kff1238,k21fa,kff1006,kff1005,kff1001,kff120c FROM $db_table join $db_sessions_table on $db_table.session = $db_sessions_table.session WHERE $db_table.session=? AND $db_sessions_table.id=? ORDER BY $db_table.time ASC", [$session_id, "RedManage"]);
 
 	if ($_GET["filetype"] == "kml") {
 		$columns_total = $kml->field_count;
@@ -86,6 +87,35 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		$csvfilename = "log_session_".$session_id.".csv";
 		header('Content-type: application/csv');
 		header('Content-Disposition: attachment; filename='.$csvfilename);
+
+		echo $output;
+		exit;
+	}
+
+	else if ($_GET["filetype"] == "txt") { //RedManage session export
+		$columns_total = $txt->field_count;
+		$rows_total = $txt->num_rows;
+
+		if ($rows_total) {
+		    // Field Name
+		    $output = "TIME ECT EOT IAT ATF AAT EXT SPD RPM MAP MAF TPS IGN INJ INJD IAC AFR O2S O2S2 EGT EOP FP ERT MHS BSTD FAN GEAR BS1 BS2 PG0 PG1 VLT RLC GLAT GLON GSPD ODO\n";
+
+		// Get Records from the table
+		    while ($row = $txt->fetch_array()) {
+			for ($i = 0; $i < $columns_total; $i++) {
+			    $output .= $row["$i"].' ';
+			}
+			    $output = rtrim($output);
+			    $output .="\n";
+		    }
+		} else {
+		    $output = "This is not RedManage session";
+		}
+
+		// Download the file
+		$txtfilename = "rbx_log_".$session_id.".txt";
+		header('Content-type: application/txt');
+		header('Content-Disposition: attachment; filename='.$txtfilename);
 
 		echo $output;
 		exit;
