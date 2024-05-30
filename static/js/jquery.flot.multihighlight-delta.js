@@ -165,7 +165,7 @@ function calculate(number) {
           }
         }
 
-        plot.getPlaceholder().on('plothover', handlerProxies.onPlotHover);
+        plot.getPlaceholder().on('plothover plottouchmove', handlerProxies.onPlotHover);
         plot.getPlaceholder().on('mouseout', handlerProxies.onMouseOut);
 
         // Keep a cache of the template
@@ -174,7 +174,7 @@ function calculate(number) {
 
       });
       this.plot.hooks.shutdown.push(function (plot) {
-        plot.getPlaceholder().off('plothover', handlerProxies.onPlotHover);
+        plot.getPlaceholder().off('plothover plottouchmove', handlerProxies.onPlotHover);
         plot.getPlaceholder().off('mouseout', handlerProxies.onMouseOut);
       });
 

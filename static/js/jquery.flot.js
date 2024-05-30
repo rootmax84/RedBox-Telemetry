@@ -590,6 +590,7 @@ Licensed under the MIT license.
                     // interactive stuff
                     clickable: false,
                     hoverable: false,
+                    touchmove: false,
                     autoHighlight: true, // highlight in case mouse is near
                     mouseActiveRadius: 10 // how far the mouse can be away to activate an item
                 },
@@ -1316,6 +1317,10 @@ Licensed under the MIT license.
                 eventHolder.bind("mouseleave", onMouseLeave);
             }
 
+            if (options.grid.touchmove) {
+                eventHolder.bind("touchmove", onTouchMove);
+            }
+
             if (options.grid.clickable)
                 eventHolder.click(onClick);
 
@@ -1329,6 +1334,7 @@ Licensed under the MIT license.
             eventHolder.unbind("mousemove", onMouseMove);
             eventHolder.unbind("mouseleave", onMouseLeave);
             eventHolder.unbind("click", onClick);
+            eventHolder.unbind("touchmove", onTouchMove);
 
             executeHooks(hooks.shutdown, [eventHolder]);
         }
@@ -2915,6 +2921,12 @@ Licensed under the MIT license.
                                        function (s) { return false; });
         }
 
+        function onTouchMove(e) {
+            if (options.grid.touchmove)
+                triggerClickHoverEvent("plottouchmove", e,
+                                       function (s) { return true; });
+        }
+
         function onClick(e) {
             triggerClickHoverEvent("plotclick", e,
                                    function (s) { return s["clickable"] != false; });
@@ -2923,13 +2935,23 @@ Licensed under the MIT license.
         // trigger click or hover event (they send the same parameters
         // so we share their code)
         function triggerClickHoverEvent(eventname, event, seriesFilter) {
+            let touch = undefined;
+            let posX = undefined;
+            let posY = undefined;
+
+            if(event.originalEvent.touches) {
+                touch = event.originalEvent.touches[0];
+            }
+            posX = event.pageX || touch.pageX;
+            posY = event.pageY || touch.pageY;
+
             var offset = eventHolder.offset(),
-                canvasX = event.pageX - offset.left - plotOffset.left,
-                canvasY = event.pageY - offset.top - plotOffset.top,
+                canvasX = posX - offset.left - plotOffset.left,
+                canvasY = posY - offset.top - plotOffset.top,
             pos = canvasToAxisCoords({ left: canvasX, top: canvasY });
 
-            pos.pageX = event.pageX;
-            pos.pageY = event.pageY;
+            pos.pageX = posX;
+            pos.pageY = posY;
 
             var item = findNearbyItem(canvasX, canvasY, seriesFilter);
 

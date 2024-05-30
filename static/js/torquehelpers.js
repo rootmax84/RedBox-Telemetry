@@ -1,6 +1,6 @@
 chartTooltip = () => {
     var previousPoint = null;
-    $("#placeholder").bind("plothover", function (event, pos, item) {
+    $("#placeholder").bind("plothover plottouchmove", function (event, pos, item) {
         if (typeof window.markerUpd==='function') markerUpd(item);
 
         if ($("#enableTooltip:checked").length > 0) {
@@ -83,6 +83,8 @@ function doPlot(position) {
         },
         selection: { mode: "x" },
         grid: {
+            touchmove: true,
+            mouseActiveRadius: 100,
             hoverable: true,
             clickable: false
         },
@@ -125,7 +127,7 @@ updCharts = ()=>{
             gData.forEach(v=>flotData.push({label:v[1],data:v[2].map(a=>[parseInt(a[0]),a[1]])}));
             if ($('#placeholder')[0]==undefined) { //this would only be true the first time we load the chart
                 $('#Chart-Container').empty();
-                $('#Chart-Container').append($('<div>',{class:'demo-container'}).append($('<div>',{id:'placeholder',class:'demo-placeholder',style:'height:350px'})));
+                $('#Chart-Container').append($('<div>',{class:'demo-container'}).append($('<div>',{id:'placeholder',class:'demo-placeholder',style:'height:350px;touch-action:pan-y'})));
                 doPlot("right");
             }
             //always update the chart trimmed range when plotting new data
@@ -167,6 +169,7 @@ initMapLeaflet = () => {
     var path = window.MapData.path;
     var map = new L.Map("map", {
         center: new L.LatLng(0, 0),
+        dragging: !L.Browser.mobile,
         zoom: 6, scrollWheelZoom: false});
     let layer = null;
         layer = new L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

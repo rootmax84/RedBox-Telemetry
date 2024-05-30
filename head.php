@@ -16,6 +16,7 @@
 <script src="static/js/jquery.min.js"></script>
 <script src="static/js/jquery.cookie.min.js"></script>
 <script src="static/js/jquery-ui.min.js"></script>
+<script src="static/js/jquery-ui.touch-punch.min.js"></script>
 <script src="static/js/bootstrap.min.js"></script>
 <script src="static/js/jquery.peity.min.js"></script>
 <script src="static/js/chosen.jquery.min.js"></script>
