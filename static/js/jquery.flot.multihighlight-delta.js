@@ -283,7 +283,8 @@ function calculate(number) {
 
         var pageWidth = window.innerWidth;
         var pageHeight = window.innerHeight;
-        if (xPosition + tooltipWidth > pageWidth){
+        var plotWidth = $("#placeholder").width();
+        if (xPosition + tooltipWidth > plotWidth){
           xPositionProperty = 'right';
           xPosition = pageWidth - position.pageX + options.tooltipOffsetX;
         }
