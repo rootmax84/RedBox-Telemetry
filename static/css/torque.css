@@ -268,7 +268,6 @@ input[type=text]:disabled {
 
 .logout {
   filter: opacity(.4);
-  transition: .25s;
   margin: 10px -15px;
   margin-left: 0 !important;
   padding: 12px;
