@@ -11,6 +11,7 @@ if (isset($_SESSION['admin'])) header("Refresh:0; url=.");
  header('Cache-Control: no-cache');
 
  $r = $db->query("SELECT * FROM $db_table ORDER BY time DESC LIMIT 1"); //Select last row from raw data table
+ if (!$r->num_rows) die;
  $s = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 OR id = 'kff1005' OR id = 'kff1006' ORDER by description ASC");  //Check if pid in stream
  $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
 

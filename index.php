@@ -601,6 +601,10 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
     <ul id="log-list"></ul>
    </div>
 </div>
+<script>
+ src = new EventSource("stream.php");
+ src.onmessage = e => {if (e.data.length) location.reload()};
+</script>
 <?php } ?>
       </div>
     </div>
