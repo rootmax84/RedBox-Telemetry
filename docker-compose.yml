@@ -12,6 +12,7 @@ services:
             - MYSQL_DATABASE=ratel
             - MYSQL_USER=ratel
             - MYSQL_PASSWORD=ratel
+            - TZ=Etc/UTC
         restart: always
 
     web:
@@ -20,9 +21,12 @@ services:
         container_name: ratel_nginx
         volumes:
             - '.:/data'
-            - './docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf'
+            - './docker/nginx/default.conf:/etc/nginx/conf.d/default.conf'
+            - './docker/nginx/nginx.conf:/etc/nginx/nginx.conf'
         ports:
             - '8080:80'
+        environment:
+            - TZ=Etc/UTC
         restart: always
 
     php-fpm:
@@ -32,6 +36,8 @@ services:
         volumes:
             - '.:/data'
             - './docker/php-fpm/php-ini-overrides.ini:/etc/php/8.3/fpm/conf.d/99-overrides.ini'
+        environment:
+            - TZ=Etc/UTC
         restart: always
 
 volumes:
