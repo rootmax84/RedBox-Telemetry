@@ -3,6 +3,7 @@ services:
     mariadb:
         build: docker/mariadb
         working_dir: /data
+        container_name: ratel_mariadb
         volumes:
             - 'mariadb_data:/var/lib/mysql'
             - './docker/mariadb/config:/etc/mysql/mariadb.conf.d:ro'
@@ -16,6 +17,7 @@ services:
     web:
         image: 'nginx:alpine'
         working_dir: /data
+        container_name: ratel_nginx
         volumes:
             - '.:/data'
             - './docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf'
@@ -26,6 +28,7 @@ services:
     php-fpm:
         build: docker/php-fpm
         working_dir: /data
+        container_name: ratel_php-fpm
         volumes:
             - '.:/data'
             - './docker/php-fpm/php-ini-overrides.ini:/etc/php/8.3/fpm/conf.d/99-overrides.ini'
