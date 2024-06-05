@@ -8,7 +8,7 @@ if (isset($_SESSION['torque_user'])) {
 }
 
 // MySQL settings
-$db_host = '';
+$db_host = '';     // Type mariadb if use docker
 $db_user = '';     // Enter your MySQL username
 $db_pass = '';     // Enter your MySQL password
 $db_port = '';     // Default port 3306

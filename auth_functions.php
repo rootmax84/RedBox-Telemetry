@@ -99,7 +99,7 @@ function create_users_table()
 	UNIQUE KEY user (user),
 	UNIQUE KEY token (token),
 	KEY indexes (s,pass,tg_token,tg_chatid))
-	ENGINE=".$db_engine."";
+	ENGINE=".$db_engine." DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
   $db->query($table);
   if (!$db->query($is_empty)->num_rows) $db->execute_query("INSERT INTO $db_users (s, user, pass) VALUES (?,?,?)", [0, $admin, password_hash('admin', PASSWORD_DEFAULT, $salt)]);

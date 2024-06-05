@@ -1,0 +1,11 @@
+[mariadb]
+plugin-load-add=ha_rocksdb.so
+rocksdb-keep-log-file-num=2
+rocksdb-flush-log-at-trx_commit=2
+rocksdb-max-log-file-size=10M
+#Better compression
+#rocksdb_default_cf_options=compression=kZSTDNotFinalCompression;bottommost_compression=kZSTDNotFinalCompression
+#Better performance
+#rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kLZ4Compression
+#Recommended
+rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kZSTDNotFinalCompression
