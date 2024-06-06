@@ -6,7 +6,8 @@ services:
         container_name: ratel_mariadb
         volumes:
             - 'mariadb_data:/var/lib/mysql'
-            - './docker/mariadb/config:/etc/mysql/mariadb.conf.d:ro'
+            - './docker/mariadb/config/rocksdb.cnf:/etc/mysql/mariadb.conf.d/rocksdb.cnf:ro'
+            - './docker/mariadb/config/server.cnf:/etc/mysql/server.cnf:ro'
         environment:
             - MYSQL_ROOT_PASSWORD=root
             - MYSQL_DATABASE=ratel
