@@ -39,16 +39,15 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 
 ### Installation docker:
 1. Rename creds.php.example to creds.php
-3. Open creds.php file
-4. Fill MySQL settings as in docker-compose.yml and choose database engine (InnoDB or RocksDB)
-5. Change admin login if needed - $admin variable
-6. Create empty file with name 'install' in root folder of installation (Make sure web-server have write rights on folder)
-7. docker-compose up -d (default http port 8080)
-8. Configure reverse-proxy with ssl or configure ssl inside container ./docker/nginx/nginx.conf
-9. Sign in with admin login and admin password (default password: admin) (Users table will be created while sign in)
-10. Create new user in admin panel and change admin password
-11. For upload data from Torque PRO/RedManage use URL - https://your.site/upload
-12. Done!
+2. Open creds.php file
+3. Fill MySQL settings as in docker-compose.yml and choose database engine (InnoDB or RocksDB)
+4. Change admin login if needed - $admin variable
+5. docker-compose up -d (default http port 8080)
+6. Configure reverse-proxy with ssl or configure ssl inside container ./docker/nginx/default.conf
+7. Sign in with admin login and admin password (default password: admin) (Users table will be created while sign in)
+8. Create new user in admin panel and change admin password
+9. For upload data from Torque PRO/RedManage use URL - https://your.site/upload
+10. Done!
 
 ### Screenshots:
 ![](https://redbox.pw/wp-content/uploads/2024/02/interface_main.png?1)

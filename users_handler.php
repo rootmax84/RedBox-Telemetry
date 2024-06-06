@@ -57,6 +57,8 @@ else
 	$password = $_POST['e_pass'];
 	$e_limit = $_POST['e_limit'];
 
+	if ($login == $admin && $e_limit != NULL) die("Can't set limit for admin");
+
 	$row = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login])->fetch_assoc();
 	if (!$row) die("User $login not found");
 
