@@ -28,7 +28,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 ### Installation standalone:
 1. Create database and user with all privileges on this database
 2. Rename creds.php.example to creds.php
-3. Open creds.php file
+3. Open ./web/creds.php file
 4. Fill MySQL settings and choose database engine (InnoDB or RocksDB if available)
 5. Change admin login if needed - $admin variable
 6. Create empty file with name 'install' in root folder of installation (Make sure web-server have write rights on folder)
@@ -39,7 +39,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 
 ### Installation docker:
 1. Rename creds.php.example to creds.php
-2. Open creds.php file
+2. Open ./web/creds.php file
 3. Fill MySQL settings as in docker-compose.yml and choose database engine (InnoDB or RocksDB)
 4. Change admin login if needed - $admin variable
 5. docker-compose up -d (default http port 8080)
