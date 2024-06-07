@@ -66,7 +66,7 @@ server {
 }
 
 server {
-    root /var/www/RedBox-Telemetry;
+    root /var/www/RedBox-Telemetry/web;
 
     #nginx < 1.25
     listen 443 ssl http2;
