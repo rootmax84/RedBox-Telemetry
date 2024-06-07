@@ -49,6 +49,9 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 9. For upload data from Torque PRO/RedManage use URL - https://your.site/upload
 10. Done!
 
+### Demo:
+[Click it](https://demo.redbox.pw/ratel/)
+
 ### Screenshots:
 ![](https://redbox.pw/wp-content/uploads/2024/02/interface_main.png?1)
 
