@@ -38,19 +38,8 @@ $(document).ready(function(){
   $("div#selmonth_chosen a.chosen-single span").css('text-align', 'center');
   $("select#plot_data").chosen({no_results_text: "Oops, nothing found!"});
   $("select#plot_data").chosen({placeholder_text_multiple: "Choose data.."});
-});
-
-$(document).on('click', '.panel-heading span.clickable', function(e){
-    var $this = $(this);
-  if(!$this.hasClass('panel-collapsed')) {
-    $this.parents('.panel').find('.panel-body').slideUp();
-    $this.addClass('panel-collapsed');
-    $this.find('i').removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
-  } else {
-    $this.parents('.panel').find('.panel-body').slideDown();
-    $this.removeClass('panel-collapsed');
-    $this.find('i').removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
-  }
+  // Reset flot zoom
+  $("#Chart-Container").on("dblclick",()=>{initSlider(jsTimeMap,minTimeStart,maxTimeEnd)});
 });
 
 //start of chart plotting js code
