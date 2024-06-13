@@ -282,8 +282,8 @@ if (isset($sids[0])) {
 <!-- slider -->
 <script>
 jsTimeMap = [<?php echo $itime; ?>].reverse(); //Session time array, reversed for silder
-var minTimeStart = [<?php echo $mintimev; ?>];
-var maxTimeEnd = [<?php echo $maxtimev; ?>];
+let minTimeStart = [<?php echo $mintimev; ?>];
+let maxTimeEnd = [<?php echo $maxtimev; ?>];
 initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 </script>
 <span class="h4">Trim Session</span>
@@ -432,8 +432,8 @@ function logToggle() {
 	}
 }
 
-var noSleep = new NoSleep();
-var stream = false;
+const noSleep = new NoSleep();
+let stream = false;
 function dataToggle() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
@@ -460,14 +460,14 @@ function dataToggle() {
 <?php if(isset($_SESSION['admin'])) {?>
 <script>
 function maintenance() {
-    var mode;
-    var xmlhttp = new XMLHttpRequest();
+    let mode;
+    let xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 200) {
 	$("#wait_layout").hide();
 	mode = this.responseText;
 	if (!mode.length) return;
-	var dialogOpt = {
+	let dialogOpt = {
 	     title: "Maintenance mode",
 	     message : "Status: " + mode,
 	     btnClassSuccessText: "Enable",
@@ -627,19 +627,19 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
 <!-- logs upload -->
 <?php if(!isset($_SESSION['admin'])) {?>
 <script>
-var msg_def = document.getElementById('log-msg-def');
-var msg_ok = document.getElementById('log-msg-ok');
-var msg_err = document.getElementById('log-msg-err');
-var up_btn = $('#log-upload-btn');
-var log_list = document.getElementById('log-list');
-var logInput = document.getElementById('logFile');
+const msg_def = document.getElementById('log-msg-def');
+const msg_ok = document.getElementById('log-msg-ok');
+const msg_err = document.getElementById('log-msg-err');
+const up_btn = $('#log-upload-btn');
+const log_list = document.getElementById('log-list');
+const logInput = document.getElementById('logFile');
 
 function submitLog(el) {
   up_btn.hide();
   msg_err.innerHTML = "";
   msg_def.innerHTML = "";
 
-  var xhr = new XMLHttpRequest();
+  let xhr = new XMLHttpRequest();
   xhr.onload = function() {
      msg_ok.innerHTML = xhr.responseText;
      if (xhr.status == 406) {
@@ -661,10 +661,10 @@ function checkLog() {
  msg_err.innerHTML = "";
  msg_ok.innerHTML = "";
  log_list.innerHTML = "";
- var log_data = document.getElementById('logFile');
- var size = 0;
+ const log_data = document.getElementById('logFile');
+ let size = 0;
 
- for (var i = 0; i < log_data.files.length; i++) {
+ for (let i = 0; i < log_data.files.length; i++) {
     let logDate = new Date(parseInt(log_data.files[i].name.replace(/\D/g, '')));
     let dateDMY = logDate.getDate() + "/" + (logDate.getMonth() + 1) + "/" + logDate.getFullYear();
     let dateTime =  $.cookie('timeformat') == '12' ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }) : logDate.getHours() + ":" + ('0' + logDate.getMinutes()).slice(-2);
@@ -700,7 +700,7 @@ function checkLog() {
 
 function delSession() {
  $("#wait_layout").hide();
- var dialogOpt = {
+ let dialogOpt = {
     title : "Confirmation",
     btnClassSuccessText: "Yes",
     btnClassFailText: "No",
@@ -717,12 +717,12 @@ function delSession() {
 
 function showToken() {
 $("#wait_layout").show();
-var xhr = new XMLHttpRequest();
+let xhr = new XMLHttpRequest();
  xhr.onreadystatechange = function() {
   if (this.readyState == 4 && this.status == 200) {
 	$("#wait_layout").hide();
-	var token = this.responseText;
-	var dialogOpt = {
+	let token = this.responseText;
+	let dialogOpt = {
 	    title : "Token for upload",
 	    btnClassSuccessText: "Copy",
 	    btnClassFail: "btn btn-info btn-sm",
@@ -733,7 +733,7 @@ var xhr = new XMLHttpRequest();
 	    },
 	    onReject: function(){
 	     $("#wait_layout").show();
-	     var xhr = new XMLHttpRequest();
+	     let xhr = new XMLHttpRequest();
 	     xhr.onreadystatechange = function() {
 	     if (this.readyState == 4 && this.status == 200) {
 		showToken();
@@ -752,7 +752,7 @@ var xhr = new XMLHttpRequest();
 
 function tokenError() {
  $("#wait_layout").hide();
- var dialogOpt = {
+ let dialogOpt = {
     title : "Error",
     btnClassSuccessText: "OK",
     btnClassFail: "hidden",
@@ -761,7 +761,7 @@ function tokenError() {
  redDialog.make(dialogOpt);
 }
 
-var _0x1d5c4a=_0x1546;(function(_0x313450,_0x264e3c){var _0x356929=_0x1546,_0x9ac634=_0x313450();while(!![]){try{var _0x469f0b=parseInt(_0x356929(0x112))/0x1+-parseInt(_0x356929(0x10f))/0x2+parseInt(_0x356929(0x118))/0x3+parseInt(_0x356929(0x10b))/0x4*(parseInt(_0x356929(0x10c))/0x5)+-parseInt(_0x356929(0x116))/0x6*(parseInt(_0x356929(0x115))/0x7)+parseInt(_0x356929(0x104))/0x8*(-parseInt(_0x356929(0x113))/0x9)+-parseInt(_0x356929(0x111))/0xa*(-parseInt(_0x356929(0x10e))/0xb);if(_0x469f0b===_0x264e3c)break;else _0x9ac634['push'](_0x9ac634['shift']());}catch(_0x3ec26a){_0x9ac634['push'](_0x9ac634['shift']());}}}(_0x5da1,0x1e14b));var dropArea=document[_0x1d5c4a(0x109)](_0x1d5c4a(0x10a)),fl=document[_0x1d5c4a(0x109)]('logFile');dropArea[_0x1d5c4a(0x105)]('drop',drop),dropArea['addEventListener'](_0x1d5c4a(0x106),dragover),dropArea[_0x1d5c4a(0x105)]('dragleave',dragleave);function drop(_0x275323){var _0x56e463=_0x1d5c4a;_0x275323[_0x56e463(0x10d)](),dropArea[_0x56e463(0x108)]['border']='',fl[_0x56e463(0x110)]=_0x275323[_0x56e463(0x114)][_0x56e463(0x110)],checkLog();}function _0x1546(_0xee7b68,_0x5197a8){var _0x5da1cc=_0x5da1();return _0x1546=function(_0x15461f,_0x296258){_0x15461f=_0x15461f-0x104;var _0x24f752=_0x5da1cc[_0x15461f];return _0x24f752;},_0x1546(_0xee7b68,_0x5197a8);}function dragover(_0x3472f9){var _0x3a333a=_0x1d5c4a;_0x3472f9[_0x3a333a(0x10d)](),dropArea[_0x3a333a(0x108)]['borderColor']=_0x3a333a(0x107);}function _0x5da1(){var _0x32f3d2=['910040PewprR','5YdBlYf','preventDefault','2731619BvFyke','276050kXshxr','files','10RQoOlH','427mCVpFD','668907nZgjIa','dataTransfer','7wejhqD','787902QKYbqB','borderColor','194799CRCCWm','16YdpnSB','addEventListener','dragover','#0eff00','style','getElementById','log'];_0x5da1=function(){return _0x32f3d2;};return _0x5da1();}function dragleave(_0xb33d5e){var _0x3ad907=_0x1d5c4a;_0xb33d5e[_0x3ad907(0x10d)](),dropArea[_0x3ad907(0x108)][_0x3ad907(0x117)]='';}
+let _0x1d5c4a=_0x1546;(function(_0x313450,_0x264e3c){var _0x356929=_0x1546,_0x9ac634=_0x313450();while(!![]){try{var _0x469f0b=parseInt(_0x356929(0x112))/0x1+-parseInt(_0x356929(0x10f))/0x2+parseInt(_0x356929(0x118))/0x3+parseInt(_0x356929(0x10b))/0x4*(parseInt(_0x356929(0x10c))/0x5)+-parseInt(_0x356929(0x116))/0x6*(parseInt(_0x356929(0x115))/0x7)+parseInt(_0x356929(0x104))/0x8*(-parseInt(_0x356929(0x113))/0x9)+-parseInt(_0x356929(0x111))/0xa*(-parseInt(_0x356929(0x10e))/0xb);if(_0x469f0b===_0x264e3c)break;else _0x9ac634['push'](_0x9ac634['shift']());}catch(_0x3ec26a){_0x9ac634['push'](_0x9ac634['shift']());}}}(_0x5da1,0x1e14b));var dropArea=document[_0x1d5c4a(0x109)](_0x1d5c4a(0x10a)),fl=document[_0x1d5c4a(0x109)]('logFile');dropArea[_0x1d5c4a(0x105)]('drop',drop),dropArea['addEventListener'](_0x1d5c4a(0x106),dragover),dropArea[_0x1d5c4a(0x105)]('dragleave',dragleave);function drop(_0x275323){var _0x56e463=_0x1d5c4a;_0x275323[_0x56e463(0x10d)](),dropArea[_0x56e463(0x108)]['border']='',fl[_0x56e463(0x110)]=_0x275323[_0x56e463(0x114)][_0x56e463(0x110)],checkLog();}function _0x1546(_0xee7b68,_0x5197a8){var _0x5da1cc=_0x5da1();return _0x1546=function(_0x15461f,_0x296258){_0x15461f=_0x15461f-0x104;var _0x24f752=_0x5da1cc[_0x15461f];return _0x24f752;},_0x1546(_0xee7b68,_0x5197a8);}function dragover(_0x3472f9){var _0x3a333a=_0x1d5c4a;_0x3472f9[_0x3a333a(0x10d)](),dropArea[_0x3a333a(0x108)]['borderColor']=_0x3a333a(0x107);}function _0x5da1(){var _0x32f3d2=['910040PewprR','5YdBlYf','preventDefault','2731619BvFyke','276050kXshxr','files','10RQoOlH','427mCVpFD','668907nZgjIa','dataTransfer','7wejhqD','787902QKYbqB','borderColor','194799CRCCWm','16YdpnSB','addEventListener','dragover','#0eff00','style','getElementById','log'];_0x5da1=function(){return _0x32f3d2;};return _0x5da1();}function dragleave(_0xb33d5e){var _0x3ad907=_0x1d5c4a;_0xb33d5e[_0x3ad907(0x10d)](),dropArea[_0x3ad907(0x108)][_0x3ad907(0x117)]='';}
 </script>
 <?php } ?>
   </body>
