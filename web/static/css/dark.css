@@ -35,3 +35,7 @@ html {
   color: #fff;
   filter: invert(1) hue-rotate(180deg);
 }
+
+.form-control[readonly] {
+  background-color: #000;
+}
