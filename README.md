@@ -6,7 +6,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - Authentication on torque/redmange side by bearer token for each user
 - Leaflet MAP provider
 - Export KML
-- Live data streaming
+- Live data streaming and tracking
 - RedManage dashboards support
 - Import data from RedManage logger
 - Users data limits
@@ -18,7 +18,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - Dynamic layout/units conversion
 - and more ...
 
-### Requirements:
+### Standalone installation requirements:
 - PHP8.2+
 - php-gd extension
 - php-mysql extension
@@ -38,6 +38,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 10. Done!
 
 ### Installation docker:
+0. Install Docker Engine and docker-compose from your distro repository
 1. Rename ./web/creds.php.example to creds.php
 2. Open ./web/creds.php file
 3. Fill MySQL settings as in docker-compose.yml and choose database engine (InnoDB or RocksDB)
@@ -59,7 +60,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 
 ![](https://redbox.pw/wp-content/uploads/2024/02/interface_admin.png)
 
-### Typical nginx host configuration:
+### Typical nginx host configuration for standalone installation:
 ```
 #vhost
 server {
@@ -133,7 +134,7 @@ http {
 
 ```
 
-### RocksDB compression configuration:
+### RocksDB compression configuration for standalone installation:
 ```
 [mariadb]
 plugin-load-add=ha_rocksdb.so
@@ -145,7 +146,7 @@ rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kL
 rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kZSTDNotFinalCompression
 ```
 
-### PHP configuration for proper logs upload
+### PHP configuration for standalone installation:
 ```
 #php.ini
 post_max_size = 50M
