@@ -33,11 +33,13 @@ if (!isset($_GET['action'])) {
 	<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
 <?php
 if ($_GET['action'] == "edit") {
+    $user = isset($_GET['user']) ? $_GET['user'] : null;
+    $limit = isset($_GET['limit']) ? $_GET['limit'] : null;
 ?>
 	    <h4>Edit user</h4>
-		<input class="form-control" type="text" name="e_login" value="" placeholder="(Username)" required></br>
+		<input class="form-control" type="text" name="e_login" value="<?php echo $user; ?>" placeholder="(Username)" required <?php if(isset($user)){?> readonly <?php }?>></br>
 		<input class="form-control" type="password" name="e_pass" value="" placeholder="(New password)" autocomplete="new-password"></br>
-		<input class="form-control" type="number" min="-1" max="100000" name="e_limit" placeholder="(Limits in mb)"></br>
+		<input class="form-control" type="number" min="-1" max="100000" name="e_limit" placeholder="(Limits in mb)" value="<?php if($user != $admin) echo $limit; ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Edit</button>
 <?php
 }

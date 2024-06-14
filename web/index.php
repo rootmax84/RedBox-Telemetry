@@ -502,6 +502,7 @@ function maintenance() {
     <th>Limit (MB)</th>
     <th>DB Size (MB)</th>
     <th>Last upload</th>
+    <th></th>
   </tr>
 
 <?php
@@ -540,6 +541,7 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
 	else
 	 echo "<td>".round($db_sz[6]/1024/1024 + $db_sz['Index_length']/1024/1024,0)."</td>";
 	echo "<td>".$last."</td>";
+	echo "<td><a href='./users_admin.php?action=edit&user=".$row["user"]."&limit=".$row["s"]."'>edit</a></td>";
 	echo "</tr>";
    }
  }
