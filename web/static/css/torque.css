@@ -309,7 +309,7 @@ input[type=text]:disabled {
 }
 
 .wait_out {
-  z-index: 9999;
+  z-index: 100000;
   position: absolute;
 }
 
