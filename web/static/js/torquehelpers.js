@@ -159,7 +159,12 @@ initMapLeaflet = () => {
     let map = new L.Map("map", {
         center: new L.LatLng(0, 0),
         dragging: !L.Browser.mobile,
-        zoom: 6, scrollWheelZoom: false});
+        zoom: 6, scrollWheelZoom: false,
+        fullscreenControl: true,
+        fullscreenControlOptions: {
+            position: 'topleft'
+        }
+    });
     let layer = null;
         layer = new L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -175,16 +180,18 @@ initMapLeaflet = () => {
 
 	map.on('click', onMapClick);
 
-    L.control.locate().addTo(map);
+    L.control.locate({position: "topright"}).addTo(map);
 
     //Dynamic tracking marker when stream is open
     setInterval(()=>{
         let marker = null;
         let lat = stream ? $('#lat').html() : null;
         let lon = stream ? $('#lon').html() : null;
+        let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : "No speed data in stream") : null;
+        let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
         if (lat == null || lon == null) return;
         if (stream) {
-            marker = new L.marker([lat, lon]).addTo(map);
+            marker = new L.marker([lat, lon]).bindTooltip(spd+" "+spd_unit,{permanent:true,direction:'right',className:"stream-marker"}).addTo(map);
             map.setView(marker.getLatLng(), map.getZoom());
         }
         setTimeout(()=>{map.removeLayer(marker)},1000);

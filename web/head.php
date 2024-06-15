@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="static/css/bootstrap.min.css">
 <link rel="stylesheet" href="static/css/chosen.min.css">
 <link rel="stylesheet" href="static/css/torque.css">
+<link rel="stylesheet" href="static/css/Control.FullScreen.css">
 <script src="static/js/jquery.min.js"></script>
 <script src="static/js/jquery.cookie.min.js"></script>
 <script src="static/js/jquery-ui.min.js"></script>

@@ -94,7 +94,7 @@ else {
 	else if ($pid[$i] == 'kff1202') $data.= "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $boost, $id)."</samp></td>"; // boost conversion
 	else if (substri_count($des[$i], 'Pressure') > 0 && $pid[$i] != 'kb' && $pid[$i] != 'k33' && $pid[$i] != 'k32' && $pid[$i] != 'ka' && $pid[$i] != 'k23' && $pid[$i] != 'k22') $data.= "<td><samp>".pressure_conv(sprintf("%.2f", $row[$pid[$i]]), $pressure, $id)."</samp></td>"; // pressures conversion. Skip (k)Pa things
 	else if (substri_count($des[$i], 'Temp') > 0) $data.= "<td><samp>".temp_conv($row[$pid[$i]], $temp, $id)."</samp></td>"; // temp conversion
-	else if (substri_count($des[$i], 'Speed') > 0) $data.= "<td><samp>".speed_conv(round($row[$pid[$i]]), $speed, $id)."</samp></td>"; // speed conversion
+	else if (substri_count($des[$i], 'Speed') > 0) $data.= "<td id='spd'><samp>".speed_conv(round($row[$pid[$i]]), $speed, $id)."</samp></td>"; // speed conversion
 	else if ($pid[$i] == 'k2111') $data.= "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // oil pressure 2 digits
 	else if ($pid[$i] == 'k2119') $data.= "<td><samp>".sprintf("%.2f", $row[$pid[$i]])."</samp></td>"; // fuel pressure 2 digits
 	else if ($pid[$i] == 'k2122' && $row[$pid[$i]] == 0) $data.= "<td><samp>OFF</samp></td>"; // fan off state
@@ -120,7 +120,7 @@ else {
 	else if ($pid[$i] == 'kff1202') $data.= "<td><samp>".$boost_unit."</samp></td>"; // boost unit
 	else if (substri_count($des[$i], 'Pressure') > 0 && $pid[$i] != 'kb' && $pid[$i] != 'k33' && $pid[$i] != 'k32' && $pid[$i] != 'ka' && $pid[$i] != 'k23' && $pid[$i] != 'k22') $data.= "<td><samp>".$press_unit."</samp></td>"; // pressures unit
 	else if (substri_count($des[$i], 'Temp') > 0) $data.= "<td><samp>".$temp_unit."</samp></td>"; // temp unit
-	else if (substri_count($des[$i], 'Speed') > 0) $data.= "<td><samp>".$spd_unit."</samp></td>"; // speed unit
+	else if (substri_count($des[$i], 'Speed') > 0) $data.= "<td id='spd-unit'><samp>".$spd_unit."</samp></td>"; // speed unit
 	else if ($pid[$i] == 'kff1204' || $pid[$i] == 'kff120c' ) $data.= "<td><samp>".$trip_unit."</samp></td>"; // Trip/ODO unit
 	else $data.= "<td><samp>".$unit[array_search($pid[$i],$pid)]."</samp></td>"; // REST PID UNITS
 	$data.= "</tr>";

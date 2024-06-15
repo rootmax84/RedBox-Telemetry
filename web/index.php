@@ -125,6 +125,7 @@ if (isset($sids[0])) {
     <script src="static/js/jquery.flot.selection.js"></script>
     <script src="static/js/jquery.flot.time.js"></script>
     <script src="static/js/jquery.flot.resize.min.js"></script>
+    <script src="static/js/Control.FullScreen.js"></script>
     <!-- Configure Jquery Flot graph and plot code -->
     <script>
       $(document).ready(function(){
