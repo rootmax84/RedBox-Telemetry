@@ -163,7 +163,7 @@ initMapLeaflet = () => {
         fullscreenControl: true,
         fullscreenControlOptions: {
             position: 'topleft',
-            forcePseudoFullscreen: navigator.userAgentData ? (navigator.userAgentData.mobile ? true : false) : false
+            forcePseudoFullscreen: true
         }
     });
     let layer = null;
