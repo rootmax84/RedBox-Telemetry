@@ -84,6 +84,8 @@ function doPlot(position) {
     $("#placeholder").bind("plotselected", (evt,range)=>{
         const [a,b] = [jsTimeMap.findIndex(e=>e>=range.xaxis.from),jsTimeMap.findIndex(e=>e>=range.xaxis.to)];
         if (Math.abs(a-b)<3) return;
+        $("#slider-range11").slider('values',0,a);
+        $("#slider-range11").slider('values',1,b);
         $("#slider-time").val( (new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
         if (typeof mapUpdRange=='function') mapUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
         if (typeof chartUpdRange=='function') chartUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
