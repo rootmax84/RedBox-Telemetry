@@ -84,9 +84,7 @@ function doPlot(position) {
     $("#placeholder").bind("plotselected", (evt,range)=>{
         const [a,b] = [jsTimeMap.findIndex(e=>e>=range.xaxis.from),jsTimeMap.findIndex(e=>e>=range.xaxis.to)];
         if (Math.abs(a-b)<3) return;
-        $("#slider-range11").slider('values',0,a);
-        $("#slider-range11").slider('values',1,b);
-        $( "#slider-time" ).val( (new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
+        $("#slider-time").val( (new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
         if (typeof mapUpdRange=='function') mapUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
         if (typeof chartUpdRange=='function') chartUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
         plot.clearSelection();
@@ -156,6 +154,7 @@ updCharts = ()=>{
 //Start of Leaflet Map Providers js code
 initMapLeaflet = () => {
     let path = window.MapData.path;
+    let path_S = window.MapData.path;
     let map = new L.Map("map", {
         center: new L.LatLng(0, 0),
         dragging: !L.Browser.mobile,
@@ -186,14 +185,20 @@ initMapLeaflet = () => {
     //Dynamic tracking marker when stream is open
     setInterval(()=>{
         let marker = null;
-        let lat = stream ? $('#lat').html() : null;
-        let lon = stream ? $('#lon').html() : null;
+        let lat = stream ? parseFloat($('#lat').html()) : null;
+        let lon = stream ? parseFloat($('#lon').html()) : null;
         let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : "No speed data in stream") : null;
         let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
         if (lat == null || lon == null) return;
         if (stream) {
             marker = new L.marker([lat, lon]).bindTooltip(spd+" "+spd_unit,{permanent:true,direction:'right',className:"stream-marker"}).addTo(map);
             map.setView(marker.getLatLng(), map.getZoom());
+            //update travel line/end point
+            if (path_S.reverse()[path_S.length-1][0] != lat && path_S.reverse()[path_S.length-1][1] != lon) {
+                path_S.push([lat,lon]);
+                polyline.setLatLngs(path_S);
+                endcir.setLatLng(path_S[path_S.length-1]);
+            }
         }
         setTimeout(()=>{map.removeLayer(marker)},1000);
     },1000);
@@ -217,6 +222,7 @@ initMapLeaflet = () => {
         endcir.setLatLng(path[0]);
         map.fitBounds(polyline.getBounds(), {maxZoom: 15});
     };
+
     const markerCir = L.circleMarker(startCrd, {color:'purple',alt:'Start Point',radius:10,weight:1});
     const markerPnt = L.circleMarker(startCrd, {color:'purple',alt:'End Point',radius:5,weight:1});
     markerUpd = itm => {//this functions updates the marker while hovering the chart and clears it when not hovering

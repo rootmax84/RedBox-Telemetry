@@ -106,10 +106,9 @@ if (isset($sids[0])) {
 	// Create array of Latitude/Longitude strings in leafletjs JavaScript format
 	$mapdata = array();
 	foreach($geolocs as $d) {
-		$mapdata[] = "[".$d['lat'].",".$d['lon']."]";
+		$mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon'])."]";
 	}
 	$imapdata = implode(",", $mapdata);
-
 	$db->close();
 }
 ?>
