@@ -163,6 +163,17 @@ let updCharts = ()=>{
 
 //Start of Leaflet Map Providers js code
 let initMapLeaflet = () => {
+
+    let osm = new L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+    });
+
+    let esri = new L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        className: 'esri-dark',
+        maxZoom: 19,
+        attribution: '© Esri'});
+
     let path = window.MapData.path;
     let path_S = window.MapData.path;
     let map = new L.Map("map", {
@@ -173,24 +184,26 @@ let initMapLeaflet = () => {
         fullscreenControlOptions: {
             position: 'topleft',
             forcePseudoFullscreen: true
-        }
+        },
+        layers: [osm]
     });
-    let layer = null;
-        layer = new L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
-    (layer!==null)&&map.addLayer(layer);
+
+    let baseMaps = {
+        "Map": osm,
+        "Satellite": esri
+    };
+
+    let layerControl = L.control.layers(baseMaps).addTo(map);
 
     let c = new L.Control.Coordinates();
-	c.addTo(map);
+    c.addTo(map);
 
-	function onMapClick(e) {
-	    c.setCoordinates(e);
-	}
+    function onMapClick(e) {
+        c.setCoordinates(e);
+    }
+    map.on('click', onMapClick);
 
-	map.on('click', onMapClick);
-
-    L.control.locate({position: "topright"}).addTo(map);
+    L.control.locate({position: "bottomright"}).addTo(map);
 
     //Dynamic tracking marker when stream is open
     setInterval(()=>{

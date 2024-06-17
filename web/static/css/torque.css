@@ -629,3 +629,13 @@ a {
   font-weight: bold;
   font-size: 10px;
 }
+
+.leaflet-control-layers {
+  font-size: 10px;
+}
+
+.leaflet-touch .leaflet-control-layers-toggle {
+  width: 30px !important;
+  height: 30px !important;
+  background-size: 20px 20px;
+}

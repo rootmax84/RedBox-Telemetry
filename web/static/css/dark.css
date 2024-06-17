@@ -39,3 +39,7 @@ html {
 .form-control[readonly] {
   background-color: #000;
 }
+
+.esri-dark {
+  filter: invert(1) hue-rotate(180deg) contrast(1) saturate(1.5);
+}
