@@ -1,7 +1,10 @@
-chartTooltip = () => {
+'use strict';
+
+let markerUpd = null;
+let chartTooltip = () => {
     let previousPoint = null;
     $("#placeholder").bind("plothover plottouchmove", function (event, pos, item) {
-        if (typeof window.markerUpd==='function') markerUpd(item);
+        if($("#map").length) markerUpd(item);
 
         if ($("#enableTooltip:checked").length > 0) {
             if (item) {
@@ -44,6 +47,10 @@ $(document).ready(function(){
 
 //start of chart plotting js code
 let plot = null; //definition of plot variable in script but outside doPlot function to be able to reuse as a controller when updating base data
+let flotData = [];
+let chartUpdRange = null;
+let mapUpdRange = null;
+
 function doPlot(position) {
     //asigned the plot to a new variable and new function to update the plot in realtime when using the slider
     chartUpdRange = (a,b) => {
@@ -87,14 +94,14 @@ function doPlot(position) {
         $("#slider-range11").slider('values',0,a);
         $("#slider-range11").slider('values',1,b);
         $("#slider-time").val( (new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
-        if (typeof mapUpdRange=='function') mapUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
-        if (typeof chartUpdRange=='function') chartUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
+        if($("#map").length) mapUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
+        chartUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
         plot.clearSelection();
     });
     //End Trim by plot Select
 }
 
-updCharts = ()=>{
+let updCharts = ()=>{
     if ($('#plot_data').chosen().val()==null) {
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
@@ -143,6 +150,7 @@ updCharts = ()=>{
             $('#Summary-Container').empty();
             $('#Summary-Container').append(noChart);
             $('#chart-load').hide();
+            console.error(err);
         });
     }
     else{
@@ -154,7 +162,7 @@ updCharts = ()=>{
 //End of chart plotting js code
 
 //Start of Leaflet Map Providers js code
-initMapLeaflet = () => {
+let initMapLeaflet = () => {
     let path = window.MapData.path;
     let path_S = window.MapData.path;
     let map = new L.Map("map", {
@@ -191,7 +199,7 @@ initMapLeaflet = () => {
         let lon = stream ? parseFloat($('#lon').html()) : null;
         let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : "No speed data in stream") : null;
         let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
-        if (lat == null || lon == null) return;
+        if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return;
         if (stream) {
             marker = new L.marker([lat, lon]).bindTooltip(spd+" "+spd_unit,{permanent:true,direction:'right',className:"stream-marker"}).addTo(map);
             map.setView(marker.getLatLng(), map.getZoom());
@@ -237,7 +245,7 @@ initMapLeaflet = () => {
 //End of Leaflet Map Providers js code
 
 //slider js code
-initSlider = (jsTimeMap,minTimeStart,maxTimeEnd)=>{
+let initSlider = (jsTimeMap,minTimeStart,maxTimeEnd)=>{
     let TimeStartv = timelookup(minTimeStart);
     let TimeEndv = timelookup(maxTimeEnd);
 
@@ -268,8 +276,8 @@ initSlider = (jsTimeMap,minTimeStart,maxTimeEnd)=>{
             $('#slider-time').attr("sv1", jsTimeMap[$('#slider-range11').slider("values", 1)])
             const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];
             if (Math.abs(a-b)<3) return;
-            if (typeof mapUpdRange=='function') mapUpdRange(a,b);
-            if (typeof chartUpdRange=='function') chartUpdRange(a,b);
+            if ($("#map").length) mapUpdRange(a,b);
+            if ($(".demo-container").length) chartUpdRange(a,b);
         });
     } );
 }
