@@ -50,6 +50,11 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 9. For upload data from Torque PRO/RedManage use URL - https://your.site/upload
 10. Done!
 
+### Migrate standalone installation to docker:
+
+1. Backup database from standalone installation: ```mariadb-dump --databases $database_name -uroot -p$password > /some/path/backup.sql```
+2. Restore this backup to docker mariadb container: ```docker exec -i ratel_mariadb sh -c 'exec mariadb -uroot -p$passowrd --database $database_name' < /some/path/backup.sql```
+
 ### Demo:
 [Click it](https://demo.redbox.pw/ratel/)
 
