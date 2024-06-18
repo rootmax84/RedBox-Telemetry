@@ -202,8 +202,16 @@ for ($f = 0; $f < count($files); $f++) {
     $glon = $data[$i+34];
     $gspd = $data[$i+35];
     $odo = $data[$i+36];
+
+    // Prepare data for insertion
+    $insertData = [
+        $session, $time, $glon, $glat, $rlc, $boost, $ect, $eot, $iat, $atf, $rpm, $map, $ert, $mhs, $bstd, $fan, $pg0, $vlt,
+        $aat, $ext, $spd, $maf, $tps, $ign, $inj, $injd, $iac, $afr, $o2s, $o2s2, $egt, $eop, $fp, $gear, $bs1, $bs2, $pg1,
+        $gspd, $odo
+    ];
+
     try {
-        $db->execute_query("INSERT INTO $db_table (session, time, kff1005, kff1006, k21fa, kff1202, k5, k5c, kf, kb4, kc, kb, k1f, k2118, k2120, k2122, k2125, kff1238, k46, k2101, kd, k10, k11, ke, k2112, k2100, k2113, k21cc, kff1214, kff1218, k78, k2111, k2119, k2124, k21e1, k21e2, k2126, kff1001, kff120c) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [$session, $time, $glon, $glat, $rlc, $boost, $ect, $eot, $iat, $atf, $rpm, $map, $ert, $mhs, $bstd, $fan, $pg0, $vlt, $aat, $ext, $spd, $maf, $tps, $ign, $inj, $injd, $iac, $afr, $o2s, $o2s2, $egt, $eop, $fp, $gear, $bs1, $bs2, $pg1, $gspd, $odo]);
+        $db->execute_query("INSERT INTO $db_table (session, time, kff1005, kff1006, k21fa, kff1202, k5, k5c, kf, kb4, kc, kb, k1f, k2118, k2120, k2122, k2125, kff1238, k46, k2101, kd, k10, k11, ke, k2112, k2100, k2113, k21cc, kff1214, kff1218, k78, k2111, k2119, k2124, k21e1, k21e2, k2126, kff1001, kff120c) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", $insertData);
     } catch (Exception $e) {
         header('HTTP/1.0 406');
         echo $files[$f]['name'] . " is duplicate!";
