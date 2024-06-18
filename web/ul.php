@@ -142,8 +142,8 @@ if (sizeof($_GET) > 0) {
     $sessionqry = $db->execute_query("SELECT sessionsize, profileName FROM $db_sessions_table WHERE session=?", [$sessuploadid])->fetch_assoc();
     // If there's an entry in the session table for this session, update the session end time and the datapoint count
     $sesssizecount = empty($sessionqry["sessionsize"]) ? 1 : $sessionqry["sessionsize"] + 1;
-    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize, id) VALUES (".quote_values($sessvalues).", $sesstime, '1',".quote_value(isset($id)?$id:'-').") ON DUPLICATE KEY UPDATE timeend='$sesstime', sessionsize='$sesssizecount'";
-    $db->query($sessionqrystring);
+    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize, id) VALUES (".quote_values($sessvalues).", $sesstime, '1',?) ON DUPLICATE KEY UPDATE timeend=?, sessionsize=?";
+    $db->execute_query($sessionqrystring, [isset($id)?$id:'-', $sesstime, $sesssizecount]);
 
     $ip = isset($_SERVER['HTTP_CLIENT_IP']) //get user ip
      ? $_SERVER['HTTP_CLIENT_IP']
