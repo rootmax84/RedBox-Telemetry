@@ -665,7 +665,7 @@ function checkLog() {
  log_list.innerHTML = "";
  const log_data = document.getElementById('logFile');
  let size = 0;
- let reader = new FileReader();;
+ let reader = new FileReader();
 
  for (let i = 0; i < log_data.files.length; i++) {
     reader = new FileReader();
