@@ -665,38 +665,53 @@ function checkLog() {
  log_list.innerHTML = "";
  const log_data = document.getElementById('logFile');
  let size = 0;
+ let reader = new FileReader();;
 
  for (let i = 0; i < log_data.files.length; i++) {
-    let logDate = new Date(parseInt(log_data.files[i].name.replace(/\D/g, '')));
-    let dateDMY = logDate.getDate() + "/" + (logDate.getMonth() + 1) + "/" + logDate.getFullYear();
-    let dateTime =  $.cookie('timeformat') == '12' ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }) : logDate.getHours() + ":" + ('0' + logDate.getMinutes()).slice(-2);
-    let dateStr = isNaN(logDate) ? "" : " | " + dateDMY + " " + dateTime;
-    log_list.innerHTML += "<li style='font-family:monospace'>" + log_data.files[i].name + dateStr + "</li>";
-    size += log_data.files[i].size;
+    reader = new FileReader();
+    reader.readAsText(log_data.files[i], "UTF-8");
+    reader.onload = (f) => {
+        let logDate, dateDMY, dateTime, dateStr;
+        try {
+            logDate = new Date(parseInt(f.target.result.split("\n")[1].split(" ")[0]));
+            if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
+            dateDMY = logDate.getDate() + "/" + (logDate.getMonth() + 1) + "/" + logDate.getFullYear();
+            dateTime =  $.cookie('timeformat') == '12' ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }) : logDate.getHours() + ":" + ('0' + logDate.getMinutes()).slice(-2);
+            dateStr = " (Log date: " + dateDMY + " " + dateTime + ")";
+        } catch(e) {
+            reader.abort();
+            dateStr = " (Broken file!)";
+            msg_def.innerHTML = "";
+            msg_err.innerHTML = "Broken file(s) in list!";
+            msg_ok.innerHTML = "";
+            up_btn.hide();
+        }
+        log_list.innerHTML += "<li style='font-family:monospace'>" + log_data.files[i].name + dateStr + "</li>";
+        size += log_data.files[i].size;
+    }
+ }
+
+ reader.onloadstart = () => {
+        msg_def.innerHTML = "Reading ...";
+ }
+
+ reader.onprogress = () => {
+     if (log_data.files.length > 10) {
+        msg_err.innerHTML = "Acceptable 10 files per upload!";
+        up_btn.hide();
+     } else if (size > 52428800) {
+        msg_err.innerHTML = "Acceptable 5MB per file and 50MB total!";
+        up_btn.hide();
+     } else {
+        msg_def.innerHTML = "";
+        msg_ok.innerHTML = "Ready to upload";
+        up_btn.show();
+     }
  }
 
  if (!log_data.files.length) {
     msg_def.innerHTML = "Select/Drop RedManage logger file(s) to upload";
     up_btn.hide();
-    return;
- }
-
- else if (log_data.files.length > 10) {
-    msg_err.innerHTML = "Acceptable 10 files per upload!";
-    up_btn.hide();
-    return;
- }
-
- else if (size > 52428800) {
-    msg_err.innerHTML = "Acceptable 5MB per file and 50MB total!";
-    up_btn.hide();
-    return;
- }
-
- else {
-    msg_def.innerHTML = "";
-    msg_ok.innerHTML = "Ready to upload";
-    up_btn.show();
  }
 }
 
