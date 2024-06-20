@@ -6,66 +6,26 @@
  *
  */
 
-function getCode(b, bitNumber) {
-    return ((b >> bitNumber) & 0x01);
-}
+let rlbc = null;
+//RedManage rollback events list
+const events = ["KNK","EGT","EOP","FLP","EOT","ECT","OVB","AFR","IAT","MAP","FAN","ATF","AAT","EXT","VLT","RPM"];
 
+//RedManage rollback events decode
 function calculate(number) {
-    var msg = "";
-    var intNumber = parseInt(number)
-	if (intNumber === 0) {
-	    msg = "OK";
-	} else {
-	    if (getCode(intNumber, 0) == 1) {
-		msg = "KNK ";
-	    }
-	    if (getCode(intNumber, 1) == 1) {
-		msg += "EGT ";
-	    }
-	    if (getCode(intNumber, 2) == 1) {
-		msg += "EOP ";
-	    }
-	    if (getCode(intNumber, 3) == 1) {
-		msg += "FLP ";
-	    }
-	    if (getCode(intNumber, 4) == 1) {
-		msg += "EOT ";
-	    }
-	    if (getCode(intNumber, 5) == 1) {
-		msg += "ECT ";
-	    }
-	    if (getCode(intNumber, 6) == 1) {
-		msg += "OVB ";
-	    }
-	    if (getCode(intNumber, 7) == 1) {
-		msg += "AFR ";
-	    }
-	    if (getCode(intNumber, 8) == 1) {
-		msg += "IAT ";
-	    }
-	    if (getCode(intNumber, 9) == 1) {
-		msg += "MAP ";
-	    }
-	    if (getCode(intNumber, 10) == 1) {
-		msg += "FAN ";
-	    }
-	    if (getCode(intNumber, 11) == 1) {
-		msg += "ATF ";
-	    }
-	    if (getCode(intNumber, 12) == 1) {
-		msg += "AAT ";
-	    }
-	    if (getCode(intNumber, 13) == 1) {
-		msg += "EXT ";
-	    }
-	    if (getCode(intNumber, 14) == 1) {
-		msg += "VLT ";
-	    }
-	    if (getCode(intNumber, 15) == 1) {
-		msg += "RPM";
-	    }
-	}
-    return msg;
+  const getCode = (b, bitNumber) => (b >> bitNumber) & 0x01;
+  let msg = "";
+  const intNumber = parseInt(number, 10);
+
+  if (intNumber === 0) {
+    msg = "OK";
+  } else {
+    events.forEach((event, index) => {
+      if (getCode(intNumber, index) === 1) {
+        msg += `${event} `;
+      }
+    });
+  }
+  return msg;
 }
 
 (function (name, definition) {
@@ -232,7 +192,6 @@ function calculate(number) {
           var delta = matchingDataPoints[i].delta;
           this.plot.highlight(seriesData, dataPoint);
 
-	var rlbc;
 	if (seriesData['label'].includes('Rollback')) {
 	     rlbc = calculate(dataPoint[1]);
 	}
@@ -257,7 +216,7 @@ function calculate(number) {
         }
 
         var tooltipText = this.tooltipTemplate({
-	  event : rlbc !== undefined ? "Event" : "",
+	  event : rlbc.length ? "Event" : null,
           time: timeArray,
           body: childrenTexts.join('\n')
         });
