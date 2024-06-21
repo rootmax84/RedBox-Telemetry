@@ -42,8 +42,8 @@ else if (isset($_POST['old_p']) && isset($_POST['new_p1']) && isset($_POST['new_
 else if (isset($_POST['tg_token']) && isset($_POST['tg_chatid']) && isset($username) && $username != $admin){ //Set telegram bot creds for notifying
     $db->execute_query("UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?", [$_POST['tg_token'], $_POST['tg_chatid'], $username]);
     $db->close();
-    notify("RedBox Telemetry test message", $_POST['tg_token'], $_POST['tg_chatid']); //Send test message
-    die("Notify settings updated. Test message sent.");
+    $response = notify("RedBox Telemetry test message", $_POST['tg_token'], $_POST['tg_chatid']); //Send test message
+    die($response == NULL ? "Nothing to do" : ($response['ok'] ? "Test message sent" : $response['description']));
 }
 
 if (!isset($_SESSION['admin'])) {
