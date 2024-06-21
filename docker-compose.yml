@@ -17,7 +17,7 @@ services:
         restart: always
 
     web:
-        image: 'nginx:alpine'
+        image: 'nginx:1.27'
         working_dir: /data
         container_name: ratel_nginx
         volumes:
