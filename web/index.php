@@ -572,7 +572,7 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
 </div>
 <div class="admin-panel">
     <a class="btn btn-default btn-admin" href="./users_admin.php?action=trunc">Truncate</a>
-    <a class="btn btn-default btn-admin" href="./adminer.php" target="_blank">Adminer</a>
+    <a class="btn btn-default btn-admin" href="./adminer.php?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>" target="_blank">Adminer</a>
     <a class="btn btn-default btn-admin" href="#" onclick="maintenance()">Maintenance</a>
 </div>
     </div>

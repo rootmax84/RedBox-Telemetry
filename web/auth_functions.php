@@ -66,7 +66,7 @@ function auth_user()
 		$_SESSION['torque_limit'] = $row["s"];
 		setcookie("stream", true);
 		setcookie("timeformat", $row["time"]);
-		$_COOKIE['timeformat'] = $row["time"];
+		setcookie("tracking-rate", $live_data_rate);
 		$db->close();
 		return true;
 	    }

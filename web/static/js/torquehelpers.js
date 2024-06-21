@@ -206,6 +206,7 @@ let initMapLeaflet = () => {
     L.control.locate({position: "bottomright"}).addTo(map);
 
     //Dynamic tracking marker when stream is open
+    const rate = $.cookie('tracking-rate') !== undefined ? $.cookie('tracking-rate') : 1000;
     setInterval(()=>{
         let marker = null;
         let lat = stream ? parseFloat($('#lat').html()) : null;
@@ -223,8 +224,8 @@ let initMapLeaflet = () => {
                 endcir.setLatLng(path_S[path_S.length-1]);
             }
         }
-        setTimeout(()=>{map.removeLayer(marker)},1000);
-    },1000);
+        setTimeout(()=>{map.removeLayer(marker)}, rate);
+    }, rate);
 
     // start and end point marker
     let pathL = path.length;
