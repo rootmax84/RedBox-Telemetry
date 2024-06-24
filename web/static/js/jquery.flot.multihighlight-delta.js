@@ -14,13 +14,12 @@ const events = ["KNK","EGT","EOP","FLP","EOT","ECT","OVB","AFR","IAT","MAP","FAN
 function calculate(number) {
   const getCode = (b, bitNumber) => (b >> bitNumber) & 0x01;
   let msg = "";
-  const intNumber = parseInt(number, 10);
 
-  if (intNumber === 0) {
+  if (number === 0) {
     msg = "OK";
   } else {
     events.forEach((event, index) => {
-      if (getCode(intNumber, index) === 1) {
+      if (getCode(number, index) === 1) {
         msg += `${event} `;
       }
     });
