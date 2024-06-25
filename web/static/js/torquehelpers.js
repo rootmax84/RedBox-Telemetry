@@ -32,6 +32,106 @@ let flotData = [];
 let chartUpdRange = null;
 let mapUpdRange = null;
 
+function processData(data, maxGap = 5000) {
+    let allTimestamps = [...new Set(data.flatMap(series => series.data.map(point => point[0])))].sort((a, b) => a - b);
+
+    let newTimestamps = [];
+    let timeOffset = 0;
+    let lastTimestamp = allTimestamps[0];
+    newTimestamps.push(lastTimestamp);
+
+    let timeMapping = {};
+    timeMapping[lastTimestamp] = lastTimestamp;
+
+    for (let i = 1; i < allTimestamps.length; i++) {
+        let gap = allTimestamps[i] - lastTimestamp;
+        if (gap > maxGap) {
+            timeOffset += gap - maxGap;
+        }
+        let newTimestamp = allTimestamps[i] - timeOffset;
+        newTimestamps.push(newTimestamp);
+        timeMapping[newTimestamp] = allTimestamps[i];
+        lastTimestamp = allTimestamps[i];
+    }
+
+    let newData = data.map(series => {
+        let newSeries = {...series};
+        newSeries.data = series.data.map(point => {
+            let index = allTimestamps.indexOf(point[0]);
+            return [newTimestamps[index], point[1]];
+        });
+        return newSeries;
+    });
+
+    let gaps = [];
+    for (let i = 1; i < allTimestamps.length; i++) {
+        let gap = allTimestamps[i] - allTimestamps[i-1];
+        if (gap > maxGap) {
+            gaps.push({
+                start: newTimestamps[i-1],
+                end: newTimestamps[i],
+                realStart: allTimestamps[i-1],
+                realEnd: allTimestamps[i]
+            });
+        }
+    }
+
+    return {
+        processedData: newData,
+        realStartTime: allTimestamps[0],
+        realEndTime: allTimestamps[allTimestamps.length - 1],
+        processedStartTime: newTimestamps[0],
+        processedEndTime: newTimestamps[newTimestamps.length - 1],
+        gaps: gaps,
+        timeMapping: timeMapping
+    };
+}
+
+function drawGapLines(plot, ctx) {
+    let axes = plot.getAxes();
+    let plotOffset = plot.getPlotOffset();
+
+    ctx.save();
+    ctx.translate(plotOffset.left, plotOffset.top);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255, 0, 0, .2)';
+    ctx.setLineDash([5, 3]);
+
+    window.gapInfo.forEach(gap => {
+        let x1 = axes.xaxis.p2c(gap.start);
+        let x2 = axes.xaxis.p2c(gap.end);
+
+        if (x1 >= 0 && x1 <= plot.width()) {
+            ctx.beginPath();
+            ctx.moveTo(x1, 0);
+            ctx.lineTo(x1, plot.height());
+            ctx.stroke();
+        }
+
+        if (x2 >= 0 && x2 <= plot.width()) {
+            ctx.beginPath();
+            ctx.moveTo(x2, 0);
+            ctx.lineTo(x2, plot.height());
+            ctx.stroke();
+        }
+    });
+
+    ctx.restore();
+}
+
+function findNearestRealTime(processedTime) {
+    if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) {
+        console.error("Time mapping is not available");
+        return processedTime;
+    }
+    const timeMapping = window.realTimeInfo.timeMapping;
+    const processedTimes = Object.keys(timeMapping).map(Number);
+    const nearestProcessedTime = processedTimes.reduce((prev, curr) => 
+        Math.abs(curr - processedTime) < Math.abs(prev - processedTime) ? curr : prev
+    );
+    return timeMapping[nearestProcessedTime];
+}
+
 function doPlot(position) {
     //asigned the plot to a new variable and new function to update the plot in realtime when using the slider
     chartUpdRange = (a,b) => {
@@ -45,7 +145,16 @@ function doPlot(position) {
             mode: "time",
             timezone: "browser",
             axisLabel: "Time",
-            timeformat: $.cookie('timeformat') == '12' ? "%I:%M%p" : "%H:%M"
+            tickFormatter: function(val, axis) {
+                if (!window.realTimeInfo) return "";
+                let ratio = (val - window.realTimeInfo.processedStart) / (window.realTimeInfo.processedEnd - window.realTimeInfo.processedStart);
+                let realTime = window.realTimeInfo.start + ratio * (window.realTimeInfo.end - window.realTimeInfo.start);
+                let date = new Date(realTime);
+                return date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                });
+            }
         } ],
         yaxes: [ { axisLabel: "" }, {
             alignTicksWithAxis: position == "right" ? 1 : null,
@@ -65,12 +174,19 @@ function doPlot(position) {
             hoverable: true,
             clickable: false
         },
-        multihighlightdelta: { mode: 'x' },
+        hooks: {
+            drawOverlay: [drawGapLines]
+        }
     });
     chartTooltip();
     //Trim by plot Select
     $("#placeholder").bind("plotselected", (evt,range)=>{
-        const [a,b] = [jsTimeMap.findIndex(e=>e>=range.xaxis.from),jsTimeMap.findIndex(e=>e>=range.xaxis.to)];
+        // Convert range to real time markers
+        const realFrom = findNearestRealTime(range.xaxis.from);
+        const realTo = findNearestRealTime(range.xaxis.to);
+        // Find jsTimeMap indexes
+        const a = jsTimeMap.findIndex(t => t >= realFrom);
+        const b = jsTimeMap.findIndex(t => t >= realTo);
         if (Math.abs(a-b)<3) return;
         $("#slider-range11").slider('values',0,a);
         $("#slider-range11").slider('values',1,b);
@@ -101,11 +217,33 @@ let updCharts = ()=>{
         fetch(varPrm).then(d => d.json()).then(gData => {
             flotData = [];
             $("#chart-load").css("display","none");
-            gData.forEach(v=>flotData.push({label:v[1],data:v[2].map(a=>[parseInt(a[0]),a[1]])}));
+            gData.forEach(v => flotData.push({label: v[1], data: v[2].map(a => [parseInt(a[0]), a[1]])}));
+
+            // Processing data to remove time gaps on merged sessions
+            let processedResult = processData(flotData);
+            flotData = processedResult.processedData;
+
+            window.realTimeInfo = {
+              start: processedResult.realStartTime,
+              end: processedResult.realEndTime,
+              processedStart: processedResult.processedStartTime,
+              processedEnd: processedResult.processedEndTime,
+              timeMapping: processedResult.timeMapping
+            };
+            window.gapInfo = processedResult.gaps;
+
+            // update jsTimeMap with real time markers
+            jsTimeMap = Object.values(processedResult.timeMapping);
+
             if ($('#placeholder')[0]==undefined) { //this would only be true the first time we load the chart
                 $('#Chart-Container').empty();
                 $('#Chart-Container').append($('<div>',{class:'demo-container'}).append($('<div>',{id:'placeholder',class:'demo-placeholder',style:'height:350px;touch-action:pan-y'})));
                 doPlot("right");
+            } else {
+                // refresh chart data
+                plot.setData(flotData);
+                plot.setupGrid();
+                plot.draw();
             }
             //always update the chart trimmed range when plotting new data
             const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];

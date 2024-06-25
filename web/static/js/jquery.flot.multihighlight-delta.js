@@ -27,6 +27,14 @@ function calculate(number) {
   return msg;
 }
 
+//Time conversion processing
+function convertToRealTime(processedTime) {
+  if (!window.realTimeInfo) return new Date(processedTime);
+  let ratio = (processedTime - window.realTimeInfo.processedStart) / (window.realTimeInfo.processedEnd - window.realTimeInfo.processedStart);
+  let realTime = window.realTimeInfo.start + ratio * (window.realTimeInfo.end - window.realTimeInfo.start);
+  return new Date(realTime);
+}
+
 (function (name, definition) {
   var theModule = definition(),
   // this is considered "safe":
@@ -207,11 +215,10 @@ function calculate(number) {
           }
 	  var text = this.dataPointTemplate(data);
 		  childrenTexts.push(text);
-		  // 2015.08.17 - edit by surfrock66 - populate the variable to be passed to display the time in the tooltip
-		  var timestamp = new Date(dataPoint[0]);
+		  // Convert time and format it
+		  var realTimestamp = convertToRealTime(dataPoint[0]);
 		  var xDateFormat = $.cookie('timeformat') == '12' ? "%d/%m/%Y  %I:%M:%S%p" : "%d/%m/%Y  %H:%M:%S";
-		  timeArray[0] = $.plot.formatDate(timestamp, xDateFormat);
-//		  timeArray[0] = dataPoint[0];
+                  timeArray[0] = $.plot.formatDate(realTimestamp, xDateFormat);
         }
 
         var tooltipText = this.tooltipTemplate({
