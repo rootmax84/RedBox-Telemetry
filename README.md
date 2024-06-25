@@ -139,10 +139,14 @@ http {
 
 ```
 
-### RocksDB compression configuration for standalone installation:
+### RocksDB configuration for standalone installation:
 ```
 [mariadb]
 plugin-load-add=ha_rocksdb.so
+rocksdb-keep-log-file-num=2
+rocksdb-flush-log-at-trx_commit=2
+rocksdb-max-log-file-size=10M
+rocksdb_max_total_wal_size=10485760
 #Better compression
 #rocksdb_default_cf_options=compression=kZSTDNotFinalCompression;bottommost_compression=kZSTDNotFinalCompression
 #Better performance
