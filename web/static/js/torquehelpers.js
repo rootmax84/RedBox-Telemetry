@@ -5,25 +5,6 @@ let chartTooltip = () => {
     let previousPoint = null;
     $("#placeholder").bind("plothover plottouchmove", function (event, pos, item) {
         if($("#map").length) markerUpd(item);
-
-        if ($("#enableTooltip:checked").length > 0) {
-            if (item) {
-                if (previousPoint != item.dataIndex) {
-                    previousPoint = item.dataIndex;
-
-                    $("#tooltip").remove();
-                    let x = item.datapoint[0].toFixed(2),
-                        y = item.datapoint[1].toFixed(2);
-
-                    showTooltip(item.pageX, item.pageY,
-                                item.series.label + " of " + x + " = " + y);
-                }
-            }
-            else {
-                $("#tooltip").remove();
-                previousPoint = null;
-            }
-        }
     });
 };
 
