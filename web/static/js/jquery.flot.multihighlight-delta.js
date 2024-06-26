@@ -133,7 +133,7 @@ function convertToRealTime(processedTime) {
         }
 
         plot.getPlaceholder().on('plothover plottouchmove', handlerProxies.onPlotHover);
-        plot.getPlaceholder().on('mouseout', handlerProxies.onMouseOut);
+        plot.getPlaceholder().on('mouseout touchend', handlerProxies.onMouseOut);
 
         // Keep a cache of the template
         ctx.tooltipTemplate = compileTemplate(options.tooltipTemplate);
@@ -142,7 +142,7 @@ function convertToRealTime(processedTime) {
       });
       this.plot.hooks.shutdown.push(function (plot) {
         plot.getPlaceholder().off('plothover plottouchmove', handlerProxies.onPlotHover);
-        plot.getPlaceholder().off('mouseout', handlerProxies.onMouseOut);
+        plot.getPlaceholder().off('mouseout touchend', handlerProxies.onMouseOut);
       });
 
       return this;
