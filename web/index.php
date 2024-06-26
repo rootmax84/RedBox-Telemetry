@@ -128,11 +128,22 @@ if (isset($sids[0])) {
     <!-- Configure Jquery Flot graph and plot code -->
     <script>
       $(document).ready(function(){
-	let plotData = $('#plot_data').chosen();
-	plotData.change(updCharts);
-	updCharts();
-	if (window.history.replaceState) window.history.replaceState(null,null,window.location.href);
-	$(".copyright").html("&copy; " + (new Date).getFullYear() + " RedBox Automotive");
+        let plotData = $('#plot_data');
+        let lastValue = plotData.val() || [];
+
+        function handleChange() {
+            const newValue = plotData.val() || [];
+            if (JSON.stringify(newValue) !== JSON.stringify(lastValue)) {
+                lastValue = newValue;
+                updCharts();
+            }
+        }
+
+        plotData.on('change', handleChange);
+        plotData.chosen();
+        updCharts();
+        if (window.history.replaceState) window.history.replaceState(null, null, window.location.href);
+        $(".copyright").html("&copy; " + (new Date).getFullYear() + " RedBox Automotive");
       });
     </script>
   </head>
