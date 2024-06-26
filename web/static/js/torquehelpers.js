@@ -33,48 +33,55 @@ let chartUpdRange = null;
 let mapUpdRange = null;
 
 function processData(data, maxGap = 5000) {
-    let allTimestamps = [...new Set(data.flatMap(series => series.data.map(point => point[0])))].sort((a, b) => a - b);
+    // Set for unique timestamps
+    const timestampSet = new Set();
+    data.forEach(series => series.data.forEach(point => timestampSet.add(point[0])));
 
-    let newTimestamps = [];
+    // Set->sort array
+    const allTimestamps = Array.from(timestampSet).sort((a, b) => a - b);
+
+    const newTimestamps = [allTimestamps[0]];
     let timeOffset = 0;
     let lastTimestamp = allTimestamps[0];
-    newTimestamps.push(lastTimestamp);
 
-    let timeMapping = {};
-    timeMapping[lastTimestamp] = lastTimestamp;
+    const timeMapping = new Map();
+    timeMapping.set(lastTimestamp, lastTimestamp);
+
+    const gaps = [];
 
     for (let i = 1; i < allTimestamps.length; i++) {
-        let gap = allTimestamps[i] - lastTimestamp;
+        const currentTimestamp = allTimestamps[i];
+        const gap = currentTimestamp - lastTimestamp;
+
         if (gap > maxGap) {
             timeOffset += gap - maxGap;
-        }
-        let newTimestamp = allTimestamps[i] - timeOffset;
-        newTimestamps.push(newTimestamp);
-        timeMapping[newTimestamp] = allTimestamps[i];
-        lastTimestamp = allTimestamps[i];
-    }
-
-    let newData = data.map(series => {
-        let newSeries = {...series};
-        newSeries.data = series.data.map(point => {
-            let index = allTimestamps.indexOf(point[0]);
-            return [newTimestamps[index], point[1]];
-        });
-        return newSeries;
-    });
-
-    let gaps = [];
-    for (let i = 1; i < allTimestamps.length; i++) {
-        let gap = allTimestamps[i] - allTimestamps[i-1];
-        if (gap > maxGap) {
             gaps.push({
                 start: newTimestamps[i-1],
-                end: newTimestamps[i],
-                realStart: allTimestamps[i-1],
-                realEnd: allTimestamps[i]
+                end: currentTimestamp - timeOffset,
+                realStart: lastTimestamp,
+                realEnd: currentTimestamp
             });
         }
+
+        const newTimestamp = currentTimestamp - timeOffset;
+        newTimestamps.push(newTimestamp);
+        timeMapping.set(currentTimestamp, newTimestamp);
+        lastTimestamp = currentTimestamp;
     }
+
+    const newData = data.map(series => ({
+        ...series,
+        data: series.data.map(point => [
+            timeMapping.get(point[0]),
+            point[1]
+        ])
+    }));
+
+    // timeMapping object, keep order
+    const timeMappingObject = {};
+    allTimestamps.forEach(t => {
+        timeMappingObject[timeMapping.get(t)] = t;
+    });
 
     return {
         processedData: newData,
@@ -83,7 +90,7 @@ function processData(data, maxGap = 5000) {
         processedStartTime: newTimestamps[0],
         processedEndTime: newTimestamps[newTimestamps.length - 1],
         gaps: gaps,
-        timeMapping: timeMapping
+        timeMapping: timeMappingObject
     };
 }
 
