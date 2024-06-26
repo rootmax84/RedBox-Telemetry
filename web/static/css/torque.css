@@ -638,3 +638,7 @@ a {
   height: 30px !important;
   background-size: 20px 20px;
 }
+
+#redDialogOverLay {
+  z-index: 99999 !important;
+}
