@@ -153,9 +153,12 @@ function doPlot(position) {
             timezone: "browser",
             axisLabel: "Time",
             tickFormatter: function(val, axis) {
-                if (!window.realTimeInfo) return "";
-                let ratio = (val - window.realTimeInfo.processedStart) / (window.realTimeInfo.processedEnd - window.realTimeInfo.processedStart);
-                let realTime = window.realTimeInfo.start + ratio * (window.realTimeInfo.end - window.realTimeInfo.start);
+                if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) return "";
+                const processedTimes = Object.keys(window.realTimeInfo.timeMapping).map(Number);
+                const nearestProcessedTime = processedTimes.reduce((prev, curr) => 
+                    Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
+                );
+                const realTime = window.realTimeInfo.timeMapping[nearestProcessedTime];
                 let date = new Date(realTime);
                 return date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU', {
                   hour: '2-digit',
