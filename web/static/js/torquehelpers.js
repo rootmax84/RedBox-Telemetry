@@ -32,7 +32,7 @@ let flotData = [];
 let chartUpdRange = null;
 let mapUpdRange = null;
 
-function processData(data, maxGap = 5000) {
+function processData(data, maxGap = $.cookie('gap') !== undefined ? $.cookie('gap') : 5000) {
     // Set for unique timestamps
     const timestampSet = new Set();
     data.forEach(series => series.data.forEach(point => timestampSet.add(point[0])));

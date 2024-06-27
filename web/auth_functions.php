@@ -55,7 +55,7 @@ function auth_user()
     $pass = preg_replace('/\s+/', '', get_pass());
 
   try {
-      $userqry = $db->execute_query("SELECT user, pass, s, time FROM $db_users WHERE user=?", [$user]);
+      $userqry = $db->execute_query("SELECT user, pass, s, time, gap FROM $db_users WHERE user=?", [$user]);
   } catch(Exception $e) { return; }
 	if (!$userqry->num_rows) return false;
 	else {
@@ -68,6 +68,7 @@ function auth_user()
 		setcookie("timeformat", $row["time"]);
 		$_COOKIE['timeformat'] = $row["time"];
 		setcookie("tracking-rate", $live_data_rate);
+		setcookie("gap", $row["gap"]);
 		$db->close();
 		return true;
 	    }
@@ -96,6 +97,7 @@ function create_users_table()
 	pressure enum('No conversion','Psi to Bar','Bar to Psi') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	boost enum('No conversion','Psi to Bar','Bar to Psi') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	time enum('24','12') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '24',
+	gap enum('5000','10000','20000','30000','60000') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '5000',
 	PRIMARY KEY (id),
 	UNIQUE KEY user (user),
 	UNIQUE KEY token (token),

@@ -2,13 +2,14 @@
     require_once('db.php');
     require_once('db_limits.php');
 
-    //Conversion settings
-    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time FROM $db_users WHERE user=?", [$username])->fetch_row();
+    //Conversion and gap settings
+    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap FROM $db_users WHERE user=?", [$username])->fetch_row();
     $speed = $setqry[0];
     $temp = $setqry[1];
     $pressure = $setqry[2];
     $boost = $setqry[3];
     $time = $setqry[4];
+    $gap = $setqry[5];
 
     //Telegram token/chatid
     $row = $db->execute_query("SELECT tg_token, tg_chatid FROM $db_users WHERE user=?", [$username])->fetch_assoc();
@@ -47,8 +48,8 @@
         </div>
 	<hr>
             <div class="settings-unit">
-             <h4>Units conversion</h4>
-             <h6 style="color:#777">Dynamic unit conversion settings</h6>
+             <h4>Units conversion and other</h4>
+             <h6 style="color:#777">Dynamic unit conversion and other settings</h6>
 		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
 		 <label>Speed</label><select class="form-control" name="speed">
 		    <option value="1"<?php if ($speed == "No conversion") echo ' selected'; ?>>No conversion</option>
@@ -73,6 +74,13 @@
 		 <label>Time</label><select class="form-control" name="time">
 		    <option value="1"<?php if ($time == "24") echo ' selected'; ?>>24 Hours</option>
 		    <option value="2"<?php if ($time == "12") echo ' selected'; ?>>12 Hours</option>
+		</select>
+		 <label>Chart time gap remove if interval greater than</label><select class="form-control" name="gap">
+		    <option value="5000"<?php if ($gap == "5000") echo ' selected'; ?>>5 sec</option>
+		    <option value="10000"<?php if ($gap == "10000") echo ' selected'; ?>>10 sec</option>
+		    <option value="20000"<?php if ($gap == "20000") echo ' selected'; ?>>20 sec</option>
+		    <option value="30000"<?php if ($gap == "30000") echo ' selected'; ?>>30 sec</option>
+		    <option value="60000"<?php if ($gap == "60000") echo ' selected'; ?>>60 sec</option>
 		</select>
 		 <br>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit">Save</button></div>
