@@ -41,7 +41,7 @@ if (!$logged_in) {
     <?php include("head.php");?>
     </head>
     <body style="height:auto">
-        <div class="login" id="login-form" style="margin:5% auto; opacity:0; transition:.5s;">
+        <div class="login login-form" id="login-form" style="margin:5% auto; opacity:0; transition:.5s;">
             <div style="font-weight:bold; color:red; text-align:center; width:100%; font-size:16px; letter-spacing:1.5px">RedB<img src="static/img/logo.svg" alt style="height:10px; width:12px; margin-right:1px">x Telemetry</div>
             <h4 style="text-align:center">Login</h4>
                 <form method="post" class="form-group" action=".">
@@ -52,6 +52,7 @@ if (!$logged_in) {
                 <div style="text-align:center; margin:15px 0 -20px; font-size:12px; opacity:.6"><a href="https://github.com/rootmax84/RedBox-Telemetry" target="_blank">Project on Github</a></div>
             </form>
 	</div>
+    <div class="login-background"></div>
 <script>
 $(document).ready(function(){
     $("#captcha").css("background", "url(captcha.php?r=" + Math.random() + ") no-repeat right");

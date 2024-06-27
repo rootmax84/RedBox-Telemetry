@@ -260,6 +260,14 @@ canvas *{
   box-shadow: 1px 1px 4px 1px rgba(2,2,2,0.2);
   width: 300px;
   margin: 100px auto;
+  background-color: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.login-form {
+  border: 0;
+  box-shadow: 5px 5px 4px 1px rgba(2, 2, 2, 0.2);
 }
 
 input[type=text]:disabled {
@@ -641,4 +649,14 @@ a {
 
 #redDialogOverLay {
   z-index: 99999 !important;
+}
+
+.login-background {
+  height: 100%;
+  width: 100%;
+  background: url(../img/bkg.webp) no-repeat center center;
+  background-size: cover;
+  position: fixed;
+  top: 0;
+  opacity: .6;
 }

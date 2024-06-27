@@ -4,7 +4,7 @@
     <?php include("head.php");?>
     </head>
     <body>
-            <div class="login" id="login-form" style="width:400px; text-align:center; margin:5% auto; transition:.5s; opacity:0;">
+            <div class="login login-form" id="login-form" style="width:400px; text-align:center; margin:5% auto; transition:.5s; opacity:0;">
 	<?php
 		if ($_GET['c'] == "disabled") { ?>
 		    <script>setTimeout(()=>{location.href='.?logout=true'}, 5000);</script>
@@ -18,6 +18,7 @@
 	    }
 	    ?>
         </div>
+    <div class="login-background"></div>
    <script>
     $(document).ready(function(){
      $("#login-form").css({"opacity":"1", "margin":"10% auto"});
