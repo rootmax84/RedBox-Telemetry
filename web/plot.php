@@ -114,6 +114,9 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 	        } elseif (substri_count($keyarr[${'v' . $i}][0], "Temp") > 0) {
 	            $x = temp_conv($row[${'v' . $i}], $temp, $id);
 	            ${'v' . $i . '_measurand'} = $temp_unit;
+	        } elseif (substri_count($keyarr[${'v' . $i}][0], "EGT") > 0) {
+	            $x = temp_conv($row[${'v' . $i}], $temp, $id);
+	            ${'v' . $i . '_measurand'} = $temp_unit;
 		} elseif (substri_count($keyarr[${'v' . $i}][0], "Boost Solenoid Duty") > 0) {
 		     $x = $row[${'v' . $i}];
 		     ${'v' . $i . '_measurand'} = ' ('.$keyarr[${'v' . $i}][1].')';

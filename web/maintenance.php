@@ -1,24 +1,26 @@
 <?php
 require_once('creds.php');
-    if (isset($_SESSION['admin'])) {
-	if (isset($_GET['enable'])){
-	    if (!file_exists('maintenance')) file_put_contents('maintenance', '');
-	}
-	else if (isset($_GET['disable'])){
-	    if (file_exists('maintenance')) unlink('maintenance');
-	}
-	else if (isset($_GET['mode'])){
-	    if (file_exists('maintenance'))
-	     die("enabled");
-	    else
-	     die("disabled");
-	}
-    }
 
-    if (file_exists('maintenance') && $username != $admin){
-	header('HTTP/1.0 423 Locked');
-	header("Refresh:30; url=maintenance.php");
-    ?>
+if (isset($_SESSION['admin'])) {
+    $maintenanceFile = 'maintenance';
+
+    if (isset($_GET['enable'])) {
+        if (!file_exists($maintenanceFile)) {
+            touch($maintenanceFile);
+        }
+    } elseif (isset($_GET['disable'])) {
+        if (file_exists($maintenanceFile)) {
+            unlink($maintenanceFile);
+        }
+    } elseif (isset($_GET['mode'])) {
+        die(file_exists($maintenanceFile) ? "enabled" : "disabled");
+    }
+}
+
+if (file_exists('maintenance') && $username !== $admin) {
+    header('HTTP/1.0 423 Locked');
+    header("Refresh:30; url=maintenance.php");
+?>
 
 <html lang="en">
     <head>

@@ -5,12 +5,16 @@ require_once('auth_user.php');
 require_once('creds.php');
 require_once('db_limits.php');
 
-$keyqry = $db->query("SELECT id,description,units,populated,stream,favorite FROM ".$db_pids_table." WHERE id != 'kff1005' AND id != 'kff1006' AND id != 'kff1007' ORDER BY description");
-$i = 0;
-while ($x = $keyqry->fetch_array()) {
-		$keydata[$i] = array("id"=>$x[0], "description"=>$x[1], "units"=>$x[2], "populated"=>$x[3], "stream"=>$x[4], "favorite"=>$x[5]);
-		$i++;
-}
+$excludedIds = ['kff1005', 'kff1006', 'kff1007'];
+$excludedIdsString = implode(',', array_map(fn($id) => "'$id'", $excludedIds));
+
+$query = "SELECT id, description, units, populated, stream, favorite 
+          FROM $db_pids_table 
+          WHERE id NOT IN ($excludedIdsString) 
+          ORDER BY description";
+
+$keydata = $db->query($query)->fetch_all(MYSQLI_ASSOC);
+
 $db->close();
 
 ?>

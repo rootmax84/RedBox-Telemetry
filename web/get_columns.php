@@ -1,18 +1,19 @@
 <?php
-$colqry = $db->query("SELECT id,description,favorite FROM $db_pids_table WHERE populated = 1 ORDER BY description");
-while ($x = $colqry->fetch_array()) {
-    $coldata[] = array("colname"=>$x[0], "colcomment"=>$x[1], "colfavorite"=>$x[2]);
+$coldata = [];
+$colqry = $db->query("SELECT id, description, favorite FROM $db_pids_table WHERE populated = 1 ORDER BY description");
+while ($x = $colqry->fetch_assoc()) {
+    $coldata[] = [
+        "colname" => $x['id'],
+        "colcomment" => $x['description'],
+        "colfavorite" => $x['favorite']
+    ];
 }
 
-if (isset($coldata)) $numcols = strval(count($coldata)+1);
+$numcols = count($coldata) + 1;
 
-//TODO: Do this once in a dedicated file
-if (isset($_POST["id"])) {
-  $session_id = preg_replace('/\D/', '', $_POST['id']);
-}
-elseif (isset($_GET["id"])) {
-  $session_id = preg_replace('/\D/', '', $_GET['id']);
-}
+$session_id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT) 
+            ?? filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT) 
+            ?? null;
 
-$coldataempty = array();
+$coldataempty = [];
 ?>
