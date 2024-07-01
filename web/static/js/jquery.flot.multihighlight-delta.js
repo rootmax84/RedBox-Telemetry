@@ -29,20 +29,32 @@ function calculate(number) {
 
 //Time conversion processing
 function convertToRealTime(processedTime) {
-   if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) {
-        return new Date(processedTime);
+  if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) {
+    return new Date(processedTime);
+  }
+
+  const timeMapping = window.realTimeInfo.timeMapping;
+  if (!timeMapping._sortedProcessedTimes) {
+    timeMapping._sortedProcessedTimes = Object.keys(timeMapping).map(Number).sort((a, b) => a - b);
+  }
+
+  const processedTimes = timeMapping._sortedProcessedTimes;
+
+  let left = 0;
+  let right = processedTimes.length - 1;
+  while (left < right) {
+    const mid = Math.floor((left + right) / 2);
+    if (processedTimes[mid] < processedTime) {
+      left = mid + 1;
+    } else {
+      right = mid;
     }
-    const timeMapping = window.realTimeInfo.timeMapping;
-    const processedTimes = Object.keys(timeMapping).map(Number);
+  }
 
-    // Find nearest processed time
-    const nearestProcessedTime = processedTimes.reduce((prev, curr) => 
-        Math.abs(curr - processedTime) < Math.abs(prev - processedTime) ? curr : prev
-    );
-
-    // Get corresponding real time
-    const realTime = timeMapping[nearestProcessedTime];
-    return new Date(realTime);
+  const nearestIndex = left;
+  const nearestProcessedTime = processedTimes[nearestIndex];
+  const realTime = timeMapping[nearestProcessedTime];
+  return new Date(realTime);
 }
 
 (function (name, definition) {

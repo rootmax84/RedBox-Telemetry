@@ -131,12 +131,37 @@ function findNearestRealTime(processedTime) {
         console.error("Time mapping is not available");
         return processedTime;
     }
+
     const timeMapping = window.realTimeInfo.timeMapping;
-    const processedTimes = Object.keys(timeMapping).map(Number);
-    const nearestProcessedTime = processedTimes.reduce((prev, curr) => 
-        Math.abs(curr - processedTime) < Math.abs(prev - processedTime) ? curr : prev
-    );
-    return timeMapping[nearestProcessedTime];
+
+    if (!timeMapping._sortedProcessedTimes || !timeMapping._nearestTimesCache) {
+        timeMapping._sortedProcessedTimes = Object.keys(timeMapping).map(Number).sort((a, b) => a - b);
+        timeMapping._nearestTimesCache = {};
+    }
+
+    const processedTimes = timeMapping._sortedProcessedTimes;
+    const nearestTimesCache = timeMapping._nearestTimesCache;
+
+    if (nearestTimesCache.hasOwnProperty(processedTime)) {
+        return nearestTimesCache[processedTime];
+    }
+
+    let left = 0;
+    let right = processedTimes.length - 1;
+    while (left < right) {
+        const mid = Math.floor((left + right) / 2);
+        if (processedTimes[mid] < processedTime) {
+            left = mid + 1;
+        } else {
+            right = mid;
+        }
+    }
+
+    const nearestIndex = left;
+    const nearestProcessedTime = processedTimes[nearestIndex];
+
+    nearestTimesCache[processedTime] = timeMapping[nearestProcessedTime];
+    return nearestTimesCache[processedTime];
 }
 
 function doPlot(position) {
