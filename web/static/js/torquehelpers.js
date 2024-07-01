@@ -329,7 +329,6 @@ let initMapLeaflet = () => {
         attribution: '© Esri'});
 
     let path = window.MapData.path;
-    let path_S = window.MapData.path;
     let map = new L.Map("map", {
         center: new L.LatLng(0, 0),
         dragging: !L.Browser.mobile,
@@ -372,10 +371,10 @@ let initMapLeaflet = () => {
             marker = new L.marker([lat, lon]).bindTooltip(spd+" "+spd_unit,{permanent:true,direction:'right',className:"stream-marker"}).addTo(map);
             map.setView(marker.getLatLng(), map.getZoom());
             //update travel line/end point
-            if (path_S.reverse()[path_S.length-1][0] != lat && path_S.reverse()[path_S.length-1][1] != lon) {
-                path_S.push([lat,lon]);
-                polyline.setLatLngs(path_S);
-                endcir.setLatLng(path_S[path_S.length-1]);
+            if (path.at(0)[0] != lat && path.at(0)[1] != lon) {
+                path.unshift([lat,lon]);
+                polyline.setLatLngs(path);
+                endcir.setLatLng(path.at(0));
             }
         }
         setTimeout(()=>{map.removeLayer(marker)}, rate);
