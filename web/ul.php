@@ -76,17 +76,7 @@ if (sizeof($_GET) > 0) {
   $sesstime = "0";
 
   foreach ($_GET as $key => $value) {
-    if (preg_match("/^k/", $key)) {
-      // Keep columns starting with k
-      $keys[] = $key;
-      // My Torque app tries to pass "Infinity" in for some values...catch that error, set to -1
-      if ($value == 'Infinity') {
-        $values[] = -1;
-      } else {
-        $values[] = $value;
-      }
-      $submitval = 1;
-    } else if (in_array($key, array("time", "session"))) {
+    if (in_array($key, array("time", "session", "id"))) {
       // Keep non k* columns listed here
       if ($key == 'session') {
         $sessuploadid = $value;
@@ -97,10 +87,16 @@ if (sizeof($_GET) > 0) {
       $sesskeys[] = $key;
       $sessvalues[] = $value;
       $submitval = 1;
-    } else if (in_array($key, array("id"))) {
-      // Keep id column here
-      $id = $value;
-      $submitval = 99; //Store id in sessions table only
+    } else if (preg_match("/^k/", $key)) {
+      // Keep columns starting with k
+      $keys[] = $key;
+      // My Torque app tries to pass "Infinity" in for some values...catch that error, set to -1
+      if ($value == 'Infinity') {
+        $values[] = -1;
+      } else {
+        $values[] = $value;
+      }
+      $submitval = 1;
     } else if (in_array($key, array("notice", "noticeClass"))) {
       $keys[] = $key;
       $values[] = $value;
@@ -142,8 +138,8 @@ if (sizeof($_GET) > 0) {
     $sessionqry = $db->execute_query("SELECT sessionsize, profileName FROM $db_sessions_table WHERE session=?", [$sessuploadid])->fetch_assoc();
     // If there's an entry in the session table for this session, update the session end time and the datapoint count
     $sesssizecount = empty($sessionqry["sessionsize"]) ? 1 : $sessionqry["sessionsize"] + 1;
-    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize, id) VALUES (".quote_values($sessvalues).", $sesstime, '1',?) ON DUPLICATE KEY UPDATE timeend=?, sessionsize=?";
-    $db->execute_query($sessionqrystring, [isset($id)?$id:'-', $sesstime, $sesssizecount]);
+    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize) VALUES (".quote_values($sessvalues).", $sesstime, '1') ON DUPLICATE KEY UPDATE timeend=?, sessionsize=?";
+    $db->execute_query($sessionqrystring, [$sesstime, $sesssizecount]);
 
     $ip = isset($_SERVER['HTTP_CLIENT_IP']) //get user ip
      ? $_SERVER['HTTP_CLIENT_IP']
