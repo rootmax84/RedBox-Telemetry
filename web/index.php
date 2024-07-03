@@ -562,17 +562,42 @@ $r = $db->query("SELECT user, s FROM $db_users LIMIT " . $page_first_result . ",
 <p class='db-size'>DB size: <?php echo round($res[1]); ?> MB</p>
 <hr>
 <div class="pages" style="padding:0">
-<?php
-    //display the link of the pages in URL
-    for($page = 1; $page <= $number_of_page; $page++) {
-	if ($number_of_result < $results_per_page) break;
-        if ((isset($_GET['page']) && $_GET['page'] == $page) || (!isset($_GET['page']) && $page == 1)) {
-            echo '<a class="current-page" href = "?page=' . $page . '">' . $page . ' </a>';
-        }
-        else {
-            echo '<a class="pages" href = "?page=' . $page . '">' . $page . ' </a>';
-        }
+<?php //Pagination with page count limit
+$current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$total_pages = $number_of_page;
+$page_numbers_limit = 10;
+$start = $current_page - floor($page_numbers_limit / 2);
+$end = $current_page + floor($page_numbers_limit / 2);
+if ($start < 1) {
+    $start = 1;
+    $end = min($page_numbers_limit, $total_pages);
+}
+if ($end > $total_pages) {
+    $end = $total_pages;
+    $start = max(1, $total_pages - $page_numbers_limit + 1);
+}
+if ($current_page > 1) {
+    echo '<a class="pages" href="?page=1">&#171;</a> ';
+}
+if ($current_page > 1) {
+    $previous_page = $current_page - 1;
+    echo '<a class="pages" href="?page=' . $previous_page . '">&#60;</a> ';
+}
+for ($page = $start; $page <= $end; $page++) {
+    if ($number_of_result < $results_per_page) break;
+    if ($page == $current_page) {
+        echo '<a class="current-page" href="?page=' . $page . '">' . $page . ' </a>';
+    } else {
+        echo '<a class="pages" href="?page=' . $page . '">' . $page . ' </a>';
     }
+}
+if ($current_page < $total_pages) {
+    $next_page = $current_page + 1;
+    echo ' <a class="pages" href="?page=' . $next_page . '">&#62;</a>';
+}
+if ($current_page < $total_pages) {
+    echo ' <a class="pages" href="?page=' . $total_pages . '">&#187;</a>';
+}
 ?>
 </div>
 
