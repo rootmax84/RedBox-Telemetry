@@ -1,7 +1,7 @@
 <?php
 
 function generate_token($username) {
-    return hash('sha3-256', microtime() . $username);
+    return hash('sha3-256', random_bytes(32) . $username);
 }
 
 function getBearerToken() : ?string {
