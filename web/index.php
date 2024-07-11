@@ -1,12 +1,8 @@
 <?php
-global $session_id;
-global $itime;
-global $imapdata;
-global $timezone;
-
 require_once('db.php');
 require_once('db_limits.php');
 require_once('plot.php');
+require_once('timezone.php');
 
 if (!isset($_SESSION['admin'])) $_SESSION['recent_session_id'] = strval(isset($sids)?max($sids):null);
 

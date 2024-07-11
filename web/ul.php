@@ -64,19 +64,25 @@ if ($result->num_rows) {
   }
 }
 
+$allowedProfileFields = [
+    'profileName', 'profileFuelType', 'profileWeight', 'profileVe', 'profileFuelCost',
+    'profileDisplacement', 'profileTankCapacity', 'profileTankUsed', 'profileVehicleType',
+    'profileOdometer', 'profileMPGAdjust', 'profileBoostAdjust', 'profileDragCoeff', 'profileOBDAdjust'
+];
+
 // Iterate over all the k* _GET arguments to check that a field exists
 if (sizeof($_GET) > 0) {
-  $keys = array();
-  $values = array();
-  $sesskeys = array();
-  $sessvalues = array();
-  $sessprofilekeys = array();
-  $spv = array();
+  $keys = [];
+  $values = [];
+  $sesskeys = [];
+  $sessvalues = [];
+  $sessprofilekeys = [];
+  $spv = [];
   $sessuploadid = "";
   $sesstime = "0";
 
   foreach ($_GET as $key => $value) {
-    if (in_array($key, array("time", "session", "id"))) {
+    if (in_array($key, ["time", "session", "id"])) {
       // Keep non k* columns listed here
       if ($key == 'session') {
         $sessuploadid = $value;
@@ -84,8 +90,12 @@ if (sizeof($_GET) > 0) {
       if ($key == 'time') {
         $sesstime = $value;
       }
-      $sesskeys[] = $key;
-      $sessvalues[] = $value;
+      if ($key == 'id') {
+        $id = $value;
+      } else {
+        $sesskeys[] = $key;
+        $sessvalues[] = $value;
+     }
       $submitval = 1;
     } else if (preg_match("/^k/", $key)) {
       // Keep columns starting with k
@@ -97,19 +107,22 @@ if (sizeof($_GET) > 0) {
         $values[] = $value;
       }
       $submitval = 1;
-    } else if (in_array($key, array("notice", "noticeClass"))) {
+    } else if (in_array($key, ["notice", "noticeClass"])) {
       $keys[] = $key;
       $values[] = $value;
       $submitval = 3; //do nothing with this yet
     } else if (preg_match("/^profile/", $key)) {
-      $spv[] = $value;
-      $submitval = 2;
+        if (in_array($key, $allowedProfileFields)) {
+            $spv[$key] = $value;
+            $submitval = 2;
+        }
     } else {
       $submitval = 0;
     }
 
     // If the field doesn't already exist, add it to the database except id key
-    if (!in_array($key, $dbfields) && $submitval == 1) {
+    if (!in_array($key, $dbfields) && $key != "id" && $submitval == 1) {
+
       if (is_numeric($value)) {
         // Add field if it's a int/float
         $sqlalter = "ALTER TABLE $db_table ADD IF NOT EXISTS".quote_name($key)." float NOT NULL default '0'";
@@ -129,17 +142,15 @@ if (sizeof($_GET) > 0) {
   if ((sizeof($rawkeys) === sizeof($rawvalues)) && sizeof($rawkeys) > 0 && (sizeof($sesskeys) === sizeof($sessvalues)) && sizeof($sesskeys) > 0) {
     // Now insert the data for all the fields into the raw logs table
     if ($submitval == 1) {
-      $sql = "INSERT INTO $db_table (".quote_names($rawkeys).") VALUES (".quote_values($rawvalues).")";
-        try { //Supress time possible duplicate
-          $db->query($sql);
-        } catch (Exception $e) { die("OK!"); }
+      $sql = "INSERT IGNORE INTO $db_table (".quote_names($rawkeys).") VALUES (".quote_values($rawvalues).")";
+      $db->query($sql);
     }
     // See if there is already an entry in the sessions table for this session
     $sessionqry = $db->execute_query("SELECT sessionsize, profileName FROM $db_sessions_table WHERE session=?", [$sessuploadid])->fetch_assoc();
     // If there's an entry in the session table for this session, update the session end time and the datapoint count
     $sesssizecount = empty($sessionqry["sessionsize"]) ? 1 : $sessionqry["sessionsize"] + 1;
-    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize) VALUES (".quote_values($sessvalues).", $sesstime, '1') ON DUPLICATE KEY UPDATE timeend=?, sessionsize=?";
-    $db->execute_query($sessionqrystring, [$sesstime, $sesssizecount]);
+    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize) VALUES (".quote_values($sessvalues).", $sesstime, '1') ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=?";
+    $db->execute_query($sessionqrystring, [$id, $sesstime, $sesssizecount]);
 
     $ip = isset($_SERVER['HTTP_CLIENT_IP']) //get user ip
      ? $_SERVER['HTTP_CLIENT_IP']
@@ -148,24 +159,25 @@ if (sizeof($_GET) > 0) {
       : $_SERVER['REMOTE_ADDR']);
 
     if ($submitval == 2) { //Profile info
-    $sql = "UPDATE $db_sessions_table SET
-     profileName =         ?,
-     profileFuelType =     ?,
-     profileWeight =       ?,
-     profileVe =           ?,
-     profileFuelCost =     ?,
-     profileDisplacement = ?,
-     profileTankCapacity = ?,
-     profileTankUsed =     ?,
-     profileVehicleType =  ?,
-     profileOdometer =     ?,
-     profileMPGAdjust =    ?,
-     profileBoostAdjust =  ?,
-     profileDragCoeff =    ?,
-     profileOBDAdjust =    ?,
-     ip =                  ?
-     WHERE session =       ?";
-    $db->execute_query($sql, [$spv[0], $spv[1], $spv[2], $spv[3], $spv[4], $spv[5], $spv[6], $spv[7], $spv[8], $spv[9], $spv[10], $spv[11], $spv[12], $spv[13], $ip, $sessuploadid]);
+        $updateFields = [];
+        $params = [];
+
+        foreach ($spv as $field => $value) {
+            if ($value !== '') {
+                $updateFields[] = "$field = ?";
+                $params[] = $value;
+            }
+        }
+
+        if (!empty($updateFields)) {
+            $updateFields[] = "ip = ?";
+            $params[] = $ip;
+
+            $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
+            $params[] = $sessuploadid;
+
+            $db->execute_query($sql, $params);
+        }
     }
     if ($sesssizecount == 5) notify("Session started from ip ".$ip.". Profile: ".$sessionqry["profileName"], $tg_token, $tg_chatid); //Notify to user telegram bot at session start
   }
