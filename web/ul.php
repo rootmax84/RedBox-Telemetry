@@ -150,13 +150,7 @@ if (sizeof($_GET) > 0) {
     // If there's an entry in the session table for this session, update the session end time and the datapoint count
     $sesssizecount = empty($sessionqry["sessionsize"]) ? 1 : $sessionqry["sessionsize"] + 1;
     $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize) VALUES (".quote_values($sessvalues).", $sesstime, '1') ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=?";
-    $db->execute_query($sessionqrystring, [$id, $sesstime, $sesssizecount]);
-
-    $ip = isset($_SERVER['HTTP_CLIENT_IP']) //get user ip
-     ? $_SERVER['HTTP_CLIENT_IP']
-     : (isset($_SERVER['HTTP_X_FORWARDED_FOR'])
-      ? $_SERVER['HTTP_X_FORWARDED_FOR']
-      : $_SERVER['REMOTE_ADDR']);
+    $db->execute_query($sessionqrystring, [$id ?? '', $sesstime, $sesssizecount]);
 
     if ($submitval == 2) { //Profile info
         $updateFields = [];
@@ -171,7 +165,7 @@ if (sizeof($_GET) > 0) {
 
         if (!empty($updateFields)) {
             $updateFields[] = "ip = ?";
-            $params[] = $ip;
+            $params[] = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
 
             $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
             $params[] = $sessuploadid;
