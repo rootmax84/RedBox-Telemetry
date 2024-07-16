@@ -784,9 +784,9 @@ let xhr = new XMLHttpRequest();
 	     $("#wait_layout").show();
 	     let xhr = new XMLHttpRequest();
 	     xhr.onreadystatechange = function() {
-	     if (this.readyState == 4 && this.status == 200) {
-		showToken();
-	      } else tokenError();
+	     if (this.readyState == 4) {
+		this.status == 200 ? showToken() : tokenError();
+	      }
 	     }
 	     xhr.open("GET","users_handler.php?renew_token");
 	     xhr.send();
