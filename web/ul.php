@@ -122,17 +122,13 @@ if (sizeof($_GET) > 0) {
 
     // If the field doesn't already exist, add it to the database except id key
     if (!in_array($key, $dbfields) && $key != "id" && $submitval == 1) {
+      $dataType = is_numeric($value) ? "float" : "VARCHAR(255)";
 
-      if (is_numeric($value)) {
-        // Add field if it's a int/float
-        $sqlalter = "ALTER TABLE $db_table ADD IF NOT EXISTS".quote_name($key)." float NOT NULL default '0'";
-      } else {
-        // Add field if it's a string, specifically varchar(255)
-        $sqlalter = "ALTER TABLE $db_table ADD IF NOT EXISTS".quote_name($key)." VARCHAR(255) NOT NULL default '0'";
-      }
+      $sqlalter = "ALTER TABLE $db_table ADD IF NOT EXISTS ".quote_name($key)." $dataType NOT NULL default '0'";
+      $db->query($sqlalter);
+
       $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite) VALUES (?,?,?,?,?)";
       $db->execute_query($sqlalterkey, [$key, $key, '1', '1', '0']);
-      $db->query($sqlalter);
     }
   }
   // start insert/update incoming data
@@ -145,10 +141,7 @@ if (sizeof($_GET) > 0) {
       $sql = "INSERT IGNORE INTO $db_table (".quote_names($rawkeys).") VALUES (".quote_values($rawvalues).")";
       $db->query($sql);
     }
-    // See if there is already an entry in the sessions table for this session
-    $sessionqry = $db->execute_query("SELECT sessionsize, profileName FROM $db_sessions_table WHERE session=?", [$sessuploadid])->fetch_assoc();
-    // If there's an entry in the session table for this session, update the session end time and the datapoint count
-    $sesssizecount = empty($sessionqry["sessionsize"]) ? 1 : $sessionqry["sessionsize"] + 1;
+    $sesssizecount = $db->execute_query("SELECT COALESCE(sessionsize, 1) + 1 AS sessionsize FROM $db_sessions_table WHERE session=?", [$sessuploadid])->fetch_row()[0] ?? 1;
     $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize) VALUES (".quote_values($sessvalues).", $sesstime, '1') ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=?";
     $db->execute_query($sessionqrystring, [$id ?? '', $sesstime, $sesssizecount]);
 
@@ -165,15 +158,16 @@ if (sizeof($_GET) > 0) {
 
         if (!empty($updateFields)) {
             $updateFields[] = "ip = ?";
-            $params[] = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+            $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+            $params[] = $ip;
 
             $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
             $params[] = $sessuploadid;
 
             $db->execute_query($sql, $params);
+            notify("Session started from ip ".$ip.". Profile: ".$spv["profileName"], $tg_token, $tg_chatid); //Notify to user telegram bot at session start
         }
     }
-    if ($sesssizecount == 5) notify("Session started from ip ".$ip.". Profile: ".$sessionqry["profileName"], $tg_token, $tg_chatid); //Notify to user telegram bot at session start
   }
 }
 
