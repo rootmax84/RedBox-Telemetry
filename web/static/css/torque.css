@@ -324,7 +324,7 @@ input[type=text]:disabled {
 .wait_in {
   position: fixed;
   width: 100%;
-  height: 120%;
+  height: 100%;
   background-color: rgba(0,0,0,.7);
 }
 
