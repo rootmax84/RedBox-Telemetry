@@ -228,6 +228,8 @@
 				map.fire('exitFullscreen');
 				map._exitFired = true;
 				map._isFullscreen = false;
+				    $("#data").css({"z-index":"", "position":"", "float":"", "border-radius":"", "background":"", "margin":""});
+				    window.scrollTo(0, 0);
 			} else {
 				if (this._screenfull.isEnabled && !this.options.forcePseudoFullscreen) {
 					this._screenfull.request(this.options.fullscreenElement
@@ -241,6 +243,9 @@
 				}
 				map.fire('enterFullscreen');
 				map._isFullscreen = true;
+				    $("#data").css({"z-index":"99999", "position":"relative", "float":"right", "border-radius":"5px", "background":"rgba(255, 255, 255, 0.5)", "margin":"21px 10px"});
+				    $("#right-container").css("padding-right","0");
+				    window.scrollTo(0, document.body.scrollHeight);
 			}
 		},
 
