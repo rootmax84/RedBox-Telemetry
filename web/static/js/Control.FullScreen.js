@@ -229,6 +229,7 @@
 				map._exitFired = true;
 				map._isFullscreen = false;
 				    $("#data").css({"z-index":"", "position":"", "float":"", "border-radius":"", "background":"", "margin":""});
+				    $("#right-container").css("padding-right","25px");
 				    window.scrollTo(0, 0);
 			} else {
 				if (this._screenfull.isEnabled && !this.options.forcePseudoFullscreen) {

@@ -3,13 +3,8 @@
     require_once('db_limits.php');
 
     //Conversion and gap settings
-    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap FROM $db_users WHERE user=?", [$username])->fetch_row();
-    $speed = $setqry[0];
-    $temp = $setqry[1];
-    $pressure = $setqry[2];
-    $boost = $setqry[3];
-    $time = $setqry[4];
-    $gap = $setqry[5];
+    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap,stream_lock FROM $db_users WHERE user=?", [$username])->fetch_row();
+    [$speed, $temp, $pressure, $boost, $time, $gap, $stream_lock] = $setqry;
 
     //Telegram token/chatid
     $row = $db->execute_query("SELECT tg_token, tg_chatid FROM $db_users WHERE user=?", [$username])->fetch_assoc();
@@ -81,6 +76,10 @@
 		    <option value="20000"<?php if ($gap == "20000") echo ' selected'; ?>>20 sec</option>
 		    <option value="30000"<?php if ($gap == "30000") echo ' selected'; ?>>30 sec</option>
 		    <option value="60000"<?php if ($gap == "60000") echo ' selected'; ?>>60 sec</option>
+		</select>
+		 <label>Lock stream on current session</label><select class="form-control" name="stream_lock">
+		    <option value="0"<?php if ($stream_lock == "0") echo ' selected'; ?>>No</option>
+		    <option value="1"<?php if ($stream_lock == "1") echo ' selected'; ?>>Yes</option>
 		</select>
 		 <br>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit">Save</button></div>

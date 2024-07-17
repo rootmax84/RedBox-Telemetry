@@ -98,13 +98,17 @@ function create_users_table()
 	boost enum('No conversion','Psi to Bar','Bar to Psi') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	time enum('24','12') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '24',
 	gap enum('5000','10000','20000','30000','60000') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '5000',
+	stream_lock tinyint(1) NOT NULL DEFAULT 0,
 	PRIMARY KEY (id),
 	UNIQUE KEY user (user),
 	UNIQUE KEY token (token),
 	KEY indexes (s,pass,tg_token,tg_chatid))
 	ENGINE=".$db_engine." DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
+  $migration = "ALTER TABLE " . $db_users . " ADD COLUMN IF NOT EXISTS stream_lock tinyint(1) NOT NULL DEFAULT 0";
+
   $db->query($table);
+  $db->query($migration);
   if (!$db->query($is_empty)->num_rows) $db->execute_query("INSERT INTO $db_users (s, user, pass) VALUES (?,?,?)", [0, $admin, password_hash('admin', PASSWORD_DEFAULT, $salt)]);
   $db->close();
  } catch(Exception $e) {

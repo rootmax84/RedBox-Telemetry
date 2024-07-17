@@ -13,7 +13,16 @@ if (isset($_SESSION['admin'])) {
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
 
-$r = $db->query("SELECT * FROM $db_table ORDER BY time DESC LIMIT 1");
+$session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
+$placeholders = $session_id ? [$session_id] : [];
+$query = "SELECT * FROM $db_table";
+
+if ($session_id) {
+    $query .= " WHERE session=?";
+}
+$query .= " ORDER BY time DESC LIMIT 1";
+
+$r = $db->execute_query($query, $placeholders);
 if (!$r->num_rows) die;
 
 $s = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 OR id IN ('kff1005', 'kff1006') ORDER by description ASC");

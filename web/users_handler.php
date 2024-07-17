@@ -3,12 +3,12 @@ require_once ('token_functions.php');
 require_once ('auth_functions.php');
 require_once ('db.php');
 
-if (isset($_POST['speed']) && isset($_POST['temp']) && isset($_POST['pressure']) && isset($_POST['boost']) && isset($_POST['time']) && isset($_POST['gap']) && isset($username) && $username != $admin){ //Update users settings
-    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=? WHERE user=?", [$_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $username]);
+if (isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $_POST['stream_lock']) && isset($username) && $username != $admin){ //Update users settings
+    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=? WHERE user=?", [$_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $_POST['stream_lock'], $username]);
     $db->close();
     setcookie("timeformat", $_POST['time'] == '1' ? '24' : '12');
     setcookie("gap", $_POST['gap']);
-    die("Conversion settings updated");
+    die("Settings updated");
 }
 
 if (isset($_GET['get_token']) && isset($username) && $username != $admin){ //Get current user token

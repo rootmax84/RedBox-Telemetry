@@ -105,6 +105,9 @@ if (isset($sids[0])) {
 		$mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon'])."]";
 	}
 	$imapdata = implode(",", $mapdata);
+
+	$stream_lock = $db->execute_query("SELECT stream_lock FROM $db_users WHERE user=?", [$username])->fetch_row()[0];
+
 	$db->close();
 }
 ?>
@@ -445,7 +448,7 @@ function dataToggle() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
 		$("#data_toggle").html("click to collapse ↑");
-		src = new EventSource("stream.php");
+		src = new EventSource("stream.php<?php echo $stream_lock > 0 ? '?id=' . $session_id : ''; ?>");
 		src.onmessage = e => {$("#stream").html(e.data)};
 		alarm.muted = false;
 		noSleep.enable();
@@ -729,9 +732,11 @@ function checkLog() {
 
  reader.onprogress = () => {
      if (log_data.files.length > 10) {
+        msg_def.innerHTML = "";
         msg_err.innerHTML = "Acceptable 10 files per upload!";
         up_btn.hide();
      } else if (size > 52428800) {
+        msg_def.innerHTML = "";
         msg_err.innerHTML = "Acceptable 5MB per file and 50MB total!";
         up_btn.hide();
      } else {
