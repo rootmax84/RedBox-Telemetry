@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') die; //Respond to preflights
 
 //Check if token header is present and non empty than go to database
 $token = getBearerToken();
-if ($token != NULL && $token != '') {
+if (!empty($token)) {
 
  //Maintenance mode
  if (file_exists('maintenance')){

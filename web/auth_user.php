@@ -1,7 +1,7 @@
 <?php
 require_once ('creds.php');
 require_once ('auth_functions.php');
-session_start();
+if (!isset($_SESSION)) { session_start(); }
 
 $logged_in = isset($_SESSION['torque_logged_in']) && $_SESSION['torque_logged_in'];
 
