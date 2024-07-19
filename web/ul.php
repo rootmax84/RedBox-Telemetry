@@ -31,11 +31,7 @@ if (!empty($token)) {
  $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid FROM $db_users WHERE token=?", [$token]);
   if (!$userqry->num_rows) $access = 0;
   else {
-    $row = $userqry->fetch_assoc();
-    $limit = $row["s"];
-    $user = $row["user"];
-    $tg_token = $row["tg_token"];
-    $tg_chatid = $row["tg_chatid"];
+    [$user, $limit, $tg_token, $tg_chatid] = $userqry->fetch_row();
     $access = 1;
   }
 } else $access = 0;
