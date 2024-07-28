@@ -197,6 +197,7 @@ function convertToRealTime(processedTime) {
 
         this.plot.unhighlight();
         var matchingDataPoints = [];
+        var showEventHeader = false;
 
         for (var i = 0 , ii = data.length; i < ii; i++) {
           // Find the data point in the other series that matches the current datapoint
@@ -208,6 +209,9 @@ function convertToRealTime(processedTime) {
                 dataPoint: seriesData[j],
                 delta: deltaFunction(j > 0 ? seriesData[j - 1] : null, seriesData[j])
               });
+              if (data[i]['label'].includes('Rollback')) {
+                showEventHeader = true;
+              }
             }
           }
         }
@@ -244,7 +248,7 @@ function convertToRealTime(processedTime) {
         }
 
         var tooltipText = this.tooltipTemplate({
-	  event : rlbc.length ? "Event" : null,
+          event : showEventHeader ? "Event" : null,
           time: timeArray,
           body: childrenTexts.join('\n')
         });
