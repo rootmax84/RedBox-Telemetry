@@ -230,6 +230,7 @@
 				map._isFullscreen = false;
 				    $("#data").css({"z-index":"", "position":"", "float":"", "border-radius":"", "background":"", "margin":""});
 				    $("#right-container").css("padding-right","25px");
+				    $(".live-data").css("backdrop-filter","none");
 				    window.scrollTo(0, 0);
 			} else {
 				if (this._screenfull.isEnabled && !this.options.forcePseudoFullscreen) {
@@ -246,6 +247,7 @@
 				map._isFullscreen = true;
 				    $("#data").css({"z-index":"99999", "position":"relative", "float":"right", "border-radius":"5px", "background":"rgba(255, 255, 255, 0.5)", "margin":"21px 10px"});
 				    $("#right-container").css("padding-right","0");
+				    $(".live-data").css("backdrop-filter","blur(5px)");
 				    window.scrollTo(0, document.body.scrollHeight);
 			}
 		},
