@@ -11,7 +11,7 @@
 		<h4>Account is disabled.</h4>
 	    <?php
 	    }
-	    else if ($_GET['c'] == "loginfailed") { ?>
+	    else if ($_GET['c'] == "loginfailed") { http_response_code(401); ?>
 		    <script>setTimeout(()=>{location.href='.'}, 2000);</script>
 		<h4>Wrong login, password or code!</h4>
 	    <?php
