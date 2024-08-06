@@ -660,3 +660,10 @@ a {
   top: 0;
   opacity: .6;
 }
+
+.users-list th,
+.table-del-merge-pid th {
+  position: sticky;
+  top: 45px;
+  background-color: #fff;
+}
