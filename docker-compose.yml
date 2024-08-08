@@ -44,6 +44,7 @@ services:
         volumes:
             - ./web:/data
             - ./docker/php-fpm/php-ini-overrides.ini:/etc/php/8.3/fpm/conf.d/99-overrides.ini:ro
+            - ./docker/php-fpm/www.conf:/etc/php/8.3/fpm/pool.d/www.conf:ro
         environment:
             TZ: Europe/Moscow
         restart: always
