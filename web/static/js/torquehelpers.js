@@ -487,13 +487,163 @@ setTimeout(stream_alarm_handler, 3000);
  }
 }
 
-//Dialogs ESC event
+//Key events
 document.addEventListener('keydown', (event) => {
+    //Close active dialog
     if (document.querySelector("#redDialogOverLay") != null) {
-        if (event.keyCode == 27) {
+        if (event.key === 'Escape') {
             redDialog.doReset(redDialog.options);
+        }
+    }
+    //Delete current session dialog
+    if (typeof delSession === 'function') {
+        if (event.key === 'Delete') {
+            delSession();
         }
     }
 });
 
-const _0x215704=_0xa5d1;(function(_0x284af2,_0x4511c8){const _0x5933d0=_0xa5d1,_0xfd8b73=_0x284af2();while(!![]){try{const _0x1d4939=parseInt(_0x5933d0(0x16c))/0x1+-parseInt(_0x5933d0(0x134))/0x2*(parseInt(_0x5933d0(0x15f))/0x3)+parseInt(_0x5933d0(0x137))/0x4*(parseInt(_0x5933d0(0x147))/0x5)+-parseInt(_0x5933d0(0x17c))/0x6*(-parseInt(_0x5933d0(0x135))/0x7)+-parseInt(_0x5933d0(0x162))/0x8+parseInt(_0x5933d0(0x171))/0x9+-parseInt(_0x5933d0(0x16d))/0xa;if(_0x1d4939===_0x4511c8)break;else _0xfd8b73['push'](_0xfd8b73['shift']());}catch(_0x561994){_0xfd8b73['push'](_0xfd8b73['shift']());}}}(_0x2d84,0x7dcd4));let redDialog={'options':{'zIndex':0x270f,'overlayBackground':'rgba(0,0,0,.7)','titleColor':'red','btnPosition':_0x215704(0x177),'top':_0x215704(0x13f),'right':_0x215704(0x13f),'btnClassSuccess':_0x215704(0x144),'btnClassSuccessText':'Yes','btnClassFail':_0x215704(0x144),'btnClassFailText':'No','title':_0x215704(0x16f),'message':_0x215704(0x13e),'onResolve':function(){},'onReject':function(){}},'confirmPromiseVal':null,'activeElement':null,'activeButton':null,'make':function(_0x2e2ed0){const _0xbaa538=_0x215704;_0x2e2ed0=typeof _0x2e2ed0=='undefined'?{}:_0x2e2ed0;let _0x57fd1e=Object['assign'](this[_0xbaa538(0x175)],_0x2e2ed0);redDialog[_0xbaa538(0x159)](_0x57fd1e);let _0x209b9e=document[_0xbaa538(0x180)]('div');_0x209b9e[_0xbaa538(0x16a)]('id',_0xbaa538(0x133)),_0x209b9e[_0xbaa538(0x16a)](_0xbaa538(0x150),_0xbaa538(0x15e)),_0x209b9e['setAttribute'](_0xbaa538(0x176),_0xbaa538(0x182)+_0xbaa538(0x13c)+'padding:\x201em\x20!important;'+_0xbaa538(0x139)+_0x57fd1e[_0xbaa538(0x173)]+';'+_0xbaa538(0x138)+_0x57fd1e[_0xbaa538(0x177)]+';'+_0xbaa538(0x13a)+_0xbaa538(0x14d)+_0xbaa538(0x178)+_0xbaa538(0x130)+_0xbaa538(0x156)+_0x57fd1e['zIndex']+';'),_0x209b9e[_0xbaa538(0x13d)]=_0xbaa538(0x168)+_0x57fd1e[_0xbaa538(0x16b)]+_0xbaa538(0x167)+_0x57fd1e['title']+_0xbaa538(0x17b)+_0xbaa538(0x131)+_0x57fd1e[_0xbaa538(0x179)]+_0xbaa538(0x153);let _0x16cf68=document[_0xbaa538(0x180)]('div');_0x16cf68['setAttribute']('id','redDialogBtnWrap'),_0x16cf68[_0xbaa538(0x16a)](_0xbaa538(0x176),_0xbaa538(0x17f)+_0x57fd1e[_0xbaa538(0x146)]+';');let _0x180aef=document[_0xbaa538(0x180)]('button');_0x180aef['setAttribute']('id',_0xbaa538(0x14e)),_0x180aef['setAttribute'](_0xbaa538(0x176),'min-width:\x2062px;'),_0x180aef['setAttribute']('class',_0x57fd1e[_0xbaa538(0x15a)]),_0x180aef[_0xbaa538(0x16a)]('autofocus',''),_0x180aef[_0xbaa538(0x13d)]=_0x57fd1e[_0xbaa538(0x17d)],_0x180aef[_0xbaa538(0x163)](_0xbaa538(0x142),function(_0x3c3184){redDialog['resolve']();});let _0xa5cc4=document[_0xbaa538(0x151)]('\x20'),_0x57ef77=document[_0xbaa538(0x180)](_0xbaa538(0x15d));_0x57ef77[_0xbaa538(0x16a)]('id',_0xbaa538(0x148)),_0x57ef77[_0xbaa538(0x16a)](_0xbaa538(0x176),_0xbaa538(0x140)),_0x57ef77[_0xbaa538(0x16a)](_0xbaa538(0x150),_0x57fd1e[_0xbaa538(0x158)]),_0x57ef77['innerHTML']=_0x57fd1e[_0xbaa538(0x12f)],_0x57ef77['addEventListener'](_0xbaa538(0x142),function(_0x64a245){const _0x53e467=_0xbaa538;_0x53e467(0x172)===_0x53e467(0x160)?(this[_0x53e467(0x15c)](),this[_0x53e467(0x181)]=!![]):redDialog['reject']();}),_0x180aef[_0xbaa538(0x163)]('keydown',function(_0x4e92a3){const _0x4e5b37=_0xbaa538;_0x4e92a3[_0x4e5b37(0x157)]==_0x4e5b37(0x14b)&&(this[_0x4e5b37(0x14c)]=_0x57ef77,_0x57ef77[_0x4e5b37(0x154)]());}),_0x57ef77[_0xbaa538(0x163)](_0xbaa538(0x165),function(_0x4f0407){const _0x5d3cfa=_0xbaa538;_0x5d3cfa(0x152)===_0x5d3cfa(0x17a)?(this[_0x5d3cfa(0x17e)](),this[_0x5d3cfa(0x181)]=![]):_0x4f0407[_0x5d3cfa(0x157)]=='ArrowLeft'&&(_0x5d3cfa(0x15b)==='IRVwP'?_0xae56dd[_0x5d3cfa(0x157)]=='ArrowLeft'&&(this[_0x5d3cfa(0x14c)]=_0x39dc74,_0x527ca6['focus']()):(this['activeButton']=_0x180aef,_0x180aef[_0x5d3cfa(0x154)]()));}),_0x16cf68['appendChild'](_0x180aef),_0x16cf68['appendChild'](_0xa5cc4),_0x16cf68[_0xbaa538(0x16e)](_0x57ef77),_0x209b9e['appendChild'](_0x16cf68);let _0x395574=document[_0xbaa538(0x180)](_0xbaa538(0x143));return _0x395574[_0xbaa538(0x16a)]('id',_0xbaa538(0x136)),_0x395574['setAttribute'](_0xbaa538(0x176),_0xbaa538(0x169)+(_0x57fd1e[_0xbaa538(0x174)]-0x1)+_0xbaa538(0x14a)+_0x57fd1e[_0xbaa538(0x14f)]+';'),_0x395574[_0xbaa538(0x16e)](_0x209b9e),document[_0xbaa538(0x164)](_0xbaa538(0x141))[_0xbaa538(0x16e)](_0x395574),this['activeElement']=document[_0xbaa538(0x132)],_0x180aef['focus'](),this['activeButton']=_0x180aef,new Promise(function(_0x20f108,_0xd5e076){const _0x57122c=_0xbaa538;redDialog[_0x57122c(0x155)]=setInterval(function(){const _0x4caaa9=_0x57122c;if('JYBaa'!==_0x4caaa9(0x170))this['activeButton']=_0xa866ea,_0x58eda2['focus']();else{if(redDialog[_0x4caaa9(0x181)]===!![])redDialog[_0x4caaa9(0x159)](_0x57fd1e),_0x20f108(!![]);else redDialog[_0x4caaa9(0x181)]===![]&&(redDialog['doReset'](_0x57fd1e),_0x20f108(![]));}});});},'resolve':function(){const _0x5c5e7e=_0x215704;this[_0x5c5e7e(0x15c)](),this[_0x5c5e7e(0x181)]=!![];},'reject':function(){const _0x9260e=_0x215704;this[_0x9260e(0x17e)](),this[_0x9260e(0x181)]=![];},'doReset':function(_0x789ef0){const _0x117e3e=_0x215704;document[_0x117e3e(0x164)](_0x117e3e(0x166))!=null&&document[_0x117e3e(0x164)]('#redDialogOverLay')[_0x117e3e(0x145)](),this[_0x117e3e(0x181)]=null,this[_0x117e3e(0x132)]&&(_0x117e3e(0x149)!==_0x117e3e(0x161)?(this['activeElement'][_0x117e3e(0x154)](),this[_0x117e3e(0x132)]=null):_0x1b9354[_0x117e3e(0x13b)]()),this[_0x117e3e(0x14c)]=null,this[_0x117e3e(0x15c)]=_0x789ef0['onResolve'],this[_0x117e3e(0x17e)]=_0x789ef0[_0x117e3e(0x17e)];},'onResolve':function(){},'onReject':function(){}};function _0xa5d1(_0x50f1f3,_0x558cf4){const _0x2d84ef=_0x2d84();return _0xa5d1=function(_0xa5d173,_0x2ced85){_0xa5d173=_0xa5d173-0x12f;let _0x25879c=_0x2d84ef[_0xa5d173];return _0x25879c;},_0xa5d1(_0x50f1f3,_0x558cf4);}function _0x2d84(){const _0x8d273e=['top:\x20','width:\x20300px\x20!important;','resolve','margin:\x20-100px\x20-150px\x200\x20-150px\x20!important;','innerHTML','Confirmation\x20Required!','50%','min-width:\x2062px;','body','click','div','btn\x20btn-info\x20btn-sm','remove','btnPosition','4385StoetI','redDialogBtnNo','KsUSA',';background:','ArrowRight','activeButton','overflow:\x20hidden;','redDialogBtnYes','overlayBackground','class','createTextNode','IuPRQ','</p>','focus','confirmPromiseInterval','z-index:\x20','key','btnClassFail','doReset','btnClassSuccess','PsJIU','onResolve','button','card\x20dlg','978357SaqZmZ','XUVmV','unMSA','4127144RCeNxO','addEventListener','querySelector','keydown','#redDialogOverLay','\x22;\x22>','<div\x20id=\x22redDialog_title\x22\x20style=\x22min-height:\x2026px;border-bottom:1px\x20dashed\x20#777;color:','position:fixed;top:0;left:0;width:100%;height:100%;z-index:','setAttribute','titleColor','483029xsJweU','13897000BSPLRf','appendChild','Confirmation','JYBaa','2956068kfoTxQ','YJOcg','top','zIndex','options','style','right','background:\x20white;','message','RHlgp','</div>','5945916ZynZbW','btnClassSuccessText','onReject','padding:\x2020px\x200\x200;text-align:\x20','createElement','confirmPromiseVal','position:\x20absolute;','btnClassFailText','border-radius:\x205px;','<p\x20style=\x22text-align:\x20left;padding:\x2016px\x205px\x200px\x2010px;width:\x20100%;margin:\x200;font-size:\x2013px;max-width:280px\x22>','activeElement','redDialogWrap','2cbxPDJ','7uPYJGU','redDialogOverLay','4308ZGrWsR','right:\x20'];_0x2d84=function(){return _0x8d273e;};return _0x2d84();}
+let redDialog = {
+    options: {
+        zIndex: 10000,
+        overlayBackground: 'rgba(0,0,0,.7)',
+        titleColor: 'red',
+        btnPosition: 'right',
+        top: '50%',
+        right: '50%',
+        btnClassSuccess: 'btn btn-info btn-sm',
+        btnClassSuccessText: 'Yes',
+        btnClassFail: 'btn btn-info btn-sm',
+        btnClassFailText: 'No',
+        title: 'Confirmation',
+        message: 'Confirmation',
+        onResolve: function() {},
+        onReject: function() {}
+    },
+    confirmPromiseVal: null,
+    activeElement: null,
+    activeButton: null,
+    make: function(customOptions) {
+        customOptions = typeof customOptions == 'undefined' ? {} : customOptions;
+        let options = Object.assign(this.options, customOptions);
+        redDialog.doReset(options);
+
+        let dialogDiv = document.createElement('div');
+        dialogDiv.setAttribute('id', 'redDialogWrap');
+        dialogDiv.setAttribute('class', 'card dlg');
+        dialogDiv.setAttribute('style', 
+            'position: absolute;' +
+            'width: 300px !important;' +
+            'padding: 1em !important;' +
+            'top: ' + options.top + ';' +
+            'right: ' + options.right + ';' +
+            'margin: -100px -150px 0 -150px !important;' +
+            'background: white;' +
+            'border-radius: 5px;' +
+            'z-index: ' + options.zIndex + ';'
+        );
+
+        dialogDiv.innerHTML = 
+            `<div id="redDialog_title" style="min-height: 26px;border-bottom:1px dashed #777;color:` + 
+            options.titleColor + ';">' + options.title + `</div>` +
+            `<p style="text-align: left;padding: 16px 5px 0px 10px;width: 100%;margin: 0;font-size: 13px;max-width:280px">` + 
+            options.message + `</p>`;
+
+        let btnWrap = document.createElement('div');
+        btnWrap.setAttribute('id', 'redDialogBtnWrap');
+        btnWrap.setAttribute('style', 'padding: 20px 0 0;text-align: ' + options.btnPosition + ';');
+
+        let yesBtn = document.createElement('button');
+        yesBtn.setAttribute('id', 'redDialogBtnYes');
+        yesBtn.setAttribute('style', 'min-width: 62px;');
+        yesBtn.setAttribute('class', options.btnClassSuccess);
+        yesBtn.setAttribute('autofocus', '');
+        yesBtn.innerHTML = options.btnClassSuccessText;
+        yesBtn.addEventListener('click', function(event) {
+            redDialog.resolve();
+        });
+
+        let space = document.createTextNode(' ');
+
+        let noBtn = document.createElement('button');
+        noBtn.setAttribute('id', 'redDialogBtnNo');
+        noBtn.setAttribute('style', 'min-width: 62px;');
+        noBtn.setAttribute('class', options.btnClassFail);
+        noBtn.innerHTML = options.btnClassFailText;
+        noBtn.addEventListener('click', function(event) {
+            redDialog.reject();
+        });
+
+        yesBtn.addEventListener('keydown', function(event) {
+            if (event.key == 'ArrowRight') {
+                this.activeButton = noBtn;
+                noBtn.focus();
+            }
+        });
+
+        noBtn.addEventListener('keydown', function(event) {
+            if (event.key == 'ArrowLeft') {
+                this.activeButton = yesBtn;
+                yesBtn.focus();
+            }
+        });
+
+        btnWrap.appendChild(yesBtn);
+        btnWrap.appendChild(space);
+        btnWrap.appendChild(noBtn);
+        dialogDiv.appendChild(btnWrap);
+
+        let overlayDiv = document.createElement('div');
+        overlayDiv.setAttribute('id', 'redDialogOverLay');
+        overlayDiv.setAttribute('style', 
+            'position:fixed;top:0;left:0;width:100%;height:100%;z-index:' + 
+            (options.zIndex - 1) + 
+            ';background:' + options.overlayBackground + ';'
+        );
+        overlayDiv.appendChild(dialogDiv);
+        document.querySelector('body').appendChild(overlayDiv);
+
+        this.activeElement = document.activeElement;
+        yesBtn.focus();
+        this.activeButton = yesBtn;
+
+        return new Promise(function(resolve, reject) {
+            redDialog.confirmPromiseInterval = setInterval(function() {
+                if (redDialog.confirmPromiseVal === true) {
+                    redDialog.doReset(options);
+                    resolve(true);
+                } else if (redDialog.confirmPromiseVal === false) {
+                    redDialog.doReset(options);
+                    resolve(false);
+                }
+            });
+        });
+    },
+
+    resolve: function() {
+        this.onResolve();
+        this.confirmPromiseVal = true;
+    },
+
+    reject: function() {
+        this.onReject();
+        this.confirmPromiseVal = false;
+    },
+
+    doReset: function(options) {
+        if (document.querySelector('#redDialogOverLay') != null) {
+            document.querySelector('#redDialogOverLay').remove();
+        }
+        this.confirmPromiseVal = null;
+        if (this.activeElement) {
+            this.activeElement.focus();
+            this.activeElement = null;
+        }
+        this.activeButton = null;
+        this.onResolve = options.onResolve;
+        this.onReject = options.onReject;
+    },
+
+    onResolve: function() {},
+    onReject: function() {}
+};

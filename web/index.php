@@ -815,7 +815,29 @@ function tokenError() {
  redDialog.make(dialogOpt);
 }
 
-let _0x1d5c4a=_0x1546;(function(_0x313450,_0x264e3c){var _0x356929=_0x1546,_0x9ac634=_0x313450();while(!![]){try{var _0x469f0b=parseInt(_0x356929(0x112))/0x1+-parseInt(_0x356929(0x10f))/0x2+parseInt(_0x356929(0x118))/0x3+parseInt(_0x356929(0x10b))/0x4*(parseInt(_0x356929(0x10c))/0x5)+-parseInt(_0x356929(0x116))/0x6*(parseInt(_0x356929(0x115))/0x7)+parseInt(_0x356929(0x104))/0x8*(-parseInt(_0x356929(0x113))/0x9)+-parseInt(_0x356929(0x111))/0xa*(-parseInt(_0x356929(0x10e))/0xb);if(_0x469f0b===_0x264e3c)break;else _0x9ac634['push'](_0x9ac634['shift']());}catch(_0x3ec26a){_0x9ac634['push'](_0x9ac634['shift']());}}}(_0x5da1,0x1e14b));var dropArea=document[_0x1d5c4a(0x109)](_0x1d5c4a(0x10a)),fl=document[_0x1d5c4a(0x109)]('logFile');dropArea[_0x1d5c4a(0x105)]('drop',drop),dropArea['addEventListener'](_0x1d5c4a(0x106),dragover),dropArea[_0x1d5c4a(0x105)]('dragleave',dragleave);function drop(_0x275323){var _0x56e463=_0x1d5c4a;_0x275323[_0x56e463(0x10d)](),dropArea[_0x56e463(0x108)]['border']='',fl[_0x56e463(0x110)]=_0x275323[_0x56e463(0x114)][_0x56e463(0x110)],checkLog();}function _0x1546(_0xee7b68,_0x5197a8){var _0x5da1cc=_0x5da1();return _0x1546=function(_0x15461f,_0x296258){_0x15461f=_0x15461f-0x104;var _0x24f752=_0x5da1cc[_0x15461f];return _0x24f752;},_0x1546(_0xee7b68,_0x5197a8);}function dragover(_0x3472f9){var _0x3a333a=_0x1d5c4a;_0x3472f9[_0x3a333a(0x10d)](),dropArea[_0x3a333a(0x108)]['borderColor']=_0x3a333a(0x107);}function _0x5da1(){var _0x32f3d2=['910040PewprR','5YdBlYf','preventDefault','2731619BvFyke','276050kXshxr','files','10RQoOlH','427mCVpFD','668907nZgjIa','dataTransfer','7wejhqD','787902QKYbqB','borderColor','194799CRCCWm','16YdpnSB','addEventListener','dragover','#0eff00','style','getElementById','log'];_0x5da1=function(){return _0x32f3d2;};return _0x5da1();}function dragleave(_0xb33d5e){var _0x3ad907=_0x1d5c4a;_0xb33d5e[_0x3ad907(0x10d)](),dropArea[_0x3ad907(0x108)][_0x3ad907(0x117)]='';}
+let dropArea = document.getElementById('log');
+let fl = document.getElementById('logFile');
+
+dropArea.addEventListener('drop', drop);
+dropArea.addEventListener('dragover', dragover);
+dropArea.addEventListener('dragleave', dragleave);
+
+function drop(event) {
+    event.preventDefault();
+    dropArea.style.border = '';
+    fl.files = event.dataTransfer.files;
+    checkLog();
+}
+
+function dragover(event) {
+    event.preventDefault();
+    dropArea.style.borderColor = '#0eff00';
+}
+
+function dragleave(event) {
+    event.preventDefault();
+    dropArea.style.borderColor = '';
+}
 </script>
 <?php } ?>
   </body>
