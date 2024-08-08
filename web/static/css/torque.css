@@ -664,6 +664,12 @@ a {
 .users-list th,
 .table-del-merge-pid th {
   position: sticky;
-  top: 45px;
+  top: 44px;
   background-color: #fff;
+}
+
+.navbar-inverse {
+ backdrop-filter: blur(5px) brightness(.5);
+ background-color: #961911;
+ background-color: #961911e3;
 }
