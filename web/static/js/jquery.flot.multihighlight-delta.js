@@ -275,6 +275,9 @@ function convertToRealTime(processedTime) {
         var pageWidth = window.innerWidth;
         var pageHeight = window.innerHeight;
         var plotWidth = $("#placeholder").width();
+
+        css['width'] =  plotWidth <= 650 ? 'min-content' : 'auto';
+
         if (xPosition + tooltipWidth > plotWidth){
           xPositionProperty = 'right';
           xPosition = pageWidth - position.pageX + options.tooltipOffsetX;
