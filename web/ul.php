@@ -137,9 +137,8 @@ if (sizeof($_GET) > 0) {
       $sql = "INSERT IGNORE INTO $db_table (".quote_names($rawkeys).") VALUES (".quote_values($rawvalues).")";
       $db->query($sql);
     }
-    $sesssizecount = $db->execute_query("SELECT COALESCE(sessionsize, 1) + 1 AS sessionsize FROM $db_sessions_table WHERE session=?", [$sessuploadid])->fetch_row()[0] ?? 1;
-    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize) VALUES (".quote_values($sessvalues).", $sesstime, '1') ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=?";
-    $db->execute_query($sessionqrystring, [$id ?? '', $sesstime, $sesssizecount]);
+    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize) VALUES (".quote_values($sessvalues).", $sesstime, '1') ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+    $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
 
     if ($submitval == 2) { //Profile info
         $updateFields = [];

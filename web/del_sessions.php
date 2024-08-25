@@ -79,14 +79,29 @@ if (isset($delsession)) {
     $i = 0;
     while ($x = $sessqry->fetch_array()) {
 ?>
-          <tr>
-            <td><input type="checkbox" name="<?php echo $x['session']; ?>"></td>
-            <td id="start:<?php echo $x['session']; ?>"><?php echo date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", substr($x["timestart"], 0, -3)); ?></td>
-            <td id="end:<?php echo $x['session']; ?>"><?php echo date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", substr($x["timeend"], 0, -3)); ?></td>
-            <td id="length:<?php echo $x['session']; ?>"><?php echo gmdate("H:i:s", intval(($x["timeend"] - $x["timestart"])/1000)); ?></td>
-            <td id="size:<?php echo $x['session']; ?>"><?php echo $x["sessionsize"]; ?></td>
-            <td id="profile:<?php echo $x['session']; ?>"><?php echo $x["profileName"]; ?></td>
-          </tr>
+<tr>
+    <td><input type="checkbox" name="<?php echo $x['session']; ?>"></td>
+    <td id="start:<?php echo $x['session']; ?>">
+        <?php 
+        $start_timestamp = intval(substr($x["timestart"], 0, -3));
+        echo date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", $start_timestamp);
+        ?>
+    </td>
+    <td id="end:<?php echo $x['session']; ?>">
+        <?php 
+        $end_timestamp = intval(substr($x["timeend"], 0, -3));
+        echo date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", $end_timestamp);
+        ?>
+    </td>
+    <td id="length:<?php echo $x['session']; ?>">
+        <?php 
+        $duration = intval(($x["timeend"] - $x["timestart"]) / 1000);
+        echo gmdate("H:i:s", $duration);
+        ?>
+    </td>
+    <td id="size:<?php echo $x['session']; ?>"><?php echo $x["sessionsize"]; ?></td>
+    <td id="profile:<?php echo $x['session']; ?>"><?php echo $x["profileName"]; ?></td>
+</tr>
 <?php
     }
 ?>
