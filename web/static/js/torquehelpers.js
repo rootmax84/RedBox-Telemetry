@@ -366,7 +366,7 @@ let initMapLeaflet = () => {
         let lon = stream ? parseFloat($('#lon').html()) : null;
         let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : "No speed data in stream") : null;
         let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
-        if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return;
+        if (lat == null || lon == null || isNaN(lat) || isNaN(lon) || (lat == 0 && lon == 0)) return;
         if (stream) {
             marker = new L.marker([lat, lon]).bindTooltip(spd+" "+spd_unit,{permanent:true,direction:'right',className:"stream-marker"}).addTo(map);
             map.setView(marker.getLatLng(), map.getZoom());
