@@ -8,7 +8,7 @@ if (!isset($_SESSION['admin'])) $_SESSION['recent_session_id'] = strval(isset($s
 
 // Capture the session ID if one has been chosen already
 if (isset($_GET["id"])) {
-	$session_id = preg_replace('/\D/', '', $_GET['id']);
+	$session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 }
 
 if (!isset($_GET["page"])) {
@@ -68,7 +68,7 @@ if (isset($sids[0])) {
 		FROM $db_sessions_table WHERE session <> ''
 		GROUP BY YEAR(FROM_UNIXTIME(session/1000)) 
 		ORDER BY YEAR(FROM_UNIXTIME(session/1000)) DESC");
-	$yeararray = array();
+	$yeararray = [];
 	$i = 0;
 	while($row = $yearquery->fetch_assoc()) {
 		$yeararray[$i] = $row['year'];
@@ -77,7 +77,7 @@ if (isset($sids[0])) {
 
 	// Query the list of profiles where sessions have been logged, to be used later
 	$profilequery = $db->query("SELECT distinct profileName FROM $db_sessions_table ORDER BY profileName asc");
-	$profilearray = array();
+	$profilearray = [];
 	$i = 0;
 	while($row = $profilequery->fetch_assoc()) {
 		$profilearray[$i] = $row['profileName'];
@@ -85,22 +85,22 @@ if (isset($sids[0])) {
 	}
 
 	$gps_time_data = $db->execute_query("SELECT kff1006, kff1005, time FROM $db_table WHERE session=? ORDER BY time DESC", [$session_id]);
-	$geolocs = array();   // Coords array
-	$timearray = array(); // Get array of time for session and start and end variables 
-	while($row = $gps_time_data->fetch_array()) {
-		if (($row["0"] != 0) && ($row["1"] != 0)) {
-			$geolocs[] = array("lat" => $row["0"], "lon" => $row["1"]);
+	$geolocs = [];   // Coords array
+	$timearray = []; // Get array of time for session and start and end variables 
+	while($row = $gps_time_data->fetch_row()) {
+		if (($row[0] != 0) && ($row[1] != 0)) {
+			$geolocs[] = ["lat" => $row[0], "lon" => $row[1]];
 		}
-		$timearray[$i] = $row["2"];
+		$timearray[$i] = $row[2];
 		$i++;
 	}
 
 	$itime = implode(",", $timearray);
-	$maxtimev = array_values($timearray)[0];
-	$mintimev = array_values($timearray)[(count($timearray)-1)];
+	$maxtimev = reset($timearray);  // First el
+	$mintimev = end($timearray);    // Last el
 
 	// Create array of Latitude/Longitude strings in leafletjs JavaScript format
-	$mapdata = array();
+	$mapdata = [];
 	foreach($geolocs as $d) {
 		$mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon'])."]";
 	}
