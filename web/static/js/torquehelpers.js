@@ -294,7 +294,28 @@ let updCharts = ()=>{
                 return tr;
             }
             gData.forEach(v=>$('#Summary-Container>div>table>tbody').append(trData(v)));
-            $(".line").peity("line", {width: '50'});
+            $('.line').each(function() {
+                // We get data from the element as an array of numbers
+                let data = $(this).text().split(',').map(Number);
+
+                // Determine the size of the group for averaging
+                let groupSize = Math.ceil(data.length / 100000);
+
+                // We average the data across groups
+                let averagedData = [];
+                for (let i = 0; i < data.length; i += groupSize) {
+                    let group = data.slice(i, i + groupSize);
+                    let average = group.reduce((sum, value) => sum + value, 0) / group.length;
+                    averagedData.push(average);
+                }
+
+                // Forming a line for Peity from averaged data
+                let averagedDataString = averagedData.join(',');
+
+                // Update the element and apply Peity
+                $(this).text(averagedDataString);
+                $(this).peity('line', { width: '50' });
+            });
             if ($('#plot_data').chosen().val() == null) updCharts();
         }).catch(err => {
             const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html('No Data')));
