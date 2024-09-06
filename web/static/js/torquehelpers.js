@@ -286,14 +286,44 @@ let updCharts = ()=>{
             //this updates the whole summary table
             $('#Summary-Container').empty();
             $('#Summary-Container').append($('<div>',{class:'table-responsive'}).append($('<table>',{class:'table table-sum'}).append($('<thead>').append($('<tr>'))).append('<tbody>')));
-            ['Name','Min/Max','Mean','Sparkline'].forEach(v=>$('#Summary-Container>div>table>thead>tr').append($('<th>').html(v)));
-            const trData = v=>{
-                const tr=$('<tr>');
-                //and at this point I realized maybe I should have made the json output an object instead of an array but whatever //TODO: make it an object
-                [v[1],v[5]+'/'+v[4],v[6],v[3]].forEach((v,i)=>tr.append($('<td>').html(i<3?v:'').append(i<3?'':$('<span>',{class:'line'}).html(v))));
-                return tr;
+            // Create table headers
+            const headers = ['Name', 'Min/Max', 'Mean', 'Sparkline'];
+            const thead = document.querySelector('#Summary-Container>div>table>thead>tr');
+            const headerFragment = document.createDocumentFragment();
+            headers.forEach(v => {
+                const th = document.createElement('th');
+                th.textContent = v;
+                headerFragment.appendChild(th);
+            });
+            thead.appendChild(headerFragment);
+
+            // Create string pattern for table
+            const trTemplate = document.createElement('tr');
+            for (let i = 0; i < 4; i++) {
+                const td = document.createElement('td');
+                if (i === 3) {
+                    const span = document.createElement('span');
+                    span.className = 'line';
+                    td.appendChild(span);
+                }
+                trTemplate.appendChild(td);
             }
-            gData.forEach(v=>$('#Summary-Container>div>table>tbody').append(trData(v)));
+
+            // Fill table data
+            const tbody = document.querySelector('#Summary-Container>div>table>tbody');
+            const rowFragment = document.createDocumentFragment();
+
+            gData.forEach(v => {
+                const tr = trTemplate.cloneNode(true);
+                const tds = tr.children;
+                tds[0].textContent = v[1];
+                tds[1].textContent = v[5] + '/' + v[4];
+                tds[2].textContent = v[6];
+                tds[3].querySelector('.line').textContent = v[3];
+                rowFragment.appendChild(tr);
+            });
+
+            tbody.appendChild(rowFragment);
             $('.line').each(function() {
                 // We get data from the element as an array of numbers
                 let data = $(this).text().split(',').map(Number);
