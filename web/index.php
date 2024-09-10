@@ -108,6 +108,8 @@ if (isset($sids[0])) {
 
 	$stream_lock = $db->execute_query("SELECT stream_lock FROM $db_users WHERE user=?", [$username])->fetch_row()[0];
 
+	$id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
+
 	$db->close();
 }
 ?>
@@ -401,7 +403,7 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 	    <a class="btn btn-default func-btn" onclick="exportSession('KML')">KML</a>
 	  </div>
 	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" onclick="exportSession('RBX')">RBX</a>
+	    <a class="btn btn-default func-btn" onclick="exportSession('RBX')" <?php if ($id != "RedManage") { ?> disabled <?php } ?>>RBX</a>
 	  </div>
 
    </div>
