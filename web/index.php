@@ -620,7 +620,7 @@ if ($current_page < $total_pages) {
     <h6>Upload data via internet or via file(s)</h6>
 <ul class="no-data-url-list">
     <li><a href="#" onclick="showToken()">Show token for upload via internet</a></li>
-    <li><a href="#" onclick="UsersSettings()">Maybe you want to switch some settings</a></li>
+    <li><a href="#" onclick="usersSettings()">Maybe you want to switch some settings</a></li>
     <li><a href="#" onclick="pidEdit()">Or edit some PIDs</a></li>
 </ul>
 <div id="log">
@@ -846,7 +846,7 @@ function pidEdit() {
     location.href = "./pid_edit.php";
 }
 
-function UsersSettings() {
+function usersSettings() {
     location.href = "./users_settings.php";
 }
 
