@@ -1,3 +1,7 @@
+<p align="center" width="100%">
+<img width="10%" src="https://github.com/user-attachments/assets/b1d4299d-5d49-4f42-b2ea-83508b31928f">
+</p>
+
 # RedBox Telemetry
 Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive devices. Can be used with Torque PRO and generic OBD devices too.
 
@@ -158,6 +162,6 @@ rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kZ
 ### PHP configuration for standalone installation:
 ```
 #php.ini
-post_max_size = 50M
-upload_max_filesize = 5M
+post_max_size = 100M
+upload_max_filesize = 50M
 ```
