@@ -27,8 +27,10 @@ if (!$r->num_rows) die;
 
 $s = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 OR id IN ('kff1005', 'kff1006') ORDER by description ASC");
 $d = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1");
-$id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
 
+if ($session_id) {
+    $id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
+} else  $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
 $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username])->fetch_row();
 [$speed, $temp, $pressure, $boost] = $setqry;
 
