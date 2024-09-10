@@ -341,22 +341,22 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 
 <div id="func" style="display:none">
 <div class="btn-group btn-group-justified">
-    <a class="btn btn-default func-btn" href="javascript:delSession()">Delete</a>
+    <a class="btn btn-default func-btn" onclick="delSession()">Delete</a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" href="./del_sessions.php">Multi-delete</a>
+    <a class="btn btn-default func-btn" onclick="delSessions()">Multi-delete</a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" href="./merge_sessions.php?mergesession=<?php echo $session_id; ?>">Merge</a>
+    <a class="btn btn-default func-btn" onclick="mergeSessions()">Merge</a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" href="./pid_edit.php">Edit PIDs</a>
+    <a class="btn btn-default func-btn" onclick="pidEdit()">Edit PIDs</a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" href="javascript:showToken()">Token</a>
+    <a class="btn btn-default func-btn" onclick="showToken()">Token</a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" href="./users_settings.php">Settings</a>
+    <a class="btn btn-default func-btn" onclick="usersSettings()">Settings</a>
    </div>
 </div>
 <br>
@@ -392,16 +392,16 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 </p>
 <div id="exp" style="display:none">
 	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=csv'; ?>" onclick="setTimeout(()=>{$('#wait_layout').hide()},1000)">CSV</a>
+	    <a class="btn btn-default func-btn" onclick="exportSession('CSV')">CSV</a>
 	  </div>
 	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=json'; ?>" onclick="setTimeout(()=>{$('#wait_layout').hide()},1000)">JSON</a>
+	    <a class="btn btn-default func-btn" onclick="exportSession('JSON')">JSON</a>
 	  </div>
 	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=kml'; ?>" onclick="setTimeout(()=>{$('#wait_layout').hide()},1000)">KML</a>
+	    <a class="btn btn-default func-btn" onclick="exportSession('KML')">KML</a>
 	  </div>
 	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" href="<?php echo './export.php?sid='.$session_id.'&filetype=txt'; ?>" onclick="setTimeout(()=>{$('#wait_layout').hide()},1000)">RBX</a>
+	    <a class="btn btn-default func-btn" onclick="exportSession('RBX')">RBX</a>
 	  </div>
 
    </div>
@@ -619,9 +619,9 @@ if ($current_page < $total_pages) {
     <h4>No data to show</h4>
     <h6>Upload data via internet or via file(s)</h6>
 <ul class="no-data-url-list">
-    <li><a href="javascript:showToken()">Show token for upload via internet</a></li>
-    <li><a href="users_settings.php">Maybe you want to switch some settings</a></li>
-    <li><a href="pid_edit.php">Or edit some PIDs</a></li>
+    <li><a href="#" onclick="showToken()">Show token for upload via internet</a></li>
+    <li><a href="#" onclick="UsersSettings()">Maybe you want to switch some settings</a></li>
+    <li><a href="#" onclick="pidEdit()">Or edit some PIDs</a></li>
 </ul>
 <div id="log">
     <div style="display:flex; justify-content:center; margin-bottom:10px;">
@@ -754,15 +754,17 @@ function checkLog() {
 
 function delSession() {
  $("#wait_layout").hide();
+ const sessionId = "<?php echo $session_id; ?>";
+ const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
  let dialogOpt = {
     title : "Confirmation",
     btnClassSuccessText: "Yes",
     btnClassFailText: "No",
     btnClassFail: "btn btn-info btn-sm",
-    message : "Delete session (<?php if(isset($session_id)) echo $seshdates[$session_id]; ?>)?",
+    message: `Delete session (${sessionDate})?`,
     onResolve: function(){
      $("#wait_layout").show();
-     location.href='.?deletesession=<?php echo $session_id; ?>';
+     location.href = `?deletesession=${sessionId}`;
     },
     onReject: function(){ return; }
  };
@@ -813,6 +815,39 @@ function tokenError() {
     message : "Something went wrong. Try again."
  };
  redDialog.make(dialogOpt);
+}
+
+function exportSession(type) {
+ $("#wait_layout").hide();
+ const sessionId = "<?php echo $session_id; ?>";
+ const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
+ let dialogOpt = {
+    title : "Confirmation",
+    btnClassSuccessText: "Yes",
+    btnClassFailText: "No",
+    btnClassFail: "btn btn-info btn-sm",
+    message: `Export session (${sessionDate}) in ${type} format?`,
+    onResolve: function(){
+     location.href = `./export.php?sid=${sessionId}&filetype=${type.toLowerCase()}`;
+    }
+ };
+ redDialog.make(dialogOpt);
+}
+
+function delSessions() {
+    location.href = "./del_sessions.php";
+}
+
+function mergeSessions() {
+    location.href = "./merge_sessions.php?mergesession=<?php echo $session_id; ?>";
+}
+
+function pidEdit() {
+    location.href = "./pid_edit.php";
+}
+
+function UsersSettings() {
+    location.href = "./users_settings.php";
 }
 
 let dropArea = document.getElementById('log');

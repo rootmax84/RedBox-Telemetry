@@ -52,10 +52,6 @@
 	$("#wait_layout").show();
     });
 
-    $(".func-btn").click(()=> {
-	$("#wait_layout").show();
-    });
-
     $("#wait_layout").hide();
     <?php if (!file_exists('maintenance') && isset($_SESSION['torque_user']) && !isset($_SESSION['admin'])) { ?> auth(); <?php } ?>
     });

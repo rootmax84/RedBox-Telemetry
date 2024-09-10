@@ -82,7 +82,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		exit;
 	}
 
-	else if ($_GET["filetype"] == "txt") { //RedManage session export
+	else if ($_GET["filetype"] == "rbx") { //RedManage session export
 		try {
 		    $sql = $db->execute_query("SELECT $db_table.time,k5,k5c,kf,kb4,k46,k2101,kd,kc,kb,k10,k11,ke,k2112,k2100,k2113,k21cc,kff1214,kff1218,k78,k2111,k2119,k1f,k2118,k2120,k2122,k2124,k21e1,k21e2,k2125,k2126,kff1238,k21fa,kff1006,kff1005,kff1001,kff120c FROM $db_table JOIN $db_sessions_table ON $db_table.session = $db_sessions_table.session WHERE $db_table.session=? AND $db_sessions_table.id=? ORDER BY $db_table.time ASC", [$session_id, "RedManage"]);
 		} catch (Exception $e) {}
