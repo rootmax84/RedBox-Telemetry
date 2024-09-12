@@ -131,7 +131,7 @@ function formatValue($pid, $value, $des, $speed, $temp, $pressure, $boost, $id) 
                 return "<td><samp>" . temp_conv($value, $temp, $id) . "</samp></td>";
             }
             if (stripos($des, 'Speed') !== false) {
-                return "<td id='spd'><samp>" . speed_conv(round($value), $speed, $id) . "</samp></td>";
+                return "<td id='spd'><samp>" . speed_conv($value, $speed, $id) . "</samp></td>";
             }
             return "<td><samp>{$value}</samp></td>";
     }
