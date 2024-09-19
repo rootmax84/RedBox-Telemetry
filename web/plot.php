@@ -7,7 +7,7 @@ if (!isset($sids) && !isset($_SESSION['admin'])) { //this is to default to get t
 }
 // Convert data units
 //gx rpm devider
-$temp_rpm_dev = function ($rpm_dev) { return $rpm_dev/100; };
+$temp_rpm_dev = function ($rpm_dev) { return sprintf("%.2f", $rpm_dev/100); };
 
 //gx MHS round
 $tmp_mhs = function ($mhs) { return round($mhs,0); };

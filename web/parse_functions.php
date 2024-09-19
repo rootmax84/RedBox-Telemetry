@@ -8,15 +8,12 @@ function substri_count($haystack, $needle) {
 // Calculate average
 function average($arr)
 {
-    if (!count($arr)) return 0;
+    $count = count($arr);
+    if ($count === 0) return 0;
 
-    $sum = 0.00;
-    for ($i = 0; $i < count($arr); $i++)
-    {
-        $sum += $arr[$i];
-    }
+    $sum = array_sum($arr);
 
-    return $sum / count($arr);
+    return $sum / $count;
 }
 
 //Pressure Conversion
