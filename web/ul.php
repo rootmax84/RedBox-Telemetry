@@ -160,9 +160,15 @@ if (sizeof($_GET) > 0) {
             $params[] = $sessuploadid;
 
             $db->execute_query($sql, $params);
+
             $delay = time() - intval($sessuploadid / 1000);
-            $message = "Session started from IP {$ip}. Profile: {$spv['profileName']}" . ($delay > 10 ? " (Delayed by {$delay} seconds)" : "");
-            notify($message, $tg_token, $tg_chatid); //Notify to user telegram bot at session start
+            if ($delay > 10) {
+                $formattedDelay = gmdate("H:i:s", $delay);
+                $message = "Session started from IP {$ip}. Profile: {$spv['profileName']} (Delayed by {$formattedDelay})";
+            } else {
+                $message = "Session started from IP {$ip}. Profile: {$spv['profileName']}";
+            }
+            notify($message, $tg_token, $tg_chatid); // Notify to user telegram bot at session start
         }
     }
   }
