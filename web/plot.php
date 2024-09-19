@@ -2,7 +2,7 @@
 require_once('db.php');
 require_once('parse_functions.php');
 if (!isset($sids) && !isset($_SESSION['admin'])) { //this is to default to get the session list and default to json output if called directly
-	require_once("./get_sessions.php");
+	require_once('get_sessions.php');
 	$json = [];
 }
 // Convert data units
