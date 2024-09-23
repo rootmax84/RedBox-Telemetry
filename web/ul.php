@@ -148,7 +148,7 @@ if (sizeof($_REQUEST) > 0) {
       $sql = "INSERT IGNORE INTO $db_table (".quote_names($rawkeys).") VALUES (".quote_values($rawvalues).")";
       $db->query($sql);
     }
-    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart, sessionsize) VALUES (".quote_values($sessvalues).", $sesstime, '1') ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).", timestart) VALUES (".quote_values($sessvalues).", $sesstime) ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
     $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
 
     if ($submitval == 2) { //Profile info
