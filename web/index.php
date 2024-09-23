@@ -758,6 +758,7 @@ function delSession() {
  $("#wait_layout").hide();
  const sessionId = "<?php echo $session_id; ?>";
  const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
+ if (!sessionId.length) return;
  let dialogOpt = {
     title : "Confirmation",
     btnClassSuccessText: "Yes",

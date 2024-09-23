@@ -5,7 +5,18 @@ require_once('token_functions.php');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With,Authorization,Content-Type');
 header('Access-Control-Max-Age: 86400');
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') die; //Respond to preflights
+
+$allowedMethods = ['GET', 'POST', 'OPTIONS'];
+if (!in_array($_SERVER['REQUEST_METHOD'], $allowedMethods)) {
+    header('HTTP/1.0 405 Method Not Allowed');
+    echo json_encode(['error' => 'Method not allowed']);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { //Respond to preflights
+    header('Access-Control-Allow-Methods: ' . implode(", ", $allowedMethods));
+    exit;
+}
 
 //Check if token header is present and non empty than go to database
 $token = getBearerToken();
@@ -67,7 +78,7 @@ $allowedProfileFields = [
 ];
 
 // Iterate over all the k* _GET arguments to check that a field exists
-if (sizeof($_GET) > 0) {
+if (sizeof($_REQUEST) > 0) {
   $keys = [];
   $values = [];
   $sesskeys = [];
@@ -77,7 +88,7 @@ if (sizeof($_GET) > 0) {
   $sessuploadid = "";
   $sesstime = "0";
 
-  foreach ($_GET as $key => $value) {
+  foreach ($_REQUEST as $key => $value) {
     if (in_array($key, ["time", "session", "id"])) {
       // Keep non k* columns listed here
       if ($key == 'session') {
