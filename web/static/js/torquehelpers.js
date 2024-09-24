@@ -454,10 +454,14 @@ let initMapLeaflet = () => {
     const markerCir = L.circleMarker(startCrd, {color:'purple',alt:'Start Point',radius:10,weight:1});
     const markerPnt = L.circleMarker(startCrd, {color:'purple',alt:'End Point',radius:5,weight:1});
     markerUpd = itm => {//this functions updates the marker while hovering the chart and clears it when not hovering
-        itm&&itm.dataIndex>0&&markerCir.setLatLng(path[itm.dataIndex]);
-        itm&&itm.dataIndex>0&&markerPnt.setLatLng(path[itm.dataIndex]);
-        (itm&&itm.dataIndex>0)?markerCir.addTo(map):map.removeLayer(markerCir);
-        (itm&&itm.dataIndex>0)?markerPnt.addTo(map):map.removeLayer(markerPnt);
+        if (itm && itm.dataIndex > 0) {
+            const pos = path[itm.dataIndex] || path.at(-1) || [0,0];
+            [markerCir, markerPnt].forEach(marker => {
+                marker.setLatLng(pos).addTo(map);
+            });
+        } else {
+            [markerCir, markerPnt].forEach(marker => map.removeLayer(marker));
+        }
     }
 }
 //End of Leaflet Map Providers js code
