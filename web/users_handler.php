@@ -143,7 +143,6 @@ else
 			sessionsize mediumint(8) unsigned NOT NULL DEFAULT 0,
 			session bigint(20) unsigned NOT NULL,
 			time bigint(20) unsigned NOT NULL,
-			timestart bigint(20) unsigned NOT NULL,
 			timeend bigint(20) unsigned NOT NULL,
 			profileFuelType float NOT NULL DEFAULT 0,
 			profileWeight float NOT NULL DEFAULT 0,

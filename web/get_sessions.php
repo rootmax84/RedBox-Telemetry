@@ -46,7 +46,7 @@ if ( $filterprofile == "ALL" ) {
 }
 
 // Build the MySQL select string based on the inputs (year, month, or session id)
-$sessionqrystring = "SELECT timestart, timeend, session, profileName, sessionsize, ip FROM $db_sessions_table ";
+$sessionqrystring = "SELECT time, timeend, session, profileName, sessionsize, ip FROM $db_sessions_table ";
 $sqlqryyear = "YEAR(FROM_UNIXTIME(session/1000)) LIKE " . quote_value($filteryear) . " ";
 $sqlqrymonth = "MONTHNAME(FROM_UNIXTIME(session/1000)) LIKE " . quote_value($filtermonth) . " ";
 $sqlqryprofile = "profileName LIKE " . quote_value($filterprofile) . " " ;
@@ -73,7 +73,7 @@ if ( isset($_GET['id'])) {
 	$sessionqrystring = $sessionqrystring . $orselector . "( session LIKE " . quote_value($_GET['id']) . " )";
 }
 
-$sessionqrystring = $sessionqrystring . " GROUP BY session, profileName, timestart, timeend, sessionsize ORDER BY session DESC";
+$sessionqrystring = $sessionqrystring . " GROUP BY session, profileName, time, timeend, sessionsize ORDER BY session DESC";
 
 // Get list of unique session IDs
 try {
@@ -82,7 +82,7 @@ try {
 
 // If you get no results, just pull the last 20
 if ($sessionqry->num_rows == 0){
-	$sessionqry = $db->query("SELECT timestart, timeend, session, profileName, sessionsize, ip FROM $db_sessions_table GROUP BY session, profileName, timestart, timeend, sessionsize ORDER BY session DESC LIMIT 20");
+	$sessionqry = $db->query("SELECT time, timeend, session, profileName, sessionsize, ip FROM $db_sessions_table GROUP BY session, profileName, time, timeend, sessionsize ORDER BY session DESC LIMIT 20");
 }
 
 // Create an array mapping session IDs to date strings
@@ -91,8 +91,8 @@ $seshsizes = array();
 $seshprofile = array();
 $seship = array();
 while($row = $sessionqry->fetch_assoc()) {
-    $row["timeend"] = !$row["timeend"] ? $row["timestart"] : $row["timeend"];
-    $session_duration_str = gmdate("H:i:s", intval(($row["timeend"] - $row["timestart"])/1000));
+    $row["timeend"] = !$row["timeend"] ? $row["time"] : $row["timeend"];
+    $session_duration_str = gmdate("H:i:s", intval(($row["timeend"] - $row["time"])/1000));
     $session_profileName = $row["profileName"];
     $session_ip = $row["ip"];
     $sid = $row["session"];

@@ -74,7 +74,7 @@ if (isset($delsession)) {
  $sessqry = $db->query("SELECT COUNT(*) FROM $db_sessions_table");
  $number_of_result = $sessqry->fetch_row()[0];
  $number_of_page = ceil ($number_of_result / $results_per_page);
- $sessqry = $db->query("SELECT timestart, timeend, session, profileName, sessionsize FROM $db_sessions_table ORDER BY session desc LIMIT " . $page_first_result . "," . $results_per_page);
+ $sessqry = $db->query("SELECT time, timeend, session, profileName, sessionsize FROM $db_sessions_table ORDER BY session desc LIMIT " . $page_first_result . "," . $results_per_page);
 
     $i = 0;
     while ($x = $sessqry->fetch_array()) {
@@ -83,7 +83,7 @@ if (isset($delsession)) {
     <td><input type="checkbox" name="<?php echo $x['session']; ?>"></td>
     <td id="start:<?php echo $x['session']; ?>">
         <?php 
-        $start_timestamp = intval(substr($x["timestart"], 0, -3));
+        $start_timestamp = intval(substr($x["time"], 0, -3));
         echo date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", $start_timestamp);
         ?>
     </td>
@@ -95,7 +95,7 @@ if (isset($delsession)) {
     </td>
     <td id="length:<?php echo $x['session']; ?>">
         <?php 
-        $duration = intval(($x["timeend"] - $x["timestart"]) / 1000);
+        $duration = intval(($x["timeend"] - $x["time"]) / 1000);
         echo gmdate("H:i:s", $duration);
         ?>
     </td>

@@ -73,7 +73,7 @@ for ($f = 0; $f < count($files); $f++) {
   $time_end = $data[ array_key_last($data) - 37 ];
  }
  try {
-  $db->execute_query("INSERT INTO $db_sessions_table (id, session, time, profileName, timestart, timeend, sessionsize) VALUES (?,?,?,?,?,?,?)", ['RedManage', $session, $time, 'RedManage-Log', $time, $time_end, $size]);
+  $db->execute_query("INSERT INTO $db_sessions_table (id, session, time, profileName, timeend, sessionsize) VALUES (?,?,?,?,?,?)", ['RedManage', $session, $time, 'RedManage-Log', $time_end, $size]);
  } catch (Exception $e) {
   if (file_exists($target_file[$f])) unlink($target_file[$f]);
   header('HTTP/1.0 406');

@@ -33,7 +33,7 @@ foreach ($_GET as $key => $value) {
 }
 
 if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empty($mergesess1)) {
-    $qrystr = "SELECT MIN(timestart) as timestart, MAX(timeend) as timeend, MIN(session) as session, SUM(sessionsize) as sessionsize FROM $db_sessions_table WHERE session = ?";
+    $qrystr = "SELECT MIN(time) as time, MAX(timeend) as timeend, MIN(session) as session, SUM(sessionsize) as sessionsize FROM $db_sessions_table WHERE session = ?";
     $i=1;
     while (isset(${'mergesess' . $i}) || !empty(${'mergesess' . $i})) {
         $qrystr = $qrystr . " OR session = '" . ${'mergesess' . $i} . "'";
@@ -42,13 +42,13 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
 
     $mergerow = $db->execute_query($qrystr, [$mergesession])->fetch_assoc();
     $newsession = $mergerow['session'];
-    $newtimestart = $mergerow['timestart'];
+    $newtimestart = $mergerow['time'];
     $newtimeend = $mergerow['timeend'];
     $newsessionsize = $mergerow['sessionsize'];
 
     foreach ($sessionids as $value) {
         if ($value == $newsession) {
-            $updatequery = "UPDATE $db_sessions_table SET timestart=$newtimestart, timeend=$newtimeend, sessionsize=$newsessionsize where session = ?";
+            $updatequery = "UPDATE $db_sessions_table SET time=$newtimestart, timeend=$newtimeend, sessionsize=$newsessionsize where session = ?";
             $db->execute_query($updatequery, [$newsession]);
         } else {
             $delquery = "DELETE FROM $db_sessions_table WHERE session = ?";
@@ -98,7 +98,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
  $sessqry = $db->query("SELECT COUNT(*) FROM $db_sessions_table");
  $number_of_result = $sessqry->fetch_row()[0];
  $number_of_page = ceil ($number_of_result / $results_per_page);
- $sessqry = $db->query("SELECT timestart, timeend, session, profileName, sessionsize FROM $db_sessions_table ORDER BY session desc LIMIT " . $page_first_result . "," . $results_per_page);
+ $sessqry = $db->query("SELECT time, timeend, session, profileName, sessionsize FROM $db_sessions_table ORDER BY session desc LIMIT " . $page_first_result . "," . $results_per_page);
 
     $i = 0;
     while ($x = $sessqry->fetch_array()) {
@@ -107,7 +107,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
     <td><input type="checkbox" name="<?php echo $x['session']; ?>" <?php if ($x['session'] == $mergesession) { echo "checked disabled"; } ?>></td>
     <td id="start:<?php echo $x['session']; ?>">
         <?php 
-        $start_timestamp = intval(substr($x["timestart"], 0, -3));
+        $start_timestamp = intval(substr($x["time"], 0, -3));
         echo date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", $start_timestamp);
         ?>
     </td>
@@ -119,7 +119,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
     </td>
     <td id="length:<?php echo $x['session']; ?>">
         <?php 
-        $duration = intval(($x["timeend"] - $x["timestart"]) / 1000);
+        $duration = intval(($x["timeend"] - $x["time"]) / 1000);
         echo gmdate("H:i:s", $duration);
         ?>
     </td>
