@@ -73,7 +73,7 @@ function auth() {
         }
     }).catch(err => {$("#offline_layout").show()});
 }
-$('title')[0].innerHTML += "<?php if ($username && $username != $admin) echo ' - ' . $username; ?>";
+$('title')[0].innerHTML += "<?php if (isset($username) && $username != $admin) echo ' - ' . $username; ?>";
 stream_alarm_handler();
 </script>
 <?php if (isset($_SESSION['torque_user'])) {?>
