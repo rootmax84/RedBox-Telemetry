@@ -1,5 +1,4 @@
 <?php
-ini_set("zlib.output_compression", 1); //Enable gzip compression
 
 require_once('db.php');
 include('timezone.php');
