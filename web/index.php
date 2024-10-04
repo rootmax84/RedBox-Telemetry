@@ -539,7 +539,7 @@ $r = $db->query("SELECT user, s FROM $db_users ORDER BY id = (SELECT MIN(id) FRO
 	     $last = date($admin_timeformat_12 ? "d.m.Y h:i:sa" : "d.m.Y H:i:s", $seconds);
 	    } else $last= "-";
 	}
-	echo "<tr onclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($row["user"]) . "&limit=" . $row["s"] . "\";'>";
+	echo "<tr ondblclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($row["user"]) . "&limit=" . $row["s"] . "\";'>";
 	echo "<td>".$i++."</td>";
 	if ($row["user"] == $admin)
 	 echo "<td>".$row["user"]." (admin)"."</td>";
