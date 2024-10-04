@@ -1,6 +1,9 @@
 table {
   border-collapse: collapse;
   width: 90%;
+}
+
+th:nth-child(2), td:nth-child(2) {
   user-select: text;
 }
 
@@ -9,6 +12,7 @@ td, th {
   padding: 4px;
   font-family: monospace;
   font-size: 14px;
+  user-select: none;
 }
 
 td {
@@ -20,6 +24,11 @@ td {
 
 tr:nth-child(even) {
   background-color: #dddddd;
+}
+
+tbody tr:hover {
+  background: #9619111c;
+  cursor: pointer;
 }
 
 .admin-panel {
