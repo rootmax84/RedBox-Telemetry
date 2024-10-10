@@ -450,7 +450,7 @@ function dataToggle() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
 		$("#data_toggle").html("click to collapse ↑");
-		src = new EventSource("stream.php<?php echo $stream_lock > 0 ? '?id=' . $session_id : ''; ?>");
+		let src = new EventSource("stream.php<?php echo $stream_lock > 0 ? '?id=' . $session_id : ''; ?>");
 		src.onmessage = e => {$("#stream").html(e.data)};
 		alarm.muted = false;
 		noSleep.enable();
