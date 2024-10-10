@@ -35,6 +35,7 @@ $show_session_length = true;
 $max_load_avg = 10; //Server load average limit on logs upload. 0 - disabled
 $live_data_rate = 500; //Live data response in ms
 $results_per_page = 50; //Pagination count of items per page
+$merge_max = 50000; //Merged session datapoints count limit
 
 //Maintenance mode
 if (file_exists('maintenance') && !isset($_SESSION['admin'])){

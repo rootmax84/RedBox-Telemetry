@@ -194,7 +194,6 @@ if ($current_page < $total_pages) {
      }
     }
     </script>
-    <div id="status" style="padding:10px; background:#88C4FF; color:#000; font-weight:bold; font-size:12px; margin-bottom:10px; display:none; width:90%;"></div>
   </body>
 </html>
 <?php
