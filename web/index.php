@@ -446,11 +446,12 @@ function logToggle() {
 
 const noSleep = new NoSleep();
 let stream = false;
+let src = null;
 function dataToggle() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
 		$("#data_toggle").html("click to collapse ↑");
-		let src = new EventSource("stream.php<?php echo $stream_lock > 0 ? '?id=' . $session_id : ''; ?>");
+		src = new EventSource("stream.php<?php echo $stream_lock > 0 ? '?id=' . $session_id : ''; ?>");
 		src.onmessage = e => {$("#stream").html(e.data)};
 		alarm.muted = false;
 		noSleep.enable();
