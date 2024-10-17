@@ -417,7 +417,7 @@ let initMapLeaflet = () => {
     L.control.locate({position: "bottomright"}).addTo(map);
 
     //Dynamic tracking marker when stream is open
-    const rate = Number($.cookie('tracking-rate')) ?? 1000;
+    const rate = Number($.cookie('tracking-rate')) || 1000;
     setInterval(()=>{
         let marker = null;
         let lat = stream ? parseFloat($('#lat').html()) : null;
