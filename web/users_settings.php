@@ -81,6 +81,14 @@
 		    <option value="0"<?php if ($stream_lock == "0") echo ' selected'; ?>>No</option>
 		    <option value="1"<?php if ($stream_lock == "1") echo ' selected'; ?>>Yes</option>
 		</select>
+		 <label>Chart fill</label><select class="form-control" id="chart-fill">
+		    <option value="false">No</option>
+		    <option value="true">Yes</option>
+		</select>
+		 <label>Chart steps</label><select class="form-control" id="chart-steps">
+		    <option value="false">No</option>
+		    <option value="true">Yes</option>
+		</select>
 		 <br>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit">Save</button></div>
 		</form>
@@ -104,6 +112,8 @@ function submitForm(el) {
   xhr.onload = function(){ xhrResponse(xhr.responseText); }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
+  localStorage.setItem("chart_fill", $("#chart-fill").val());
+  localStorage.setItem("chart_steps", $("#chart-steps").val());
   return false;
 }
 
@@ -116,6 +126,11 @@ function xhrResponse(text) {
  };
  redDialog.make(dialogOpt);
 }
+
+$(document).ready(function() {
+    $("#chart-fill").val(localStorage.getItem("chart_fill") || "false");
+    $("#chart-steps").val(localStorage.getItem("chart_steps") || "false");
+});
 </script>
  </body>
 </html>

@@ -8,6 +8,9 @@ let chartTooltip = () => {
     });
 };
 
+const chart_fill = localStorage.getItem("chart_fill") === "true";
+const chart_steps = localStorage.getItem("chart_steps") === "true";
+
 $(document).ready(function(){
   // Activate Chosen on the selection drop down
   $("select#seshidtag").chosen({width: "100%"});
@@ -211,6 +214,10 @@ function doPlot(position) {
         },
         hooks: {
             drawOverlay: [drawGapLines]
+        },
+        lines: {
+            fill: chart_fill,
+            steps: chart_steps
         }
     });
     chartTooltip();
