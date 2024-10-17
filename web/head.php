@@ -20,7 +20,7 @@
 <script src="static/js/jquery-ui.touch-punch.min.js"></script>
 <script src="static/js/jquery.peity.min.js"></script>
 <script src="static/js/chosen.jquery.min.js"></script>
-<script src="static/js/torquehelpers.js"></script>
+<script src="static/js/helpers.js"></script>
 <link rel="stylesheet" href="static/css/leaflet.css">
 <link rel="stylesheet" href="static/css/locate.css">
 <script src="static/js/leaflet.js"></script>
