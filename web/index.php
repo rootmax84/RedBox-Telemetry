@@ -637,7 +637,7 @@ if ($current_page < $total_pages) {
     </div>
     <div style="display:flex; justify-content:center; margin-bottom:10px;">
 	    <form method="POST" action="redlog.php" onsubmit="return submitLog(this);" style="display:contents">
-	     <input class="btn btn-default" style="border-radius:5px" type="file" multiple name="file[]" id="logFile" onchange="checkLog();" accept=".txt">
+	     <input class="btn btn-default" style="border-radius:5px;width:100%" type="file" multiple name="file[]" id="logFile" onchange="checkLog();" accept=".txt">
 	     <input class="btn btn-default upload-log-btn" id="log-upload-btn" value="" type="submit">
 	    </form>
     </div>
