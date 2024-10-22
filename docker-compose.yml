@@ -38,6 +38,9 @@ services:
         environment:
             DB_HOST: mariadb
         restart: always
+        depends_on:
+            - mariadb
+            - php-fpm
 
     php-fpm:
         build: docker/php-fpm
