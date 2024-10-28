@@ -1,21 +1,34 @@
 <?php
 require_once ('creds.php');
 require_once ('auth_functions.php');
+require_once ('token_functions.php');
 if (!isset($_SESSION)) { session_start(); }
+
+$current_script = basename($_SERVER['SCRIPT_FILENAME']);
+$csrf_exempt_scripts = ['get_token.php', 'ul.php', 'stream_json.php', 'adminer.php']; //CSRF exclude
 
 $logged_in = isset($_SESSION['torque_logged_in']) && $_SESSION['torque_logged_in'];
 
 if(isset($_POST) && !empty($_POST)){
-    if (isset($_POST['captcha'], $_SESSION['code']) && $_POST['captcha'] != $_SESSION['code'] && !$logged_in) {
-        header('Location: catch.php?c=loginfailed');
-        exit;
+    if (!in_array($current_script, $csrf_exempt_scripts)) {
+        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+            header('Location: catch.php?c=csrffailed');
+            exit;
+        }
     }
 
-    if (!$logged_in && auth_user()) {
-        $logged_in = true;
-    } else if (!$logged_in) {
-        header('Location: catch.php?c=loginfailed');
-        exit;
+    if (!$logged_in) {
+        if (!isset($_POST['captcha']) || !isset($_SESSION['code']) || $_POST['captcha'] != $_SESSION['code']) {
+            header('Location: catch.php?c=loginfailed');
+            exit;
+        }
+
+        if (auth_user()) {
+            $logged_in = true;
+        } else {
+            header('Location: catch.php?c=loginfailed');
+            exit;
+        }
     }
 }
 

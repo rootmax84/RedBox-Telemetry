@@ -16,6 +16,11 @@
 		<h4>Wrong login, password or code!</h4>
 	    <?php
 	    }
+	    else if ($_GET['c'] == "csrffailed") { http_response_code(401); ?>
+		    <script>setTimeout(()=>{location.href='.'}, 2000);</script>
+		<h4>CSRF check failed!</h4>
+	    <?php
+	    }
 	    ?>
         </div>
     <div class="login-background"></div>

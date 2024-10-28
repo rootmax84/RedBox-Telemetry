@@ -39,6 +39,21 @@ function get_pass()
 function auth_user()
 {
     include('creds.php');
+
+    global $csrf_exempt_scripts;
+    $current_script = basename($_SERVER['SCRIPT_FILENAME']);
+
+    if (!in_array($current_script, $csrf_exempt_scripts)) {
+        // CSRF token check
+        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+            return false;
+        }
+    }
+
+    if (!isset($_POST['captcha']) || !isset($_SESSION['code']) || $_POST['captcha'] != $_SESSION['code']) {
+        return false;
+    }
+
     try {
         if (!isset($db)) $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
     } catch (Exception $e) {

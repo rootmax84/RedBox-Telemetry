@@ -1,9 +1,10 @@
-<?php if (isset($_SESSION['torque_user'])) {?><script async src="static/js/theme.js"></script><?php } ?>
+<?php require_once('token_functions.php'); if (isset($_SESSION['torque_user'])) {?><script async src="static/js/theme.js"></script><?php } ?>
 <link rel="apple-touch-icon" sizes="180x180" href="static/img/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="static/img/favicon-16x16.png">
 <link rel="manifest" href="static/img/manifest.json">
 <link rel="mask-icon" href="static/img/safari-pinned-tab.svg" color="#5bbad5">
+<meta name="csrf-token" content="<?php echo generate_csrf_token(); ?>">
 <meta name="theme-color" content="#1a1a1a">
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -55,6 +56,21 @@
     $("#wait_layout").hide();
     <?php if (!file_exists('maintenance') && isset($_SESSION['torque_user']) && !isset($_SESSION['admin'])) { ?> auth(); <?php } ?>
     });
+
+function addCsrfTokenToForms() {
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    document.querySelectorAll('form').forEach(form => {
+        if (!form.querySelector('input[name="csrf_token"]')) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'csrf_token';
+            input.value = token;
+            form.appendChild(input);
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', addCsrfTokenToForms);
 
 function auth() {
  setTimeout(auth,5000);

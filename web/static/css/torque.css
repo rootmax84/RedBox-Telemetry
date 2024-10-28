@@ -212,19 +212,6 @@ canvas *{
   background: yellow;
 }
 
-#status {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  background:#e7e7e7;
-  font-weight:bold;
-  font-size:12px;
-  display:none;
-  padding: 10px;
-  border-radius: 5px;
-  margin-left: -33px;
-}
-
 .divided {
   cursor: pointer;
   display: flex;
