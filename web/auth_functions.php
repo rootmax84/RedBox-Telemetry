@@ -50,10 +50,6 @@ function auth_user()
         }
     }
 
-    if (!isset($_POST['captcha']) || !isset($_SESSION['code']) || $_POST['captcha'] != $_SESSION['code']) {
-        return false;
-    }
-
     try {
         if (!isset($db)) $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
     } catch (Exception $e) {

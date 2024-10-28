@@ -3,7 +3,7 @@ if (version_compare(PHP_VERSION, '8.2.0', '<')) {
     die('PHP 8.2+ required, your version: ' . PHP_VERSION . "\n");
 }
 
-$required_extensions = ['gd', 'mysqli'];
+$required_extensions = ['mysqli'];
 foreach ($required_extensions as $ext) {
     if (!extension_loaded($ext)) {
         die("php-$ext extension required");
