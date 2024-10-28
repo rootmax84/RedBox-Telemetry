@@ -24,7 +24,6 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 
 ### Standalone installation requirements:
 - PHP8.2+
-- php-gd extension
 - php-mysql extension
 - nginx with php-fpm(recommended) or Apache2 web-server(not tested) with proper SSL configuration
 - Latest available MySQL/MariaDB (OPTIONAL: mariadb-plugin-rocksdb for using ROCKSDB engine)
