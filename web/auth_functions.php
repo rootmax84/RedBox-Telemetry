@@ -1,5 +1,21 @@
 <?php
 
+function get_db_connection() {
+    global $db_users;
+    include('creds.php');
+
+    if (!isset($db)) {
+        try {
+            $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
+        } catch (Exception $e) {
+            header('HTTP/1.0 503 Service unavailable');
+            die("No database connection!");
+        }
+    }
+
+    return $db;
+}
+
 //Get Username from Browser-Request
 function get_user()
 {
@@ -35,10 +51,36 @@ function get_pass()
     return $pass;
 }
 
+function check_login_attempts($user) {
+    $db = get_db_connection();
+    global $db_users;
+
+    $result = $db->execute_query("SELECT login_attempts, last_attempt FROM $db_users WHERE user=?", [$user]);
+    $row = $result->fetch_assoc();
+
+    if ($row['login_attempts'] >= 5 && (time() - strtotime($row['last_attempt'])) < 300) {
+        return false; // Blocked
+    }
+
+    return true; // Non blocked
+}
+
+function update_login_attempts($user, $success) {
+    $db = get_db_connection();
+    global $db_users;
+
+    if ($success) {
+        $db->execute_query("UPDATE $db_users SET login_attempts = 0, last_attempt = NOW() WHERE user=?", [$user]);
+    } else {
+        $db->execute_query("UPDATE $db_users SET login_attempts = login_attempts + 1, last_attempt = NOW() WHERE user=?", [$user]);
+    }
+}
+
 //Auth user by user/pass
 function auth_user()
 {
-    include('creds.php');
+    $db = get_db_connection();
+    global $db_users;
 
     global $csrf_exempt_scripts;
     $current_script = basename($_SERVER['SCRIPT_FILENAME']);
@@ -50,48 +92,53 @@ function auth_user()
         }
     }
 
-    try {
-        if (!isset($db)) $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
-    } catch (Exception $e) {
-        header('HTTP/1.0 503 Service unavailable');
-        die("No database connection!");
-    }
-
     if (file_exists('install')) {
-	create_users_table();
-	unlink('install');
+        create_users_table();
+        unlink('install');
     }
 
     $user = preg_replace('/\s+/', '', get_user());
     $pass = preg_replace('/\s+/', '', get_pass());
 
-  try {
-      $userqry = $db->execute_query("SELECT user, pass, s, time, gap FROM $db_users WHERE user=?", [$user]);
-  } catch(Exception $e) { return; }
-	if (!$userqry->num_rows) return false;
-	else {
-	    $row = $userqry->fetch_assoc();
-	    if (password_verify($pass, $row["pass"])) {
-		$_SESSION['torque_user'] = $row["user"];
-		$_SESSION['torque_pass'] = $row["pass"];
-		$_SESSION['torque_limit'] = $row["s"];
-		setcookie("stream", true);
-		setcookie("timeformat", $row["time"]);
-		$_COOKIE['timeformat'] = $row["time"];
-		setcookie("tracking-rate", $live_data_rate);
-		setcookie("gap", $row["gap"]);
-		$db->close();
-		return true;
-	    }
-	    else return false;
-	}
+    if (!check_login_attempts($user)) {
+        header('Location: catch.php?c=toomanyattempts');
+        exit;
+    }
+
+    try {
+        $userqry = $db->execute_query("SELECT user, pass, s, time, gap FROM $db_users WHERE user=?", [$user]);
+    } catch(Exception $e) { return false; }
+
+    if (!$userqry->num_rows) {
+        update_login_attempts($user, false);
+        return false;
+    } else {
+        $row = $userqry->fetch_assoc();
+        if (password_verify($pass, $row["pass"])) {
+            $_SESSION['torque_user'] = $row["user"];
+            $_SESSION['torque_pass'] = $row["pass"];
+            $_SESSION['torque_limit'] = $row["s"];
+            setcookie("stream", true);
+            setcookie("timeformat", $row["time"]);
+            $_COOKIE['timeformat'] = $row["time"];
+            setcookie("tracking-rate", $live_data_rate);
+            setcookie("gap", $row["gap"]);
+            update_login_attempts($user, true);
+            $db->close();
+            return true;
+        } else {
+            update_login_attempts($user, false);
+            return false;
+        }
+    }
 }
 
 function create_users_table()
 {
- include('creds.php');
+ $db = get_db_connection();
+ global $db_users;
+
  try {
-  if (!isset($db)) $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
 
   $is_empty = "SELECT * FROM $db_users LIMIT 1";
 
@@ -110,21 +157,39 @@ function create_users_table()
 	time enum('24','12') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '24',
 	gap enum('5000','10000','20000','30000','60000') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '5000',
 	stream_lock tinyint(1) NOT NULL DEFAULT 0,
+	login_attempts TINYINT UNSIGNED DEFAULT 0,
+	last_attempt DATETIME,
 	PRIMARY KEY (id),
 	UNIQUE KEY user (user),
 	UNIQUE KEY token (token),
 	KEY indexes (s,pass,tg_token,tg_chatid))
 	ENGINE=".$db_engine." DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
-  $migration = "ALTER TABLE " . $db_users . " ADD COLUMN IF NOT EXISTS stream_lock tinyint(1) NOT NULL DEFAULT 0";
-
   $db->query($table);
-  $db->query($migration);
   if (!$db->query($is_empty)->num_rows) $db->execute_query("INSERT INTO $db_users (s, user, pass) VALUES (?,?,?)", [0, $admin, password_hash('admin', PASSWORD_DEFAULT, $salt)]);
   $db->close();
  } catch(Exception $e) {
   die($e);
  }
+}
+
+function perform_migration() {
+    $db = get_db_connection();
+    global $db_users;
+
+    $migrations = [
+        "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS stream_lock TINYINT(1) NOT NULL DEFAULT 0",
+        "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS login_attempts TINYINT UNSIGNED DEFAULT 0",
+        "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS last_attempt DATETIME"
+    ];
+
+    foreach ($migrations as $migration) {
+        try {
+            $db->query($migration);
+        } catch (Exception $e) {
+            die("Migration failed: " . $e->getMessage());
+        }
+    }
 }
 
 function logout_user()

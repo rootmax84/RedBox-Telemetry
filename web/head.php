@@ -21,7 +21,6 @@
 <script src="static/js/jquery-ui.touch-punch.min.js"></script>
 <script src="static/js/jquery.peity.min.js"></script>
 <script src="static/js/chosen.jquery.min.js"></script>
-<script src="static/js/helpers.js"></script>
 <link rel="stylesheet" href="static/css/leaflet.css">
 <link rel="stylesheet" href="static/css/locate.css">
 <script src="static/js/leaflet.js"></script>
@@ -89,9 +88,13 @@ function auth() {
         }
     }).catch(err => {$("#offline_layout").show()});
 }
-$('title')[0].innerHTML += "<?php if (isset($username) && $username != $admin) echo ' - ' . $username; ?>";
-stream_alarm_handler();
+
+const username = "<?php if (isset($username) && $username != $admin) echo $username; ?>";
+if (username.trim() !== "") {
+    document.title += ` - ${username}`;
+}
 </script>
+<script src="static/js/helpers.js"></script>
 <?php if (isset($_SESSION['torque_user'])) {?>
 <a id="top-btn"></a>
 <div class="wait_out" id="offline_layout" style="display: none;">

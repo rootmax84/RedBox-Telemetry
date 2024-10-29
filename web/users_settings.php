@@ -112,8 +112,8 @@ function submitForm(el) {
   xhr.onload = function(){ xhrResponse(xhr.responseText); }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
-  localStorage.setItem("chart_fill", $("#chart-fill").val());
-  localStorage.setItem("chart_steps", $("#chart-steps").val());
+  localStorage.setItem(`${username}-chart_fill`, $("#chart-fill").val());
+  localStorage.setItem(`${username}-chart_steps`, $("#chart-steps").val());
   return false;
 }
 
@@ -128,8 +128,8 @@ function xhrResponse(text) {
 }
 
 $(document).ready(function() {
-    $("#chart-fill").val(localStorage.getItem("chart_fill") || "false");
-    $("#chart-steps").val(localStorage.getItem("chart_steps") || "false");
+    $("#chart-fill").val(localStorage.getItem(`${username}-chart_fill`) || "false");
+    $("#chart-steps").val(localStorage.getItem(`${username}-chart_steps`) || "false");
 });
 </script>
  </body>

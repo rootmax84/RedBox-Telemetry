@@ -516,6 +516,7 @@ function maintenance() {
     <th>Limit (MB)</th>
     <th>DB Size (MB)</th>
     <th>Last upload</th>
+    <th>Last login</th>
     <th></th>
   </tr>
  </thead>
@@ -528,7 +529,7 @@ $number_of_result = $usrqry->fetch_row()[0];
 $number_of_page = ceil ($number_of_result / $results_per_page);
 
 $res = $db->query("SELECT TABLE_SCHEMA AS '$db_name', ROUND(SUM(DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) AS 'Size (MB)' FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db_name'")->fetch_array();
-$r = $db->query("SELECT user, s FROM $db_users ORDER BY id = (SELECT MIN(id) FROM $db_users) DESC, user ASC  LIMIT " . $page_first_result . "," . $results_per_page);
+$r = $db->query("SELECT user, s, last_attempt FROM $db_users ORDER BY id = (SELECT MIN(id) FROM $db_users) DESC, user ASC  LIMIT " . $page_first_result . "," . $results_per_page);
  if ($r->num_rows > 0) {
    while ($row = $r->fetch_assoc()) {
 	$db_sz = $db->query("SHOW TABLE STATUS LIKE '".$row["user"].$db_log_prefix."'")->fetch_array();
@@ -557,6 +558,7 @@ $r = $db->query("SELECT user, s FROM $db_users ORDER BY id = (SELECT MIN(id) FRO
 	else
 	 echo "<td>".round($db_sz[6]/1024/1024 + $db_sz['Index_length']/1024/1024,0)."</td>";
 	echo "<td>".$last."</td>";
+	echo "<td>".$row["last_attempt"]."</td>";
 	echo "</tr>";
    }
  }
