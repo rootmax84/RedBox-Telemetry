@@ -43,7 +43,7 @@ if (!$logged_in) {
         <?php include("head.php");?>
     </head>
     <body style="display:flex; justify-content:center; align-items:center; height:100vh">
-    <div class="login login-form" id="login-form" style="opacity:0; transition:.5s;">
+    <div class="login login-form" id="login-form" style="opacity:0; transition:.5s; zoom:1.2">
         <div style="font-weight:bold; color:red; text-align:center; width:100%; font-size:16px; letter-spacing:1.5px">RedB<img src="static/img/logo.svg" alt style="height:10px; width:12px; margin-right:1px">x Telemetry</div>
         <h4 style="text-align:center">Login</h4>
         <form method="post" class="form-group" action=".">

@@ -4,7 +4,7 @@
     <?php include("head.php");?>
     </head>
     <body style="display:flex; justify-content:center; align-items:center; height:100vh">
-            <div class="login login-form" id="login-form" style="width:400px; text-align:center; margin:5% auto; transition:.5s; opacity:0;">
+            <div class="login login-form" id="login-form" style="width:fit-content; text-align:center; transition:.5s; opacity:0; zoom:1.2">
 	<?php
 		if ($_GET['c'] == "disabled") { ?>
 		    <script>setTimeout(()=>{location.href='.?logout=true'}, 5000);</script>
@@ -22,7 +22,7 @@
 	    <?php
 	    }
 	    else if ($_GET['c'] == "toomanyattempts") { http_response_code(401); ?>
-		    <script>setTimeout(()=>{location.href='.'}, 2000);</script>
+		    <script>setTimeout(()=>{location.href='.'}, 5000);</script>
 		<h4 style="line-height:1.5">Too many failed login attempts.<br> Please try again in 5 minutes.</h4>
 	    <?php
 	    }
