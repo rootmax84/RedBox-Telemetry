@@ -10,8 +10,16 @@ $db->begin_transaction();
 
 try {
     foreach ($_POST as $field_name => $val) {
-        [$field_name, $id] = explode(':', strip_tags(trim($field_name)));
+        $field_name = strip_tags(trim($field_name));
         $val = strip_tags(trim($val));
+
+        $parts = explode(':', $field_name);
+
+        if (count($parts) === 2) {
+            [$field_name, $id] = $parts;
+        } else {
+            continue;
+        }
 
         if (empty($id) || empty($field_name) || !isset($val)) {
             continue;
