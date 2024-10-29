@@ -4,7 +4,7 @@
     <?php include("head.php");?>
     </head>
     <body style="display:flex; justify-content:center; align-items:center; height:100vh">
-            <div class="login login-form" id="login-form" style="width:fit-content; text-align:center; transition:.5s; opacity:0; zoom:1.2">
+            <div class="login login-form" id="login-form" style="width:fit-content; text-align:center">
 	<?php
 		if ($_GET['c'] == "disabled") { ?>
 		    <script>setTimeout(()=>{location.href='.?logout=true'}, 5000);</script>

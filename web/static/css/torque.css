@@ -255,6 +255,10 @@ canvas *{
 .login-form {
   border: 0;
   box-shadow: 5px 5px 4px 1px rgba(2, 2, 2, 0.2);
+  margin-top: 10px;
+  zoom: 1.2;
+  transition: .5s;
+  opacity: 0;
 }
 
 input[type=text]:disabled {
