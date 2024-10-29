@@ -608,7 +608,7 @@ let redDialog = {
         dialogDiv.innerHTML = 
             `<div id="redDialog_title" style="min-height: 26px;border-bottom:1px dashed #777;color:` + 
             options.titleColor + ';">' + options.title + `</div>` +
-            `<p style="text-align: left;padding: 16px 5px 0px 10px;width: 100%;margin: 0;font-size: 13px;max-width:280px">` + 
+            `<p id="dialogText" style="text-align: left;padding: 16px 5px 0px 10px;width: 100%;margin: 0;font-size: 13px;max-width:280px">` + 
             options.message + `</p>`;
 
         let btnWrap = document.createElement('div');
