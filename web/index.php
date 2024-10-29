@@ -538,7 +538,7 @@ $r = $db->query("SELECT user, s, last_attempt FROM $db_users ORDER BY id = (SELE
 	    $last = $db->query("SELECT time FROM ".$row["user"].$db_log_prefix." ORDER BY time DESC LIMIT 1")->fetch_array();
 	    if ($last) {
 	     $seconds = intval($last[0]/1000);
-	     $last = date($admin_timeformat_12 ? "d.m.Y h:i:sa" : "d.m.Y H:i:s", $seconds);
+	     $last = date($admin_timeformat_12 ? "Y-m-d h:i:sa" : "Y-m-d H:i:s", $seconds);
 	    } else $last= "-";
 	}
 	echo "<tr ondblclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($row["user"]) . "&limit=" . $row["s"] . "\";'>";
@@ -558,7 +558,8 @@ $r = $db->query("SELECT user, s, last_attempt FROM $db_users ORDER BY id = (SELE
 	else
 	 echo "<td>".round($db_sz[6]/1024/1024 + $db_sz['Index_length']/1024/1024,0)."</td>";
 	echo "<td>".$last."</td>";
-	echo "<td>".$row["last_attempt"]."</td>";
+	    if (empty($row["last_attempt"])) echo "<td></td>";
+	    else echo "<td>".date($admin_timeformat_12 ? "Y-m-d h:i:sa" : "Y-m-d H:i:s", strtotime($row["last_attempt"]))."</td>";
 	echo "</tr>";
    }
  }
