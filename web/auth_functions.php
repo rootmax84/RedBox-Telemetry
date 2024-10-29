@@ -1,7 +1,7 @@
 <?php
 
 function get_db_connection() {
-    global $db_users;
+    global $db_users, $live_data_rate, $db_engine, $admin, $salt;
     include('creds.php');
 
     if (!isset($db)) {
@@ -80,7 +80,7 @@ function update_login_attempts($user, $success) {
 function auth_user()
 {
     $db = get_db_connection();
-    global $db_users;
+    global $db_users, $live_data_rate;
 
     global $csrf_exempt_scripts;
     $current_script = basename($_SERVER['SCRIPT_FILENAME']);
@@ -136,7 +136,7 @@ function auth_user()
 function create_users_table()
 {
  $db = get_db_connection();
- global $db_users;
+ global $db_users, $db_engine, $admin, $salt;
 
  try {
 

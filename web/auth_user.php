@@ -19,8 +19,7 @@ if(isset($_POST) && !empty($_POST)){
 
     if (!$logged_in) {
         perform_migration();
-        $user = preg_replace('/\s+/', '', get_user());
-        if (!check_login_attempts($user)) {
+        if (!check_login_attempts(get_user())) {
             header('Location: catch.php?c=toomanyattempts');
             exit;
         }
