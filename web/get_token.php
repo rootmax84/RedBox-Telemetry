@@ -4,14 +4,15 @@ header('Access-Control-Allow-Headers: X-Requested-With, Authorization, Content-T
 header('Access-Control-Max-Age: 30');
 
 $allowedMethods = ['POST', 'OPTIONS'];
+$requestMethod = $_SERVER['REQUEST_METHOD'];
 
-if (!in_array($_SERVER['REQUEST_METHOD'], $allowedMethods)) {
+if (!in_array($requestMethod, $allowedMethods)) {
     http_response_code(405);
     echo 'Method not allowed';
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+if ($requestMethod === 'OPTIONS') {
     header('Access-Control-Allow-Methods: ' . implode(", ", $allowedMethods));
     exit;
 }
@@ -22,8 +23,8 @@ if (empty($_POST)) {
     exit;
 }
 
-$user = isset($_POST['user']) ? $_POST['user'] : '';
-$pass = isset($_POST['pass']) ? $_POST['pass'] : '';
+$user = $_POST['user'] ?? '';
+$pass = $_POST['pass'] ?? '';
 
 if (empty($user) || empty($pass)) {
     http_response_code(400);
@@ -32,11 +33,14 @@ if (empty($user) || empty($pass)) {
 }
 
 $_SESSION['torque_logged_in'] = true;
-require_once('db.php');
+require_once('auth_functions.php');
 
+$db = get_db_connection();
+global $db_users;
+
+// Check user presence
 $userqry = $db->execute_query("SELECT user, pass, token, s FROM $db_users WHERE user=?", [$user]);
-
-if (!$userqry->num_rows) {
+if ($userqry->num_rows === 0) {
     http_response_code(401);
     echo 'User not found';
     exit;
@@ -44,24 +48,38 @@ if (!$userqry->num_rows) {
 
 $row = $userqry->fetch_assoc();
 
-if (!$row["s"]) {
+// Check disabled user
+if (!$row['s']) {
     http_response_code(403);
     echo 'User disabled';
     exit;
 }
 
-if (password_verify($pass, $row["pass"])) {
-    $token = $row["token"];
-    if (strpos($token, 'Welcome') === false) {
-        echo $token;
-    } else {
-        http_response_code(406);
-        echo 'Generate token first';
-    }
-} else {
+// Login attempts
+if (!check_login_attempts($user)) {
+    http_response_code(403);
+    echo 'Blocked by 5 minutes';
+    exit;
+}
+
+// Password check
+if (!password_verify($pass, $row['pass'])) {
+    update_login_attempts($user, false);
     http_response_code(403);
     echo 'Wrong password';
+    exit;
 }
+
+// Token presence
+if (strpos($row['token'], 'Welcome') !== false) {
+    http_response_code(406);
+    echo 'Generate token first';
+    exit;
+}
+
+// Success
+update_login_attempts($user, true);
+echo $row['token'];
 
 $db->close();
 ?>
