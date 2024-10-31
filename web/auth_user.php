@@ -5,7 +5,7 @@ require_once ('token_functions.php');
 if (!isset($_SESSION)) { session_start(); }
 
 $current_script = basename($_SERVER['SCRIPT_FILENAME']);
-$csrf_exempt_scripts = ['get_token.php', 'ul.php', 'stream_json.php', 'adminer.php']; //CSRF exclude
+$csrf_exempt_scripts = ['get_token.php', 'ul.php', 'adminer.php']; //CSRF exclude
 
 $logged_in = isset($_SESSION['torque_logged_in']) && $_SESSION['torque_logged_in'];
 
