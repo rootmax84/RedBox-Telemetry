@@ -689,7 +689,7 @@ function submitLog(el) {
     }
     logFile.removeAttribute("disabled");
   }
-  xhr.upload.onprogress = p => { msg_ok.innerHTML = "Uploading: " + Math.round((p.loaded / p.total) * 100) + '%' }
+  xhr.upload.onprogress = p => { msg_ok.innerHTML = `Uploading: ${Math.round((p.loaded / p.total) * 100)}%` }
   xhr.upload.onloadend = () => { msg_ok.innerHTML = "Processing ..." }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
@@ -714,18 +714,18 @@ function checkLog() {
         try {
             logDate = new Date(parseInt(f.target.result.split("\n")[1].split(" ")[0]));
             if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
-            dateDMY = logDate.getDate() + "/" + (logDate.getMonth() + 1) + "/" + logDate.getFullYear();
+            dateDMY = `${logDate.getFullYear()}-${(logDate.getMonth() + 1)}-${logDate.getDate()}`;
             dateTime =  $.cookie('timeformat') == '12' ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }) : logDate.getHours() + ":" + ('0' + logDate.getMinutes()).slice(-2);
-            dateStr = " (Log date: " + dateDMY + " " + dateTime + ")";
+            dateStr = `(Log date: ${dateDMY} ${dateTime})`;
         } catch(e) {
             reader.abort();
-            dateStr = " (Broken file!)";
+            dateStr = "(Broken file!)";
             msg_def.innerHTML = "";
             msg_err.innerHTML = "Broken file(s) in list!";
             msg_ok.innerHTML = "";
             up_btn.hide();
         }
-        log_list.innerHTML += "<li style='font-family:monospace'>" + log_data.files[i].name + dateStr + "</li>";
+        log_list.innerHTML += `<li style='font-family:monospace'> ${log_data.files[i].name} ${dateStr}</li>`;
         size += log_data.files[i].size;
     }
  }
