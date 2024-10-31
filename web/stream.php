@@ -95,8 +95,6 @@ function formatValue($pid, $value, $des, $speed, $temp, $pressure, $boost, $id) 
     switch ($pid) {
         case 'kff1202':
             return "<td><samp>" . pressure_conv(sprintf("%.2f", $value), $boost, $id) . "</samp></td>";
-        case 'kff1238':
-            return "<td><samp>" . sprintf("%.2f", $value) . "</samp></td>";
         case 'k2122':
             if ($value == 0) return "<td><samp>OFF</samp></td>";
             if ($value == 1) return "<td><samp>ON</samp></td>";
@@ -111,9 +109,12 @@ function formatValue($pid, $value, $des, $speed, $temp, $pressure, $boost, $id) 
         case 'k21fa':
             $style = $value != 0 ? " style='color:red;font-weight:bold'" : "";
             return "<td><samp id='rollback'{$style}>" . ($value == 0 ? "OK" : $value) . "</samp></td>";
+        case 'kff1238':
         case 'ke':
         case 'kff1214':
         case 'kff1218':
+        case 'k21cc':
+        case 'k2111':
             return "<td><samp>" . sprintf("%.2f", $value) . "</samp></td>";
         case 'kff1204':
         case 'kff120c':
