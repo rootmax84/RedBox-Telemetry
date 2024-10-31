@@ -16,12 +16,9 @@ $query = "SELECT id, description, units, populated, stream, favorite
 $keydata = $db->query($query)->fetch_all(MYSQLI_ASSOC);
 
 $db->close();
+include("head.php");
 ?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <?php include("head.php");?>
+    <body>
     <script>
         function submitForm(form) {
             var formData = new FormData(form);
@@ -57,8 +54,6 @@ $db->close();
 
         }
     </script>
-</head>
-<body>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
             <label id="storage-usage">Storage usage: <?php echo $db_used;?></label>

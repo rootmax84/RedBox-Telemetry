@@ -36,12 +36,8 @@ $_SESSION['torque_logged_in'] = $logged_in;
 
 if (!$logged_in) {
     setcookie("stream", "");
+    include("head.php");
     ?>
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <?php include("head.php");?>
-    </head>
     <body style="display:flex; justify-content:center; align-items:center; height:100vh">
     <div class="login login-form" id="login-form">
         <div style="font-weight:bold; color:red; text-align:center; width:100%; font-size:16px; letter-spacing:1.5px">RedB<img src="static/img/logo.svg" alt style="height:10px; width:12px; margin-right:1px">x Telemetry</div>

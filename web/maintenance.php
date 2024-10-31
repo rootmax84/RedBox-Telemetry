@@ -20,12 +20,8 @@ if (isset($_SESSION['admin'])) {
 if (file_exists('maintenance') && $username !== $admin) {
     header('HTTP/1.0 423 Locked');
     header("Refresh:30; url=maintenance.php");
+include("head.php");
 ?>
-
-<html lang="en">
-    <head>
-    <?php include("head.php");?>
-    </head>
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse" style="position:relative">
             <div class="container">

@@ -112,11 +112,9 @@ if (isset($sids[0])) {
 
 	$db->close();
 }
+ include("head.php");
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<?php include("head.php");?>
+    <body>
     <!-- Flot Local Javascript files -->
     <script src="static/js/jquery.flot.js"></script>
     <script src="static/js/jquery.flot.axislabels.js"></script>
@@ -147,8 +145,6 @@ if (isset($sids[0])) {
         $(".copyright").html("&copy; " + (new Date).getFullYear() + " RedBox Automotive");
       });
     </script>
-  </head>
-  <body>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
      <label id="storage-usage">Storage usage: <?php echo $db_used;?></label>
@@ -503,7 +499,6 @@ function maintenance() {
 }
 </script>
 <div class="admin-card">
-    <link rel="stylesheet" href="static/css/admin.css">
     <div>
     <h4 style="text-align:center">Registered users:</h4>
 <hr>

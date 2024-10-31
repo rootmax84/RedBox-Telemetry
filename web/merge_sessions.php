@@ -59,12 +59,8 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
     //Show merged session
     header('Location: .?id=' . $newsession);
 } elseif (isset($mergesession) && !empty($mergesession)) {
+    include("head.php");
 ?>
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <?php include("head.php"); ?>
-    </head>
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
             <?php if (!isset($_SESSION['admin']) && $limit > 0) { ?>

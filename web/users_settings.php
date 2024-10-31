@@ -12,13 +12,9 @@
     $chatid = $row["tg_chatid"];
 
     $db->close();
-?>
 
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-    <?php include("head.php");?>
-    </head>
+    include("head.php");
+?>
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
     <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>

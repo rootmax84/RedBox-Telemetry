@@ -13,13 +13,8 @@ if (!isset($_GET['action'])) {
  header("Location: .");
  die;
 }
+include("head.php");
 ?>
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-    <?php include("head.php");?>
-    <link rel="stylesheet" href="static/css/admin.css">
-    </head>
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse" style="position: relative">
             <div class="container">

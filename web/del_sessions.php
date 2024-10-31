@@ -36,12 +36,8 @@ if (isset($delsession)) {
     if (!empty($_SESSION["page"])) header('Location: del_sessions.php?page='.$_SESSION["page"]);
     else header('Location: del_sessions.php');
 } else {
+    include("head.php");
 ?>
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <?php include("head.php");?>
-  </head>
   <body>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>

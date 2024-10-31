@@ -1,8 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-    <?php include("head.php");?>
-    </head>
+<?php include("head.php");?>
     <body style="display:flex; justify-content:center; align-items:center; height:100vh">
             <div class="login login-form" id="login-form" style="width:fit-content; text-align:center">
 	<?php
