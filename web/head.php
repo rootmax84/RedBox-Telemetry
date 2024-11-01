@@ -10,6 +10,7 @@
 <link rel="manifest" href="static/img/manifest.json">
 <link rel="mask-icon" href="static/img/safari-pinned-tab.svg" color="#5bbad5">
 <meta name="csrf-token" content="<?php echo generate_csrf_token(); ?>">
+<meta name="csrf-token-expiry" content="<?php echo $_SESSION['csrf_token_time'] + 3300; ?>">
 <meta name="theme-color" content="#1a1a1a">
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -67,14 +68,39 @@
 function addCsrfTokenToForms() {
     const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     document.querySelectorAll('form').forEach(form => {
-        if (!form.querySelector('input[name="csrf_token"]')) {
-            const input = document.createElement('input');
+        let input = form.querySelector('input[name="csrf_token"]');
+        if (input) {
+            input.value = token;
+        } else {
+            input = document.createElement('input');
             input.type = 'hidden';
             input.name = 'csrf_token';
             input.value = token;
             form.appendChild(input);
         }
     });
+}
+
+function checkCSRFToken() {
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const expiryMeta = document.querySelector('meta[name="csrf-token-expiry"]');
+    const currentTime = Math.floor(Date.now() / 1000);
+
+    if (tokenMeta && expiryMeta) {
+        const expiryTime = parseInt(expiryMeta.content);
+
+        if (currentTime > expiryTime + 60) {
+            fetch('auth.php?update-csrf-token', { method: 'GET', credentials: 'same-origin' })
+                .then(response => response.json())
+                .then(data => {
+                    tokenMeta.content = data.token;
+                    expiryMeta.content = data.expiry;
+                    addCsrfTokenToForms();
+                    console.log('CSRF token updated');
+                })
+                .catch(error => console.error('Error updating CSRF token:', error));
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', addCsrfTokenToForms);
@@ -100,6 +126,7 @@ function auth() {
 const username = "<?php if (isset($username) && $username != $admin) echo $username; ?>";
 if (username.trim() !== "") {
     document.title += ` - ${username}`;
+    setInterval(checkCSRFToken, 60000);
 }
 </script>
 <script src="static/js/helpers.js"></script>

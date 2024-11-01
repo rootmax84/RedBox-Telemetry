@@ -14,7 +14,7 @@
 	    }
 	    else if ($_GET['c'] == "csrffailed") { http_response_code(401); ?>
 		    <script>setTimeout(()=>{location.href='.'}, 2000);</script>
-		<h4>CSRF check failed!</h4>
+		<h4>CSRF token expired. Try again.</h4>
 	    <?php
 	    }
 	    else if ($_GET['c'] == "toomanyattempts") { http_response_code(401); ?>
