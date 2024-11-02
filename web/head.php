@@ -126,6 +126,9 @@ function auth() {
 const username = "<?php if (isset($username) && $username != $admin) echo $username; ?>";
 if (username.trim() !== "") {
     document.title += ` - ${username}`;
+}
+
+if ($.cookie('stream') === '1') {
     setInterval(checkCSRFToken, 60000);
 }
 </script>
