@@ -593,16 +593,16 @@ let redDialog = {
         let dialogDiv = document.createElement('div');
         dialogDiv.setAttribute('id', 'redDialogWrap');
         dialogDiv.setAttribute('class', 'card dlg');
-        dialogDiv.setAttribute('style', 
-            'position: absolute;' +
-            'width: 300px !important;' +
-            'padding: 1em !important;' +
-            'top: ' + options.top + ';' +
-            'right: ' + options.right + ';' +
-            'margin: -100px -150px 0 -150px !important;' +
-            'background: white;' +
-            'border-radius: 5px;' +
-            'z-index: ' + options.zIndex + ';'
+        dialogDiv.setAttribute('style', `
+            position: absolute;
+            width: 300px !important;
+            padding: 1em !important;
+            top: ${options.top};
+            right: ${options.right};
+            transform: translate(50%, -50%);
+            background: white;
+            border-radius: 5px;
+            z-index: ${options.zIndex};`
         );
 
         dialogDiv.innerHTML = 
