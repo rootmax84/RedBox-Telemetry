@@ -20,12 +20,7 @@ if (file_exists('maintenance') && !isset($_SESSION['admin'])) {
     die();
 }
 
-try {
-    $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
-} catch (Exception $e) {
-    header('HTTP/1.0 503 Service unavailable');
-    die("No database connection!");
-}
+$db = get_db_connection();
 
 function quote_name($name) {
     return "`" . str_replace("`", "``", $name) . "`";
