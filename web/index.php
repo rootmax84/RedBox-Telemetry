@@ -643,8 +643,17 @@ if ($current_page < $total_pages) {
    </div>
 </div>
 <script>
- src = new EventSource("stream.php");
- src.onmessage = e => {if (e.data.length) location.reload()};
+let pending = 0;
+let src = new EventSource("stream.php");
+
+src.onmessage = e => {
+    if (e.data.length) {
+        pending++;
+        if (pending > 10) {
+            location.reload();
+        }
+    }
+};
 </script>
 <?php } ?>
       </div>
