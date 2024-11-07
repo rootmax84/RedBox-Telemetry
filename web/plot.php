@@ -54,7 +54,7 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 	try {
 	    $sessionqry = $db->execute_query("SELECT $selectstring FROM $db_table WHERE session=? ORDER BY time DESC", [$session_id]);
 	} catch (Exception $e) { /*No data for selected pid*/ }
-	if (!$sessionqry->num_rows) die;
+	if (!$sessionqry->num_rows) return;
 	while($row = $sessionqry->fetch_assoc()) {
 	    $i = 1;
 	    while (isset(${'v' . $i})) {
@@ -76,7 +76,6 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 		        "Bar to Psi" => " (Psi)",
 		    ],
 		];
-
 		$spd_unit = $units['speed'][$speed][0] ?? ' ('.$keyarr[${'v' . $i}][1].')';
 		$trip_unit = $units['speed'][$speed][1] ?? ' ('.$keyarr[${'v' . $i}][1].')';
 		$temp_unit = $units['temp'][$temp] ?? ' ('.$keyarr[${'v' . $i}][1].')';
