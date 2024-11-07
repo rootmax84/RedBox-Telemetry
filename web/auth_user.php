@@ -41,7 +41,7 @@ if (!$logged_in) {
     <body style="display:flex; justify-content:center; align-items:center; height:100vh">
     <div class="login login-form" id="login-form">
         <div style="font-weight:bold; color:red; text-align:center; width:100%; font-size:16px; letter-spacing:1.5px">RedB<img src="static/img/logo.svg" alt style="height:10px; width:12px; margin-right:1px">x Telemetry</div>
-        <h4 style="text-align:center">Login</h4>
+        <h6 style="text-align:center; margin-bottom:20px">Sign in to your account</h6>
         <form method="post" class="form-group" action=".">
             <input class="form-control" type="text" name="user" value="" placeholder="(Username)" autocomplete="off" required><br>
             <input class="form-control" type="password" name="pass" value="" placeholder="(Password)" autocomplete="off" required><br>

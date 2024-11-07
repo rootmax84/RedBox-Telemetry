@@ -619,7 +619,7 @@ if ($current_page < $total_pages) {
     <p class="copyright"></p>
 </div>
 <?php } else { ?>
-<div class="login" style="text-align:center; width:fit-content;">
+<div class="login" style="text-align:center; width:fit-content; margin: 50px auto">
     <h4>No data to show</h4>
     <h6>Upload data via internet or via file(s)</h6>
 <ul class="no-data-url-list">
@@ -643,15 +643,11 @@ if ($current_page < $total_pages) {
    </div>
 </div>
 <script>
-let pending = 0;
 let src = new EventSource("stream.php");
 
 src.onmessage = e => {
     if (e.data.length) {
-        pending++;
-        if (pending > 10) {
-            location.reload();
-        }
+        location.reload();
     }
 };
 </script>

@@ -58,53 +58,31 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 	while($row = $sessionqry->fetch_assoc()) {
 	    $i = 1;
 	    while (isset(${'v' . $i})) {
-		switch ($speed) {
-		    case "km to miles":
-		    $spd_unit = " (mph)";
-		    $trip_unit = " (miles)";
-		    break;
-		    case "miles to km":
-		    $spd_unit = " (km/h)";
-		    $trip_unit = " (km)";
-		    break;
-		    default:
-		    $spd_unit = ' ('.$keyarr[${'v' . $i}][1].')';
-		    $trip_unit = ' ('.$keyarr[${'v' . $i}][1].')';
-		    break;
-		}
-		switch ($temp) {
-		    case "Celsius to Fahrenheit":
-		    $temp_unit = " (°F)";
-		    break;
-		    case "Fahrenheit to Celsius":
-		    $temp_unit = " (°C)";
-		    break;
-		    default:
-		    $temp_unit = ' ('.$keyarr[${'v' . $i}][1].')';
-		    break;
-		}
-		switch ($pressure) {
-		    case "Psi to Bar":
-		    $press_unit = " (Bar)";
-		    break;
-		    case "Bar to Psi":
-		    $press_unit = " (Psi)";
-		    break;
-		    default:
-		    $press_unit = ' ('.$keyarr[${'v' . $i}][1].')';
-		    break;
-		}
-		switch ($boost) {
-		    case "Psi to Bar":
-		    $boost_unit = " (Bar)";
-		    break;
-		    case "Bar to Psi":
-		    $boost_unit = " (Psi)";
-		    break;
-		    default:
-		    $boost_unit = ' ('.$keyarr[${'v' . $i}][1].')';
-		    break;
-		}
+		$units = [
+		    'speed' => [
+		        "km to miles" => [" (mph)", " (miles)"],
+		        "miles to km" => [" (km/h)", " (km)"],
+		    ],
+		    'temp' => [
+		        "Celsius to Fahrenheit" => " (°F)",
+		        "Fahrenheit to Celsius" => " (°C)",
+		    ],
+		    'pressure' => [
+		        "Psi to Bar" => " (Bar)",
+		        "Bar to Psi" => " (Psi)",
+		    ],
+		    'boost' => [
+		        "Psi to Bar" => " (Bar)",
+		        "Bar to Psi" => " (Psi)",
+		    ],
+		];
+
+		$spd_unit = $units['speed'][$speed][0] ?? ' ('.$keyarr[${'v' . $i}][1].')';
+		$trip_unit = $units['speed'][$speed][1] ?? ' ('.$keyarr[${'v' . $i}][1].')';
+		$temp_unit = $units['temp'][$temp] ?? ' ('.$keyarr[${'v' . $i}][1].')';
+		$press_unit = $units['pressure'][$pressure] ?? ' ('.$keyarr[${'v' . $i}][1].')';
+		$boost_unit = $units['boost'][$boost] ?? ' ('.$keyarr[${'v' . $i}][1].')';
+
 	        if (substri_count($keyarr[${'v' . $i}][0], "Speed") > 0) {
 	            $x = speed_conv($row[${'v' . $i}], $speed, $id);
 	            ${'v' . $i . '_measurand'} = $spd_unit;

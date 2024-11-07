@@ -246,7 +246,6 @@ canvas *{
   padding: 20px;
   box-shadow: 1px 1px 4px 1px rgba(2,2,2,0.2);
   width: 300px;
-  margin: 100px auto;
   background-color: #fff;
   position: relative;
   z-index: 1;
@@ -255,8 +254,7 @@ canvas *{
 .login-form {
   border: 0;
   box-shadow: 5px 5px 4px 1px rgba(2, 2, 2, 0.2);
-  margin-top: 10px;
-  zoom: 1.2;
+  zoom: 1.1;
   transition: .5s;
   opacity: 0;
 }

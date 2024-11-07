@@ -11,7 +11,7 @@ if (isset($_SESSION['admin'])) header("Refresh:0; url=.");
 $db_limit = $db->execute_query("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024) FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?", [$db_name, $db_table])->fetch_row()[0];
 
 $ok = 0;
-$files = array();
+$files = [];
 
 //Exceed php_post_size
 if (!isset($_FILES['file'])) {
@@ -32,7 +32,7 @@ if(count($files) > 10) { //10 files per upload limit
   die;
 }
 
-$target_file = array();
+$target_file = [];
 for ($f = 0; $f < count($files); $f++) {
  $target_file[$f] = '/tmp/' . basename($files[$f]['name']);
  if (!move_uploaded_file($files[$f]['tmp_name'], $target_file[$f]) ) {

@@ -6,12 +6,8 @@ global $delsession;
 
 if (!isset($_SESSION)) { session_start(); }
 
-if (isset($_POST["delsession"])) {
-    $delsession = preg_replace('/\D/', '', $_POST['delsession']);
-}
-elseif (isset($_GET["delsession"])) {
-    $delsession = preg_replace('/\D/', '', $_GET['delsession']);
-}
+$delsession = filter_input(INPUT_POST, 'delsession', FILTER_SANITIZE_NUMBER_INT) 
+            ?? filter_input(INPUT_GET, 'delsession', FILTER_SANITIZE_NUMBER_INT);
 
 if (!isset ($_GET["page"]) ) {
     $page = 1;
@@ -20,7 +16,7 @@ if (!isset ($_GET["page"]) ) {
     $_SESSION["page"] = $page;
 }
 
-$sessionids = array();
+$sessionids = [];
 
 foreach ($_GET as $key => $value) {
         array_push($sessionids, $key);

@@ -31,7 +31,7 @@ include("head.php");
                 </div>
               </div>
             </div>
-            <div class="login" style="width:400px; text-align:center; margin: 50px auto !important">
+            <div class="login" style="width:400px; text-align:center; margin: 50px auto">
              <h2>We&apos;ll be back shortly.</h2>
              <h4>Service under maintenance.</h4>
              <h4>Look at the boobs for a while (‿ˠ‿)</h4>

@@ -109,7 +109,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 
 	else if ($_GET["filetype"] == "json") {
 		$sql = $db->execute_query("SELECT * FROM $db_table WHERE session=? ORDER BY time ASC", [$session_id]);
-		$rows = array();
+		$rows = [];
 		while($r = $sql->fetch_assoc()) {
 			$rows[] = $r;
 		}

@@ -5,11 +5,8 @@ require_once('db_limits.php');
 
 if (!isset($_SESSION)) { session_start(); }
 
-if (isset($_POST["mergesession"])) {
-    $mergesession = preg_replace('/\D/', '', $_POST['mergesession']);
-} elseif (isset($_GET["mergesession"])) {
-    $mergesession = preg_replace('/\D/', '', $_GET['mergesession']);
-}
+$mergesession = filter_input(INPUT_POST, 'mergesession', FILTER_SANITIZE_NUMBER_INT) 
+              ?? filter_input(INPUT_GET, 'mergesession', FILTER_SANITIZE_NUMBER_INT);
 
 if (!isset($_GET["page"])) {
     $page = 1;
@@ -17,7 +14,7 @@ if (!isset($_GET["page"])) {
     $page = $_GET["page"];
 }
 
-$sessionids = array();
+$sessionids = [];
 
 $i = 1;
 $mergesess1 = "";

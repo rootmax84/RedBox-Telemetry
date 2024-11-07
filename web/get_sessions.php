@@ -86,10 +86,10 @@ if ($sessionqry->num_rows == 0){
 }
 
 // Create an array mapping session IDs to date strings
-$seshdates = array();
-$seshsizes = array();
-$seshprofile = array();
-$seship = array();
+$seshdates = [];
+$seshsizes = [];
+$seshprofile = [];
+$seship = [];
 while($row = $sessionqry->fetch_assoc()) {
     $row["timeend"] = !$row["timeend"] ? $row["time"] : $row["timeend"];
     $session_duration_str = gmdate("H:i:s", intval(($row["timeend"] - $row["time"])/1000));

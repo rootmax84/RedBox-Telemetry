@@ -92,72 +92,42 @@ if ($r->num_rows) {
 }
 
 function formatValue($pid, $value, $des, $speed, $temp, $pressure, $boost, $id) {
-    switch ($pid) {
-        case 'kff1202':
-            return "<td><samp>" . pressure_conv(sprintf("%.2f", $value), $boost, $id) . "</samp></td>";
-        case 'k2122':
-            if ($value == 0) return "<td><samp>OFF</samp></td>";
-            if ($value == 1) return "<td><samp>ON</samp></td>";
-            if ($value >= 95) return "<td><samp>MAX</samp></td>";
-            return "<td><samp>{$value}</samp></td>";
-        case 'k1f':
-            return "<td><samp>" . sprintf("%02d:%02d:%02d", (int)$value/3600, ((int)$value/60)%60, $value%60) . "</samp></td>";
-        case 'k2118':
-            return "<td><samp>" . intval($value) . "</samp></td>";
-        case 'k2124':
-            return $value == 255 ? "<td><samp>N/A</samp></td>" : "<td><samp>{$value}</samp></td>";
-        case 'k21fa':
-            $style = $value != 0 ? " style='color:red;font-weight:bold'" : "";
-            return "<td><samp id='rollback'{$style}>" . ($value == 0 ? "OK" : $value) . "</samp></td>";
-        case 'kff1238':
-        case 'ke':
-        case 'kff1214':
-        case 'kff1218':
-        case 'k21cc':
-        case 'k2111':
-            return "<td><samp>" . sprintf("%.2f", $value) . "</samp></td>";
-        case 'kff1204':
-        case 'kff120c':
-            return "<td><samp>" . speed_conv($value, $speed, $id) . "</samp></td>";
-        case 'kc':
-            return "<td><samp>" . sprintf("%.2f", $value/100) . "</samp></td>";
-        case 'k11':
-            return "<td><samp>" . round($value) . "</samp></td>";
-        default:
-            if (stripos($des, 'Pressure') !== false && !in_array($pid, ['kb', 'k33', 'k32', 'ka', 'k23', 'k22'])) {
-                return "<td><samp>" . pressure_conv(sprintf("%.2f", $value), $pressure, $id) . "</samp></td>";
-            }
-            if (stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false) {
-                return "<td><samp>" . temp_conv($value, $temp, $id) . "</samp></td>";
-            }
-            if (stripos($des, 'Speed') !== false) {
-                return "<td id='spd'><samp>" . speed_conv($value, $speed, $id) . "</samp></td>";
-            }
-            return "<td><samp>{$value}</samp></td>";
-    }
+    return match ($pid) {
+        'kff1202' => "<td><samp>" . pressure_conv(sprintf("%.2f", $value), $boost, $id) . "</samp></td>",
+        'k2122' => match ($value) {
+            0 => "<td><samp>OFF</samp></td>",
+            1 => "<td><samp>ON</samp></td>",
+            default => $value >= 95 ? "<td><samp>MAX</samp></td>" : "<td><samp>{$value}</samp></td>",
+        },
+        'k1f' => "<td><samp>" . sprintf("%02d:%02d:%02d", (int)$value/3600, ((int)$value/60)%60, $value%60) . "</samp></td>",
+        'k2118' => "<td><samp>" . intval($value) . "</samp></td>",
+        'k2124' => $value == 255 ? "<td><samp>N/A</samp></td>" : "<td><samp>{$value}</samp></td>",
+        'k21fa' => "<td><samp id='rollback'" . ($value != 0 ? " style='color:red;font-weight:bold'" : "") . ">" . ($value == 0 ? "OK" : $value) . "</samp></td>",
+        'kff1238', 'ke', 'kff1214', 'kff1218', 'k21cc', 'k2111' => "<td><samp>" . sprintf("%.2f", $value) . "</samp></td>",
+        'kff1204', 'kff120c' => "<td><samp>" . speed_conv($value, $speed, $id) . "</samp></td>",
+        'kc' => "<td><samp>" . sprintf("%.2f", $value/100) . "</samp></td>",
+        'k11' => "<td><samp>" . round($value) . "</samp></td>",
+        default => match (true) {
+            stripos($des, 'Pressure') !== false && !in_array($pid, ['kb', 'k33', 'k32', 'ka', 'k23', 'k22']) => "<td><samp>" . pressure_conv(sprintf("%.2f", $value), $pressure, $id) . "</samp></td>",
+            stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false => "<td><samp>" . temp_conv($value, $temp, $id) . "</samp></td>",
+            stripos($des, 'Speed') !== false => "<td id='spd'><samp>" . speed_conv($value, $speed, $id) . "</samp></td>",
+            default => "<td><samp>{$value}</samp></td>",
+        },
+    };
 }
 
 function formatUnit($pid, $des, $spd_unit, $trip_unit, $temp_unit, $press_unit, $boost_unit, $defaultUnit) {
-    switch ($pid) {
-        case 'k1f':
-            return "<td><samp>h:m:s</samp></td>";
-        case 'kff1202':
-            return "<td><samp>{$boost_unit}</samp></td>";
-        case 'kff1204':
-        case 'kff120c':
-            return "<td><samp>{$trip_unit}</samp></td>";
-        default:
-            if (stripos($des, 'Pressure') !== false && !in_array($pid, ['kb', 'k33', 'k32', 'ka', 'k23', 'k22'])) {
-                return "<td><samp>{$press_unit}</samp></td>";
-            }
-            if (stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false) {
-                return "<td><samp>{$temp_unit}</samp></td>";
-            }
-            if (stripos($des, 'Speed') !== false) {
-                return "<td id='spd-unit'><samp>{$spd_unit}</samp></td>";
-            }
-            return "<td><samp>{$defaultUnit}</samp></td>";
-    }
+    return match ($pid) {
+        'k1f' => "<td><samp>h:m:s</samp></td>",
+        'kff1202' => "<td><samp>{$boost_unit}</samp></td>",
+        'kff1204', 'kff120c' => "<td><samp>{$trip_unit}</samp></td>",
+        default => match (true) {
+            stripos($des, 'Pressure') !== false && !in_array($pid, ['kb', 'k33', 'k32', 'ka', 'k23', 'k22']) => "<td><samp>{$press_unit}</samp></td>",
+            stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false => "<td><samp>{$temp_unit}</samp></td>",
+            stripos($des, 'Speed') !== false => "<td id='spd-unit'><samp>{$spd_unit}</samp></td>",
+            default => "<td><samp>{$defaultUnit}</samp></td>",
+        },
+    };
 }
 
 function outputLastRecordDate($time, $rate) {

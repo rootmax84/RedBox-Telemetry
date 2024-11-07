@@ -74,7 +74,7 @@ if (!$r->num_rows) {
 $d = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1");
 $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
 
-$setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username])->fetch_row();
+$setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$user])->fetch_row();
 [$speed, $temp, $pressure, $boost] = $setqry;
 
 if (!$d->num_rows) {
@@ -128,70 +128,42 @@ $lastRecordDate = outputLastRecordDate($row['time']);
 echo json_encode(['data' => $data, 'lastRecordDate' => $lastRecordDate]);
 
 function formatValue($pid, $value, $des, $speed, $temp, $pressure, $boost, $id) {
-    switch ($pid) {
-        case 'kff1202':
-            return pressure_conv(sprintf("%.2f", $value), $boost, $id);
-        case 'kff1238':
-            return sprintf("%.2f", $value);
-        case 'k2122':
-            if ($value == 0) return 'OFF';
-            if ($value == 1) return 'ON';
-            if ($value >= 95) return 'MAX';
-            return $value;
-        case 'k1f':
-            return sprintf("%02d:%02d:%02d", (int)$value/3600, ((int)$value/60)%60, $value%60);
-        case 'k2118':
-            return intval($value);
-        case 'k2124':
-            return $value == 255 ? 'N/A' : $value;
-        case 'k21fa':
-            return $value == 0 ? 'OK' : $value;
-        case 'ke':
-        case 'kff1214':
-        case 'kff1218':
-            return sprintf("%.2f", $value);
-        case 'kff1204':
-        case 'kff120c':
-            return speed_conv($value, $speed, $id);
-        case 'kc':
-            return sprintf("%.2f", $value/100);
-        case 'k11':
-            return round($value);
-        default:
-            if (stripos($des, 'Pressure') !== false && !in_array($pid, ['kb', 'k33', 'k32', 'ka', 'k23', 'k22'])) {
-                return pressure_conv(sprintf("%.2f", $value), $pressure, $id);
-            }
-            if (stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false) {
-                return temp_conv($value, $temp, $id);
-            }
-            if (stripos($des, 'Speed') !== false) {
-                return speed_conv($value, $speed, $id);
-            }
-            return $value;
-    }
+    return match ($pid) {
+        'kff1202' => pressure_conv(sprintf("%.2f", $value), $boost, $id),
+        'k2122' => match ($value) {
+            0 => 'OFF',
+            1 => 'ON',
+            default => $value >= 95 ? 'MAX' : $value,
+        },
+        'k1f' => sprintf("%02d:%02d:%02d", (int)$value/3600, ((int)$value/60)%60, $value%60),
+        'k2118' => intval($value),
+        'k2124' => $value == 255 ? 'N/A' : $value,
+        'k21fa' => $value == 0 ? 'OK' : $value,
+        'kff1238', 'ke', 'kff1214', 'kff1218', 'k21cc', 'k2111' => sprintf("%.2f", $value),
+        'kff1204', 'kff120c' => speed_conv($value, $speed, $id),
+        'kc' => sprintf("%.2f", $value/100),
+        'k11' => round($value),
+        default => match (true) {
+            stripos($des, 'Pressure') !== false && !in_array($pid, ['kb', 'k33', 'k32', 'ka', 'k23', 'k22']) => pressure_conv(sprintf("%.2f", $value), $pressure, $id),
+            stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false => temp_conv($value, $temp, $id),
+            stripos($des, 'Speed') !== false => speed_conv($value, $speed, $id),
+            default => $value,
+        },
+    };
 }
 
 function formatUnit($pid, $des, $spd_unit, $trip_unit, $temp_unit, $press_unit, $boost_unit, $defaultUnit) {
-    switch ($pid) {
-        case 'k1f':
-            return 'h:m:s';
-        case 'kff1202':
-            return $boost_unit;
-        case 'kff1204':
-        case 'kff120c':
-            return $trip_unit;
-        default:
-            if (stripos($des, 'Pressure') !== false && !in_array($pid, ['kb', 'k33', 'k32', 'ka', 'k23', 'k22'])) {
-                return $press_unit;
-            }
-            if (stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false) {
-                return $temp_unit;
-            }
-            if (stripos($des, 'Speed') !== false) {
-                return $spd_unit;
-            }
-            return $defaultUnit;
-    }
+    return match ($pid) {
+        'k1f' => 'h:m:s',
+        'kff1202' => $boost_unit,
+        'kff1204', 'kff120c' => $trip_unit,
+        default => match (true) {
+            stripos($des, 'Pressure') !== false && !in_array($pid, ['kb', 'k33', 'k32', 'ka', 'k23', 'k22']) => $press_unit,
+            stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false => $temp_unit,
+            stripos($des, 'Speed') !== false => $spd_unit,
+            default => $defaultUnit,
+        },
+    };
 }
 
 function outputLastRecordDate($time) {
