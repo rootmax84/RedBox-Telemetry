@@ -142,7 +142,7 @@ if (isset($sids[0])) {
         plotData.chosen();
         updCharts();
         if (window.history.replaceState) window.history.replaceState(null, null, window.location.href);
-        $(".copyright").html("&copy; " + (new Date).getFullYear() + " RedBox Automotive");
+        $(".copyright").html(`&copy; ${(new Date).getFullYear()} RedBox Automotive`);
       });
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
@@ -478,7 +478,7 @@ function maintenance() {
 	if (!mode.length) return;
 	let dialogOpt = {
 	     title: "Maintenance mode",
-	     message : "Status: " + mode,
+	     message : `Status: ${mode}`,
 	     btnClassSuccessText: "Enable",
 	     btnClassFailText: "Disable",
 	     btnClassFail: "btn btn-info btn-sm",
@@ -720,7 +720,9 @@ function checkLog() {
             logDate = new Date(parseInt(f.target.result.split("\n")[1].split(" ")[0]));
             if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
             dateDMY = `${logDate.getFullYear()}-${(logDate.getMonth() + 1)}-${logDate.getDate()}`;
-            dateTime =  $.cookie('timeformat') == '12' ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }) : logDate.getHours() + ":" + ('0' + logDate.getMinutes()).slice(-2);
+            dateTime = $.cookie('timeformat') === '12'
+              ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+              : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
             dateStr = `(Log date: ${dateDMY} ${dateTime})`;
         } catch(e) {
             reader.abort();
