@@ -4,8 +4,11 @@ declare(strict_types=1);
 /**
  * Count uppercase strings
  */
-function substri_count(string $haystack, string $needle): int
+function substri_count(?string $haystack, ?string $needle): int
 {
+    $haystack = $haystack ?? '';
+    $needle = $needle ?? '';
+
     return substr_count(strtoupper($haystack), strtoupper($needle));
 }
 
