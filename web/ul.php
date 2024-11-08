@@ -167,6 +167,10 @@ if (sizeof($_REQUEST) > 0) {
             $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
             $params[] = $ip;
 
+            $updateFields[] = "timeend = ?";
+            $timeend = round(microtime(true) * 1000);
+            $params[] = $timeend;
+
             $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
             $params[] = $sessuploadid;
 
