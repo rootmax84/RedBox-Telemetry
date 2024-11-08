@@ -99,6 +99,15 @@ if (isset($delsession)) {
 ?>
         </tbody>
       </table>
+    <?php
+        if (!$number_of_result) {
+    ?>
+        <h3 style='text-align:center'>No sessions found</h>
+        <script>
+            document.getElementById('del-btn').disabled = true;
+            document.querySelector('input[type="checkbox"]').disabled = true;
+        </script>
+    <?php } ?>
     </form>
 <div class="pages">
 <?php //Pagination with page count limit
