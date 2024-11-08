@@ -31,6 +31,20 @@ if (!empty($token)) {
  $_SESSION['torque_logged_in'] = true;
  require_once('db.php');
 
+ // Check Memcached presence
+ $memcached_available = class_exists('Memcached');
+ $memcached_connected = false;
+
+ if ($memcached_available) {
+    try {
+        $memcached = new Memcached();
+        $memcached->addServer($db_memcached, 11211);
+        $memcached_connected = !empty($memcached->getStats());
+    } catch (Exception $e) {
+        $memcached_connected = false;
+    }
+ }
+
  //Server overload check
  $load = sys_getloadavg(); //Fetch CPU load avg
  if ($max_load_avg > 0 && $load[1] > $max_load_avg){
@@ -38,24 +52,58 @@ if (!empty($token)) {
   die('Server overloaded');
  }
 
+ $cache_key = "user_data_" . md5($token);
+ $user_data = false;
+
+ if ($memcached_connected) {
+    $user_data = $memcached->get($cache_key);
+ }
+
  //Check auth via Bearer token
- $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid FROM $db_users WHERE token=?", [$token]);
-  if (!$userqry->num_rows) $access = 0;
-  else {
-    [$user, $limit, $tg_token, $tg_chatid] = $userqry->fetch_row();
+ if ($user_data === false) {
+    $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid FROM $db_users WHERE token=?", [$token]);
+    if ($userqry->num_rows) {
+        $access = 1;
+        $user_data = $userqry->fetch_assoc();
+        if ($memcached_connected) {
+            $memcached->set($cache_key, $user_data, 600);
+        }
+    } else {
+        $access = 0;
+    }
+ }
+
+ if ($user_data) {
     $access = 1;
-  }
+    $user = $user_data['user'];
+    $limit = $user_data['s'];
+    $tg_token = $user_data['tg_token'];
+    $tg_chatid = $user_data['tg_chatid'];
+ }
 } else $access = 0;
 
- if ($access != 1 || $limit == 0){
+if ($access != 1 || $limit == 0){
      header('HTTP/1.0 403 Forbidden');
      die('Access denied');
- }
+}
 
 $db_table = $user.$db_log_prefix;
 
-$db_limit = $db->execute_query("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024) FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?", [$db_name, $db_table])->fetch_row()[0];
- if ($db_limit >= $limit && $limit != -1){
+$db_limit_cache_key = "db_limit_" . $db_table;
+$db_limit = false;
+
+if ($memcached_connected) {
+    $db_limit = $memcached->get($db_limit_cache_key);
+}
+
+if ($db_limit === false) {
+    $db_limit = $db->execute_query("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024) FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?", [$db_name, $db_table])->fetch_row()[0];
+    if ($memcached_connected) {
+        $memcached->set($db_limit_cache_key, $db_limit, 300);
+    }
+}
+
+if ($db_limit >= $limit && $limit != -1){
     header('HTTP/1.0 406 Not Acceptable');
     die('No space left');
 }
@@ -63,12 +111,25 @@ $db_limit = $db->execute_query("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024
 $db_sessions_table = $user.$db_sessions_prefix;
 $db_pids_table = $user.$db_pids_prefix;
 
+$table_structure_cache_key = "table_structure_" . $db_table;
+$dbfields = false;
+
+if ($memcached_connected) {
+    $dbfields = $memcached->get($table_structure_cache_key);
+}
+
 // Create an array of all the existing fields in the database
-$result = $db->query("SHOW COLUMNS FROM $db_table");
-if ($result->num_rows) {
-  while ($row = $result->fetch_assoc()) {
-    $dbfields[]=($row['Field']);
-  }
+if ($dbfields === false) {
+    $result = $db->query("SHOW COLUMNS FROM $db_table");
+    $dbfields = [];
+    if ($result->num_rows) {
+        while ($row = $result->fetch_assoc()) {
+            $dbfields[] = $row['Field'];
+        }
+    }
+    if ($memcached_connected) {
+        $memcached->set($table_structure_cache_key, $dbfields, 600);
+    }
 }
 
 $allowedProfileFields = [

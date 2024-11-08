@@ -65,4 +65,24 @@ function temp_conv(float|int $val, string $unit, string $id): float
         1
     );
 }
+
+/**
+ * @param mysqli $db
+ * @param string $session_id
+ * @param string $db_sessions_table
+ * @return int|null
+ */
+function getLastUpdateTimestamp(mysqli $db, string $session_id, string $db_sessions_table): ?int
+{
+    $result = $db->execute_query(
+        "SELECT timeend FROM $db_sessions_table WHERE session = ?",
+        [$session_id]
+    );
+
+    if ($row = $result->fetch_assoc()) {
+        return (int)$row['timeend'];
+    }
+
+    return null;
+}
 ?>

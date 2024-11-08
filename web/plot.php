@@ -1,6 +1,21 @@
 <?php
 require_once('db.php');
 require_once('parse_functions.php');
+
+// Check Memcached presence
+$memcached_available = class_exists('Memcached');
+$memcached_connected = false;
+
+if ($memcached_available) {
+    try {
+        $memcached = new Memcached();
+        $memcached->addServer($db_memcached, 11211);
+        $memcached_connected = !empty($memcached->getStats());
+    } catch (Exception $e) {
+        $memcached_connected = false;
+    }
+}
+
 if (!isset($sids) && !isset($_SESSION['admin'])) { //this is to default to get the session list and default to json output if called directly
 	require_once('get_sessions.php');
 	$json = [];
@@ -24,38 +39,142 @@ $tmp_gear = function ($gear) { return $gear == '255' ? '0' : $gear; };
 // Grab the session number
 if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
     $session_id = $db->real_escape_string($_GET['id']);
-    $id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
+    $cached_timestamp = null;
+    $current_timestamp = getLastUpdateTimestamp($db, $session_id, $db_sessions_table);
+
+    // id
+    $cache_key_id = "session_id_{$session_id}";
+    $id = false;
+
+    if ($memcached_connected) {
+        try {
+            $cached_id_data = $memcached->get($cache_key_id);
+            if ($cached_id_data !== false) {
+                list($id, $cached_timestamp) = $cached_id_data;
+            }
+        } catch (Exception $e) {
+            $id = false;
+        }
+    }
+
+    if ($id === false || $cached_timestamp !== $current_timestamp) {
+        $id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
+
+        if ($memcached_connected) {
+            try {
+                $memcached->set($cache_key_id, [$id, $current_timestamp], 3600);
+            } catch (Exception $e) {
+                // Error saving to cache, continue working without caching
+            }
+        }
+    }
 
     //Get units conversion settings
-    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username])->fetch_row();
+    $cache_key_settings = "user_settings_{$username}";
+    $setqry = false;
+
+    if ($memcached_connected) {
+        try {
+            $cached_settings_data = $memcached->get($cache_key_settings);
+            if ($cached_settings_data !== false) {
+                list($setqry, $cached_timestamp) = $cached_settings_data;
+            }
+        } catch (Exception $e) {
+            $setqry = false;
+        }
+    }
+
+    if ($setqry === false || $cached_timestamp !== $current_timestamp) {
+        $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username])->fetch_row();
+
+        if ($memcached_connected) {
+            try {
+                $memcached->set($cache_key_settings, [$setqry, $current_timestamp], 3600);
+            } catch (Exception $e) {
+                // Error saving to cache, continue working without caching
+            }
+        }
+    }
+
     $speed = $setqry[0];
     $temp = $setqry[1];
     $pressure = $setqry[2];
     $boost = $setqry[3];
 
     // Get the torque key->val mappings
-    $keyquery = $db->query("SELECT id,description,units FROM $db_pids_table");
-    $keyarr = [];
-    while($row = $keyquery->fetch_assoc()) {
-      $keyarr[$row['id']] = array($row['description'], $row['units']);
+    $cache_key_pids = "pids_mapping_{$username}";
+    $keyarr = false;
+
+    if ($memcached_connected) {
+        try {
+            $cached_pids_data = $memcached->get($cache_key_pids);
+            if ($cached_pids_data !== false) {
+                list($keyarr, $cached_timestamp) = $cached_pids_data;
+            }
+        } catch (Exception $e) {
+            $keyarr = false;
+        }
     }
-	$selectstring = "time";
-	$i = 1;
-	while ( isset($_GET["s$i"]) ) {
 
-	if ($_GET["s$i"] == ''){header('Location: .');} //gx
+    if ($keyarr === false || $cached_timestamp !== $current_timestamp) {
+        $keyquery = $db->query("SELECT id,description,units FROM $db_pids_table");
+        $keyarr = [];
+        while($row = $keyquery->fetch_assoc()) {
+            $keyarr[$row['id']] = array($row['description'], $row['units']);
+        }
 
-		${'v' . $i} = $_GET["s$i"];
-		$selectstring = $selectstring.",".quote_name(${'v' . $i});
-		$i = $i + 1;
-	}
+        if ($memcached_connected) {
+            try {
+                $memcached->set($cache_key_pids, [$keyarr, $current_timestamp], 3600);
+            } catch (Exception $e) {
+                // Error saving to cache, continue working without caching
+            }
+        }
+    }
 
-	// Get data for session
-	try {
-	    $sessionqry = $db->execute_query("SELECT $selectstring FROM $db_table WHERE session=? ORDER BY time DESC", [$session_id]);
-	} catch (Exception $e) { /*No data for selected pid*/ }
-	if (!$sessionqry->num_rows) return;
-	while($row = $sessionqry->fetch_assoc()) {
+    $selectstring = "time";
+    $i = 1;
+    while ( isset($_GET["s$i"]) ) {
+        if ($_GET["s$i"] == ''){header('Location: .');} //gx
+        ${'v' . $i} = $_GET["s$i"];
+        $selectstring = $selectstring.",".quote_name(${'v' . $i});
+        $i = $i + 1;
+    }
+
+    $cache_key = "session_data_{$session_id}_{$selectstring}";
+    $session_data = false;
+
+    if ($memcached_connected) {
+        try {
+            $cached_data = $memcached->get($cache_key);
+            if ($cached_data !== false) {
+                list($session_data, $cached_timestamp) = $cached_data;
+            }
+        } catch (Exception $e) {
+            $session_data = false;
+        }
+    }
+
+    if ($session_data === false || $cached_timestamp !== $current_timestamp) {
+        try {
+            $sessionqry = $db->execute_query("SELECT $selectstring FROM $db_table WHERE session=? ORDER BY time DESC", [$session_id]);
+            $session_data = $sessionqry->fetch_all(MYSQLI_ASSOC);
+
+            if ($memcached_connected) {
+                try {
+                    $memcached->set($cache_key, [$session_data, $current_timestamp], 3600);
+                } catch (Exception $e) {
+                    // Error saving to cache, continue working without caching
+                }
+            }
+        } catch (Exception $e) {
+            // No data for selected pid
+        }
+    }
+
+    if (empty($session_data)) return;
+
+	foreach ($session_data as $row) {
 	    $i = 1;
 	    while (isset(${'v' . $i})) {
 		$units = [

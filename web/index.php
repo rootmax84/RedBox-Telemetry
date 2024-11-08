@@ -4,6 +4,20 @@ require_once('db_limits.php');
 require_once('plot.php');
 require_once('timezone.php');
 
+// Check Memcached presence
+$memcached_available = class_exists('Memcached');
+$memcached_connected = false;
+
+if ($memcached_available) {
+    try {
+        $memcached = new Memcached();
+        $memcached->addServer($db_memcached, 11211);
+        $memcached_connected = !empty($memcached->getStats());
+    } catch (Exception $e) {
+        $memcached_connected = false;
+    }
+}
+
 if (!isset($_SESSION['admin'])) $_SESSION['recent_session_id'] = strval(isset($sids)?max($sids):null);
 
 // Capture the session ID if one has been chosen already
@@ -48,69 +62,191 @@ while ( isset($_POST["s$i"]) || isset($_GET["s$i"]) ) {
 //  the current session. Using successful existence of a session as a trigger, 
 //  populate some other variables as well.
 if (isset($sids[0])) {
-	if (!isset($session_id)) {
-		$session_id = $sids[0];
-	}
+    if (!isset($session_id)) {
+        $session_id = $sids[0];
+    }
 
-	if ($session_id == ''){
-		header('Location: .');
-	}
+    if ($session_id == ''){
+        header('Location: .');
+    }
 
-	//For the merge function, we need to find out, what would be the next session
-	$idx = array_search( $session_id, $sids);
-	$session_id_next = "";
-	if($idx>0) {
-		$session_id_next = $sids[$idx-1];
-	}
+    //For the merge function, we need to find out, what would be the next session
+    $idx = array_search($session_id, $sids);
+    $session_id_next = "";
+    if ($idx > 0) {
+        $session_id_next = $sids[$idx - 1];
+    }
 
-	// Query the list of years where sessions have been logged, to be used later
-	$yearquery = $db->query("SELECT YEAR(FROM_UNIXTIME(session/1000)) as 'year'
-		FROM $db_sessions_table WHERE session <> ''
-		GROUP BY YEAR(FROM_UNIXTIME(session/1000)) 
-		ORDER BY YEAR(FROM_UNIXTIME(session/1000)) DESC");
-	$yeararray = [];
-	$i = 0;
-	while($row = $yearquery->fetch_assoc()) {
-		$yeararray[$i] = $row['year'];
-		$i++;
-	}
+    $cached_timestamp = null;
+    $current_timestamp = getLastUpdateTimestamp($db, $session_id, $db_sessions_table);
 
-	// Query the list of profiles where sessions have been logged, to be used later
-	$profilequery = $db->query("SELECT distinct profileName FROM $db_sessions_table ORDER BY profileName asc");
-	$profilearray = [];
-	$i = 0;
-	while($row = $profilequery->fetch_assoc()) {
-		$profilearray[$i] = $row['profileName'];
-		$i++;
-	}
+    // Years
+    $years_cache_key = "years_list_" . $username;
+    $yeararray = false;
 
-	$gps_time_data = $db->execute_query("SELECT kff1006, kff1005, time FROM $db_table WHERE session=? ORDER BY time DESC", [$session_id]);
-	$geolocs = [];   // Coords array
-	$timearray = []; // Get array of time for session and start and end variables 
-	while($row = $gps_time_data->fetch_row()) {
-		if (($row[0] != 0) && ($row[1] != 0)) {
-			$geolocs[] = ["lat" => $row[0], "lon" => $row[1]];
-		}
-		$timearray[$i] = $row[2];
-		$i++;
-	}
+    if ($memcached_connected) {
+        try {
+            $y_cached_data = $memcached->get($years_cache_key);
+            if ($y_cached_data !== false) {
+                list($yeararray, $cached_timestamp) = $y_cached_data;
+            }
+        } catch (Exception $e) {
+            $yeararray = false;
+        }
+    }
 
-	$itime = implode(",", $timearray);
-	$maxtimev = reset($timearray);  // First el
-	$mintimev = end($timearray);    // Last el
+    if ($yeararray === false || $cached_timestamp !== $current_timestamp) {
+        $yearquery = $db->query("SELECT YEAR(FROM_UNIXTIME(session/1000)) as 'year'
+            FROM $db_sessions_table WHERE session <> ''
+            GROUP BY YEAR(FROM_UNIXTIME(session/1000)) 
+            ORDER BY YEAR(FROM_UNIXTIME(session/1000)) DESC");
+        $yeararray = [];
+        while($row = $yearquery->fetch_assoc()) {
+            $yeararray[] = $row['year'];
+        }
+        if ($memcached_connected) {
+            try {
+                $memcached->set($years_cache_key, [$yeararray, $current_timestamp], 3600);
+            } catch (Exception $e) {
+                // Error saving to cache, continue working without caching
+            }
+        }
+    }
 
-	// Create array of Latitude/Longitude strings in leafletjs JavaScript format
-	$mapdata = [];
-	foreach($geolocs as $d) {
-		$mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon'])."]";
-	}
-	$imapdata = implode(",", $mapdata);
+    // Profiles
+    $profiles_cache_key = "profiles_list_" . $username;
+    $profilearray = false;
 
-	$stream_lock = $db->execute_query("SELECT stream_lock FROM $db_users WHERE user=?", [$username])->fetch_row()[0];
+    if ($memcached_connected) {
+        try {
+            $p_cached_data = $memcached->get($profiles_cache_key);
+            if ($p_cached_data !== false) {
+                list($profilearray, $cached_timestamp) = $p_cached_data;
+            }
+        } catch (Exception $e) {
+            $profilearray = false;
+        }
+    }
 
-	$id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
+    if ($profilearray === false || $cached_timestamp !== $current_timestamp) {
+        $profilequery = $db->query("SELECT distinct profileName FROM $db_sessions_table ORDER BY profileName asc");
+        $profilearray = [];
+        while($row = $profilequery->fetch_assoc()) {
+            $profilearray[] = $row['profileName'];
+        }
+        if ($memcached_connected) {
+            try {
+                $memcached->set($profiles_cache_key, [$profilearray, $current_timestamp], 3600);
+            } catch (Exception $e) {
+                // Error saving to cache, continue working without caching
+            }
+        }
+    }
 
-	$db->close();
+    // GPS data
+    $gps_cache_key = "gps_data_" . $session_id;
+    $gps_data = false;
+
+    if ($memcached_connected) {
+        try {
+            $g_cached_data = $memcached->get($gps_cache_key);
+            if ($g_cached_data !== false) {
+                list($gps_data, $cached_timestamp) = $g_cached_data;
+            }
+        } catch (Exception $e) {
+            $gps_data = false;
+        }
+    }
+
+    if ($gps_data === false || $cached_timestamp !== $current_timestamp) {
+        $gps_time_data = $db->execute_query("SELECT kff1006, kff1005, time FROM $db_table WHERE session=? ORDER BY time DESC", [$session_id]);
+        $geolocs = [];
+        $timearray = [];
+        $i = 0;
+        while($row = $gps_time_data->fetch_row()) {
+            if (($row[0] != 0) && ($row[1] != 0)) {
+                $geolocs[] = ["lat" => $row[0], "lon" => $row[1]];
+            }
+            $timearray[$i] = $row[2];
+            $i++;
+        }
+        $gps_data = ['geolocs' => $geolocs, 'timearray' => $timearray];
+        if ($memcached_connected) {
+            try {
+                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], 1800);
+            } catch (Exception $e) {
+                // Error saving to cache, continue working without caching
+            }
+        }
+    }
+
+    $geolocs = $gps_data['geolocs'];
+    $timearray = $gps_data['timearray'];
+
+    $itime = implode(",", $timearray);
+    $maxtimev = reset($timearray);  // First el
+    $mintimev = end($timearray);    // Last el
+
+    // Create array of Latitude/Longitude strings in leafletjs JavaScript format
+    $mapdata = [];
+    foreach($geolocs as $d) {
+        $mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon'])."]";
+    }
+    $imapdata = implode(",", $mapdata);
+
+    // stream_lock
+    $stream_lock_cache_key = "stream_lock_" . $username;
+    $stream_lock = false;
+
+    if ($memcached_connected) {
+        try {
+            $s_cached_data = $memcached->get($stream_lock_cache_key);
+            if ($s_cached_data !== false) {
+                list($stream_lock, $cached_timestamp) = $s_cached_data;
+            }
+        } catch (Exception $e) {
+            $stream_lock = false;
+        }
+    }
+
+    if ($stream_lock === false || $cached_timestamp !== $current_timestamp) {
+        $stream_lock = $db->execute_query("SELECT stream_lock FROM $db_users WHERE user=?", [$username])->fetch_row()[0];
+        if ($memcached_connected) {
+            try {
+                $memcached->set($stream_lock_cache_key, [$stream_lock, $current_timestamp], 3600);
+            } catch (Exception $e) {
+                // Error saving to cache, continue working without caching
+            }
+        }
+    }
+
+    // id
+    $session_id_cache_key = "session_id_" . $session_id;
+    $id = false;
+
+    if ($memcached_connected) {
+        try {
+            $i_cached_data = $memcached->get($session_id_cache_key);
+            if ($i_cached_data !== false) {
+                list($id, $cached_timestamp) = $i_cached_data;
+            }
+        } catch (Exception $e) {
+            $id = false;
+        }
+    }
+
+    if ($id === false || $cached_timestamp !== $current_timestamp) {
+        $id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
+        if ($memcached_connected) {
+            try {
+                $memcached->set($session_id_cache_key, [$id, $current_timestamp], 3600);
+            } catch (Exception $e) {
+                // Error saving to cache, continue working without caching
+            }
+        }
+    }
+
+    $db->close();
 }
  include("head.php");
 ?>
