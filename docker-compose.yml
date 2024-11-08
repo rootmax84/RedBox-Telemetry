@@ -53,3 +53,12 @@ services:
             - /etc/timezone:/etc/timezone:ro
             - /etc/localtime:/etc/localtime:ro
         restart: always
+
+    #OPTIONAL
+    memcached:
+        image: memcached
+        container_name: ratel_memcached
+        command:
+          - --conn-limit=1024
+          - --memory-limit=64
+          - --threads=4
