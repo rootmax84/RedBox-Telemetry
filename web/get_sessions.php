@@ -86,7 +86,6 @@ $seshdates = [];
 $seshsizes = [];
 $seshprofile = [];
 $seship = [];
-$sids = [];
 
 while ($row = $sessionqry->fetch_assoc()) {
     $row["timeend"] = !$row["timeend"] ? $row["time"] : $row["timeend"];
