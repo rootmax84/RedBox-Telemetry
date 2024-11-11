@@ -38,7 +38,7 @@ if (!empty($token)) {
   die('Server overloaded');
  }
 
- $cache_key = "user_data_" . md5($token);
+ $cache_key = "user_data_" . $token;
  $user_data = false;
 
  if ($memcached_connected) {
