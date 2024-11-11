@@ -2,20 +2,6 @@
 require_once('db.php');
 require_once('parse_functions.php');
 
-// Check Memcached presence
-$memcached_available = class_exists('Memcached');
-$memcached_connected = false;
-
-if ($memcached_available) {
-    try {
-        $memcached = new Memcached();
-        $memcached->addServer($db_memcached, 11211);
-        $memcached_connected = !empty($memcached->getStats());
-    } catch (Exception $e) {
-        $memcached_connected = false;
-    }
-}
-
 if (!isset($sids) && !isset($_SESSION['admin'])) { //this is to default to get the session list and default to json output if called directly
 	require_once('get_sessions.php');
 	$json = [];

@@ -31,20 +31,6 @@ if (!empty($token)) {
  $_SESSION['torque_logged_in'] = true;
  require_once('db.php');
 
- // Check Memcached presence
- $memcached_available = class_exists('Memcached');
- $memcached_connected = false;
-
- if ($memcached_available) {
-    try {
-        $memcached = new Memcached();
-        $memcached->addServer($db_memcached, 11211);
-        $memcached_connected = !empty($memcached->getStats());
-    } catch (Exception $e) {
-        $memcached_connected = false;
-    }
- }
-
  //Server overload check
  $load = sys_getloadavg(); //Fetch CPU load avg
  if ($max_load_avg > 0 && $load[1] > $max_load_avg){

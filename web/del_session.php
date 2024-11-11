@@ -7,6 +7,7 @@ $deletesession = filter_input(INPUT_POST, 'deletesession', FILTER_SANITIZE_NUMBE
 if ($deletesession !== '' && $deletesession !== false && $deletesession !== null) {
     $db->execute_query("DELETE FROM $db_table WHERE session=?", [$deletesession]);
     $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$deletesession]);
+    cache_flush();
     header("Location: .");
 }
 ?>

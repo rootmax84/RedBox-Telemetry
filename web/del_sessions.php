@@ -30,7 +30,10 @@ if (isset($delsession)) {
 	}
     }
     if (!empty($_SESSION["page"])) header('Location: del_sessions.php?page='.$_SESSION["page"]);
-    else header('Location: del_sessions.php');
+    else {
+        cache_flush();
+        header('Location: del_sessions.php');
+    }
 } else {
     include("head.php");
 ?>

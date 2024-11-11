@@ -53,6 +53,9 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
             $db->execute_query($updatequery, [$value]);
         }
     }
+
+    cache_flush();
+
     //Show merged session
     header('Location: .?id=' . $newsession);
 } elseif (isset($mergesession) && !empty($mergesession)) {

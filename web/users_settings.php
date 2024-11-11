@@ -11,6 +11,8 @@
     $token = $row["tg_token"];
     $chatid = $row["tg_chatid"];
 
+    cache_flush();
+
     $db->close();
 
     include("head.php");

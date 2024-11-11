@@ -4,20 +4,6 @@ require_once('db_limits.php');
 require_once('plot.php');
 require_once('timezone.php');
 
-// Check Memcached presence
-$memcached_available = class_exists('Memcached');
-$memcached_connected = false;
-
-if ($memcached_available) {
-    try {
-        $memcached = new Memcached();
-        $memcached->addServer($db_memcached, 11211);
-        $memcached_connected = !empty($memcached->getStats());
-    } catch (Exception $e) {
-        $memcached_connected = false;
-    }
-}
-
 if (!isset($_SESSION['admin'])) $_SESSION['recent_session_id'] = strval(isset($sids)?max($sids):null);
 
 // Capture the session ID if one has been chosen already

@@ -224,6 +224,8 @@ for ($f = 0; $f < count($files); $f++) {
  unlink($target_file[$f]);
 }
 
+cache_flush();
+
 echo $ok . " files uploaded successfully";
 $db->close();
 
