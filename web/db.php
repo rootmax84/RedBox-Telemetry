@@ -58,15 +58,30 @@ function quote_values($values) {
     return implode(", ", array_map('quote_value', $values));
 }
 
-function cache_flush() {
-    global $memcached, $memcached_connected, $username;
+function cache_flush($token = null) {
+    global $memcached, $memcached_connected, $username, $db_table, $db_pids_table;
     if ($memcached_connected) {
         try {
-            $memcached->delete("profiles_list_{$username}");
-            $memcached->delete("years_list_{$username}");
-            $memcached->delete("stream_lock_{$username}");
-            $memcached->delete("user_settings_{$username}");
-        } catch (Exception $e) {}
+            $keys = [
+                "profiles_list_{$username}",
+                "years_list_{$username}",
+                "stream_lock_{$username}",
+                "user_settings_{$username}",
+                "db_limit_{$db_table}",
+                "table_structure_{$db_table}",
+                "user_status_{$username}",
+                "columns_data_{$db_pids_table}"
+            ];
+            if ($token !== null) {
+                $keys[] = "user_data_{$token}";
+            }
+            foreach ($keys as $key) {
+                $memcached->delete($key);
+            }
+        } catch (Exception $e) {
+            $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+            error_log($errorMessage);
+        }
     }
 }
 ?>

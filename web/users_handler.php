@@ -60,7 +60,7 @@ else
 
 	if ($login == $admin && $e_limit != NULL) die("Can't set limit for admin");
 
-	$row = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login])->fetch_assoc();
+	$row = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login])->fetch_assoc();
 	if (!$row) die("User $login not found");
 
 	if (strlen($password) > 1 && strlen($password) < 5) die("Password too short");
@@ -78,6 +78,8 @@ else
 	 $db->execute_query("UPDATE $db_users SET pass=?, s=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $e_limit, $row['id']]);
 	 $msg = "User $login limit and password changed";
 	}
+	$username = $login;
+	cache_flush($row['token']);
 	$db->close();
 	die($msg);
     }

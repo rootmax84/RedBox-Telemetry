@@ -52,7 +52,12 @@ if (!empty($token)) {
         $access = 1;
         $user_data = $userqry->fetch_assoc();
         if ($memcached_connected) {
-            $memcached->set($cache_key, $user_data, 600);
+            try {
+                $memcached->set($cache_key, $user_data, 3600);
+            } catch (Exception $e) {
+                $errorMessage = sprintf("Memcached error on upload auth: %s (Code: %d)", $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
+            }
         }
     } else {
         $access = 0;
@@ -85,7 +90,12 @@ if ($memcached_connected) {
 if ($db_limit === false) {
     $db_limit = $db->execute_query("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024) FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?", [$db_name, $db_table])->fetch_row()[0];
     if ($memcached_connected) {
-        $memcached->set($db_limit_cache_key, $db_limit, 300);
+        try {
+            $memcached->set($db_limit_cache_key, $db_limit, 300);
+        } catch (Exception $e) {
+            $errorMessage = sprintf("Memcached error on upload: %s (Code: %d)", $e->getMessage(), $e->getCode());
+            error_log($errorMessage);
+        }
     }
 }
 
@@ -114,7 +124,12 @@ if ($dbfields === false) {
         }
     }
     if ($memcached_connected) {
-        $memcached->set($table_structure_cache_key, $dbfields, 600);
+        try {
+            $memcached->set($table_structure_cache_key, $dbfields, 3600);
+        } catch (Exception $e) {
+            $errorMessage = sprintf("Memcached error on upload: %s (Code: %d)", $e->getMessage(), $e->getCode());
+            error_log($errorMessage);
+        }
     }
 }
 
@@ -176,6 +191,7 @@ if (sizeof($_REQUEST) > 0) {
 
     // If the field doesn't already exist, add it to the database except id key
     if (!in_array($key, $dbfields) && $key != "id" && $submitval == 1) {
+      cache_flush();
       $dataType = is_numeric($value) ? "float" : "VARCHAR(255)";
 
       $sqlalter = "ALTER TABLE $db_table ADD IF NOT EXISTS ".quote_name($key)." $dataType NOT NULL default '0'";
@@ -193,7 +209,11 @@ if (sizeof($_REQUEST) > 0) {
     // Now insert the data for all the fields into the raw logs table
     if ($submitval == 1) {
       $sql = "INSERT IGNORE INTO $db_table (".quote_names($rawkeys).") VALUES (".quote_values($rawvalues).")";
-      $db->query($sql);
+      try {
+        $db->query($sql);
+      } catch (Exception $e) {
+        cache_flush();
+      }
     }
     $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).") VALUES (".quote_values($sessvalues).") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
     $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);

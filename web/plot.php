@@ -50,7 +50,8 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
             try {
                 $memcached->set($cache_key_id, [$id, $current_timestamp], 3600);
             } catch (Exception $e) {
-                // Error saving to cache, continue working without caching
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }
@@ -77,7 +78,8 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
             try {
                 $memcached->set($cache_key_settings, [$setqry, $current_timestamp], 3600);
             } catch (Exception $e) {
-                // Error saving to cache, continue working without caching
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }
@@ -113,7 +115,8 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
             try {
                 $memcached->set($cache_key_pids, [$keyarr, $current_timestamp], 3600);
             } catch (Exception $e) {
-                // Error saving to cache, continue working without caching
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }
@@ -150,7 +153,8 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
                 try {
                     $memcached->set($cache_key, [$session_data, $current_timestamp], 3600);
                 } catch (Exception $e) {
-                    // Error saving to cache, continue working without caching
+                    $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                    error_log($errorMessage);
                 }
             }
         } catch (Exception $e) {

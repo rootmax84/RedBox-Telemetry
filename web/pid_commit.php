@@ -47,6 +47,6 @@ try {
     $db->rollback();
     echo "Error: " . $e->getMessage();
 }
-
+cache_flush();
 $db->close();
 ?>

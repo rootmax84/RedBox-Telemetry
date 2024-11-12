@@ -94,7 +94,8 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($years_cache_key, [$yeararray, $current_timestamp], 3600);
             } catch (Exception $e) {
-                // Error saving to cache, continue working without caching
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }
@@ -124,7 +125,8 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($profiles_cache_key, [$profilearray, $current_timestamp], 3600);
             } catch (Exception $e) {
-                // Error saving to cache, continue working without caching
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }
@@ -161,7 +163,8 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], 1800);
             } catch (Exception $e) {
-                // Error saving to cache, continue working without caching
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }
@@ -201,7 +204,8 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($stream_lock_cache_key, [$stream_lock, $current_timestamp], 3600);
             } catch (Exception $e) {
-                // Error saving to cache, continue working without caching
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }
@@ -227,7 +231,8 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($session_id_cache_key, [$id, $current_timestamp], 3600);
             } catch (Exception $e) {
-                // Error saving to cache, continue working without caching
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }
