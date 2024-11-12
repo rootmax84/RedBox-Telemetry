@@ -55,6 +55,11 @@ function check_login_attempts($user) {
     $db = get_db_connection();
     global $db_users;
 
+    // Clean install
+    if (!check_table_exists($db, $db_users)) {
+        return true;
+    }
+
     $result = $db->execute_query("SELECT login_attempts, last_attempt FROM $db_users WHERE user=?", [$user]);
     $row = $result->fetch_assoc();
 
@@ -177,6 +182,11 @@ function perform_migration() {
     $db = get_db_connection();
     global $db_users;
 
+    // Clean install
+    if (!check_table_exists($db, $db_users)) {
+        return;
+    }
+
     $migrations = [
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS stream_lock TINYINT(1) NOT NULL DEFAULT 0",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS login_attempts TINYINT UNSIGNED DEFAULT 0",
@@ -190,6 +200,15 @@ function perform_migration() {
             die("Migration failed: " . $e->getMessage());
         }
     }
+}
+
+function check_table_exists($db, $table_name) {
+    $query = "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?";
+    $stmt = $db->prepare($query);
+    $stmt->bind_param("s", $table_name);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->num_rows > 0;
 }
 
 function logout_user()
