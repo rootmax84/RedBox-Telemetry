@@ -63,11 +63,41 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 [Click it](https://demo.redbox.pw/ratel/)
 
 ### Screenshots:
-![](https://redbox.pw/wp-content/uploads/2024/02/interface_main.png?1)
 
-![](https://redbox.pw/wp-content/uploads/2024/02/interface_settings.png?2)
-
-![](https://redbox.pw/wp-content/uploads/2024/02/interface_admin.png)
+<table>
+  <tr>
+    <td>
+      <img width="100%" src="https://github.com/user-attachments/assets/10c7dfe2-eaf8-458b-9ac4-28f3d8c212fc">
+    </td>
+    <td>
+      <img width="100%" src="https://github.com/user-attachments/assets/e2da5a85-b1e6-488d-ae29-22ba87fe96b1">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img width="100%" src="https://github.com/user-attachments/assets/188f17f0-582d-4c62-ab1b-4374f6b75fe6">
+    </td>
+    <td>
+      <img width="100%" src="https://github.com/user-attachments/assets/8499c985-33d6-4e2d-85e4-503eb1c55da3">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img width="100%" src="https://github.com/user-attachments/assets/d081bde4-bd1f-4e3d-950d-cedc09fd26e5">
+    </td>
+    <td>
+      <img width="100%" src="https://github.com/user-attachments/assets/e26b1338-08bc-4c24-89f0-10a7b1f41d7b">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img width="100%" src="https://github.com/user-attachments/assets/fcd1fc13-99b1-4d95-b12d-9644b374797a">
+    </td>
+    <td>
+      <img width="100%" src="https://github.com/user-attachments/assets/bdf11c64-911a-48f6-b2d8-3f27287ad5be">
+    </td>
+  </tr>
+</table>
 
 ### Typical nginx host configuration for standalone installation:
 ```
