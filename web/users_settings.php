@@ -87,6 +87,12 @@
 		    <option value="false">No</option>
 		    <option value="true">Yes</option>
 		</select>
+		 <label>Chart line width</label><select class="form-control" id="chart-lineWidth">
+		    <option value="1">Thin</option>
+		    <option value="1.5">Thinner</option>
+		    <option value="2">Default</option>
+		    <option value="3">Thick</option>
+		</select>
 		 <br>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit">Save</button></div>
 		</form>
@@ -112,6 +118,7 @@ function submitForm(el) {
   xhr.send(new FormData(el));
   localStorage.setItem(`${username}-chart_fill`, $("#chart-fill").val());
   localStorage.setItem(`${username}-chart_steps`, $("#chart-steps").val());
+  localStorage.setItem(`${username}-chart_lineWidth`, $("#chart-lineWidth").val());
   return false;
 }
 
@@ -128,6 +135,7 @@ function xhrResponse(text) {
 $(document).ready(function() {
     $("#chart-fill").val(localStorage.getItem(`${username}-chart_fill`) || "false");
     $("#chart-steps").val(localStorage.getItem(`${username}-chart_steps`) || "false");
+    $("#chart-lineWidth").val(localStorage.getItem(`${username}-chart_lineWidth`) || "2");
 });
 </script>
  </body>

@@ -10,6 +10,7 @@ let chartTooltip = () => {
 
 const chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
 const chart_steps = localStorage.getItem(`${username}-chart_steps`) === "true";
+const chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
 
 $(document).ready(function(){
   // Activate Chosen on the selection drop down
@@ -217,7 +218,8 @@ function doPlot(position) {
         },
         lines: {
             fill: chart_fill,
-            steps: chart_steps
+            steps: chart_steps,
+            lineWidth: chart_lineWidth
         }
     });
     chartTooltip();
