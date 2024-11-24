@@ -81,6 +81,7 @@ function addCsrfTokenToForms() {
     });
 }
 
+<?php if (isset($_SESSION['torque_user'])) {?>
 function checkCSRFToken() {
     const tokenMeta = document.querySelector('meta[name="csrf-token"]');
     const expiryMeta = document.querySelector('meta[name="csrf-token-expiry"]');
@@ -102,6 +103,8 @@ function checkCSRFToken() {
         }
     }
 }
+setInterval(checkCSRFToken, 60000);
+<?php } ?>
 
 document.addEventListener('DOMContentLoaded', addCsrfTokenToForms);
 
@@ -126,10 +129,6 @@ function auth() {
 const username = "<?php if (isset($username) && $username != $admin) echo $username; ?>";
 if (username.trim() !== "") {
     document.title += ` - ${username}`;
-}
-
-if ($.cookie('stream') === '1') {
-    setInterval(checkCSRFToken, 60000);
 }
 </script>
 <script src="static/js/helpers.js"></script>

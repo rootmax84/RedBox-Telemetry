@@ -8,8 +8,7 @@ function get_db_connection() {
         try {
             $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
         } catch (Exception $e) {
-            header('HTTP/1.0 503 Service unavailable');
-            die("No database connection!");
+            header('Location: catch.php?c=dberror');
         }
     }
 
