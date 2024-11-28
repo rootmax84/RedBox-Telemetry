@@ -1,5 +1,6 @@
 <?php
 require_once('creds.php');
+include_once('translations.php');
 
 if (isset($_SESSION['admin'])) {
     $maintenanceFile = 'maintenance';
@@ -13,7 +14,7 @@ if (isset($_SESSION['admin'])) {
             unlink($maintenanceFile);
         }
     } elseif (isset($_GET['mode'])) {
-        die(file_exists($maintenanceFile) ? "enabled" : "disabled");
+        die(file_exists($maintenanceFile) ? $translations[$_COOKIE['lang']]['dialog.maintenance.on'] : $translations[$_COOKIE['lang']]['dialog.maintenance.off']);
     }
 }
 

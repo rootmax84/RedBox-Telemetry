@@ -70,7 +70,8 @@ function cache_flush($token = null) {
                 "db_limit_{$db_table}",
                 "table_structure_{$db_table}",
                 "user_status_{$username}",
-                "columns_data_{$db_pids_table}"
+                "columns_data_{$db_pids_table}",
+                "pids_mapping_{$username}"
             ];
             if ($token !== null) {
                 $keys[] = "user_data_{$token}";

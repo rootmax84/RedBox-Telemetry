@@ -2,13 +2,14 @@
 require_once ('token_functions.php');
 require_once ('auth_functions.php');
 require_once ('db.php');
+include_once ('translations.php');
 
 if (isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $_POST['stream_lock']) && isset($username) && $username != $admin){ //Update users settings
     $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=? WHERE user=?", [$_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $_POST['stream_lock'], $username]);
     $db->close();
     setcookie("timeformat", $_POST['time'] == '1' ? '24' : '12');
     setcookie("gap", $_POST['gap']);
-    die("Settings updated");
+    die($translations[$_COOKIE['lang']]['set.common.updated']);
 }
 
 if (isset($_GET['get_token']) && isset($username) && $username != $admin){ //Get current user token
@@ -20,7 +21,7 @@ if (isset($_GET['get_token']) && isset($username) && $username != $admin){ //Get
 else if (isset($_GET['renew_token']) && isset($username) && $username != $admin){ //Renew token by user action
     $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [generate_token($username), $username]);
     $db->close();
-    die("Token updated");
+    die($translations[$_COOKIE['lang']]['set.token.updated']);
 }
 else if (isset($_POST['old_p']) && isset($_POST['new_p1']) && isset($_POST['new_p2']) && isset($username) && $username != $admin){ // Change password by user action
     $old_p = $_POST['old_p'];
@@ -28,23 +29,23 @@ else if (isset($_POST['old_p']) && isset($_POST['new_p1']) && isset($_POST['new_
     $new_p2 = $_POST['new_p2'];
     $row = $db->execute_query("SELECT id, pass FROM $db_users WHERE user=?", [$username])->fetch_assoc();
      if (password_verify($old_p, $row["pass"])) {
-     if ($new_p1 != $new_p2) die ("New password not match!");
-     if (strlen($new_p1) < 8 || strlen($new_p2) < 8) die("New password must be at least 8 chars!");
-     if ($old_p == $new_p1 || $old_p == $new_p2) die("New password same as current password!");
+     if ($new_p1 != $new_p2) die ($translations[$_COOKIE['lang']]['set.pwd.not.match']);
+     if (strlen($new_p1) < 8 || strlen($new_p2) < 8) die($translations[$_COOKIE['lang']]['set.pwd.short']);
+     if ($old_p == $new_p1 || $old_p == $new_p2) die($translations[$_COOKIE['lang']]['set.pwd.same']);
      $new_pass = $new_p2;
-     if (!preg_match("#[0-9]+#", $new_pass)) die("New password must have at least one number!");
-     if (!preg_match("#[a-zA-Z]+#", $new_pass)) die("New password must have at least one letter!");
+     if (!preg_match("#[0-9]+#", $new_pass)) die($translations[$_COOKIE['lang']]['set.pwd.number']);
+     if (!preg_match("#[a-zA-Z]+#", $new_pass)) die($translations[$_COOKIE['lang']]['set.pwd.char']);
      $db->execute_query("UPDATE $db_users SET pass=? WHERE id=?", [password_hash($new_pass, PASSWORD_DEFAULT, $salt), $row['id']]);
      $db->close();
-     die("Password changed successfully");
+     die($translations[$_COOKIE['lang']]['set.pwd.changed']);
     }
-    else die("Wrong current password!");
+    else die($translations[$_COOKIE['lang']]['set.pwd.wrong.curr']);
 }
 else if (isset($_POST['tg_token']) && isset($_POST['tg_chatid']) && isset($username) && $username != $admin){ //Set telegram bot creds for notifying
     $db->execute_query("UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?", [$_POST['tg_token'], $_POST['tg_chatid'], $username]);
     $db->close();
     $response = notify("RedBox Telemetry test message", $_POST['tg_token'], $_POST['tg_chatid']); //Send test message
-    die($response == NULL ? "Nothing to do" : ($response['ok'] ? "Test message sent" : $response['description']));
+    die($response == NULL ? $translations[$_COOKIE['lang']]['set.nothing'] : ($response['ok'] ? $translations[$_COOKIE['lang']]['set.tg.send'] : $response['description']));
 }
 
 if (!isset($_SESSION['admin'])) {
@@ -61,22 +62,22 @@ else
 	if ($login == $admin && $e_limit != NULL) die("Can't set limit for admin");
 
 	$row = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login])->fetch_assoc();
-	if (!$row) die("User $login not found");
+	if (!$row) die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
 
-	if (strlen($password) > 1 && strlen($password) < 5) die("Password too short");
-	if (!strlen($e_limit) && !strlen($password)) die("Nothing to do");
+	if (strlen($password) > 1 && strlen($password) < 5) die($translations[$_COOKIE['lang']]['admin.pwd.short']);
+	if (!strlen($e_limit) && !strlen($password)) die($translations[$_COOKIE['lang']]['set.nothing']);
 
 	if (!strlen($password) && strlen($e_limit)) { //Change only limit
 	 $db->execute_query("UPDATE $db_users SET s=? WHERE id=?", [$e_limit, $row['id']]);
-	 $msg = "User $login limit changed";
+	 $msg = $translations[$_COOKIE['lang']]['admin.limit.changed'].$login;
 	}
 	else if (strlen($password) && !strlen($e_limit)) { //Change only password
 	 $db->execute_query("UPDATE $db_users SET pass=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $row['id']]);
-	 $msg = "User $login password changed";
+	 $msg = $translations[$_COOKIE['lang']]['admin.pwd.changed'].$login;
 	}
 	else { // Change password and limit
 	 $db->execute_query("UPDATE $db_users SET pass=?, s=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $e_limit, $row['id']]);
-	 $msg = "User $login limit and password changed";
+	 $msg = $translations[$_COOKIE['lang']]['admin.changed'].$login;
 	}
 	$username = $login;
 	cache_flush($row['token']);
@@ -89,9 +90,9 @@ else
 	$password = $_POST['reg_pass'];
 
 	$userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
-	if ($userqry->num_rows || strlen($login) < 1) die("User already exist or login empty");
+	if ($userqry->num_rows || strlen($login) < 1) die($translations[$_COOKIE['lang']]['admin.user.exists']);
 
-	if (strlen($password) < 5) die("Password too short");
+	if (strlen($password) < 5) die($translations[$_COOKIE['lang']]['admin.pwd.short']);
 
 	$logs_table = "CREATE TABLE ".$login.$db_log_prefix." (
 			session bigint(20) unsigned NOT NULL,
@@ -360,7 +361,7 @@ if ($db_engine == "INNODB" && $db_innodb_compression) {
 //Insert user entry to users table
 $db->execute_query("INSERT INTO $db_users (user, pass, s, token) VALUES (?,?,?,?)", [$login, password_hash($password, PASSWORD_DEFAULT, $salt), $def_limit, 'Welcome, '.$login.'! Click renew to create token.']);
 $db->close();
-die("User $login added");
+die($translations[$_COOKIE['lang']]['admin.user.added'].$login);
 }
 
     else if (isset($_POST['del_login'])){ //delete user
@@ -368,7 +369,7 @@ die("User $login added");
 
 	$userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
 	if (!$userqry->num_rows || strlen($login) < 1) die("User not found");
-	else if ($login == $admin) die("Admin cannot be deleted!");
+	else if ($login == $admin) die($translations[$_COOKIE['lang']]['admin.del.admin']);
 
 	$logs_table = "DROP TABLE ".$login.$db_log_prefix;
 	$sessions_table = "DROP TABLE ".$login.$db_sessions_prefix;
@@ -378,18 +379,18 @@ die("User $login added");
 	    $db->query($logs_table);
 	    $db->query($sessions_table);
 	    $db->query($pids_table);
-	} catch (Exception $e) { die("User $login has no tables and cannot be deleted!"); }
+	} catch (Exception $e) { die($login.$translations[$_COOKIE['lang']]['admin.del.catch']); }
 	$db->query($user_entry);
 	$db->close();
-	die("User $login deleted");
+	die($translations[$_COOKIE['lang']]['admin.del.ok'].$login);
     }
 
     else if (isset($_POST['trunc_login'])){ //truncate user db
 	$login = $_POST['trunc_login'];
 
 	$userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
-	if (!$userqry->num_rows || strlen($login) < 1) die("User not found");
-	else if ($login == $admin) die("Admin cannot be truncated!");
+	if (!$userqry->num_rows || strlen($login) < 1) die($translations[$_COOKIE['lang']]['admin.user.not.found']);
+	else if ($login == $admin) die($translations[$_COOKIE['lang']]['admin.trunc.admin']);
 
 	$logs_table = "TRUNCATE TABLE ".$login.$db_log_prefix;
 	$sessions_table = "TRUNCATE TABLE ".$login.$db_sessions_prefix;
@@ -397,7 +398,7 @@ die("User $login added");
 	$db->query($logs_table);
 	$db->query($sessions_table);
 	$db->close();
-	die("User $login database truncated");
+	die($translations[$_COOKIE['lang']]['admin.trunc'].$login);
     }
 
     else {

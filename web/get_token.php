@@ -1,4 +1,6 @@
 <?php
+include('translations.php');
+
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With, Authorization, Content-Type');
 header('Access-Control-Max-Age: 30');
@@ -25,10 +27,11 @@ if (empty($_POST)) {
 
 $user = $_POST['user'] ?? '';
 $pass = $_POST['pass'] ?? '';
+$lang = $_POST['lang'] ?? 'en';
 
 if (empty($user) || empty($pass)) {
     http_response_code(400);
-    echo 'Username and password are required';
+    echo $translations[$lang]['required'];
     exit;
 }
 
@@ -42,7 +45,7 @@ global $db_users;
 $userqry = $db->execute_query("SELECT user, pass, token, s FROM $db_users WHERE user=?", [$user]);
 if ($userqry->num_rows === 0) {
     http_response_code(401);
-    echo 'User not found';
+    echo $translations[$lang]['not_found'];
     exit;
 }
 
@@ -51,14 +54,14 @@ $row = $userqry->fetch_assoc();
 // Check disabled user
 if (!$row['s']) {
     http_response_code(403);
-    echo 'User disabled';
+    echo $translations[$lang]['disabled'];
     exit;
 }
 
 // Login attempts
 if (!check_login_attempts($user)) {
     http_response_code(403);
-    echo 'Blocked by 5 minutes';
+    echo $translations[$lang]['blocked'];
     exit;
 }
 
@@ -66,14 +69,14 @@ if (!check_login_attempts($user)) {
 if (!password_verify($pass, $row['pass'])) {
     update_login_attempts($user, false);
     http_response_code(403);
-    echo 'Wrong password';
+    echo $translations[$lang]['wrong_pwd'];
     exit;
 }
 
 // Token presence
 if (strpos($row['token'], 'Welcome') !== false) {
     http_response_code(406);
-    echo 'Generate token first';
+    echo $translations[$lang]['gen_token'];
     exit;
 }
 

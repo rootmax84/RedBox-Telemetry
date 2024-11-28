@@ -64,7 +64,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
             <?php if (!isset($_SESSION['admin']) && $limit > 0) { ?>
-                <label id="storage-usage">Storage usage: <?php echo $db_used; ?></label>
+                <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used; ?></span></label>
             <?php } ?>
             <div class="container">
                 <div id="theme-switch"></div>
@@ -76,17 +76,17 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
         <form style="padding:50px 0 0;" action="merge_sessions.php" method="get" id="formmerge">
             <input type="hidden" name="mergesession" value="<?php echo $mergesession; ?>">
             <div style="padding:10px; display:flex; justify-content:center;">
-                <input class="btn btn-info btn-sm" type="submit" value="Merge Selected Sessions" id="merge-btn">
+                <button class="btn btn-info btn-sm" type="submit" id="merge-btn" l10n="btn.merge"></button>
             </div>
             <table class="table table-del-merge-pid">
                 <thead>
                     <tr>
                         <th></th>
-                        <th>Start Time</th>
-                        <th>End Time</th>
-                        <th>Session Duration</th>
-                        <th>Number of Datapoints</th>
-                        <th>Profile</th>
+                        <th l10n="s.table.start"></th>
+                        <th l10n="s.table.end"></th>
+                        <th l10n="s.table.duration"></th>
+                        <th l10n="s.table.datapoints"></th>
+                        <th l10n="s.table.profile"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -200,10 +200,10 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
                 var maximum = <?php echo isset($merge_max) ? $merge_max : 50000; ?>;
                 var oversize = total > maximum;
                 var dialogOpt = {
-                    title : oversize ? "Result session is too big" : "Confirmation",
-                    message: oversize ? `Merge maximum: ${maximum/1000}k datapoints<br>Selected: ${total/1000}k` : "Merge selected session(s) with session <?php echo $mergesession; ?>?",
-                    btnClassSuccessText: oversize ? "OK" : "Yes",
-                    btnClassFailText: "No",
+                    title : oversize ? tt['dialog.merge.big.title'] : tt['dialog.confirm'],
+                    message: oversize ? `${tt['dialog.merge.big.msg']} ${maximum/1000}k ${tt['dialog.merge.big.datapoints']}<br>${tt['dialog.merge.big.sel']} ${total/1000}k` : `${tt['dialog.merge.sessions']} <?php echo $mergesession; ?>?`,
+                    btnClassSuccessText: oversize ? "OK" : tt['btn.yes'],
+                    btnClassFailText: tt['btn.no'],
                     btnClassFail: oversize ? "hidden" : "btn btn-info btn-sm",
                     onResolve: function() {
                         if (!oversize) {

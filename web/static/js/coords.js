@@ -59,10 +59,10 @@ L.Control.Coordinates = L.Control.extend({
 		document.execCommand('copy');
 		document.body.removeChild(textArea);
 	    var dialogOpt = {
-		title : "Coordinates",
+		title : tt['dialog.coord.title'],
 		btnClassSuccessText: "OK",
 		btnClassFail: "hidden",
-		message : "Coordinates copied to clipboard.",
+		message : tt['dialog.coord.msg'],
 		onResolve: function(){return;}
 		};
 	    redDialog.make(dialogOpt);

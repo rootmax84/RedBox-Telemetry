@@ -45,7 +45,7 @@ include("head.php");
 
         function xhrResponse(text) {
             var dialogOpt = {
-                title: "Result",
+                title: tt['dialog.result'],
                 message: text,
                 btnClassSuccessText: "OK",
                 btnClassFail: "hidden",
@@ -56,7 +56,7 @@ include("head.php");
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-            <label id="storage-usage">Storage usage: <?php echo $db_used;?></label>
+            <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
         <?php } ?>
         <div class="container">
             <div id="theme-switch"></div>
@@ -68,17 +68,17 @@ include("head.php");
     </div>
     <form style="padding:50px 0 0;" method="POST" action="pid_commit.php" onsubmit="return submitForm(this);">
         <div style="padding:10px; display:flex; justify-content:center;">
-            <input class="btn btn-info btn-sm" type="submit" value="Apply" type="submit">
+            <button class="btn btn-info btn-sm" type="submit" type="submit" l10n="btn.apply"></button>
         </div>
         <table class="table table-del-merge-pid">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Description</th>
-                    <th>Units</th>
-                    <th>Chart</th>
-                    <th>Stream</th>
-                    <th>Favorite</th>
+                    <th l10n="p.table.id"></th>
+                    <th l10n="p.table.desc"></th>
+                    <th l10n="p.table.units"></th>
+                    <th l10n="p.table.chart"></th>
+                    <th l10n="p.table.stream"></th>
+                    <th l10n="p.table.fav"></th>
                 </tr>
             </thead>
             <tbody>

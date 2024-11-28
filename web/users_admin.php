@@ -78,7 +78,7 @@ function submitForm(el) {
 
 function xhrResponse(text) {
  var dialogOpt = {
-    title: "Result",
+    title: tt['dialog.result'],
     message : text,
     btnClassSuccessText: "OK",
     btnClassFail: "hidden",

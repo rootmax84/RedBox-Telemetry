@@ -180,7 +180,7 @@ function doPlot(position) {
         xaxes: [ {
             mode: "time",
             timezone: "browser",
-            axisLabel: "Time",
+            axisLabel: tt['chart.time.label'],
             tickFormatter: function(val, axis) {
                 if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) return "";
                 const processedTimes = Object.keys(window.realTimeInfo.timeMapping).map(Number);
@@ -296,7 +296,7 @@ let updCharts = ()=>{
             $('#Summary-Container').empty();
             $('#Summary-Container').append($('<div>',{class:'table-responsive'}).append($('<table>',{class:'table table-sum'}).append($('<thead>').append($('<tr>'))).append('<tbody>')));
             // Create table headers
-            const headers = ['Name', 'Min/Max', 'Mean', 'Sparkline'];
+            const headers = [tt['datasum.name'], tt['datasum.mm'], tt['datasum.mean'], tt['datasum.sparkline']];
             const thead = document.querySelector('#Summary-Container>div>table>thead>tr');
             const headerFragment = document.createDocumentFragment();
             headers.forEach(v => {
@@ -402,8 +402,8 @@ let initMapLeaflet = () => {
     });
 
     let baseMaps = {
-        "Map": osm,
-        "Satellite": esri
+        [tt['layer.map']]: osm,
+        [tt['layer.sat']]: esri
     };
 
     let layerControl = L.control.layers(baseMaps).addTo(map);

@@ -40,7 +40,7 @@ if (isset($delsession)) {
   <body>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-     <label id="storage-usage">Storage usage: <?php echo $db_used;?></label>
+     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
 <?php } ?>
       <div class="container">
        <div id="theme-switch"></div>
@@ -51,16 +51,16 @@ if (isset($delsession)) {
     </div>
     <form style="padding:50px 0 0;" action="del_sessions.php" method="get" id="formdel" >
       <input type="hidden" name="delsession" value="<?php echo $delsession; ?>">
-      <div style="padding:10px; display:flex; justify-content:center"><input class="btn btn-info btn-sm" type="submit" value="Delete Selected Sessions" id="del-btn"></div>
+      <div style="padding:10px; display:flex; justify-content:center"><button class="btn btn-info btn-sm" type="submit" id="del-btn" l10n="btn.del"></button></div>
       <table class="table table-del-merge-pid">
         <thead>
           <tr>
           <th><input type="checkbox" onclick="toggle(this);" /></th>
-          <th>Start Time</th>
-          <th>End Time</th>
-          <th>Session Duration</th>
-          <th>Number of Datapoints</th>
-          <th>Profile</th>
+          <th l10n="s.table.start"></th>
+          <th l10n="s.table.end"></th>
+          <th l10n="s.table.duration"></th>
+          <th l10n="s.table.datapoints"></th>
+          <th l10n="s.table.profile"></th>
           </tr>
         </thead>
         <tbody>
@@ -105,7 +105,7 @@ if (isset($delsession)) {
     <?php
         if (!$number_of_result) {
     ?>
-        <h3 style='text-align:center'>No sessions found</h>
+        <h3 style='text-align:center' l10n="no.sess"></h>
         <script>
             document.getElementById('del-btn').disabled = true;
             document.querySelector('input[type="checkbox"]').disabled = true;
@@ -170,9 +170,9 @@ if ($current_page < $total_pages) {
 
     function delSessions() {
      var dialogOpt = {
-        btnClassSuccessText: "Yes",
+        btnClassSuccessText: tt['btn.yes'],
         btnClassFail: "btn btn-info btn-sm",
-        message : "Delete selected sessions?",
+        message : tt['dialog.del.sessions'],
         onResolve: function(){
          $("#wait_layout").show();
          document.getElementById("formdel").submit();
@@ -185,7 +185,7 @@ if ($current_page < $total_pages) {
      var dialogOpt = {
         btnClassSuccessText: "OK",
         btnClassFail: "hidden",
-        message : "No sessions selected."
+        message : tt['dialog.no.select']
      };
      redDialog.make(dialogOpt);
     }

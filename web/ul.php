@@ -1,5 +1,6 @@
 <?php
 require_once('token_functions.php');
+include('translations.php');
 
 //Allow CORS and JWT
 header('Access-Control-Allow-Origin: *');
@@ -22,10 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { //Respond to preflights
 $token = getBearerToken();
 if (!empty($token)) {
 
+ $lang = $_POST['lang'] ?? 'en';
+
  //Maintenance mode
  if (file_exists('maintenance')){
   header('HTTP/1.0 423 Locked');
-  die('Server under maintenance');
+  die($translations[$lang]['maintenance']);
  }
 
  $_SESSION['torque_logged_in'] = true;
@@ -35,7 +38,7 @@ if (!empty($token)) {
  $load = sys_getloadavg(); //Fetch CPU load avg
  if ($max_load_avg > 0 && $load[1] > $max_load_avg){
   header('HTTP/1.0 413 Server overload');
-  die('Server overloaded');
+  die($translations[$lang]['overload']);
  }
 
  $cache_key = "user_data_" . $token;
@@ -75,7 +78,7 @@ if (!empty($token)) {
 
 if ($access != 1 || $limit == 0){
      header('HTTP/1.0 403 Forbidden');
-     die('Access denied');
+     die($translations[$lang]['denied']);
 }
 
 $db_table = $user.$db_log_prefix;
@@ -101,7 +104,7 @@ if ($db_limit === false) {
 
 if ($db_limit >= $limit && $limit != -1){
     header('HTTP/1.0 406 Not Acceptable');
-    die('No space left');
+    die($translations[$lang]['no_space']);
 }
 
 $db_sessions_table = $user.$db_sessions_prefix;

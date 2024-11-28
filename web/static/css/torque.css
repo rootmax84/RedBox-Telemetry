@@ -227,7 +227,7 @@ canvas *{
 }
 
 .tlue {
-  font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Open Sans", "Open Sans C", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 19px;
   font-weight: 300;
   color: #222222;
@@ -351,6 +351,11 @@ body::-webkit-scrollbar {
 @font-face {
   font-family: 'FontAwesome';
   src: url('./awesome.woff2');
+}
+
+@font-face {
+  font-family: 'Open Sans C';
+  src: url('./opensans_c.woff2');
 }
 
 @font-face {
@@ -579,7 +584,7 @@ img {
 
 .nogps {
   font-size: 14px;
-  font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Open Sans", "Open Sans C", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 .table-sum td:nth-child(2),

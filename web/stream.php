@@ -3,6 +3,7 @@
 require_once('db.php');
 include('timezone.php');
 require_once('parse_functions.php');
+include_once('translations.php');
 
 if (isset($_SESSION['admin'])) {
     header("Refresh:0; url=.");
@@ -131,10 +132,11 @@ function formatUnit($pid, $des, $spd_unit, $trip_unit, $temp_unit, $press_unit, 
 }
 
 function outputLastRecordDate($time, $rate) {
+    global $translations;
     if ($time != '') {
         $seconds = intval($time / 1000);
         $time_format = $_COOKIE['timeformat'] == "12" ? "d.m.Y h:i:sa" : "d.m.Y H:i:s";
-        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>Last record at: " . date($time_format, $seconds) . "</span></td></tr>";
+        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>" . $translations[$_COOKIE['lang']]['stream.last'] . date($time_format, $seconds) . "</span></td></tr>";
     } else {
         $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>No data available</span></td></tr>";
     }

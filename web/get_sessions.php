@@ -4,6 +4,8 @@ if (!isset($_SESSION)) {
 }
 
 include("timezone.php");
+include_once("translations.php");
+$lang = $_COOKIE['lang'];
 
 function getFilterValue($postKey, $getKey, $default) {
     return isset($_POST[$postKey]) ? $_POST[$postKey] : (isset($_GET[$getKey]) ? $_GET[$getKey] : $default);
@@ -23,8 +25,8 @@ $params = [];
 $types = ""; // Types for bind_param (example, 's' for strings)
 
 // Build SQL-query with prepared expressions
-$query = "SELECT time, timeend, session, profileName, sessionsize, ip 
-          FROM $db_sessions_table 
+$query = "SELECT time, timeend, session, profileName, sessionsize, ip
+          FROM $db_sessions_table
           WHERE 1=1";
 
 // year filter
@@ -73,10 +75,10 @@ try {
 
 // If nothing found pull last 20 sessions
 if ($sessionqry->num_rows == 0) {
-    $query = "SELECT time, timeend, session, profileName, sessionsize, ip 
-              FROM $db_sessions_table 
-              GROUP BY session, profileName, time, timeend, sessionsize 
-              ORDER BY session DESC 
+    $query = "SELECT time, timeend, session, profileName, sessionsize, ip
+              FROM $db_sessions_table
+              GROUP BY session, profileName, time, timeend, sessionsize
+              ORDER BY session DESC
               LIMIT 20";
 
     $sessionqry = $db->query($query);
@@ -95,8 +97,20 @@ while ($row = $sessionqry->fetch_assoc()) {
     $session_ip = $row["ip"];
     $sids[] = preg_replace('/\D/', '', $sid);
     $seshdates[$sid] = date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", substr($sid, 0, -3));
-    $seshsizes[$sid] = " (Length $session_duration_str)";
-    $seshprofile[$sid] = " ($session_profileName Profile)";
-    $seship[$sid] = " (From IP $session_ip)";
+    $seshsizes[$sid] = " ({$translations[$lang]['get.sess.length']} $session_duration_str)";
+    $seshprofile[$sid] = " ($session_profileName {$translations[$lang]['get.sess.profile']})";
+    $seship[$sid] = " ({$translations[$lang]['get.sess.ip']} $session_ip)";
+}
+
+function getTranslatedMonth($month, $lang) {
+    global $translations;
+    $month_key = 'month.' . strtolower(substr($month, 0, 3));
+    return $translations[$lang][$month_key] ?? $month;
+}
+
+foreach ($seshdates as $sid => $date) {
+    $month_name = date("F", strtotime($date));
+    $translated_month = getTranslatedMonth($month_name, $lang);
+    $seshdates[$sid] = str_replace($month_name, $translated_month, $date);
 }
 ?>

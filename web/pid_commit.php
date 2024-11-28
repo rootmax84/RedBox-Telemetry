@@ -1,6 +1,7 @@
 <?php
 require_once('db.php');
 require_once('auth_user.php');
+require_once('translations.php');
 
 if (empty($_POST)) {
     die("Invalid Requests");
@@ -42,7 +43,7 @@ try {
     }
 
     $db->commit();
-    echo "PID's updated";
+    echo  $translations[$_COOKIE['lang']]['dialog.pid.update'];
 } catch (Exception $e) {
     $db->rollback();
     echo "Error: " . $e->getMessage();

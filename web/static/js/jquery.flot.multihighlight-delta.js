@@ -80,7 +80,7 @@ function convertToRealTime(processedTime) {
         tooltipOffsetX: 20,
         tooltipOffsetY: 20,
 		// 2015.08.17 - edit by surfrock66 - Added variable for displaying time in tooltip
-        tooltipTemplate: '<table class="table" style="font-size:.8em;"><thead><tr><th><%= time[0] %></th><th>Value</th><th>Change</th><th><%= event %></th></tr></thead><tbody><%= body %></tbody></table>',
+        tooltipTemplate: '<table class="table" style="font-size:.8em;"><thead><tr><th><%= time[0] %></th><th><%= value %></th><th><%= change %></th><th><%= event %></th></tr></thead><tbody><%= body %></tbody></table>',
         dataPointTemplate: '<tr><td><%= series.label %></td><td><%= datapoint[1] %></td><td><%= (delta > 0 ? "+" : "") %><%= delta %></td><td><%= rlbc %></td></tr>',
         transformDataPointData: false,
         tooltipStyles: {
@@ -248,7 +248,9 @@ function convertToRealTime(processedTime) {
         }
 
         var tooltipText = this.tooltipTemplate({
-          event : showEventHeader ? "Event" : null,
+          value : tt['chart.val'],
+          change: tt['chart.change'],
+          event : showEventHeader ? tt['chart.event'] : null,
           time: timeArray,
           body: childrenTexts.join('\n')
         });

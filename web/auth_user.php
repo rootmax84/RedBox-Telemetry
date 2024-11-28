@@ -41,12 +41,12 @@ if (!$logged_in) {
     <body style="display:flex; justify-content:center; align-items:center; height:100vh">
     <div class="login login-form" id="login-form">
         <div style="font-weight:bold; color:red; text-align:center; width:100%; font-size:16px; letter-spacing:1.5px">RedB<img src="static/img/logo.svg" alt style="height:10px; width:12px; margin-right:1px">x Telemetry</div>
-        <h6 style="text-align:center; margin-bottom:20px">Sign in to your account</h6>
+        <h6 style="text-align:center; margin-bottom:20px" l10n="login.label"></h6>
         <form method="post" class="form-group" action=".">
-            <input class="form-control" type="text" name="user" value="" placeholder="(Username)" autocomplete="off" required autofocus><br>
-            <input class="form-control" type="password" name="pass" value="" placeholder="(Password)" autocomplete="off" required><br>
-            <button id="login-btn" class="btn btn-info btn-sm" type="submit" name="Login" style="width:100%; height:35px">Sign in</button>
-            <div style="text-align:center; margin:15px 0 -20px; font-size:12px; opacity:.6"><a href="https://github.com/rootmax84/RedBox-Telemetry" target="_blank">Project on Github</a></div>
+            <input class="form-control" type="text" name="user" value="" l10n-placeholder="login.login" autocomplete="off" required autofocus><br>
+            <input class="form-control" type="password" name="pass" value="" l10n-placeholder="login.pwd" autocomplete="off" required><br>
+            <button id="login-btn" class="btn btn-info btn-sm" type="submit" name="Login" style="width:100%; height:35px" l10n="login.signin"></button>
+            <div style="text-align:center; margin:15px 0 -20px; font-size:12px; opacity:.6"><a href="https://github.com/rootmax84/RedBox-Telemetry" target="_blank" l10n="login.github"></a></div>
         </form>
     </div>
     <div class="login-background"></div>

@@ -4,6 +4,7 @@
 <?php require_once('token_functions.php'); if (isset($_SESSION['torque_user'])) {?>
 <script async src="static/js/theme.js"></script>
 <?php } ?>
+<script src="static/js/localization.js"></script>
 <link rel="apple-touch-icon" sizes="180x180" href="static/img/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="static/img/favicon-16x16.png">
@@ -38,6 +39,8 @@
 <script src="static/js/nosleep.js"></script>
 <script>
     $(document).ready(function() {
+     localization = new Localization();
+     fetch(`translations.php?lang=${lang}`);
      const visitortimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
      fetch("timezone.php?time=" + visitortimezone);
       $("#theme-switch").click( function() {

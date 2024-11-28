@@ -3,6 +3,8 @@ require_once('db.php');
 require_once('db_limits.php');
 require_once('plot.php');
 require_once('timezone.php');
+include_once('translations.php');
+$lang = $_COOKIE['lang'];
 
 if (!isset($_SESSION['admin'])) $_SESSION['recent_session_id'] = strval(isset($sids)?max($sids):null);
 
@@ -274,7 +276,7 @@ if (isset($sids[0])) {
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-     <label id="storage-usage">Storage usage: <?php echo $db_used;?></label>
+     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
 <?php } ?>
       <div class="container">
        <div id="theme-switch"></div>
@@ -285,18 +287,18 @@ if (isset($sids[0])) {
     </div>
     <div id="right-container" class="col-md-auto col-xs-12">
 <?php if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) {?>
-	<h4>Select Session</h4>
+	<h4 l10n="sel.sess">...</h4>
 	<div class="row center-block" style="padding-bottom:4px;">
 	  <!-- Filter the session list by year and month -->
-	  <h5>Filter Sessions (default - last 20)</h5>
+	  <h5 l10n="filter.sess"></h5>
 	  <form method="post" class="form-horizontal" action="url.php?id=<?php echo $session_id; ?>">
 	    <table style="width:100%">
 	      <tr>
 		<!-- Profile Filter -->
 		<td style="width:22%">
 		  <select id="selprofile" name="selprofile" class="form-control chosen-select" data-placeholder="Select Profile" onchange="$('#wait_layout').show();this.form.submit()">
-		    <option value="" disabled selected>Select Profile</option>
-		    <option style="text-align:center" value="ALL"<?php if ($filterprofile == "ALL") echo ' selected'; ?>>Any Profile</option>
+		    <option value="" disabled selected l10n="sel.profile"></option>
+		    <option style="text-align:center" value="ALL"<?php if ($filterprofile == "ALL") echo ' selected'; ?> l10n="profile.any"></option>
 <?php $i = 0; ?>
 <?php while(isset($profilearray[$i])) { ?>
 		    <option value="<?php echo $profilearray[$i]; ?>"<?php if ($filterprofile == $profilearray[$i]) echo ' selected'; ?>><?php echo $profilearray[$i]; ?></option>
@@ -308,8 +310,8 @@ if (isset($sids[0])) {
 		<!-- Year Filter -->
 		<td style="width:22%">
 		  <select id="selyear" name="selyear" class="form-control chosen-select" data-placeholder="Select Year" onchange="$('#wait_layout').show();this.form.submit()">
-		    <option value="" disabled selected>Select Year</option>
-		    <option style="text-align:center" value="ALL"<?php if ($filteryear == "ALL") echo ' selected'; ?>>Any Year</option>
+		    <option value="" disabled selected l10n="sel.year"></option>
+		    <option style="text-align:center" value="ALL"<?php if ($filteryear == "ALL") echo ' selected'; ?> l10n="year.any"></option>
 <?php $i = 0; ?>
 <?php while(isset($yeararray[$i])) { ?>
 		    <option value="<?php echo $yeararray[$i]; ?>"<?php if ($filteryear == $yeararray[$i]) echo ' selected'; ?>><?php echo $yeararray[$i]; ?></option>
@@ -321,20 +323,20 @@ if (isset($sids[0])) {
 		<!-- Month Filter -->
 		<td style="width:22%">
 		  <select id="selmonth" name="selmonth" class="form-control chosen-select" data-placeholder="Select Month" onchange="$('#wait_layout').show();this.form.submit()">
-		    <option value="" disabled selected>Select Month</option>
-		    <option style="text-align:center" value="ALL"<?php if ($filtermonth == "ALL") echo ' selected'; ?>>Any Month</option>
-		    <option value="January"<?php if ($filtermonth == "January") echo ' selected'; ?>>January</option>
-		    <option value="February"<?php if ($filtermonth == "February") echo ' selected'; ?>>February</option>
-		    <option value="March"<?php if ($filtermonth == "March") echo ' selected'; ?>>March</option>
-		    <option value="April"<?php if ($filtermonth == "April") echo ' selected'; ?>>April</option>
-		    <option value="May"<?php if ($filtermonth == "May") echo ' selected'; ?>>May</option>
-		    <option value="June"<?php if ($filtermonth == "June") echo ' selected'; ?>>June</option>
-		    <option value="July"<?php if ($filtermonth == "July") echo ' selected'; ?>>July</option>
-		    <option value="August"<?php if ($filtermonth == "August") echo ' selected'; ?>>August</option>
-		    <option value="September"<?php if ($filtermonth == "September") echo ' selected'; ?>>September</option>
-		    <option value="October"<?php if ($filtermonth == "October") echo ' selected'; ?>>October</option>
-		    <option value="November"<?php if ($filtermonth == "November") echo ' selected'; ?>>November</option>
-		    <option value="December"<?php if ($filtermonth == "December") echo ' selected'; ?>>December</option>
+		    <option value="" disabled selected l10n="sel.month"></option>
+		    <option style="text-align:center" value="ALL"<?php if ($filtermonth == "ALL") echo ' selected'; ?> l10n="month.any"></option>
+		    <option value="January"<?php if ($filtermonth == "January") echo ' selected'; ?> l10n="month.jan"></option>
+		    <option value="February"<?php if ($filtermonth == "February") echo ' selected'; ?> l10n="month.feb"></option>
+		    <option value="March"<?php if ($filtermonth == "March") echo ' selected'; ?> l10n="month.mar"></option>
+		    <option value="April"<?php if ($filtermonth == "April") echo ' selected'; ?> l10n="month.apr"></option>
+		    <option value="May"<?php if ($filtermonth == "May") echo ' selected'; ?> l10n="month.may"></option>
+		    <option value="June"<?php if ($filtermonth == "June") echo ' selected'; ?> l10n="month.jun"></option>
+		    <option value="July"<?php if ($filtermonth == "July") echo ' selected'; ?> l10n="month.jul"></option>
+		    <option value="August"<?php if ($filtermonth == "August") echo ' selected'; ?> l10n="month.aug"></option>
+		    <option value="September"<?php if ($filtermonth == "September") echo ' selected'; ?> l10n="month.sep"></option>
+		    <option value="October"<?php if ($filtermonth == "October") echo ' selected'; ?> l10n="month.oct"></option>
+		    <option value="November"<?php if ($filtermonth == "November") echo ' selected'; ?> l10n="month.nov"></option>
+		    <option value="December"<?php if ($filtermonth == "December") echo ' selected'; ?> l10n="month.dec"></option>
 		  </select>
 		</td>
 	      </tr>
@@ -348,7 +350,7 @@ if (isset($sids[0])) {
 	     <select id="seshidtag" name="seshidtag" class="form-control chosen-select" onchange="$('#wait_layout').show();this.form.submit()" data-placeholder="Select Session...">
 	      <option value="" disabled>Select Session...</option>
 <?php foreach ($seshdates as $dateid => $datestr) { ?>
-	      <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo ' (Current Session)'; ?></option>
+	      <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr']; ?></option>
 <?php } ?>
 	    </select>
 <?php   if ( $filterprofile <> "" ) { ?>
@@ -368,7 +370,7 @@ if (isset($sids[0])) {
 </div>
 
 <!-- Variable Select Block -->
-	<h4>Select Variables to Compare</h4>
+	<h4 l10n="sel.var"></h4>
 	  <div class="row center-block" style="padding-top:3px;">
 	      <select data-placeholder="Choose data..." multiple class="chosen-select" size="<?php echo $numcols; ?>" style="width:100%;" id="plot_data" name="plotdata[]">
 <?php   foreach ($coldata as $xcol) { ?>
@@ -390,7 +392,7 @@ if (isset($sids[0])) {
 <div <?php if($imapdata) { ?> class="pure-g" <?php } ?>>
   <div <?php if($imapdata) { ?> class="pure-u-md-1-2" <?php } ?>>
     <!-- Chart Block -->
-    <?php if($imapdata) { ?> <h4 class="wide-h">Chart</h4>
+    <?php if($imapdata) { ?> <h4 class="wide-h" l10n="chart"></h4>
     <?php } else { ?> <h4>Chart <span class="nogps">(no GPS data)</span></h4> <?php } ?>
     <div id="Chart-Container" class="row center-block" style="z-index:1;position:relative;">
     <?php   if ( $var1 <> "" ) { ?>
@@ -407,7 +409,7 @@ if (isset($sids[0])) {
 <?php if ($imapdata) { ?>
  <div class="pure-u-md-1-2">
     <!-- MAP -->
-    <h4 class="wide-h">Tracking</h4>
+    <h4 class="wide-h" l10n="tracking"></h4>
     <div id="map-div"><div class="row center-block map-container" id="map"></div></div>
   </div>
 <?php } ?>
@@ -421,13 +423,13 @@ let minTimeStart = [<?php echo $mintimev; ?>];
 let maxTimeEnd = [<?php echo $maxtimev; ?>];
 initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 </script>
-<span class="h4">Trim Session</span>
+<span class="h4" l10n="trim.sess"></span>
 <input type="text" id="slider-time" readonly style="border:0; font-family:monospace; width:300px;" disabled>
 <div id="slider-range11"></div>
 <br>
 
 <!-- Data Summary Block -->
-	<h4>Data Summary</h4>
+	<h4 l10n="summary"></h4>
 	<div id="Summary-Container" class="row center-block" style="user-select:text;">
 	  <div style="display:flex; justify-content:center;">
 	    <h5><span class="label label-warning">No Variables Selected to Plot</span></h5>
@@ -438,20 +440,20 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 
 <!--Live DATA -->
 <p class="divided" onclick="dataToggle()">
- <span class="tlue">Stream</span>
+ <span class="tlue" l10n="stream"></span>
  <span class="divider"></span>
- <span class="toggle" id="data_toggle">click to expand ↓</span>
+ <span class="toggle" id="data_toggle" l10n="expand"></span>
 </p>
 <div id="data" style="display:none">
 	    <table class="table live-data" style="width:410px;font-size:0.875em;margin:0 auto;">
 	      <thead>
 		<tr>
-		  <th>Variable</th>
-		  <th>Value</th>
-		  <th>Unit</th>
+		  <th l10n="stream.name"></th>
+		  <th l10n="stream.val"></th>
+		  <th l10n="stream.unit"></th>
 		</tr>
 	      </thead>
-	       <tbody id="stream"><tr><td colspan="3" style="text-align:center"><span class="label label-success">Fetching data...</span></td></tr>
+	       <tbody id="stream"><tr><td colspan="3" style="text-align:center"><span class="label label-success" l10n="stream.fetch.label"></span></td></tr>
 	      </tbody>
 	    </table>
 </div>
@@ -459,43 +461,43 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 
 <!--Functions buttons -->
 <p class="divided" onclick="funcToggle()">
- <span class="tlue">Functions</span>
+ <span class="tlue" l10n="functions"></span>
  <span class="divider"></span>
- <span class="toggle" id="func_toggle">click to expand ↓</span>
+ <span class="toggle" id="func_toggle" l10n="expand"></span>
 </p>
 
 <div id="func" style="display:none">
 <div class="btn-group btn-group-justified">
-    <a class="btn btn-default func-btn" onclick="delSession()">Delete</a>
+    <a class="btn btn-default func-btn" onclick="delSession()" l10n="func.del"></a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="delSessions()">Multi-delete</a>
+    <a class="btn btn-default func-btn" onclick="delSessions()" l10n="func.multi.del"></a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="mergeSessions()">Merge</a>
+    <a class="btn btn-default func-btn" onclick="mergeSessions()" l10n="func.merge"></a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="pidEdit()">Edit PIDs</a>
+    <a class="btn btn-default func-btn" onclick="pidEdit()" l10n="func.pid"></a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="showToken()">Token</a>
+    <a class="btn btn-default func-btn" onclick="showToken()" l10n="func.token"></a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="usersSettings()">Settings</a>
+    <a class="btn btn-default func-btn" onclick="usersSettings()" l10n="func.settings"></a>
    </div>
 </div>
 <br>
 
 <!--Upload log -->
 <p class="divided" onclick="logToggle()">
- <span class="tlue">Import data</span>
+ <span class="tlue" l10n="import.data"></span>
  <span class="divider"></span>
- <span class="toggle" id="log_toggle">click to expand ↓</span>
+ <span class="toggle" id="log_toggle" l10n="expand"></span>
 </p>
 
 <div id="log" style="display:none">
     <div style="display:flex; justify-content:center; margin-bottom:10px;">
-	     <span class="label label-default" id="log-msg-def">Select/Drop RedManage logger file(s) to upload</span>
+	     <span class="label label-default" id="log-msg-def" l10n="import.label"></span>
 	     <span class="label label-success" id="log-msg-ok"></span>
 	     <span class="label label-danger" id="log-msg-err"></span>
     </div>
@@ -511,9 +513,9 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 
 <!-- Export Data Block -->
 <p class="divided" onclick="expToggle()">
- <span class="tlue">Export data</span>
+ <span class="tlue" l10n="export.data"></span>
  <span class="divider"></span>
- <span class="toggle" id="exp_toggle">click to expand ↓</span>
+ <span class="toggle" id="exp_toggle" l10n="expand"></span>
 </p>
 <div id="exp" style="display:none">
 	  <div class="btn-group btn-group-justified func-btn">
@@ -534,31 +536,31 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 function funcToggle() {
 	if ($("#func").is(":hidden")) {
 		$("#func").show();
-		$("#func_toggle").html("click to collapse ↑");
+		$("#func_toggle").html(tt['collapse']);
 	} else {
 		$("#func").hide();
-		$("#func_toggle").html("click to expand ↓");
+		$("#func_toggle").html(tt['expand']);
 	}
 }
 
 function expToggle() {
 	if ($("#exp").is(":hidden")) {
 		$("#exp").show();
-		$("#exp_toggle").html("click to collapse ↑");
+		$("#exp_toggle").html(tt['collapse']);
 	} else {
 		$("#exp").hide();
-		$("#exp_toggle").html("click to expand ↓");
+		$("#exp_toggle").html(tt['expand']);
 	}
 }
 
 function logToggle() {
 	if ($("#log").is(":hidden")) {
 		$("#log").show();
-		$("#log_toggle").html("click to collapse ↑");
+		$("#log_toggle").html(tt['collapse']);
 	} else {
 		$("#log").hide();
-		$("#log_toggle").html("click to expand ↓");
-		msg_def.innerHTML = "Select/Drop RedManage logger file(s) to upload";
+		$("#log_toggle").html(tt['expand']);
+		msg_def.innerHTML = tt['import.label'];
 		msg_ok.innerHTML = "";
 		msg_err.innerHTML = "";
 		document.getElementById('logFile').value = "";
@@ -573,7 +575,7 @@ let src = null;
 function dataToggle() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
-		$("#data_toggle").html("click to collapse ↑");
+		$("#data_toggle").html(tt['collapse']);
 		src = new EventSource("stream.php<?php echo $stream_lock > 0 ? '?id=' . $session_id : ''; ?>");
 		src.onmessage = e => {$("#stream").html(e.data)};
 		alarm.muted = false;
@@ -581,7 +583,7 @@ function dataToggle() {
 		stream = true;
 	} else {
 		$("#data").hide();
-		$("#data_toggle").html("click to expand ↓");
+		$("#data_toggle").html(tt['expand']);
 		src.close();
 		alarm.muted = true;
 		noSleep.disable();
@@ -604,10 +606,10 @@ function maintenance() {
 	mode = this.responseText;
 	if (!mode.length) return;
 	let dialogOpt = {
-	     title: "Maintenance mode",
-	     message : `Status: ${mode}`,
-	     btnClassSuccessText: "Enable",
-	     btnClassFailText: "Disable",
+	     title: tt['dialog.maintenance.title'],
+	     message : `${tt['dialog.maintenance.status']} ${mode}`,
+	     btnClassSuccessText: tt['dialog.maintenance.en'],
+	     btnClassFailText: tt['dialog.maintenance.dis'],
 	     btnClassFail: "btn btn-info btn-sm",
 	     onResolve: function() {
 	      xmlhttp.open("POST","maintenance.php?enable");
@@ -627,18 +629,18 @@ function maintenance() {
 </script>
 <div class="admin-card">
     <div>
-    <h4 style="text-align:center">Registered users:</h4>
+    <h4 style="text-align:center" l10n="admin.page.title"></h4>
 <hr>
 <div class="users-list">
 <table>
  <thead>
   <tr>
     <th></th>
-    <th>Login</th>
-    <th>Limit (MB)</th>
-    <th>DB Size (MB)</th>
-    <th>Last upload</th>
-    <th>Last login</th>
+    <th l10n="admin.table.login"></th>
+    <th l10n="admin.table.limit"></th>
+    <th l10n="admin.table.size"></th>
+    <th l10n="admin.table.ll"></th>
+    <th l10n="admin.table.lu"></th>
     <th></th>
   </tr>
  </thead>
@@ -732,14 +734,14 @@ if ($current_page < $total_pages) {
 </div>
 
 <div class="admin-panel">
-    <a class="btn btn-default btn-admin" href="./users_admin.php?action=reg">Register</a>
-    <a class="btn btn-default btn-admin" href="./users_admin.php?action=edit">Edit</a>
-    <a class="btn btn-default btn-admin" href="./users_admin.php?action=del">Delete</a>
+    <a class="btn btn-default btn-admin" href="./users_admin.php?action=reg" l10n="admin.page.btn.reg"></a>
+    <a class="btn btn-default btn-admin" href="./users_admin.php?action=edit" l10n="admin.page.btn.edit"></a>
+    <a class="btn btn-default btn-admin" href="./users_admin.php?action=del" l10n="admin.page.btn.del"></a>
 </div>
 <div class="admin-panel">
-    <a class="btn btn-default btn-admin" href="./users_admin.php?action=trunc">Truncate</a>
+    <a class="btn btn-default btn-admin" href="./users_admin.php?action=trunc" l10n="admin.page.btn.trunc"></a>
     <a class="btn btn-default btn-admin" href="./adminer.php?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>" target="_blank">Adminer</a>
-    <a class="btn btn-default btn-admin" href="#" onclick="maintenance()">Maintenance</a>
+    <a class="btn btn-default btn-admin" href="#" onclick="maintenance()" l10n="admin.page.btn.maintenance"></a>
 </div>
     </div>
 <?php } else if (isset($session_id) && !empty($session_id)) { ?>
@@ -747,16 +749,16 @@ if ($current_page < $total_pages) {
 </div>
 <?php } else { ?>
 <div class="login" style="text-align:center; width:fit-content; margin: 50px auto">
-    <h4>No data to show</h4>
-    <h6>Upload data via internet or via file(s)</h6>
+    <h4 l10n="nodata.show"></h4>
+    <h6 l10n="data.upload.label"></h6>
 <ul class="no-data-url-list">
-    <li><a href="#" onclick="showToken()">Show token for upload via internet</a></li>
-    <li><a href="#" onclick="usersSettings()">Maybe you want to switch some settings</a></li>
-    <li><a href="#" onclick="pidEdit()">Or edit some PIDs</a></li>
+    <li><a href="#" onclick="showToken()" l10n="nodata.token"></a></li>
+    <li><a href="#" onclick="usersSettings()" l10n="nodata.settings"></a></li>
+    <li><a href="#" onclick="pidEdit()" l10n="nodata.pid"></a></li>
 </ul>
 <div id="log">
     <div style="display:flex; justify-content:center; margin-bottom:10px;">
-	     <span class="label label-default" id="log-msg-def">Select/Drop RedManage logger file(s) to upload</span>
+	     <span class="label label-default" id="log-msg-def" l10n="import.label"></span>
 	     <span class="label label-success" id="log-msg-ok"></span>
 	     <span class="label label-danger" id="log-msg-err"></span>
     </div>
@@ -821,8 +823,8 @@ function submitLog(el) {
     }
     logFile.removeAttribute("disabled");
   }
-  xhr.upload.onprogress = p => { msg_ok.innerHTML = `Uploading: ${Math.round((p.loaded / p.total) * 100)}%` }
-  xhr.upload.onloadend = () => { msg_ok.innerHTML = "Processing ..." }
+  xhr.upload.onprogress = p => { msg_ok.innerHTML = `${tt['import.upload']} ${Math.round((p.loaded / p.total) * 100)}%` }
+  xhr.upload.onloadend = () => { msg_ok.innerHTML = tt['import.end'] }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
   logFile.setAttribute("disabled", "");
@@ -850,12 +852,12 @@ function checkLog() {
             dateTime = $.cookie('timeformat') === '12'
               ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
               : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
-            dateStr = `(Log date: ${dateDMY} ${dateTime})`;
+            dateStr = `${tt['import.date']} ${dateDMY} ${dateTime})`;
         } catch(e) {
             reader.abort();
-            dateStr = "(Broken file!)";
+            dateStr = tt['import.broken.el'];
             msg_def.innerHTML = "";
-            msg_err.innerHTML = "Broken file(s) in list!";
+            msg_err.innerHTML = tt['import.broken.label'];
             msg_ok.innerHTML = "";
             up_btn.hide();
         }
@@ -865,27 +867,27 @@ function checkLog() {
  }
 
  reader.onloadstart = () => {
-        msg_def.innerHTML = "Reading ...";
+        msg_def.innerHTML = tt['import.read'];
  }
 
  reader.onprogress = () => {
      if (log_data.files.length > 10) {
         msg_def.innerHTML = "";
-        msg_err.innerHTML = "Acceptable 10 files per upload!";
+        msg_err.innerHTML = tt['import.warn.count'];
         up_btn.hide();
      } else if (size > 52428800) {
         msg_def.innerHTML = "";
-        msg_err.innerHTML = "Acceptable 5MB per file and 50MB total!";
+        msg_err.innerHTML = tt['import.warn.size'];
         up_btn.hide();
      } else {
         msg_def.innerHTML = "";
-        msg_ok.innerHTML = "Ready to upload";
+        msg_ok.innerHTML = tt['import.ready'];
         up_btn.show();
      }
  }
 
  if (!log_data.files.length) {
-    msg_def.innerHTML = "Select/Drop RedManage logger file(s) to upload";
+    msg_def.innerHTML = tt['import.label'];
     up_btn.hide();
  }
 }
@@ -896,11 +898,11 @@ function delSession() {
  const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
  if (!sessionId.length) return;
  let dialogOpt = {
-    title : "Confirmation",
-    btnClassSuccessText: "Yes",
-    btnClassFailText: "No",
+    title : tt['dialog.confirm'],
+    btnClassSuccessText: tt['btn.yes'],
+    btnClassFailText: tt['btn.no'],
     btnClassFail: "btn btn-info btn-sm",
-    message: `Delete session (${sessionDate})?`,
+    message: `${tt['dialog.del.session']} (${sessionDate})?`,
     onResolve: function(){
      $("#wait_layout").show();
      location.href = `?deletesession=${sessionId}`;
@@ -918,10 +920,10 @@ let xhr = new XMLHttpRequest();
 	$("#wait_layout").hide();
 	let token = this.responseText;
 	let dialogOpt = {
-	    title : `Access token <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="float: right;"><path fill="currentColor" d="M7 14q-.825 0-1.412-.587T5 12t.588-1.412T7 10t1.413.588T9 12t-.587 1.413T7 14m0 4q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q1.675 0 3.038.825T12.2 9H21l3 3l-4.5 4.5l-2-1.5l-2 1.5l-2.125-1.5H12.2q-.8 1.35-2.162 2.175T7 18m0-2q1.4 0 2.463-.85T10.875 13H14l1.45 1.025L17.5 12.5l1.775 1.375L21.15 12l-1-1h-9.275q-.35-1.3-1.412-2.15T7 8Q5.35 8 4.175 9.175T3 12t1.175 2.825T7 16"></path></svg>`,
-	    btnClassSuccessText: "Copy",
+	    title : `${tt['dialog.token']} <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="float: right;"><path fill="currentColor" d="M7 14q-.825 0-1.412-.587T5 12t.588-1.412T7 10t1.413.588T9 12t-.587 1.413T7 14m0 4q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q1.675 0 3.038.825T12.2 9H21l3 3l-4.5 4.5l-2-1.5l-2 1.5l-2.125-1.5H12.2q-.8 1.35-2.162 2.175T7 18m0-2q1.4 0 2.463-.85T10.875 13H14l1.45 1.025L17.5 12.5l1.775 1.375L21.15 12l-1-1h-9.275q-.35-1.3-1.412-2.15T7 8Q5.35 8 4.175 9.175T3 12t1.175 2.825T7 16"></path></svg>`,
+	    btnClassSuccessText: tt['btn.copy'],
 	    btnClassFail: "btn btn-info btn-sm",
-	    btnClassFailText: "Renew",
+	    btnClassFailText: tt['btn.renew'],
 	    message : token,
 	    onResolve: function(){
 	     navigator.clipboard.writeText(token);
@@ -949,10 +951,10 @@ let xhr = new XMLHttpRequest();
 function tokenError() {
  $("#wait_layout").hide();
  let dialogOpt = {
-    title : "Error",
+    title : tt['dialog.token.err'],
     btnClassSuccessText: "OK",
     btnClassFail: "hidden",
-    message : "Something went wrong. Try again."
+    message : tt['dialog.token.err.msg']
  };
  redDialog.make(dialogOpt);
 }
@@ -962,11 +964,11 @@ function exportSession(type) {
  const sessionId = "<?php echo $session_id; ?>";
  const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
  let dialogOpt = {
-    title : "Confirmation",
-    btnClassSuccessText: "Yes",
-    btnClassFailText: "No",
+    title : tt['dialog.confirm'],
+    btnClassSuccessText: tt['btn.yes'],
+    btnClassFailText: tt['btn.no'],
     btnClassFail: "btn btn-info btn-sm",
-    message: `Export session (${sessionDate}) in ${type} format?`,
+    message: `${tt['dialog.export']} ${type} (${sessionDate})?`,
     onResolve: function(){
      location.href = `./export.php?sid=${sessionId}&filetype=${type.toLowerCase()}`;
     }
