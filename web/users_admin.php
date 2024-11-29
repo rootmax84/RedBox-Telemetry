@@ -31,34 +31,34 @@ if ($_GET['action'] == "edit") {
     $user = isset($_GET['user']) ? $_GET['user'] : null;
     $limit = isset($_GET['limit']) ? $_GET['limit'] : null;
 ?>
-	    <h4>Edit user</h4>
-		<input class="form-control" type="text" name="e_login" value="<?php echo $user; ?>" placeholder="(Username)" required <?php if(isset($user)){?> readonly <?php }?>></br>
-		<input class="form-control" type="password" name="e_pass" value="" placeholder="(New password)" autocomplete="new-password"></br>
-		<input class="form-control" type="number" min="-1" max="100000" name="e_limit" placeholder="(Limits in mb)" value="<?php if($user != $admin) echo $limit; ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
-		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Edit</button>
+	    <h4 l10n="admin.edit.title"></h4>
+		<input class="form-control" type="text" name="e_login" value="<?php echo $user; ?>" l10n-placeholder="login.login" required <?php if(isset($user)){?> readonly <?php }?>></br>
+		<input class="form-control" type="password" name="e_pass" value="" l10n-placeholder="login.pwd" autocomplete="new-password"></br>
+		<input class="form-control" type="number" min="-1" max="100000" name="e_limit" l10n-placeholder="input.limits" value="<?php if($user != $admin) echo $limit; ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
+		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.edit.btn"></button>
 <?php
 }
 else if ($_GET['action'] == "reg") {
 ?>
-	    <h4>Register user</h4>
-		<input class="form-control" type="text" name="reg_login" value="" placeholder="(Username)" required><br>
-		<input class="form-control" type="password" name="reg_pass" value="" placeholder="(Password)" autocomplete="new-password" required>
-		<div style="padding:15px 0"><label style="font-size:13px;font-family:'Open Sans'"><input type="checkbox" name="reg_legacy"> Generic OBD device</label></div>
-		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Register</button>
+	    <h4 l10n="admin.reg.title"></h4>
+		<input class="form-control" type="text" name="reg_login" value="" l10n-placeholder="login.login" required><br>
+		<input class="form-control" type="password" name="reg_pass" value="" l10n-placeholder="login.pwd" autocomplete="new-password" required>
+		<div style="padding:15px 0"><label style="font-size:13px;font-family:'Open Sans'"><input type="checkbox" name="reg_legacy"><span l10n="admin.reg.obd"></span></label></div>
+		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.reg.btn"></button>
 <?php
 }
 else if ($_GET['action'] == "del") {
 ?>
-	    <h4>Delete user</h4>
-		<input class="form-control" type="text" name="del_login" value="" placeholder="(Username)" required><br>
-		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Delete</button>
+	    <h4 l10n="admin.del.title"></h4>
+		<input class="form-control" type="text" name="del_login" value="" l10n-placeholder="login.login" required><br>
+		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.del.btn"></button>
 <?php
 }
 else if ($_GET['action'] == "trunc") {
 ?>
-	    <h4>Truncate user database</h4>
-		<input class="form-control" type="text" name="trunc_login" value="" placeholder="(Username)" required></br>
-		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit">Truncate</button>
+	    <h4 l10n="admin.trunc.title"></h4>
+		<input class="form-control" type="text" name="trunc_login" value="" l10n-placeholder="login.login" required></br>
+		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.trunc.btn"></button>
 <?php
 }
 ?>
