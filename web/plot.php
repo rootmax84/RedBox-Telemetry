@@ -164,27 +164,29 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 
     if (empty($session_data)) return;
 
+	$units = [
+	    'speed' => [
+	        "km to miles" => [" (mph)", " (miles)"],
+	        "miles to km" => [" (km/h)", " (km)"],
+	    ],
+	    'temp' => [
+	        "Celsius to Fahrenheit" => " (°F)",
+	        "Fahrenheit to Celsius" => " (°C)",
+	    ],
+	    'pressure' => [
+	        "Psi to Bar" => " (Bar)",
+	        "Bar to Psi" => " (Psi)",
+	    ],
+	    'boost' => [
+	        "Psi to Bar" => " (Bar)",
+	        "Bar to Psi" => " (Psi)",
+	    ],
+	];
+
 	foreach ($session_data as $row) {
 	    $i = 1;
 	    while (isset(${'v' . $i})) {
-		$units = [
-		    'speed' => [
-		        "km to miles" => [" (mph)", " (miles)"],
-		        "miles to km" => [" (km/h)", " (km)"],
-		    ],
-		    'temp' => [
-		        "Celsius to Fahrenheit" => " (°F)",
-		        "Fahrenheit to Celsius" => " (°C)",
-		    ],
-		    'pressure' => [
-		        "Psi to Bar" => " (Bar)",
-		        "Bar to Psi" => " (Psi)",
-		    ],
-		    'boost' => [
-		        "Psi to Bar" => " (Bar)",
-		        "Bar to Psi" => " (Psi)",
-		    ],
-		];
+
 		$spd_unit = $units['speed'][$speed][0] ?? ' ('.$keyarr[${'v' . $i}][1].')';
 		$trip_unit = $units['speed'][$speed][1] ?? ' ('.$keyarr[${'v' . $i}][1].')';
 		$temp_unit = $units['temp'][$temp] ?? ' ('.$keyarr[${'v' . $i}][1].')';
