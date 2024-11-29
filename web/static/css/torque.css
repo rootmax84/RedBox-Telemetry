@@ -245,7 +245,8 @@ canvas *{
   border-radius: 1em;
   padding: 20px;
   box-shadow: 1px 1px 4px 1px rgba(2,2,2,0.2);
-  width: 300px;
+  min-width: 300px;
+  max-width: fit-content;
   background-color: #fff;
   position: relative;
   z-index: 1;
