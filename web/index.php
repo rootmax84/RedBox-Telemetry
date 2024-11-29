@@ -401,7 +401,7 @@ if (isset($sids[0])) {
     </div>
     <?php   } else { ?>
     <div style="display:flex; justify-content:center;">
-    <h5><span class="label label-warning">No Variables Selected to Plot</span></h5>
+    <h5><span class="label label-warning">. . .</span></h5>
     </div>
     <?php   } ?>
     </div>
@@ -432,7 +432,7 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 	<h4 l10n="summary"></h4>
 	<div id="Summary-Container" class="row center-block" style="user-select:text;">
 	  <div style="display:flex; justify-content:center;">
-	    <h5><span class="label label-warning">No Variables Selected to Plot</span></h5>
+	    <h5><span class="label label-warning">. . .</span></h5>
 	  </div>
 	</div><br>
 

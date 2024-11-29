@@ -247,8 +247,8 @@ let updCharts = ()=>{
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
             plot.shutdown();
-            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html('No Variables Selected to Plot')));
-            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html('No Variables Selected to Plot')));
+            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(tt['novar'])));
+            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(tt['novar'])));
             $('#Chart-Container').empty();
             $('#Chart-Container').append(noChart2);
             $('#Summary-Container').empty();
@@ -357,8 +357,8 @@ let updCharts = ()=>{
             });
             if ($('#plot_data').chosen().val() == null) updCharts();
         }).catch(err => {
-            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html('No Data')));
-            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html('No Data')));
+            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(tt['nodata'])));
+            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(tt['nodata'])));
             $('#Chart-Container').empty();
             $('#Chart-Container').append(noChart2);
             $('#Summary-Container').empty();
