@@ -691,7 +691,9 @@ $r = $db->query("SELECT user, s, last_attempt FROM $db_users ORDER BY id = (SELE
 </tbody>
 </table>
 </div>
-<p class='db-size'>DB memcached: <?php echo $memcached_connected ? 'Yes' : 'No'; ?> | DB size: <?php echo round($res[1]); ?> MB</p>
+<p class="db-size">
+    <?= "Memcached: " . ($memcached_connected ? $translations[$lang]['btn.yes'] : $translations[$lang]['btn.no']) . " | " . $translations[$lang]['admin.db'] . ": " . round($res[1]) . $translations[$lang]['admin.mb'] ?>
+</p>
 <hr>
 <div class="pages" style="padding:0">
 <?php //Pagination with page count limit
