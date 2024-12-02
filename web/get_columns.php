@@ -19,7 +19,7 @@ if (empty($coldata)) {
 
     if ($memcached_connected) {
         try {
-            $memcached->set($columns_cache_key, $coldata, 300);
+            $memcached->set($columns_cache_key, $coldata, 3600);
         } catch (Exception $e) {
             error_log("Memcached error (columns data): " . $e->getMessage());
         }
