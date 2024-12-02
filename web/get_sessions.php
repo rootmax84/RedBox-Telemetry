@@ -93,12 +93,12 @@ while ($row = $sessionqry->fetch_assoc()) {
     $row["timeend"] = !$row["timeend"] ? $row["time"] : $row["timeend"];
     $session_duration_str = gmdate("H:i:s", intval(($row["timeend"] - $row["time"]) / 1000));
     $sid = $row["session"];
-    $session_profileName = $row["profileName"];
+    $session_profileName = $row["profileName"] === 'Not Specified' ? $translations[$lang]['profile.ns'] : $row["profileName"];
     $session_ip = $row["ip"];
     $sids[] = preg_replace('/\D/', '', $sid);
     $seshdates[$sid] = date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", substr($sid, 0, -3));
     $seshsizes[$sid] = " ({$translations[$lang]['get.sess.length']} $session_duration_str)";
-    $seshprofile[$sid] = " ($session_profileName {$translations[$lang]['get.sess.profile']})";
+    $seshprofile[$sid] = " ({$translations[$lang]['get.sess.profile']} $session_profileName)";
     $seship[$sid] = " ({$translations[$lang]['get.sess.ip']} $session_ip)";
 }
 

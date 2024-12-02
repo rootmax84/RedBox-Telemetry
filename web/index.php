@@ -121,7 +121,7 @@ if (isset($sids[0])) {
         $profilequery = $db->query("SELECT distinct profileName FROM $db_sessions_table ORDER BY profileName asc");
         $profilearray = [];
         while($row = $profilequery->fetch_assoc()) {
-            $profilearray[] = $row['profileName'];
+            $profilearray[] = $row['profileName'] === 'Not Specified' ? $translations[$lang]['profile.ns'] : $row['profileName'];
         }
         if ($memcached_connected) {
             try {
