@@ -142,7 +142,7 @@ else
 	$sessions_table = "CREATE TABLE ".$login.$db_sessions_prefix." (
 			id varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '-',
 			profileName varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Not Specified',
-			ip char(15) NOT NULL DEFAULT 'Unknown',
+			ip char(15) NOT NULL DEFAULT '0.0.0.0',
 			sessionsize mediumint(8) unsigned NOT NULL DEFAULT 0,
 			session bigint(20) unsigned NOT NULL,
 			time bigint(20) unsigned NOT NULL,
