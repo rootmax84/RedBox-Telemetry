@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<?php require_once('token_functions.php'); ?>
 <script async src="static/js/localization.js"></script>
 <link rel="apple-touch-icon" sizes="180x180" href="static/img/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32x32.png">
@@ -19,7 +20,7 @@
 <link rel="stylesheet" href="static/css/chosen.min.css">
 <link rel="stylesheet" href="static/css/torque.css">
 <link rel="stylesheet" href="static/css/Control.FullScreen.css">
-<?php require_once('token_functions.php'); if (isset($_SESSION['torque_user'])) {?>
+<?php if (isset($_SESSION['torque_user'])) {?>
 <script src="static/js/theme.js"></script>
 <?php } if (isset($_SESSION['admin'])) {?>
 <link rel="stylesheet" href="static/css/admin.css">
@@ -60,7 +61,7 @@
      });
 
     $(".navbar-brand").click(()=> {
-	$("#wait_layout").show();
+        $("#wait_layout").show();
     });
 
     $("#wait_layout").hide();
