@@ -193,7 +193,7 @@ if (sizeof($_REQUEST) > 0) {
     }
 
     // If the field doesn't already exist, add it to the database except id key
-    if (!in_array($key, $dbfields) && $key != "id" && $submitval == 1) {
+    if (!in_array($key, $dbfields) && $key != "id" && $key != "lang" && $submitval == 1) {
       cache_flush();
       $dataType = is_numeric($value) ? "float" : "VARCHAR(255)";
 
