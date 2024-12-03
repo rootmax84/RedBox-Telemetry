@@ -249,9 +249,9 @@ if (sizeof($_REQUEST) > 0) {
             $delay = time() - intval($sessuploadid / 1000);
             if ($delay > 10) {
                 $formattedDelay = gmdate("H:i:s", $delay);
-                $message = "Session started from IP {$ip}. Profile: {$spv['profileName']} (Delayed by {$formattedDelay})";
+                $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['get.sess.profile']}: {$spv['profileName']} ({$translations[$lang]['upload.delayed']} {$formattedDelay})";
             } else {
-                $message = "Session started from IP {$ip}. Profile: {$spv['profileName']}";
+                $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['get.sess.profile']}: {$spv['profileName']}";
             }
             notify($message, $tg_token, $tg_chatid); // Notify to user telegram bot at session start
         }

@@ -229,6 +229,8 @@ $translations = [
         'login.pwd' => '(Password)',
         'login.signin' => 'Sign in',
         'login.github' => 'Project on Github',
+        'upload.start' => 'Session started from IP',
+        'upload.delayed' => 'Delayed by',
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -458,6 +460,8 @@ $translations = [
         'login.pwd' => '(Пароль)',
         'login.signin' => 'Войти',
         'login.github' => 'Проект на Github',
+        'upload.start' => 'Начата сессия с IP',
+        'upload.delayed' => 'Отложена на',
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -687,6 +691,8 @@ $translations = [
         'login.pwd' => '(Contraseña)',
         'login.signin' => 'Iniciar sesión',
         'login.github' => 'Proyecto en Github',
+        'upload.start' => 'Sesión iniciada desde IP',
+        'upload.delayed' => 'Retrasado por',
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -916,6 +922,8 @@ $translations = [
         'login.pwd' => '(Passwort)',
         'login.signin' => 'Anmelden',
         'login.github' => 'Projekt auf Github',
+        'upload.start' => 'Sitzung gestartet von IP',
+        'upload.delayed' => 'Verzögert durch',
     ],
 ];
 
