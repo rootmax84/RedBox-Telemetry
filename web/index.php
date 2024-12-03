@@ -840,11 +840,38 @@ function checkLog() {
  log_list.innerHTML = "";
  const log_data = document.getElementById('logFile');
  let size = 0;
- let reader = new FileReader();
+ let filesProcessed = 0;
+
+ if (!log_data.files.length) {
+    msg_def.innerHTML = tt['import.label'];
+    up_btn.hide();
+    return;
+ }
+
+ msg_def.innerHTML = tt['import.read'];
 
  for (let i = 0; i < log_data.files.length; i++) {
-    reader = new FileReader();
+    size += log_data.files[i].size;
+ }
+
+ if (log_data.files.length > 10) {
+    msg_def.innerHTML = "";
+    msg_err.innerHTML = tt['import.warn.count'];
+    up_btn.hide();
+    return;
+ }
+
+ if (size > 52428800) {
+    msg_def.innerHTML = "";
+    msg_err.innerHTML = tt['import.warn.size'];
+    up_btn.hide();
+    return;
+ }
+
+ for (let i = 0; i < log_data.files.length; i++) {
+    let reader = new FileReader();
     reader.readAsText(log_data.files[i], "UTF-8");
+
     reader.onload = (f) => {
         let logDate, dateDMY, dateTime, dateStr;
         try {
@@ -862,35 +889,26 @@ function checkLog() {
             msg_err.innerHTML = tt['import.broken.label'];
             msg_ok.innerHTML = "";
             up_btn.hide();
+            log_list.innerHTML += `<li style='font-family:monospace'> ${log_data.files[i].name} ${dateStr}</li>`;
+            return;
         }
         log_list.innerHTML += `<li style='font-family:monospace'> ${log_data.files[i].name} ${dateStr}</li>`;
-        size += log_data.files[i].size;
+
+        filesProcessed++;
+
+        if (filesProcessed === log_data.files.length) {
+            msg_def.innerHTML = "";
+            msg_ok.innerHTML = tt['import.ready'];
+            up_btn.show();
+        }
     }
- }
 
- reader.onloadstart = () => {
-        msg_def.innerHTML = tt['import.read'];
- }
-
- reader.onprogress = () => {
-     if (log_data.files.length > 10) {
+    reader.onerror = () => {
         msg_def.innerHTML = "";
-        msg_err.innerHTML = tt['import.warn.count'];
+        msg_err.innerHTML = tt['import.broken.label'];
+        msg_ok.innerHTML = "";
         up_btn.hide();
-     } else if (size > 52428800) {
-        msg_def.innerHTML = "";
-        msg_err.innerHTML = tt['import.warn.size'];
-        up_btn.hide();
-     } else {
-        msg_def.innerHTML = "";
-        msg_ok.innerHTML = tt['import.ready'];
-        up_btn.show();
-     }
- }
-
- if (!log_data.files.length) {
-    msg_def.innerHTML = tt['import.label'];
-    up_btn.hide();
+    }
  }
 }
 
