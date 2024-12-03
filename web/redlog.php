@@ -43,9 +43,9 @@ for ($f = 0; $f < count($files); $f++) {
 
  $data = file_get_contents($target_file[$f]);
  $data_size = filesize($target_file[$f])/1048576; //Size in mb
-
- //Check size limit (5MB per file MAX)
- if ($data_size > 5) {
+error_log($data_size);
+ //Check size limit (15MB per file MAX)
+ if ($data_size > 15) {
   if (file_exists($target_file[$f])) unlink($target_file[$f]);
   header('HTTP/1.0 406');
   echo $files[$f]['name'] . " " . $translations[$_COOKIE['lang']]['redlog.warn.size'];
