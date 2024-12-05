@@ -536,31 +536,31 @@ initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
 function funcToggle() {
 	if ($("#func").is(":hidden")) {
 		$("#func").show();
-		$("#func_toggle").html(tt['collapse']);
+		$("#func_toggle").html(localization.key['collapse']);
 	} else {
 		$("#func").hide();
-		$("#func_toggle").html(tt['expand']);
+		$("#func_toggle").html(localization.key['expand']);
 	}
 }
 
 function expToggle() {
 	if ($("#exp").is(":hidden")) {
 		$("#exp").show();
-		$("#exp_toggle").html(tt['collapse']);
+		$("#exp_toggle").html(localization.key['collapse']);
 	} else {
 		$("#exp").hide();
-		$("#exp_toggle").html(tt['expand']);
+		$("#exp_toggle").html(localization.key['expand']);
 	}
 }
 
 function logToggle() {
 	if ($("#log").is(":hidden")) {
 		$("#log").show();
-		$("#log_toggle").html(tt['collapse']);
+		$("#log_toggle").html(localization.key['collapse']);
 	} else {
 		$("#log").hide();
-		$("#log_toggle").html(tt['expand']);
-		msg_def.innerHTML = tt['import.label'];
+		$("#log_toggle").html(localization.key['expand']);
+		msg_def.innerHTML = localization.key['import.label'];
 		msg_ok.innerHTML = "";
 		msg_err.innerHTML = "";
 		document.getElementById('logFile').value = "";
@@ -575,7 +575,7 @@ let src = null;
 function dataToggle() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
-		$("#data_toggle").html(tt['collapse']);
+		$("#data_toggle").html(localization.key['collapse']);
 		src = new EventSource("stream.php<?php echo $stream_lock > 0 ? '?id=' . $session_id : ''; ?>");
 		src.onmessage = e => {$("#stream").html(e.data)};
 		alarm.muted = false;
@@ -583,7 +583,7 @@ function dataToggle() {
 		stream = true;
 	} else {
 		$("#data").hide();
-		$("#data_toggle").html(tt['expand']);
+		$("#data_toggle").html(localization.key['expand']);
 		src.close();
 		alarm.muted = true;
 		noSleep.disable();
@@ -606,10 +606,10 @@ function maintenance() {
 	mode = this.responseText;
 	if (!mode.length) return;
 	let dialogOpt = {
-	     title: tt['dialog.maintenance.title'],
-	     message : `${tt['dialog.maintenance.status']} ${mode}`,
-	     btnClassSuccessText: tt['dialog.maintenance.en'],
-	     btnClassFailText: tt['dialog.maintenance.dis'],
+	     title: localization.key['dialog.maintenance.title'],
+	     message : `${localization.key['dialog.maintenance.status']} ${mode}`,
+	     btnClassSuccessText: localization.key['dialog.maintenance.en'],
+	     btnClassFailText: localization.key['dialog.maintenance.dis'],
 	     btnClassFail: "btn btn-info btn-sm",
 	     onResolve: function() {
 	      xmlhttp.open("POST","maintenance.php?enable");
@@ -825,8 +825,8 @@ function submitLog(el) {
     }
     logFile.removeAttribute("disabled");
   }
-  xhr.upload.onprogress = p => { msg_ok.innerHTML = `${tt['import.upload']} ${Math.round((p.loaded / p.total) * 100)}%` }
-  xhr.upload.onloadend = () => { msg_ok.innerHTML = tt['import.end'] }
+  xhr.upload.onprogress = p => { msg_ok.innerHTML = `${localization.key['import.upload']} ${Math.round((p.loaded / p.total) * 100)}%` }
+  xhr.upload.onloadend = () => { msg_ok.innerHTML = localization.key['import.end'] }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
   logFile.setAttribute("disabled", "");
@@ -843,12 +843,12 @@ function checkLog() {
  let filesProcessed = 0;
 
  if (!log_data.files.length) {
-    msg_def.innerHTML = tt['import.label'];
+    msg_def.innerHTML = localization.key['import.label'];
     up_btn.hide();
     return;
  }
 
- msg_def.innerHTML = tt['import.read'];
+ msg_def.innerHTML = localization.key['import.read'];
 
  for (let i = 0; i < log_data.files.length; i++) {
     size += log_data.files[i].size;
@@ -856,14 +856,14 @@ function checkLog() {
 
  if (log_data.files.length > 10) {
     msg_def.innerHTML = "";
-    msg_err.innerHTML = tt['import.warn.count'];
+    msg_err.innerHTML = localization.key['import.warn.count'];
     up_btn.hide();
     return;
  }
 
  if (size > 52428800) {
     msg_def.innerHTML = "";
-    msg_err.innerHTML = tt['import.warn.size'];
+    msg_err.innerHTML = localization.key['import.warn.size'];
     up_btn.hide();
     return;
  }
@@ -881,12 +881,12 @@ function checkLog() {
             dateTime = $.cookie('timeformat') === '12'
               ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
               : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
-            dateStr = `${tt['import.date']} ${dateDMY} ${dateTime})`;
+            dateStr = `${localization.key['import.date']} ${dateDMY} ${dateTime})`;
         } catch(e) {
             reader.abort();
-            dateStr = tt['import.broken.el'];
+            dateStr = localization.key['import.broken.el'];
             msg_def.innerHTML = "";
-            msg_err.innerHTML = tt['import.broken.label'];
+            msg_err.innerHTML = localization.key['import.broken.label'];
             msg_ok.innerHTML = "";
             up_btn.hide();
             log_list.innerHTML += `<li style='font-family:monospace'> ${log_data.files[i].name} ${dateStr}</li>`;
@@ -898,14 +898,14 @@ function checkLog() {
 
         if (filesProcessed === log_data.files.length) {
             msg_def.innerHTML = "";
-            msg_ok.innerHTML = tt['import.ready'];
+            msg_ok.innerHTML = localization.key['import.ready'];
             up_btn.show();
         }
     }
 
     reader.onerror = () => {
         msg_def.innerHTML = "";
-        msg_err.innerHTML = tt['import.broken.label'];
+        msg_err.innerHTML = localization.key['import.broken.label'];
         msg_ok.innerHTML = "";
         up_btn.hide();
     }
@@ -918,11 +918,11 @@ function delSession() {
  const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
  if (!sessionId.length) return;
  let dialogOpt = {
-    title : tt['dialog.confirm'],
-    btnClassSuccessText: tt['btn.yes'],
-    btnClassFailText: tt['btn.no'],
+    title : localization.key['dialog.confirm'],
+    btnClassSuccessText: localization.key['btn.yes'],
+    btnClassFailText: localization.key['btn.no'],
     btnClassFail: "btn btn-info btn-sm",
-    message: `${tt['dialog.del.session']} (${sessionDate})?`,
+    message: `${localization.key['dialog.del.session']} (${sessionDate})?`,
     onResolve: function(){
      $("#wait_layout").show();
      location.href = `?deletesession=${sessionId}`;
@@ -940,10 +940,10 @@ let xhr = new XMLHttpRequest();
 	$("#wait_layout").hide();
 	let token = this.responseText;
 	let dialogOpt = {
-	    title : `${tt['dialog.token']} <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="float: right;"><path fill="currentColor" d="M7 14q-.825 0-1.412-.587T5 12t.588-1.412T7 10t1.413.588T9 12t-.587 1.413T7 14m0 4q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q1.675 0 3.038.825T12.2 9H21l3 3l-4.5 4.5l-2-1.5l-2 1.5l-2.125-1.5H12.2q-.8 1.35-2.162 2.175T7 18m0-2q1.4 0 2.463-.85T10.875 13H14l1.45 1.025L17.5 12.5l1.775 1.375L21.15 12l-1-1h-9.275q-.35-1.3-1.412-2.15T7 8Q5.35 8 4.175 9.175T3 12t1.175 2.825T7 16"></path></svg>`,
-	    btnClassSuccessText: tt['btn.copy'],
+	    title : `${localization.key['dialog.token']} <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="float: right;"><path fill="currentColor" d="M7 14q-.825 0-1.412-.587T5 12t.588-1.412T7 10t1.413.588T9 12t-.587 1.413T7 14m0 4q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q1.675 0 3.038.825T12.2 9H21l3 3l-4.5 4.5l-2-1.5l-2 1.5l-2.125-1.5H12.2q-.8 1.35-2.162 2.175T7 18m0-2q1.4 0 2.463-.85T10.875 13H14l1.45 1.025L17.5 12.5l1.775 1.375L21.15 12l-1-1h-9.275q-.35-1.3-1.412-2.15T7 8Q5.35 8 4.175 9.175T3 12t1.175 2.825T7 16"></path></svg>`,
+	    btnClassSuccessText: localization.key['btn.copy'],
 	    btnClassFail: "btn btn-info btn-sm",
-	    btnClassFailText: tt['btn.renew'],
+	    btnClassFailText: localization.key['btn.renew'],
 	    message : token,
 	    onResolve: function(){
 	     navigator.clipboard.writeText(token);
@@ -971,10 +971,10 @@ let xhr = new XMLHttpRequest();
 function tokenError() {
  $("#wait_layout").hide();
  let dialogOpt = {
-    title : tt['dialog.token.err'],
+    title : localization.key['dialog.token.err'],
     btnClassSuccessText: "OK",
     btnClassFail: "hidden",
-    message : tt['dialog.token.err.msg']
+    message : localization.key['dialog.token.err.msg']
  };
  redDialog.make(dialogOpt);
 }
@@ -984,11 +984,11 @@ function exportSession(type) {
  const sessionId = "<?php echo $session_id; ?>";
  const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
  let dialogOpt = {
-    title : tt['dialog.confirm'],
-    btnClassSuccessText: tt['btn.yes'],
-    btnClassFailText: tt['btn.no'],
+    title : localization.key['dialog.confirm'],
+    btnClassSuccessText: localization.key['btn.yes'],
+    btnClassFailText: localization.key['btn.no'],
     btnClassFail: "btn btn-info btn-sm",
-    message: `${tt['dialog.export']} ${type} (${sessionDate})?`,
+    message: `${localization.key['dialog.export']} ${type} (${sessionDate})?`,
     onResolve: function(){
      location.href = `./export.php?sid=${sessionId}&filetype=${type.toLowerCase()}`;
     }

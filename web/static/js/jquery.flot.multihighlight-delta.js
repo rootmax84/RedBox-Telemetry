@@ -248,9 +248,9 @@ function convertToRealTime(processedTime) {
         }
 
         var tooltipText = this.tooltipTemplate({
-          value : tt['chart.val'],
-          change: tt['chart.change'],
-          event : showEventHeader ? tt['chart.event'] : null,
+          value : localization.key['chart.val'],
+          change: localization.key['chart.change'],
+          event : showEventHeader ? localization.key['chart.event'] : null,
           time: timeArray,
           body: childrenTexts.join('\n')
         });

@@ -231,6 +231,12 @@ $translations = [
         'login.github' => 'Project on Github',
         'upload.start' => 'Session started from IP',
         'upload.delayed' => 'Delayed by',
+        'catch.disabled' => 'Account is disabled.',
+        'catch.loginfailed' => 'Wrong login or password!',
+        'catch.csrf' => 'CSRF token expired. Try again.',
+        'catch.banned' => 'Too many failed login attempts.<br> Please try again in 5 minutes.',
+        'catch.dberror' => 'No database connection!',
+        'catch.maintenance' => 'Server under maintenance ... <br>Try again later.',
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -462,6 +468,12 @@ $translations = [
         'login.github' => 'Проект на Github',
         'upload.start' => 'Начата сессия с IP',
         'upload.delayed' => 'Отложена на',
+        'catch.disabled' => 'Аккаунт отключен.',
+        'catch.loginfailed' => 'Неверный логин или пароль!',
+        'catch.csrf' => 'Токен CSRF истек. Попробуйте снова.',
+        'catch.banned' => 'Слишком много неудачных попыток входа.<br> Попробуйте снова через 5 минут.',
+        'catch.dberror' => 'Нет соединения с базой данных!',
+        'catch.maintenance' => 'Сервер находится на техническом обслуживании ...<br> Попробуйте позже.'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -693,6 +705,12 @@ $translations = [
         'login.github' => 'Proyecto en Github',
         'upload.start' => 'Sesión iniciada desde IP',
         'upload.delayed' => 'Retrasado por',
+        'catch.disabled' => 'La cuenta está deshabilitada.',
+        'catch.loginfailed' => 'Nombre de usuario o contraseña incorrectos!',
+        'catch.csrf' => 'El token CSRF ha expirado. Inténtalo de nuevo.',
+        'catch.banned' => 'Demasiadas intentos de inicio de sesión fallidos.<br> Intenta de nuevo en 5 minutos.',
+        'catch.dberror' => '¡Sin conexión a la base de datos!',
+        'catch.maintenance' => 'El servidor está en mantenimiento ...<br> Intenta de nuevo más tarde.'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -924,6 +942,12 @@ $translations = [
         'login.github' => 'Projekt auf Github',
         'upload.start' => 'Sitzung gestartet von IP',
         'upload.delayed' => 'Verzögert durch',
+        'catch.disabled' => 'Das Konto ist deaktiviert.',
+        'catch.loginfailed' => 'Falscher Benutzername oder Passwort!',
+        'catch.csrf' => 'CSRF-Token abgelaufen. Bitte versuche es erneut.',
+        'catch.banned' => 'Zu viele fehlgeschlagene Anmeldeversuche.<br> Bitte versuche es in 5 Minuten erneut.',
+        'catch.dberror' => 'Keine Datenbankverbindung!',
+        'catch.maintenance' => 'Server wird gewartet ...<br> Bitte versuche es später erneut.'
     ],
 ];
 

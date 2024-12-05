@@ -170,9 +170,9 @@ if ($current_page < $total_pages) {
 
     function delSessions() {
      var dialogOpt = {
-        btnClassSuccessText: tt['btn.yes'],
+        btnClassSuccessText: localization.key['btn.yes'],
         btnClassFail: "btn btn-info btn-sm",
-        message : tt['dialog.del.sessions'],
+        message : localization.key['dialog.del.sessions'],
         onResolve: function(){
          $("#wait_layout").show();
          document.getElementById("formdel").submit();
@@ -185,7 +185,7 @@ if ($current_page < $total_pages) {
      var dialogOpt = {
         btnClassSuccessText: "OK",
         btnClassFail: "hidden",
-        message : tt['dialog.no.select']
+        message : localization.key['dialog.no.select']
      };
      redDialog.make(dialogOpt);
     }

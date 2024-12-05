@@ -200,10 +200,10 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
                 var maximum = <?php echo isset($merge_max) ? $merge_max : 50000; ?>;
                 var oversize = total > maximum;
                 var dialogOpt = {
-                    title : oversize ? tt['dialog.merge.big.title'] : tt['dialog.confirm'],
-                    message: oversize ? `${tt['dialog.merge.big.msg']} ${maximum/1000}k ${tt['dialog.merge.big.datapoints']}<br>${tt['dialog.merge.big.sel']} ${total/1000}k` : `${tt['dialog.merge.sessions']} <?php echo $mergesession; ?>?`,
-                    btnClassSuccessText: oversize ? "OK" : tt['btn.yes'],
-                    btnClassFailText: tt['btn.no'],
+                    title : oversize ? localization.key['dialog.merge.big.title'] : localization.key['dialog.confirm'],
+                    message: oversize ? `${localization.key['dialog.merge.big.msg']} ${maximum/1000}k ${localization.key['dialog.merge.big.datapoints']}<br>${localization.key['dialog.merge.big.sel']} ${total/1000}k` : `${localization.key['dialog.merge.sessions']} <?php echo $mergesession; ?>?`,
+                    btnClassSuccessText: oversize ? "OK" : localization.key['btn.yes'],
+                    btnClassFailText: localization.key['btn.no'],
                     btnClassFail: oversize ? "hidden" : "btn btn-info btn-sm",
                     onResolve: function() {
                         if (!oversize) {

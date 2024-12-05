@@ -45,7 +45,7 @@ include("head.php");
 
         function xhrResponse(text) {
             var dialogOpt = {
-                title: tt['dialog.result'],
+                title: localization.key['dialog.result'],
                 message: text,
                 btnClassSuccessText: "OK",
                 btnClassFail: "hidden",

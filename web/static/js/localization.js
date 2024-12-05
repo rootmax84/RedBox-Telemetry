@@ -1,4 +1,4 @@
-let localization, lang, tt;
+let localization, lang;
 
 class Localization {
     constructor() {
@@ -7,7 +7,10 @@ class Localization {
         this.cacheKey = 'translations-cache';
         this.loadTranslations();
         lang = this.currentLang;
-        tt = JSON.parse(localStorage.getItem(`translations-cache-${lang}`));
+    }
+
+    get key() {
+        return this.translations;
     }
 
     updateAllContent() {
@@ -74,8 +77,6 @@ class Localization {
         this.currentLang = lang;
         localStorage.setItem('language', lang);
         await this.fetchAndCacheTranslations();
-
-        tt = JSON.parse(localStorage.getItem(`translations-cache-${lang}`));
     }
 
     getCurrentLanguage() {
@@ -96,8 +97,11 @@ class Localization {
                 if (textNode) {
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = translation;
-                    textNode.nodeValue = tempDiv.textContent;
-                    textNode.parentNode.replaceChild(document.createTextNode(tempDiv.innerHTML), textNode);
+                    const fragment = document.createDocumentFragment();
+                    while (tempDiv.firstChild) {
+                        fragment.appendChild(tempDiv.firstChild);
+                    }
+                    textNode.parentNode.replaceChild(fragment, textNode);
                 } else {
                     element.prepend(document.createTextNode(translation.replace(/<br>/g, '\n')));
                 }

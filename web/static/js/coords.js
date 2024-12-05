@@ -59,10 +59,10 @@ L.Control.Coordinates = L.Control.extend({
 		document.execCommand('copy');
 		document.body.removeChild(textArea);
 	    var dialogOpt = {
-		title : tt['dialog.coord.title'],
+		title : localization.key['dialog.coord.title'],
 		btnClassSuccessText: "OK",
 		btnClassFail: "hidden",
-		message : tt['dialog.coord.msg'],
+		message : localization.key['dialog.coord.msg'],
 		onResolve: function(){return;}
 		};
 	    redDialog.make(dialogOpt);

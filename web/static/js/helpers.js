@@ -180,7 +180,7 @@ function doPlot(position) {
         xaxes: [ {
             mode: "time",
             timezone: "browser",
-            axisLabel: tt['chart.time.label'],
+            axisLabel: localization.key['chart.time.label'],
             tickFormatter: function(val, axis) {
                 if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) return "";
                 const processedTimes = Object.keys(window.realTimeInfo.timeMapping).map(Number);
@@ -247,8 +247,8 @@ let updCharts = ()=>{
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
             plot.shutdown();
-            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(tt['novar'])));
-            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(tt['novar'])));
+            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
+            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
             $('#Chart-Container').empty();
             $('#Chart-Container').append(noChart2);
             $('#Summary-Container').empty();
@@ -296,7 +296,7 @@ let updCharts = ()=>{
             $('#Summary-Container').empty();
             $('#Summary-Container').append($('<div>',{class:'table-responsive'}).append($('<table>',{class:'table table-sum'}).append($('<thead>').append($('<tr>'))).append('<tbody>')));
             // Create table headers
-            const headers = [tt['datasum.name'], tt['datasum.mm'], tt['datasum.mean'], tt['datasum.sparkline']];
+            const headers = [localization.key['datasum.name'], localization.key['datasum.mm'], localization.key['datasum.mean'], localization.key['datasum.sparkline']];
             const thead = document.querySelector('#Summary-Container>div>table>thead>tr');
             const headerFragment = document.createDocumentFragment();
             headers.forEach(v => {
@@ -357,8 +357,8 @@ let updCharts = ()=>{
             });
             if ($('#plot_data').chosen().val() == null) updCharts();
         }).catch(err => {
-            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(tt['nodata'])));
-            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(tt['nodata'])));
+            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'])));
+            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'])));
             $('#Chart-Container').empty();
             $('#Chart-Container').append(noChart2);
             $('#Summary-Container').empty();
@@ -402,8 +402,8 @@ let initMapLeaflet = () => {
     });
 
     let baseMaps = {
-        [tt['layer.map']]: osm,
-        [tt['layer.sat']]: esri
+        [localization.key['layer.map']]: osm,
+        [localization.key['layer.sat']]: esri
     };
 
     let layerControl = L.control.layers(baseMaps).addTo(map);
