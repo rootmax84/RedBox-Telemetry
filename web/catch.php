@@ -27,6 +27,11 @@
 		<h4 style="line-height:1.5">No database connection!</h4>
 	    <?php
 	    }
+	    else if ($_GET['c'] == "maintenance") { http_response_code(423); ?>
+		<script>setTimeout(()=>{location.href='.'}, 10000);</script>
+		<h4 style="line-height:1.5">Server under maintenance ...<br>Try again later.</h4>
+	    <?php
+	    }
 	?>
         </div>
     <div class="login-background"></div>

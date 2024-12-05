@@ -8,7 +8,11 @@ function get_db_connection() {
         try {
             $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
         } catch (Exception $e) {
-            header('Location: catch.php?c=dberror');
+            if (file_exists('maintenance')) {
+                header('Location: catch.php?c=maintenance');
+            } else {
+                header('Location: catch.php?c=dberror');
+            }
         }
     }
 
