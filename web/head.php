@@ -48,7 +48,7 @@
       $("#theme-switch").click( function() {
        toggle_dark();
      });
-      var btn = $('#top-btn');
+      let btn = $('#top-btn');
       $(window).scroll(function() {
        if ($(window).scrollTop() > 1000) {
          btn.addClass('show');

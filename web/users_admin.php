@@ -69,7 +69,7 @@ else if ($_GET['action'] == "trunc") {
 <script>
 "use strict";
 function submitForm(el) {
-  var xhr = new XMLHttpRequest();
+  let xhr = new XMLHttpRequest();
   xhr.onload = function(){ xhrResponse(xhr.responseText); }
   xhr.open(el.method, el.getAttribute("action"));
   xhr.send(new FormData(el));
@@ -77,7 +77,7 @@ function submitForm(el) {
 }
 
 function xhrResponse(text) {
- var dialogOpt = {
+ let dialogOpt = {
     title: localization.key['dialog.result'],
     message : text,
     btnClassSuccessText: "OK",

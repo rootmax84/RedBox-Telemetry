@@ -197,9 +197,9 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
             });
 
             function mergeSession() {
-                var maximum = <?php echo isset($merge_max) ? $merge_max : 50000; ?>;
-                var oversize = total > maximum;
-                var dialogOpt = {
+                let maximum = <?php echo isset($merge_max) ? $merge_max : 50000; ?>;
+                let oversize = total > maximum;
+                let dialogOpt = {
                     title : oversize ? localization.key['dialog.merge.big.title'] : localization.key['dialog.confirm'],
                     message: oversize ? `${localization.key['dialog.merge.big.msg']} ${maximum/1000}k ${localization.key['dialog.merge.big.datapoints']}<br>${localization.key['dialog.merge.big.sel']} ${total/1000}k` : `${localization.key['dialog.merge.sessions']} <?php echo $mergesession; ?>?`,
                     btnClassSuccessText: oversize ? "OK" : localization.key['btn.yes'],

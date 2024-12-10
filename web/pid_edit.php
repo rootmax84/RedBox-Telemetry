@@ -21,11 +21,11 @@ include("head.php");
     <body>
     <script>
         function submitForm(form) {
-            var formData = new FormData(form);
+            let formData = new FormData(form);
 
             document.querySelectorAll("td[contenteditable=true], input[type='checkbox'], select").forEach(function(el) {
-                var fieldPid = el.getAttribute("id");
-                var value;
+                let fieldPid = el.getAttribute("id");
+                let value;
                 if (el.type === "checkbox") {
                     value = el.checked;
                 } else {
@@ -34,7 +34,7 @@ include("head.php");
                 formData.append(fieldPid, value);
             });
 
-            var xhr = new XMLHttpRequest();
+            let xhr = new XMLHttpRequest();
             xhr.onload = function() {
                 xhrResponse(xhr.responseText);
             };
@@ -44,7 +44,7 @@ include("head.php");
         }
 
         function xhrResponse(text) {
-            var dialogOpt = {
+            let dialogOpt = {
                 title: localization.key['dialog.result'],
                 message: text,
                 btnClassSuccessText: "OK",

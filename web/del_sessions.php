@@ -155,7 +155,7 @@ if ($current_page < $total_pages) {
     $(document).ready(()=> {
 	$("#del-btn").on("click",(e)=> {
 	    e.preventDefault();
-	    var isChecked = $("input[type=checkbox]").is(":checked");
+	    let isChecked = $("input[type=checkbox]").is(":checked");
 	    if (!isChecked) {
 		 noSel();
 	    }
@@ -169,7 +169,7 @@ if ($current_page < $total_pages) {
      });
 
     function delSessions() {
-     var dialogOpt = {
+     let dialogOpt = {
         btnClassSuccessText: localization.key['btn.yes'],
         btnClassFail: "btn btn-info btn-sm",
         message : localization.key['dialog.del.sessions'],
@@ -182,7 +182,7 @@ if ($current_page < $total_pages) {
     }
 
     function noSel() {
-     var dialogOpt = {
+     let dialogOpt = {
         btnClassSuccessText: "OK",
         btnClassFail: "hidden",
         message : localization.key['dialog.no.select']
@@ -191,8 +191,8 @@ if ($current_page < $total_pages) {
     }
 
     function toggle(source) {
-     var checkboxes = document.querySelectorAll('input[type="checkbox"]');
-     for (var i = 0; i < checkboxes.length; i++) {
+     let checkboxes = document.querySelectorAll('input[type="checkbox"]');
+     for (let i = 0; i < checkboxes.length; i++) {
          if (checkboxes[i] != source)
              checkboxes[i].checked = source.checked;
      }
