@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <?php require_once('token_functions.php'); ?>
-<script async src="static/js/localization.js"></script>
+<script src="static/js/localization.js"></script>
 <link rel="apple-touch-icon" sizes="180x180" href="static/img/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="static/img/favicon-16x16.png">
