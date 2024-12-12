@@ -175,8 +175,6 @@ if (isset($sids[0])) {
     $timearray = $gps_data['timearray'];
 
     $itime = implode(",", $timearray);
-    $maxtimev = reset($timearray);  // First el
-    $mintimev = end($timearray);    // Last el
 
     // Create array of Latitude/Longitude strings in leafletjs JavaScript format
     $mapdata = [];
@@ -392,8 +390,10 @@ if (isset($sids[0])) {
 <div <?php if($imapdata) { ?> class="pure-g" <?php } ?>>
   <div <?php if($imapdata) { ?> class="pure-u-md-1-2" <?php } ?>>
     <!-- Chart Block -->
-    <?php if($imapdata) { ?> <h4 class="wide-h" l10n="chart"></h4>
-    <?php } else { ?> <h4>Chart <span class="nogps">(no GPS data)</span></h4> <?php } ?>
+    <div id="update-plot">
+        <?php if($imapdata) { ?> <h4 class="wide-h" l10n="chart"></h4>
+        <?php } else { ?> <h4 l10n="chart"><span class="nogps" l10n="nogps"></span></h4> <?php } ?>
+    </div>
     <div id="Chart-Container" class="row center-block" style="z-index:1;position:relative;">
     <?php   if ( $var1 <> "" ) { ?>
     <div class="demo-container">
@@ -419,9 +419,7 @@ if (isset($sids[0])) {
 <!-- slider -->
 <script>
 jsTimeMap = [<?php echo $itime; ?>].reverse(); //Session time array, reversed for silder
-let minTimeStart = [<?php echo $mintimev; ?>];
-let maxTimeEnd = [<?php echo $maxtimev; ?>];
-initSlider(jsTimeMap,minTimeStart,maxTimeEnd);
+initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 </script>
 <span class="h4" l10n="trim.sess"></span>
 <input type="text" id="slider-time" readonly style="border:0; font-family:monospace; width:300px;" disabled>
