@@ -237,6 +237,8 @@ $translations = [
         'catch.banned' => 'Too many failed login attempts.<br> Please try again in 5 minutes.',
         'catch.dberror' => 'No database connection!',
         'catch.maintenance' => 'Server under maintenance ... <br>Try again later.',
+        'nogps' => ' (no GPS data)',
+        'nospd' => 'No speed data available'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -473,7 +475,9 @@ $translations = [
         'catch.csrf' => 'Токен CSRF истек. Попробуйте снова.',
         'catch.banned' => 'Слишком много неудачных попыток входа.<br> Попробуйте снова через 5 минут.',
         'catch.dberror' => 'Нет соединения с базой данных!',
-        'catch.maintenance' => 'Сервер находится на техническом обслуживании ...<br> Попробуйте позже.'
+        'catch.maintenance' => 'Сервер находится на техническом обслуживании ...<br> Попробуйте позже.',
+        'nogps' => ' (нет данных GPS)',
+        'nospd' => 'Данные о скорости отсутствуют'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -710,7 +714,9 @@ $translations = [
         'catch.csrf' => 'El token CSRF ha expirado. Inténtalo de nuevo.',
         'catch.banned' => 'Demasiadas intentos de inicio de sesión fallidos.<br> Intenta de nuevo en 5 minutos.',
         'catch.dberror' => '¡Sin conexión a la base de datos!',
-        'catch.maintenance' => 'El servidor está en mantenimiento ...<br> Intenta de nuevo más tarde.'
+        'catch.maintenance' => 'El servidor está en mantenimiento ...<br> Intenta de nuevo más tarde.',
+        'nogps' => ' (sin datos GPS)',
+        'nospd' => 'No hay datos de velocidad'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -947,7 +953,9 @@ $translations = [
         'catch.csrf' => 'CSRF-Token abgelaufen. Bitte versuche es erneut.',
         'catch.banned' => 'Zu viele fehlgeschlagene Anmeldeversuche.<br> Bitte versuche es in 5 Minuten erneut.',
         'catch.dberror' => 'Keine Datenbankverbindung!',
-        'catch.maintenance' => 'Server wird gewartet ...<br> Bitte versuche es später erneut.'
+        'catch.maintenance' => 'Server wird gewartet ...<br> Bitte versuche es später erneut.',
+        'nogps' => ' (keine GPS-Daten)',
+        'nospd' => 'Keine Geschwindigkeitsdaten'
     ],
 ];
 

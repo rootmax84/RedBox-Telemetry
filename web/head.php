@@ -40,8 +40,10 @@
 <script>
     $(document).ready(function() {
      localization = new Localization();
-     localization.clearCache();
-     localization.loadTranslations();
+     if (!$.cookie('stream')) {
+        localization.clearCache();
+        localization.loadTranslations();
+     }
      fetch(`translations.php?lang=${lang}`);
      const visitortimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
      fetch("timezone.php?time=" + visitortimezone);
