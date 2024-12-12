@@ -27,8 +27,14 @@ $(document).ready(function(){
   $("select#plot_data").chosen({no_results_text: "Oops, nothing found!"});
   $("select#plot_data").chosen({placeholder_text_multiple: "Choose data.."});
   // Reset flot zoom
-  $("#Chart-Container").on("dblclick",()=>{initSlider(jsTimeMap,minTimeStart,maxTimeEnd)});
+  $("#Chart-Container").on("dblclick", ()=>{initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
+  $("#update-plot").on("dblclick", updatePlot);
 });
+
+function updatePlot() {
+    updCharts();
+    initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
+}
 
 //start of chart plotting js code
 let plot = null; //definition of plot variable in script but outside doPlot function to be able to reuse as a controller when updating base data
@@ -424,15 +430,18 @@ let initMapLeaflet = () => {
         let marker = null;
         let lat = stream ? parseFloat($('#lat').html()) : null;
         let lon = stream ? parseFloat($('#lon').html()) : null;
-        let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : "No speed data in stream") : null;
+        let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : localization.key['nospd']) : null;
         let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
         if (lat == null || lon == null || isNaN(lat) || isNaN(lon) || (lat == 0 && lon == 0)) return;
         if (stream) {
-            marker = new L.marker([lat, lon]).bindTooltip(spd+" "+spd_unit,{permanent:true,direction:'right',className:"stream-marker"}).addTo(map);
+            marker = new L.marker([lat, lon]).bindTooltip(
+                `${spd}${spd === localization.key['nospd'] ? '' : ' ' + spd_unit}`,
+                {permanent:true, direction:'right', className:"stream-marker"}
+            ).addTo(map);
             map.setView(marker.getLatLng(), map.getZoom());
             //update travel line/end point
             if (path.at(0)[0] != lat && path.at(0)[1] != lon) {
-                path.unshift([lat,lon]);
+            path.unshift([lat,lon]);
                 polyline.setLatLngs(path);
                 endcir.setLatLng(path.at(0));
             }
@@ -476,9 +485,15 @@ let initMapLeaflet = () => {
 //End of Leaflet Map Providers js code
 
 //slider js code
-let initSlider = (jsTimeMap,minTimeStart,maxTimeEnd)=>{
-    let TimeStartv = timelookup(minTimeStart);
-    let TimeEndv = timelookup(maxTimeEnd);
+let initSlider = (jsTimeMap,start,end)=>{
+    $("#slider-range11").off();
+    if ($("#slider-range11").hasClass("ui-slider")) {
+        $("#slider-range11").slider("destroy");
+        initSlider(jsTimeMap,start,end);
+    }
+
+    let TimeStartv = timelookup(start);
+    let TimeEndv = timelookup(end);
 
     function timelookup(t) { //retrun array index, used for slider steps/value, RIP IE, no polyfill 
         let fx = (e) => e == t;
@@ -490,7 +505,6 @@ let initSlider = (jsTimeMap,minTimeStart,maxTimeEnd)=>{
         let date = new Date(t);
         return  date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU');
     }
-
     let sv = $(function() {//jquery range slider
         $( "#slider-range11" ).slider({
             range: true,
