@@ -5,18 +5,16 @@
     curl https://your_site/stream_json.php -H "Authorization: Bearer $username_token"
     returns the latest user log entry checked in the PID menu as Stream without GPS data
 
-    {
-      "data": [
+      [
         {
           "id": "kff1238",
           "description": "Voltage (OBD Adapter)",
-          "value": "13.70",
-          "unit": "V"
+          "value": 13.70,
+          "unit": "V",
+          "time": 1720767600011
         },
         ...
       ],
-      "lastRecordDate": "1720767600011"
-    }
 */
 
 require_once('token_functions.php');
@@ -34,26 +32,29 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-//Check if token header is present and non empty than go to database
+//Check if token header is present and non-empty then go to database
 $token = getBearerToken();
 if (!empty($token)) {
 
-$_SESSION['torque_logged_in'] = true;
-require_once('db.php');
+    $_SESSION['torque_logged_in'] = true;
+    require_once('db.php');
 
-header('Content-Type: application/json');
-header('Cache-Control: no-cache');
+    header('Content-Type: application/json');
+    header('Cache-Control: no-cache');
 
- //Check auth via Bearer token
-$userqry = $db->execute_query("SELECT user, s FROM $db_users WHERE token=?", [$token]);
-  if (!$userqry->num_rows) $access = 0;
-  else {
-    $row = $userqry->fetch_assoc();
-    $user = $row["user"];
-    $limit = $row["s"];
-    $access = 1;
-  }
-} else $access = 0;
+     //Check auth via Bearer token
+    $userqry = $db->execute_query("SELECT user, s FROM $db_users WHERE token=?", [$token]);
+    if (!$userqry->num_rows) {
+        $access = 0;
+    } else {
+        $row = $userqry->fetch_assoc();
+        $user = $row["user"];
+        $limit = $row["s"];
+        $access = 1;
+    }
+} else {
+    $access = 0;
+}
 
 if ($access != 1 || $limit == 0) {
     header('HTTP/1.0 403 Forbidden');
@@ -65,6 +66,7 @@ if ($access != 1 || $limit == 0) {
     $db_pids_table = $user.$db_pids_prefix;
 }
 
+// Fetch the latest data record
 $r = $db->query("SELECT * FROM $db_table ORDER BY time DESC LIMIT 1");
 if (!$r->num_rows) {
     echo json_encode(['error' => 'No data available']);
@@ -118,14 +120,13 @@ for ($i = 0; $i < count($pid); $i++) {
     $data[] = [
         'id' => $currentPid,
         'description' => $currentDes,
-        'value' => $formattedValue,
-        'unit' => $formattedUnit
+        'value' => (float) $formattedValue,
+        'unit' => $formattedUnit,
+        'time' => (int) $row['time']
     ];
 }
 
-$lastRecordDate = outputLastRecordDate($row['time']);
-
-echo json_encode(['data' => $data, 'lastRecordDate' => $lastRecordDate]);
+echo json_encode($data);
 
 function formatValue($pid, $value, $des, $speed, $temp, $pressure, $boost, $id) {
     return match ($pid) {
@@ -135,10 +136,11 @@ function formatValue($pid, $value, $des, $speed, $temp, $pressure, $boost, $id) 
             1 => 'ON',
             default => $value >= 95 ? 'MAX' : $value,
         },
-        'k1f' => sprintf("%02d:%02d:%02d", (int)$value/3600, ((int)$value/60)%60, $value%60),
+        'k1f' => sprintf("%02d:%02d:%02d", (int)($value/3600), ((int)($value/60))%60, $value%60),
         'k2118' => intval($value),
         'k2124' => $value == 255 ? 'N/A' : $value,
         'k21fa' => $value == 0 ? 'OK' : $value,
+        // Some PIDs need formatting to two decimal places
         'kff1238', 'ke', 'kff1214', 'kff1218', 'k21cc', 'k2111' => sprintf("%.2f", $value),
         'kff1204', 'kff120c' => speed_conv($value, $speed, $id),
         'kc' => sprintf("%.2f", $value/100),
@@ -166,11 +168,4 @@ function formatUnit($pid, $des, $spd_unit, $trip_unit, $temp_unit, $press_unit, 
     };
 }
 
-function outputLastRecordDate($time) {
-    if ($time != '') {
-        return $time;
-    } else {
-        return "No data available";
-    }
-}
 ?>
