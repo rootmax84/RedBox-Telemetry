@@ -80,7 +80,7 @@ $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WH
 [$speed, $temp, $pressure, $boost] = $setqry;
 
 if (!$d->num_rows) {
-    echo json_encode(['message' => 'Select PIDs to show in Functions']);
+    echo json_encode(['error' => 'Select PIDs to show in Functions']);
     exit;
 }
 
