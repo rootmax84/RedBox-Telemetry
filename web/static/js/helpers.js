@@ -441,7 +441,7 @@ let initMapLeaflet = () => {
             map.setView(marker.getLatLng(), map.getZoom());
             //update travel line/end point
             if (path.at(0)[0] != lat && path.at(0)[1] != lon) {
-            path.unshift([lat,lon]);
+                path.unshift([lat,lon]);
                 polyline.setLatLngs(path);
                 endcir.setLatLng(path.at(0));
             }
