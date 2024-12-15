@@ -422,7 +422,7 @@ let initMapLeaflet = () => {
     }
     map.on('click', onMapClick);
 
-    L.control.locate({position: "bottomright"}).addTo(map);
+    L.control.locate({position: "bottomright", showPopup: false}).addTo(map);
 
     //Dynamic tracking marker when stream is open
     const rate = Number($.cookie('tracking-rate')) || 1000;
@@ -580,6 +580,13 @@ document.addEventListener('keydown', (event) => {
         }
     }
 });
+
+document.addEventListener('mouseover', function(e) {
+    if (e.target.hasAttribute('title')) {
+        e.target.dataset.originalTitle = e.target.getAttribute('title');
+        e.target.removeAttribute('title');
+    }
+}, true);
 
 let redDialog = {
     options: {
