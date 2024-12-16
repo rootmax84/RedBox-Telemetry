@@ -7,6 +7,7 @@ class Localization {
         this.cacheKey = 'translations-cache';
         this.loadTranslations();
         lang = this.currentLang;
+        document.documentElement.lang = lang;
     }
 
     get key() {
@@ -71,6 +72,7 @@ class Localization {
             return;
         }
 
+        document.documentElement.lang = lang;
         const keysToRemove = Object.keys(localStorage).filter(key => key.startsWith('translations-'));
         keysToRemove.forEach(key => localStorage.removeItem(key));
 

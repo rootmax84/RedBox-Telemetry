@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <?php require_once('token_functions.php'); ?>
 <script src="static/js/localization.js"></script>
