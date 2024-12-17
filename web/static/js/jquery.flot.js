@@ -2695,7 +2695,7 @@ Licensed under the MIT license.
         function insertLegend() {
 
             if (options.legend.container != null) {
-                $(options.legend.container).html("");
+                $(options.legend.container).empty();
             } else {
                 placeholder.find(".legend").remove();
             }
@@ -2764,40 +2764,59 @@ Licensed under the MIT license.
             if (fragments.length == 0)
                 return;
 
-            var table = '<table style="font-size:smaller;color:' + options.grid.color + '">' + fragments.join("") + '</table>';
-            if (options.legend.container != null)
-                $(options.legend.container).html(table);
-            else {
-                var pos = "",
-                    p = options.legend.position,
-                    m = options.legend.margin;
-                if (m[0] == null)
-                    m = [m, m];
-                if (p.charAt(0) == "n")
-                    pos += 'top:' + (m[1] + plotOffset.top) + 'px;';
-                else if (p.charAt(0) == "s")
-                    pos += 'bottom:' + (m[1] + plotOffset.bottom) + 'px;';
-                if (p.charAt(1) == "e")
-                    pos += 'right:' + (m[0] + plotOffset.right) + 'px;';
-                else if (p.charAt(1) == "w")
-                    pos += 'left:' + (m[0] + plotOffset.left) + 'px;';
-                var legend = $('<div class="legend">' + table.replace('style="', 'style="position:absolute;' + pos +';') + '</div>').appendTo(placeholder);
+            var table = $('<table></table>').css({
+                fontSize: 'smaller',
+                color: options.grid.color
+            }).append(fragments.join(""));
+
+            if (options.legend.container != null) {
+                $(options.legend.container).empty().append(table);
+            } else {
+                var pos = {};
+                var p = options.legend.position, m = options.legend.margin;
+
+                if (m[0] == null) m = [m, m];
+
+                if (p.charAt(0) == "n") pos.top = (m[1] + plotOffset.top) + 'px';
+                else if (p.charAt(0) == "s") pos.bottom = (m[1] + plotOffset.bottom) + 'px';
+
+                if (p.charAt(1) == "e") pos.right = (m[0] + plotOffset.right) + 'px';
+                else if (p.charAt(1) == "w") pos.left = (m[0] + plotOffset.left) + 'px';
+
+                var legend = $('<div></div>')
+                    .addClass('legend')
+                    .css({
+                        position: 'absolute',
+                        ...pos
+                })
+                .append(table)
+                .appendTo(placeholder);
+
                 if (options.legend.backgroundOpacity != 0.0) {
-                    // put in the transparent background
-                    // separately to avoid blended labels and
-                    // label boxes
                     var c = options.legend.backgroundColor;
+
                     if (c == null) {
                         c = options.grid.backgroundColor;
-                        if (c && typeof c == "string")
+                        if (c && typeof c == "string") {
                             c = $.color.parse(c);
-                        else
+                        } else {
                             c = $.color.extract(legend, 'background-color');
+                        }
                         c.a = 1;
                         c = c.toString();
                     }
+
                     var div = legend.children();
-                    $('<div style="position:absolute;width:' + div.width() + 'px;height:' + div.height() + 'px;' + pos +'background-color:' + c + ';"> </div>').prependTo(legend).css('opacity', options.legend.backgroundOpacity);
+                    $('<div></div>')
+                    .css({
+                        position: 'absolute',
+                        width: div.width(),
+                        height: div.height(),
+                        backgroundColor: c,
+                        opacity: options.legend.backgroundOpacity,
+                        ...pos
+                    })
+                    .prependTo(legend);
                 }
             }
         }
