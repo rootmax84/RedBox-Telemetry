@@ -249,17 +249,17 @@ function doPlot(position) {
 }
 
 let updCharts = ()=>{
-    if ($('#plot_data').chosen().val()==null) {
+    if ($('#plot_data').chosen().val().length == 0) {
+        const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
+        const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
             plot.shutdown();
-            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
-            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
-            $('#Chart-Container').empty();
-            $('#Chart-Container').append(noChart2);
-            $('#Summary-Container').empty();
-            $('#Summary-Container').append(noChart);
         }
+        $('#Chart-Container').empty();
+        $('#Chart-Container').append(noChart2);
+        $('#Summary-Container').empty();
+        $('#Summary-Container').append(noChart);
     } else if ($('#plot_data').chosen().val().length <= 10){
         $("#chart-load").css("display","block");
         let varPrm = 'plot.php?id='+$('#seshidtag').chosen().val();
