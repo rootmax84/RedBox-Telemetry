@@ -254,6 +254,9 @@ if (isset($sids[0])) {
     <!-- Configure Jquery Flot graph and plot code -->
     <script>
       $(document).ready(function(){
+
+        if (!document.getElementById('plot_data')) return;
+
         let plotData = $('#plot_data');
         let lastValue = plotData.val() || [];
 
@@ -263,6 +266,18 @@ if (isset($sids[0])) {
                 lastValue = newValue;
                 updCharts();
             }
+        }
+
+        const observer = new MutationObserver((mutations) => {
+            if (!lastValue.length && $('#placeholder')[0] != undefined) {
+                updCharts();
+            }
+        });
+
+        const targetNode = $('#right-container')[0];
+
+        if (targetNode) {
+            observer.observe(targetNode, {childList: true, subtree: true});
         }
 
         plotData.on('change', handleChange);
