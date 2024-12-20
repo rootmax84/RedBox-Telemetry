@@ -1,5 +1,4 @@
 FROM phpdockerio/php:8.4-fpm
-WORKDIR "/data"
 
 RUN apt-get update \
     && apt-get -y --no-install-recommends install \
@@ -11,12 +10,11 @@ RUN apt-get update \
 
 EXPOSE 80
 
-RUN touch /data/install
-
 RUN echo '#!/bin/sh' > /start.sh && \
     echo 'echo "======================"' >> /start.sh && \
     echo 'echo "== RedBox Telemetry =="' >> /start.sh && \
     echo 'echo "======================"' >> /start.sh && \
+    echo 'touch /var/www/html/install' >> /start.sh && \
     echo 'php-fpm8.4 -D' >> /start.sh && \
     echo 'nginx -g "daemon off;"' >> /start.sh && \
     chmod +x /start.sh
