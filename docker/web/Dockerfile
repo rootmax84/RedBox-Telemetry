@@ -15,7 +15,7 @@ RUN echo '#!/bin/sh' > /start.sh && \
     echo 'echo "== RedBox Telemetry =="' >> /start.sh && \
     echo 'echo "======================"' >> /start.sh && \
     echo 'touch /var/www/html/install' >> /start.sh && \
-    echo 'php-fpm8.4 -O' >> /start.sh && \
+    echo 'php-fpm8.4 -D' >> /start.sh && \
     echo 'nginx -g "daemon off;"' >> /start.sh && \
     chmod +x /start.sh
 
