@@ -10,6 +10,8 @@ RUN apt-get update \
 
 EXPOSE 80
 
+RUN sed -i 's/listen = \[::\]:9000/listen = \/var\/run\/php\/php-fpm.sock/g' /etc/php/8.4/fpm/pool.d/z-overrides.conf
+
 RUN echo '#!/bin/sh' > /start.sh && \
     echo 'echo "======================"' >> /start.sh && \
     echo 'echo "== RedBox Telemetry =="' >> /start.sh && \
