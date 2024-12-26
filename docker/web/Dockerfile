@@ -21,4 +21,6 @@ RUN echo '#!/bin/sh' > /start.sh && \
     echo 'nginx -g "daemon off;"' >> /start.sh && \
     chmod +x /start.sh
 
+STOPSIGNAL SIGKILL
+
 CMD ["/start.sh"]
