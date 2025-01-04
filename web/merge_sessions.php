@@ -104,13 +104,21 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
                             <td id="start:<?php echo $x['session']; ?>">
                                 <?php
                                 $start_timestamp = intval(substr($x["time"], 0, -3));
-                                echo date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", $start_timestamp);
+                                $month_num = date('n', $start_timestamp);
+                                $month_key = 'month.' . strtolower(date('M', $start_timestamp));
+                                $translated_month = $translations[$lang][$month_key];
+                                $date = date($_COOKIE['timeformat'] == "12" ? "d, Y h:ia" : "d, Y H:i", $start_timestamp);
+                                echo $translated_month . ' ' . $date;
                                 ?>
                             </td>
                             <td id="end:<?php echo $x['session']; ?>">
                                 <?php
                                 $end_timestamp = intval(substr($x["timeend"], 0, -3));
-                                echo date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", $end_timestamp);
+                                $month_num = date('n', $end_timestamp);
+                                $month_key = 'month.' . strtolower(date('M', $end_timestamp));
+                                $translated_month = $translations[$lang][$month_key];
+                                $date = date($_COOKIE['timeformat'] == "12" ? "d, Y h:ia" : "d, Y H:i", $end_timestamp);
+                                echo $translated_month . ' ' . $date;
                                 ?>
                             </td>
                             <td id="length:<?php echo $x['session']; ?>">
