@@ -2753,7 +2753,7 @@ Licensed under the MIT license.
                 }
 
                 fragments.push(
-                    '<td class="legendColorBox"><div style="border:1px solid ' + options.legend.labelBoxBorderColor + ';padding:1px"><div style="width:4px;height:0;border:5px solid ' + entry.color + ';overflow:hidden"></div></div></td>' +
+                    '<td class="legendColorBox"><div style="border-radius:10px;border:1px solid ' + options.legend.labelBoxBorderColor + ';padding:1px"><div style="border-radius:5px;width:4px;height:0;border:5px solid ' + entry.color + ';overflow:hidden"></div></div></td>' +
                     '<td class="legendLabel">' + entry.label + '</td>'
                 );
             }
@@ -2791,33 +2791,6 @@ Licensed under the MIT license.
                 })
                 .append(table)
                 .appendTo(placeholder);
-
-                if (options.legend.backgroundOpacity != 0.0) {
-                    var c = options.legend.backgroundColor;
-
-                    if (c == null) {
-                        c = options.grid.backgroundColor;
-                        if (c && typeof c == "string") {
-                            c = $.color.parse(c);
-                        } else {
-                            c = $.color.extract(legend, 'background-color');
-                        }
-                        c.a = 1;
-                        c = c.toString();
-                    }
-
-                    var div = legend.children();
-                    $('<div></div>')
-                    .css({
-                        position: 'absolute',
-                        width: div.width(),
-                        height: div.height(),
-                        backgroundColor: c,
-                        opacity: options.legend.backgroundOpacity,
-                        ...pos
-                    })
-                    .prependTo(legend);
-                }
             }
         }
 
