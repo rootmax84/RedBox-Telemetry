@@ -375,7 +375,7 @@ let updCharts = ()=>{
         });
     }
     else{
-        const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-danger'}).html('Too much variables for plotting!')));
+        const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-danger'}).html(localization.key['overdata'])));
         $('#Chart-Container').empty();
         $('#Chart-Container').append(noChart);
    }

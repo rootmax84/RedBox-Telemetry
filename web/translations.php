@@ -238,7 +238,8 @@ $translations = [
         'catch.dberror' => 'No database connection!',
         'catch.maintenance' => 'Server under maintenance ... <br>Try again later.',
         'nogps' => ' (no GPS data)',
-        'nospd' => 'No speed data available'
+        'nospd' => 'No speed data available',
+        'overdata' => 'Too much variables for plotting!'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -477,7 +478,8 @@ $translations = [
         'catch.dberror' => 'Нет соединения с базой данных!',
         'catch.maintenance' => 'Сервер находится на техническом обслуживании ...<br> Попробуйте позже.',
         'nogps' => ' (нет данных GPS)',
-        'nospd' => 'Данные о скорости отсутствуют'
+        'nospd' => 'Данные о скорости отсутствуют',
+        'overdata' => 'Слишком много переменных для построения графика!'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -716,7 +718,8 @@ $translations = [
         'catch.dberror' => '¡Sin conexión a la base de datos!',
         'catch.maintenance' => 'El servidor está en mantenimiento ...<br> Intenta de nuevo más tarde.',
         'nogps' => ' (sin datos GPS)',
-        'nospd' => 'No hay datos de velocidad'
+        'nospd' => 'No hay datos de velocidad',
+        'overdata' => '¡Demasiadas variables para graficar!'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -955,7 +958,8 @@ $translations = [
         'catch.dberror' => 'Keine Datenbankverbindung!',
         'catch.maintenance' => 'Server wird gewartet ...<br> Bitte versuche es später erneut.',
         'nogps' => ' (keine GPS-Daten)',
-        'nospd' => 'Keine Geschwindigkeitsdaten'
+        'nospd' => 'Keine Geschwindigkeitsdaten',
+        'overdata' => 'Zu viele Variablen zum Plotten!'
     ],
 ];
 
