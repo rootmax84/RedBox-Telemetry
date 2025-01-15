@@ -2753,7 +2753,7 @@ Licensed under the MIT license.
                 }
 
                 fragments.push(
-                    '<td class="legendColorBox"><div style="border-radius:10px;border:1px solid ' + options.legend.labelBoxBorderColor + ';padding:1px"><div style="border-radius:5px;width:4px;height:0;border:5px solid ' + entry.color + ';overflow:hidden"></div></div></td>' +
+                    '<td class="legendColorBox"><div style="border-radius:10px;border:1px solid ' + options.legend.labelBoxBorderColor + ';padding:2px"><div style="border-radius:5px;width:4px;height:0;border:5px solid ' + entry.color + ';overflow:hidden"></div></div></td>' +
                     '<td class="legendLabel" style="padding:1px">' + entry.label + '</td>'
                 );
             }
