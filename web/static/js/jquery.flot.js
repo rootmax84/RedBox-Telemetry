@@ -503,7 +503,7 @@ Licensed under the MIT license.
                     show: true,
                     noColumns: 1, // number of colums in legend table
                     labelFormatter: null, // fn: string -> string
-                    labelBoxBorderColor: "#ccc", // border color for the little label boxes
+                    labelBoxBorderColor: "#545454", // border color for the little label boxes
                     container: null, // container (as jQuery object) to put legend in, null means default on top of graph
                     position: "ne", // position of default legend container within plot
                     margin: 5, // distance from grid edge to default legend container within plot
@@ -2754,7 +2754,7 @@ Licensed under the MIT license.
 
                 fragments.push(
                     '<td class="legendColorBox"><div style="border-radius:10px;border:1px solid ' + options.legend.labelBoxBorderColor + ';padding:1px"><div style="border-radius:5px;width:4px;height:0;border:5px solid ' + entry.color + ';overflow:hidden"></div></div></td>' +
-                    '<td class="legendLabel">' + entry.label + '</td>'
+                    '<td class="legendLabel" style="padding:1px">' + entry.label + '</td>'
                 );
             }
 
@@ -2781,7 +2781,7 @@ Licensed under the MIT license.
                 else if (p.charAt(0) == "s") pos.bottom = (m[1] + plotOffset.bottom) + 'px';
 
                 if (p.charAt(1) == "e") pos.right = (m[0] + plotOffset.right) + 'px';
-                else if (p.charAt(1) == "w") pos.left = (m[0] + plotOffset.left) + 'px';
+                else if (p.charAt(1) == "w") pos.left = (m[0] + plotOffset.left + 2) + 'px';
 
                 var legend = $('<div></div>')
                     .addClass('legend')
