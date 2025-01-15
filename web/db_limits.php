@@ -53,7 +53,7 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
 
     if ($user_status == 0) { //Banned
         session_destroy();
-        header("Refresh:0; url=catch.php?c=disabled");
+        header('Location: catch.php?c=disabled');
         die;
     }
 }
