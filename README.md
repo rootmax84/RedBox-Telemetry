@@ -77,10 +77,10 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
   </tr>
   <tr>
     <td>
-      <img width="100%" src="https://github.com/user-attachments/assets/188f17f0-582d-4c62-ab1b-4374f6b75fe6">
+      <img width="100%" src="https://github.com/user-attachments/assets/908b1ced-6026-4f1f-8d47-982d8be8bb8d">
     </td>
     <td>
-      <img width="100%" src="https://github.com/user-attachments/assets/8499c985-33d6-4e2d-85e4-503eb1c55da3">
+      <img width="100%" src="https://github.com/user-attachments/assets/cf3dd7be-4641-4ac3-8037-2a92ae749912">
     </td>
   </tr>
   <tr>
