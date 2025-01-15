@@ -2781,7 +2781,7 @@ Licensed under the MIT license.
                 else if (p.charAt(0) == "s") pos.bottom = (m[1] + plotOffset.bottom) + 'px';
 
                 if (p.charAt(1) == "e") pos.right = (m[0] + plotOffset.right) + 'px';
-                else if (p.charAt(1) == "w") pos.left = (m[0] + plotOffset.left + 2) + 'px';
+                else if (p.charAt(1) == "w") pos.left = (m[0] + plotOffset.left) + 'px';
 
                 var legend = $('<div></div>')
                     .addClass('legend')

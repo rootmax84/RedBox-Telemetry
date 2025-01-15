@@ -210,14 +210,15 @@ function doPlot(position) {
             position: "nw",
             hideable: true,
             backgroundOpacity: 0.1,
-            margin: 0
+            margin: 2
         },
         selection: { mode: "x" },
         grid: {
             touchmove: true,
             mouseActiveRadius: 100,
             hoverable: true,
-            clickable: false
+            clickable: false,
+            borderWidth: 0
         },
         hooks: {
             drawOverlay: [drawGapLines]

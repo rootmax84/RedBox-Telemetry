@@ -102,9 +102,23 @@
         }
 
         function plotLabelHandlers(plot, options) {
-            $(".graphlabel").mouseenter(function() { $(this).css("cursor", "pointer"); })
-                            .mouseleave(function() { $(this).css("cursor", "default"); })
-                            .unbind("click").click(function() { plotLabelClicked($(this).parent().text()); });
+            $(".graphlabel")
+                .mouseenter(function() {
+                    $(this).css({
+                        "cursor": "pointer",
+                        "color": "#000"
+                    });
+                })
+                .mouseleave(function() {
+                    $(this).css({
+                        "cursor": "default",
+                        "color": ""
+                    });
+                })
+                .unbind("click")
+                .click(function() {
+                    plotLabelClicked($(this).parent().text());
+                });
             if (!drawnOnce) {
                 drawnOnce = true;
                 if (options.legend.hidden) {
