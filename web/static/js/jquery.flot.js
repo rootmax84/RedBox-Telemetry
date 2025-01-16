@@ -2695,7 +2695,8 @@ Licensed under the MIT license.
         function insertLegend() {
 
             if (options.legend.container != null) {
-                $(options.legend.container).empty();
+                var container = $.find(options.legend.container);
+                $(container).empty();
             } else {
                 placeholder.find(".legend").remove();
             }
