@@ -9,6 +9,7 @@ let chartTooltip = () => {
 };
 
 const chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
+const chart_fillGradient = localStorage.getItem(`${username}-chart_fillGradient`) === "true";
 const chart_steps = localStorage.getItem(`${username}-chart_steps`) === "true";
 const chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
 
@@ -223,12 +224,56 @@ function doPlot(position) {
         hooks: {
             drawOverlay: [drawGapLines]
         },
-        lines: {
-            fill: chart_fill,
-            steps: chart_steps,
-            lineWidth: chart_lineWidth
+        series: {
+            points: {
+                radius: parseFloat(chart_lineWidth)
+            },
+            lines: {
+                fill: chart_fill,
+                steps: chart_steps,
+                lineWidth: chart_lineWidth,
+                gradient: chart_fillGradient
+            },
+            shadowSize: chart_lineWidth
         }
     });
+
+    //Hover vertical marker
+    let placeholder = $("#placeholder");
+    let previousPoint = null;
+
+    placeholder.bind("plothover plottouchmove", function(event, pos, item) {
+        if (item) {
+            if (previousPoint !== item.dataIndex) {
+                previousPoint = item.dataIndex;
+
+                let ctx = plot.getCanvas().getContext("2d");
+                ctx.save();
+
+                ctx.clearRect(0, 0, plot.width(), plot.height());
+                plot.draw();
+
+                ctx.beginPath();
+                ctx.strokeStyle = "rgba(0,0,0,0.5)";
+                ctx.lineWidth = 1;
+                ctx.setLineDash([2, 3]);
+
+                let offset = placeholder.offset();
+                let plotOffset = plot.getPlotOffset();
+                let xPos = item.pageX - offset.left;
+
+                ctx.moveTo(xPos, plotOffset.top);
+                ctx.lineTo(xPos, placeholder.height() - plotOffset.bottom);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        } else {
+            previousPoint = null;
+            plot.draw();
+        }
+    });
+
     chartTooltip();
     //Trim by plot Select
     $("#placeholder").bind("plotselected", (evt,range)=>{
