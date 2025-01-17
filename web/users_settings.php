@@ -83,6 +83,10 @@
 		    <option value="false" l10n="btn.no"></option>
 		    <option value="true" l10n="btn.yes"></option>
 		</select>
+		 <label l10n="user.set.chart.fill.gradient"></label><select class="form-control" id="chart-fillGradient">
+		    <option value="false" l10n="btn.no"></option>
+		    <option value="true" l10n="btn.yes"></option>
+		</select>
 		 <label l10n="user.set.chart.steps"></label><select class="form-control" id="chart-steps">
 		    <option value="false" l10n="btn.no"></option>
 		    <option value="true" l10n="btn.yes"></option>
@@ -122,6 +126,7 @@ function submitForm(el) {
   xhr.onload = function(){ xhrResponse(xhr.responseText); }
   xhr.open(el.method, el.getAttribute("action"));
   localStorage.setItem(`${username}-chart_fill`, $("#chart-fill").val());
+  localStorage.setItem(`${username}-chart_fillGradient`, $("#chart-fillGradient").val());
   localStorage.setItem(`${username}-chart_steps`, $("#chart-steps").val());
   localStorage.setItem(`${username}-chart_lineWidth`, $("#chart-lineWidth").val());
 
@@ -152,6 +157,7 @@ function xhrResponse(text) {
 
 $(document).ready(function() {
     $("#chart-fill").val(localStorage.getItem(`${username}-chart_fill`) || "false");
+    $("#chart-fillGradient").val(localStorage.getItem(`${username}-chart_fillGradient`) || "false");
     $("#chart-steps").val(localStorage.getItem(`${username}-chart_steps`) || "false");
     $("#chart-lineWidth").val(localStorage.getItem(`${username}-chart_lineWidth`) || "2");
     $("#lang").val(lang) || "en";
