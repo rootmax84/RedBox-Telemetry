@@ -555,6 +555,7 @@ Licensed under the MIT license.
                         lineWidth: 2, // in pixels
                         fill: false,
                         fillColor: null,
+                        gradient: false,
                         steps: false
                         // Omit 'zero', so we can later default its value to
                         // match that of the 'fill' option.
@@ -2685,6 +2686,27 @@ Licensed under the MIT license.
 
             if (filloptions.fillColor)
                 return getColorOrGradient(filloptions.fillColor, bottom, top, seriesColor);
+
+            if (filloptions.gradient) {
+                var canvas = document.createElement("canvas");
+                var ctx = canvas.getContext("2d");
+
+                canvas.width = 1;
+                canvas.height = top - bottom;
+
+                var color = $.color.parse(seriesColor);
+                var startColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.7)`;
+                var endColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0)`;
+
+                var gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, startColor);
+                gradient.addColorStop(1, endColor);
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                return ctx.createPattern(canvas, "repeat-x");
+            }
 
             var c = $.color.parse(seriesColor);
             c.a = typeof fill == "number" ? fill : 0.4;
