@@ -240,38 +240,42 @@ function doPlot(position) {
 
     //Hover vertical marker
     let placeholder = $("#placeholder");
-    let previousPoint = null;
+    let verticalLine = $('<div>').css({
+        position: 'absolute',
+        width: '1px',
+        borderLeft: '1px dashed rgba(0,0,0,0.4)',
+        pointerEvents: 'none',
+        display: 'none'
+    }).appendTo(placeholder);
+
+    let rafId = null;
+    let lastX = null;
 
     placeholder.bind("plothover plottouchmove", function(event, pos, item) {
-        if (item) {
-            if (previousPoint !== item.dataIndex) {
-                previousPoint = item.dataIndex;
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+        }
 
-                let ctx = plot.getCanvas().getContext("2d");
-                ctx.save();
-
-                ctx.clearRect(0, 0, plot.width(), plot.height());
-                plot.draw();
-
-                ctx.beginPath();
-                ctx.strokeStyle = "rgba(0,0,0,0.5)";
-                ctx.lineWidth = 1;
-                ctx.setLineDash([2, 3]);
-
+        rafId = requestAnimationFrame(() => {
+            if (item) {
                 let offset = placeholder.offset();
                 let plotOffset = plot.getPlotOffset();
                 let xPos = item.pageX - offset.left;
 
-                ctx.moveTo(xPos, plotOffset.top);
-                ctx.lineTo(xPos, placeholder.height() - plotOffset.bottom);
-                ctx.stroke();
-
-                ctx.restore();
+                if (lastX !== xPos) {
+                    lastX = xPos;
+                    verticalLine.css({
+                        left: xPos + 'px',
+                        top: plotOffset.top + 'px',
+                        height: (placeholder.height() - plotOffset.bottom - plotOffset.top) + 'px',
+                        display: 'block'
+                    });
+                }
+            } else {
+                lastX = null;
+                verticalLine.css('display', 'none');
             }
-        } else {
-            previousPoint = null;
-            plot.draw();
-        }
+        });
     });
 
     chartTooltip();
