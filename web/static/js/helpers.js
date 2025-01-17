@@ -242,8 +242,7 @@ function doPlot(position) {
     let placeholder = $("#placeholder");
     let verticalLine = $('<div>').css({
         position: 'absolute',
-        width: '1px',
-        borderLeft: '1px dashed rgba(0,0,0,0.4)',
+        borderLeft: '1px dotted rgba(0,0,0,0.5)',
         pointerEvents: 'none',
         display: 'none'
     }).appendTo(placeholder);
