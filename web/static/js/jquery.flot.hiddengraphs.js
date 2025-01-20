@@ -73,6 +73,10 @@
                 }
             }
 
+            // Ensure that 0 is always included in the Y-axis range
+            if (minY > 0) minY = 0; // If all values are positive, set minY to 0
+            if (maxY < 0) maxY = 0; // If all values are negative, set maxY to 0
+
             return { min: minY, max: maxY };
         }
 
