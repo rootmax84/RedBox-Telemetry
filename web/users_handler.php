@@ -369,7 +369,7 @@ die($translations[$_COOKIE['lang']]['admin.user.added'].$login);
 	$login = $_POST['del_login'];
 
 	$userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
-	if (!$userqry->num_rows || strlen($login) < 1) die("User not found");
+	if (!$userqry->num_rows || strlen($login) < 1) die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
 	else if ($login == $admin) die($translations[$_COOKIE['lang']]['admin.del.admin']);
 
 	$logs_table = "DROP TABLE ".$login.$db_log_prefix;
@@ -390,7 +390,7 @@ die($translations[$_COOKIE['lang']]['admin.user.added'].$login);
 	$login = $_POST['trunc_login'];
 
 	$userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
-	if (!$userqry->num_rows || strlen($login) < 1) die($translations[$_COOKIE['lang']]['admin.user.not.found']);
+	if (!$userqry->num_rows || strlen($login) < 1) die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
 	else if ($login == $admin) die($translations[$_COOKIE['lang']]['admin.trunc.admin']);
 
 	$logs_table = "TRUNCATE TABLE ".$login.$db_log_prefix;
