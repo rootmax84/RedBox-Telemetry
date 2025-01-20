@@ -37,10 +37,13 @@
  *
  */
 (function ($) {
-    var options = { };
-    var drawnOnce = false;
+    var options = { }; // Plugin options
+    var drawnOnce = false; // Flag to track if the plot has been drawn at least once
+    var hiddenSeries = {}; // Object to store the state of hidden series
+    var isUpdating = false; // Flag to prevent recursive updates
 
     function init(plot) {
+        // Function to find a series by its label
         function findPlotSeries(label) {
             var plotdata = plot.getData();
             for (var i = 0; i < plotdata.length; i++) {
@@ -51,56 +54,102 @@
             return null;
         }
 
-        function plotLabelClicked(label, mouseOut) {
+        // Function to calculate the minimum and maximum Y values among visible series
+        function calculateYRange(plotData) {
+            var minY = Infinity;
+            var maxY = -Infinity;
+
+            for (var i = 0; i < plotData.length; i++) {
+                if (!hiddenSeries[plotData[i].label]) { // Ignore hidden series
+                    var seriesData = plotData[i].data;
+                    for (var j = 0; j < seriesData.length; j++) {
+                        if (seriesData[j][1] < minY) {
+                            minY = seriesData[j][1];
+                        }
+                        if (seriesData[j][1] > maxY) {
+                            maxY = seriesData[j][1];
+                        }
+                    }
+                }
+            }
+
+            return { min: minY, max: maxY };
+        }
+
+        // Function to update the Y-axis scale based on visible series
+        function updateYAxisScale(plot) {
+            if (isUpdating) return; // Prevent recursive updates
+            isUpdating = true;
+
+            var plotData = plot.getData();
+            var yRange = calculateYRange(plotData);
+
+            // If all series are hidden, keep the default scale
+            if (yRange.min === Infinity || yRange.max === -Infinity) {
+                yRange.min = null;
+                yRange.max = null;
+            } else {
+                // Add a 5% margin to the minimum and maximum Y values
+                yRange.min = yRange.min * 1.05;
+                yRange.max = yRange.max * 1.05;
+            }
+
+            // Update the Y-axis scale
+            var yaxis = plot.getYAxes()[0];
+            if (yaxis) {
+                yaxis.options.min = yRange.min; // Set the new minimum value with margin
+                yaxis.options.max = yRange.max; // Set the new maximum value with margin
+                plot.setupGrid(); // Recalculate the grid
+                plot.draw(); // Redraw the plot
+            }
+
+            isUpdating = false; // Reset the flag
+        }
+
+        // Function to handle legend item clicks
+        function plotLabelClicked(label) {
             var series = findPlotSeries(label);
             if (!series) {
                 return;
             }
 
-            var switchedOff = false;
-            if (typeof series.points.oldShow === "undefined") {
-                series.points.oldShow = false;
-            }
-            if (typeof series.lines.oldShow === "undefined") {
-                series.lines.oldShow = false;
-            }
-            if (series.points.show && !series.points.oldShow) {
-                series.points.show = false;
-                series.points.oldShow = true;
-                switchedOff = true;
-            }
-            if (series.lines.show && !series.lines.oldShow) {
-                series.lines.show = false;
-                series.lines.oldShow = true;
-                switchedOff = true;
-            }
-            if (switchedOff) {
-                series.oldColor = series.color;
-                series.color = "#fff";
+            // Get the current Y range before toggling the series
+            var plotData = plot.getData();
+            var currentYRange = calculateYRange(plotData);
+
+            // Toggle the series visibility
+            if (hiddenSeries[label]) {
+                // If the series was hidden, restore its original state
+                series.points.show = hiddenSeries[label].points;
+                series.lines.show = hiddenSeries[label].lines;
+                series.color = hiddenSeries[label].color; // Restore the original color
+                delete hiddenSeries[label]; // Remove from hidden series
             } else {
-                var switchedOn = false;
-                if (!series.points.show && series.points.oldShow) {
-                    series.points.show = true;
-                    series.points.oldShow = false;
-                    switchedOn = true;
-                }
-                if (!series.lines.show && series.lines.oldShow) {
-            	    series.lines.show = true;
-                    series.lines.oldShow = false;
-                    switchedOn = true;
-                }
-                if (switchedOn) {
-            	    series.color = series.oldColor;
-            	}
+                // If the series was visible, hide it and save its original state
+                hiddenSeries[label] = {
+                    points: series.points.show,
+                    lines: series.lines.show,
+                    color: series.color
+                };
+                series.points.show = false;
+                series.lines.show = false;
+                series.color = "#fff"; // Make the color transparent
             }
 
-            // HACK: Reset the data, triggering recalculation of graph bounds
+            // Update the plot data and redraw
             plot.setData(plot.getData());
-
             plot.setupGrid();
             plot.draw();
+
+            // Check if the toggled series affects the Y range
+            var newYRange = calculateYRange(plot.getData());
+            if (newYRange.min !== currentYRange.min || newYRange.max !== currentYRange.max) {
+                // If the Y range has changed, recalculate the Y-axis scale
+                updateYAxisScale(plot);
+            }
         }
 
+        // Function to add click handlers to legend items
         function plotLabelHandlers(plot, options) {
             $(".graphlabel")
                 .mouseenter(function() {
@@ -119,48 +168,82 @@
                 .click(function() {
                     plotLabelClicked($(this).parent().text());
                 });
+
+            // On first draw, hide series specified in options.legend.hidden
             if (!drawnOnce) {
                 drawnOnce = true;
                 if (options.legend.hidden) {
                     for (var i = 0; i < options.legend.hidden.length; i++) {
-                        plotLabelClicked(options.legend.hidden[i], true);
+                        plotLabelClicked(options.legend.hidden[i]);
                     }
                 }
             }
         }
 
+        // Function to check and process plugin options
         function checkOptions(plot, options) {
             if (!options.legend.hideable) {
                 return;
             }
 
+            // Format legend labels to make them clickable
             options.legend.labelFormatter = function(label, series) {
                 return '<span class="graphlabel">' + label + '</span>';
             };
 
-            // Really just needed for initial draw; the mouse-enter/leave
-            // functions will call plotLabelHandlers() directly, since they
-            // only call setupGrid().
-            plot.hooks.draw.push(function (plot, ctx) {
+            // Restore the state of hidden series on each data processing
+            plot.hooks.processDatapoints.push(function(plot, series, datapoints) {
+                if (hiddenSeries[series.label]) {
+                    series.points.show = false;
+                    series.lines.show = false;
+                    series.color = "#fff";
+                }
+            });
+
+            // Initialize legend item click handlers on each draw
+            plot.hooks.draw.push(function(plot, ctx) {
                 plotLabelHandlers(plot, options);
+            });
+
+            // Recalculate Y-axis scale when the X-axis range changes (e.g., zoom or pan)
+            plot.hooks.draw.push(function(plot, ctx) {
+                var xaxis = plot.getXAxes()[0];
+                if (xaxis) {
+                    // Store the current X-axis range
+                    if (!plot.__lastXRange) {
+                        plot.__lastXRange = { min: xaxis.min, max: xaxis.max };
+                    } else if (
+                        plot.__lastXRange.min !== xaxis.min ||
+                        plot.__lastXRange.max !== xaxis.max
+                    ) {
+                        // If the X-axis range has changed, recalculate the Y-axis scale
+                        updateYAxisScale(plot);
+                        plot.__lastXRange = { min: xaxis.min, max: xaxis.max };
+                    }
+                }
             });
         }
 
+        // Add the checkOptions function to the processOptions hook
         plot.hooks.processOptions.push(checkOptions);
 
+        // Function to hide datapoints if both points and lines are hidden
         function hideDatapointsIfNecessary(plot, s, datapoints) {
             if (!plot.getOptions().legend.hideable) {
                 return;
             }
 
+            // Hide datapoints if both points and lines are hidden
             if (!s.points.show && !s.lines.show) {
-                s.datapoints.format = [ null, null ];
+                s.datapoints.format = [null, null];
             }
         }
 
+        // Add the hideDatapointsIfNecessary function to the processDatapoints hook
         plot.hooks.processDatapoints.push(hideDatapointsIfNecessary);
     }
 
+    // Register the plugin
     $.plot.plugins.push({
         init: init,
         options: options,
