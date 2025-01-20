@@ -240,7 +240,8 @@ $translations = [
         'catch.maintenance' => 'Server under maintenance ... <br>Try again later.',
         'nogps' => ' (no GPS data)',
         'nospd' => 'No speed data available',
-        'overdata' => 'Too much variables for plotting!'
+        'overdata' => 'Too much variables for plotting!',
+        'new.token' => 'Welcome! Click renew to create token.'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -481,7 +482,8 @@ $translations = [
         'catch.maintenance' => 'Сервер находится на техническом обслуживании ...<br> Попробуйте позже.',
         'nogps' => ' (нет данных GPS)',
         'nospd' => 'Данные о скорости отсутствуют',
-        'overdata' => 'Слишком много переменных для построения графика!'
+        'overdata' => 'Слишком много переменных для построения графика!',
+        'new.token' => 'Добро пожаловать! Нажмите обновить, чтобы создать токен.'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -722,7 +724,8 @@ $translations = [
         'catch.maintenance' => 'El servidor está en mantenimiento ...<br> Intenta de nuevo más tarde.',
         'nogps' => ' (sin datos GPS)',
         'nospd' => 'No hay datos de velocidad',
-        'overdata' => '¡Demasiadas variables para graficar!'
+        'overdata' => '¡Demasiadas variables para graficar!',
+        'new.token' => '¡Bienvenido! Haz clic en renovar para crear un token.'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -963,7 +966,8 @@ $translations = [
         'catch.maintenance' => 'Server wird gewartet ...<br> Bitte versuche es später erneut.',
         'nogps' => ' (keine GPS-Daten)',
         'nospd' => 'Keine Geschwindigkeitsdaten',
-        'overdata' => 'Zu viele Variablen zum Plotten!'
+        'overdata' => 'Zu viele Variablen zum Plotten!',
+        'new.token' => 'Willkommen! Klicken Sie auf erneuern, um ein Token zu erstellen.'
     ],
 ];
 
