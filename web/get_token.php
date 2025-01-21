@@ -74,7 +74,7 @@ if (!password_verify($pass, $row['pass'])) {
 }
 
 // Token presence
-if (strpos($row['token'], 'Welcome') !== false) {
+if ($row['token'] === NULL) {
     http_response_code(406);
     echo $translations[$lang]['gen_token'];
     exit;

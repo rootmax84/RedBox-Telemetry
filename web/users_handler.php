@@ -15,7 +15,7 @@ if (isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], 
 if (isset($_GET['get_token']) && isset($username) && $username != $admin){ //Get current user token
     $row = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc();
     $token = $row["token"];
-    $token = strpos($token, 'Welcome') !== false ? $translations[$_COOKIE['lang']]['new.token'] : $token;
+    $token = $token === NULL ? $translations[$_COOKIE['lang']]['new.token'] : $token;
     $db->close();
     die($token);
 }
@@ -360,7 +360,7 @@ if ($db_engine == "INNODB" && $db_innodb_compression) {
 }
 
 //Insert user entry to users table
-$db->execute_query("INSERT INTO $db_users (user, pass, s, token) VALUES (?,?,?,?)", [$login, password_hash($password, PASSWORD_DEFAULT, $salt), $def_limit, 'Welcome! Click renew to create token.']);
+$db->execute_query("INSERT INTO $db_users (user, pass, s) VALUES (?,?,?)", [$login, password_hash($password, PASSWORD_DEFAULT, $salt), $def_limit]);
 $db->close();
 die($translations[$_COOKIE['lang']]['admin.user.added'].$login);
 }
