@@ -83,15 +83,32 @@ L.Control.Coordinates = L.Control.extend({
      * This method should be called when user clicks the map.
      * @param event object
      */
-    setCoordinates: function(obj)
-    {
-	if (!this.visible) {
-	    L.DomUtil.removeClass(this._container, 'hidden');
-	}
+    setCoordinates: function(obj) {
+        if (!this.visible) {
+            L.DomUtil.removeClass(this._container, 'hidden');
+        }
 
-	if (obj.latlng) {
-	    L.DomUtil.get(this._lat).innerHTML = '<strong>' + this.options.latitudeText + ':</strong> ' + obj.latlng.lat.toFixed(this.options.precision).toString();
-	    L.DomUtil.get(this._lng).innerHTML = '<strong>' + this.options.longitudeText + ':</strong> ' + obj.latlng.lng.toFixed(this.options.precision).toString();
-	}
+        if (obj.latlng) {
+            // Нормализация долготы
+            var normalizedLng = this.normalizeLongitude(obj.latlng.lng);
+
+            L.DomUtil.get(this._lat).innerHTML = '<strong>' + this.options.latitudeText + ':</strong> ' + obj.latlng.lat.toFixed(this.options.precision).toString();
+            L.DomUtil.get(this._lng).innerHTML = '<strong>' + this.options.longitudeText + ':</strong> ' + normalizedLng.toFixed(this.options.precision).toString();
+        }
+    },
+
+    /**
+     * long normalization in range [-180, 180]
+     * @param {number} lng - long
+     * @returns {number} Normalized long
+     */
+    normalizeLongitude: function(lng) {
+        while (lng > 180) {
+            lng -= 360;
+        }
+        while (lng < -180) {
+            lng += 360;
+        }
+        return lng;
     }
 });

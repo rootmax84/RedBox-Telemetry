@@ -241,7 +241,9 @@ $translations = [
         'nogps' => ' (no GPS data)',
         'nospd' => 'No speed data available',
         'overdata' => 'Too much variables for plotting!',
-        'new.token' => 'Welcome! Click renew to create token.'
+        'new.token' => 'Welcome! Click renew to create token.',
+        'lon' => 'Longitude',
+        'lat' => 'Latitude'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -483,7 +485,9 @@ $translations = [
         'nogps' => ' (нет данных GPS)',
         'nospd' => 'Данные о скорости отсутствуют',
         'overdata' => 'Слишком много переменных для построения графика!',
-        'new.token' => 'Добро пожаловать! Нажмите обновить, чтобы создать токен.'
+        'new.token' => 'Добро пожаловать! Нажмите обновить, чтобы создать токен.',
+        'lon' => 'Долгота',
+        'lat' => 'Широта'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -725,7 +729,9 @@ $translations = [
         'nogps' => ' (sin datos GPS)',
         'nospd' => 'No hay datos de velocidad',
         'overdata' => '¡Demasiadas variables para graficar!',
-        'new.token' => '¡Bienvenido! Haz clic en renovar para crear un token.'
+        'new.token' => '¡Bienvenido! Haz clic en renovar para crear un token.',
+        'lon' => 'Longitud',
+        'lat' => 'Latitud'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -967,7 +973,9 @@ $translations = [
         'nogps' => ' (keine GPS-Daten)',
         'nospd' => 'Keine Geschwindigkeitsdaten',
         'overdata' => 'Zu viele Variablen zum Plotten!',
-        'new.token' => 'Willkommen! Klicken Sie auf erneuern, um ein Token zu erstellen.'
+        'new.token' => 'Willkommen! Klicken Sie auf erneuern, um ein Token zu erstellen.',
+        'lon' => 'Längengrad',
+        'lat' => 'Breitengrad'
     ],
 ];
 

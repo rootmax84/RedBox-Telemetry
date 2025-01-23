@@ -463,7 +463,10 @@ let initMapLeaflet = () => {
 
     let layerControl = L.control.layers(baseMaps).addTo(map);
 
-    let c = new L.Control.Coordinates();
+    let c = new L.Control.Coordinates({
+        latitudeText: localization.key['lat'],
+        longitudeText: localization.key['lon'],
+    });
     c.addTo(map);
 
     function onMapClick(e) {
