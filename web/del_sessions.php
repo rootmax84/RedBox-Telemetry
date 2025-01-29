@@ -179,6 +179,7 @@ if ($current_page < $total_pages) {
     function delSessions() {
      let dialogOpt = {
         btnClassSuccessText: localization.key['btn.yes'],
+        btnClassFailText: localization.key['btn.no'],
         btnClassFail: "btn btn-info btn-sm",
         message : localization.key['dialog.del.sessions'],
         onResolve: function(){
