@@ -1,3 +1,3 @@
-FROM mariadb:11.4.4
+FROM mariadb:lts
 
 RUN apt-get update && apt-get -y install mariadb-plugin-rocksdb && rm -rf /var/cache/apt/lists/*
