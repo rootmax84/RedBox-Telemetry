@@ -555,6 +555,11 @@ let initSlider = (jsTimeMap,start,end)=>{
 
     function ctime(t) {//covert the epoch time to local readable 
         let date = new Date(t);
+
+        if (isNaN(date.getTime())) {
+            return localization.key['nodata'];
+        }
+
         return  date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU');
     }
     let sv = $(function() {//jquery range slider
