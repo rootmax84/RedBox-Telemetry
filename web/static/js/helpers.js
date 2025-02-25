@@ -659,21 +659,22 @@ let redDialog = {
         btnClassFailText: 'No',
         title: 'Confirmation',
         message: 'Confirmation',
-        onResolve: function() {},
-        onReject: function() {}
+        onResolve: () => {},
+        onReject: () => {}
     },
     confirmPromiseVal: null,
     activeElement: null,
     activeButton: null,
-    make: function(customOptions) {
-        customOptions = typeof customOptions == 'undefined' ? {} : customOptions;
-        let options = Object.assign(this.options, customOptions);
-        redDialog.doReset(options);
 
-        let dialogDiv = document.createElement('div');
-        dialogDiv.setAttribute('id', 'redDialogWrap');
-        dialogDiv.setAttribute('class', 'card dlg');
-        dialogDiv.setAttribute('style', `
+    make(customOptions = {}) {
+        const options = {...this.options, ...customOptions};
+        this.doReset(options);
+
+        // Create dialog elements
+        const dialogDiv = document.createElement('div');
+        dialogDiv.id = 'redDialogWrap';
+        dialogDiv.className = 'card dlg';
+        dialogDiv.style = `
             position: absolute;
             width: 300px !important;
             padding: 1em !important;
@@ -682,110 +683,104 @@ let redDialog = {
             transform: translate(50%, -50%);
             background: white;
             border-radius: 5px;
-            z-index: ${options.zIndex};`
-        );
+            z-index: ${options.zIndex};`;
 
-        dialogDiv.innerHTML = 
-            `<div id="redDialog_title" style="min-height: 26px;border-bottom:1px dashed #777;color:` + 
-            options.titleColor + ';">' + options.title + `</div>` +
-            `<p id="dialogText" style="text-align: left;padding: 16px 5px 0px 10px;width: 100%;margin: 0;font-size: 13px;max-width:280px">` + 
-            options.message + `</p>`;
+        dialogDiv.innerHTML = `
+            <div id="redDialog_title" style="min-height: 26px;border-bottom:1px dashed #777;color:${options.titleColor};">${options.title}</div>
+            <p id="dialogText" style="text-align: left;padding: 16px 5px 0px 10px;width: 100%;margin: 0;font-size: 13px;max-width:280px">${options.message}</p>
+        `;
 
-        let btnWrap = document.createElement('div');
-        btnWrap.setAttribute('id', 'redDialogBtnWrap');
-        btnWrap.setAttribute('style', 'padding: 20px 0 0;text-align: ' + options.btnPosition + ';');
+        // Create buttons container
+        const btnWrap = document.createElement('div');
+        btnWrap.id = 'redDialogBtnWrap';
+        btnWrap.style = `padding: 20px 0 0;text-align: ${options.btnPosition};`;
 
-        let yesBtn = document.createElement('button');
-        yesBtn.setAttribute('id', 'redDialogBtnYes');
-        yesBtn.setAttribute('style', 'min-width: 62px;');
-        yesBtn.setAttribute('class', options.btnClassSuccess);
+        // Create Yes button
+        const yesBtn = document.createElement('button');
+        yesBtn.id = 'redDialogBtnYes';
+        yesBtn.style = 'min-width: 62px;';
+        yesBtn.className = options.btnClassSuccess;
         yesBtn.setAttribute('autofocus', '');
-        yesBtn.innerHTML = options.btnClassSuccessText;
-        yesBtn.addEventListener('click', function(event) {
-            redDialog.resolve();
-        });
+        yesBtn.textContent = options.btnClassSuccessText;
+        yesBtn.addEventListener('click', () => this.resolve());
 
-        let space = document.createTextNode(' ');
+        // Create No button
+        const noBtn = document.createElement('button');
+        noBtn.id = 'redDialogBtnNo';
+        noBtn.style = 'min-width: 62px;';
+        noBtn.className = options.btnClassFail;
+        noBtn.textContent = options.btnClassFailText;
+        noBtn.addEventListener('click', () => this.reject());
 
-        let noBtn = document.createElement('button');
-        noBtn.setAttribute('id', 'redDialogBtnNo');
-        noBtn.setAttribute('style', 'min-width: 62px;');
-        noBtn.setAttribute('class', options.btnClassFail);
-        noBtn.innerHTML = options.btnClassFailText;
-        noBtn.addEventListener('click', function(event) {
-            redDialog.reject();
-        });
-
-        yesBtn.addEventListener('keydown', function(event) {
-            if (event.key == 'ArrowRight') {
+        // Add keyboard navigation
+        yesBtn.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight') {
                 this.activeButton = noBtn;
                 noBtn.focus();
             }
         });
 
-        noBtn.addEventListener('keydown', function(event) {
-            if (event.key == 'ArrowLeft') {
+        noBtn.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') {
                 this.activeButton = yesBtn;
                 yesBtn.focus();
             }
         });
 
-        btnWrap.appendChild(yesBtn);
-        btnWrap.appendChild(space);
-        btnWrap.appendChild(noBtn);
+        // Assemble the dialog
+        btnWrap.append(yesBtn, ' ', noBtn);
         dialogDiv.appendChild(btnWrap);
 
-        let overlayDiv = document.createElement('div');
-        overlayDiv.setAttribute('id', 'redDialogOverLay');
-        overlayDiv.setAttribute('style', 
-            'position:fixed;top:0;left:0;width:100%;height:100%;z-index:' + 
-            (options.zIndex - 1) + 
-            ';background:' + options.overlayBackground + ';'
-        );
+        const overlayDiv = document.createElement('div');
+        overlayDiv.id = 'redDialogOverLay';
+        overlayDiv.style = `position:fixed;top:0;left:0;width:100%;height:100%;z-index:${options.zIndex - 1};background:${options.overlayBackground};`;
         overlayDiv.appendChild(dialogDiv);
-        document.querySelector('body').appendChild(overlayDiv);
+        document.body.appendChild(overlayDiv);
 
+        // Save active element and focus on Yes button
         this.activeElement = document.activeElement;
         yesBtn.focus();
         this.activeButton = yesBtn;
 
-        return new Promise(function(resolve, reject) {
-            redDialog.confirmPromiseInterval = setInterval(function() {
-                if (redDialog.confirmPromiseVal === true) {
-                    redDialog.doReset(options);
-                    resolve(true);
-                } else if (redDialog.confirmPromiseVal === false) {
-                    redDialog.doReset(options);
-                    resolve(false);
+        // Return promise
+        return new Promise(resolve => {
+            this.confirmPromiseInterval = setInterval(() => {
+                if (this.confirmPromiseVal !== null) {
+                    this.doReset(options);
+                    resolve(this.confirmPromiseVal);
                 }
             });
         });
     },
 
-    resolve: function() {
+    resolve() {
         this.onResolve();
         this.confirmPromiseVal = true;
     },
 
-    reject: function() {
+    reject() {
         this.onReject();
         this.confirmPromiseVal = false;
     },
 
-    doReset: function(options) {
-        if (document.querySelector('#redDialogOverLay') != null) {
-            document.querySelector('#redDialogOverLay').remove();
-        }
+    doReset(options) {
+        const overlay = document.querySelector('#redDialogOverLay');
+        if (overlay) overlay.remove();
+
         this.confirmPromiseVal = null;
+
         if (this.activeElement) {
             this.activeElement.focus();
             this.activeElement = null;
         }
+
         this.activeButton = null;
         this.onResolve = options.onResolve;
         this.onReject = options.onReject;
+
+        clearInterval(this.confirmPromiseInterval);
     },
 
-    onResolve: function() {},
-    onReject: function() {}
+    onResolve() {},
+    onReject() {}
 };
