@@ -125,13 +125,13 @@ server {
 
     #GZIP compression settings
     gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript text/event-stream;
 
     #Brotli compression settings (if supported)
     #brotli_static   on;
     #brotli          on;
     #brotli_comp_level       6;
-    #brotli_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    #brotli_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript text/event-stream;
 
     ssl_certificate /etc/letsencrypt/live/your.site/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/your.site/privkey.pem;
