@@ -178,6 +178,7 @@ if ($current_page < $total_pages) {
 
     function delSessions() {
      let dialogOpt = {
+        title: localization.key['dialog.confirm'],
         btnClassSuccessText: localization.key['btn.yes'],
         btnClassFailText: localization.key['btn.no'],
         btnClassFail: "btn btn-info btn-sm",
@@ -192,6 +193,7 @@ if ($current_page < $total_pages) {
 
     function noSel() {
      let dialogOpt = {
+        title: localization.key['dialog.confirm'],
         btnClassSuccessText: "OK",
         btnClassFail: "hidden",
         message : localization.key['dialog.no.select']
