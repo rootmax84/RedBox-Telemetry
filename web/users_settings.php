@@ -20,10 +20,11 @@
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
     <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
+         <div class="storage-usage-img"></div>
          <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
     <?php } ?>
-          <div id="theme-switch"></div>
             <div class="container">
+              <div id="theme-switch"></div>
                 <div class="navbar-header">
 		 <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
                 </div>

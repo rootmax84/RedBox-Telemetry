@@ -289,7 +289,8 @@ if (isset($sids[0])) {
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
+    <div class="storage-usage-img"></div>
+    <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
 <?php } ?>
       <div class="container">
        <div id="theme-switch"></div>

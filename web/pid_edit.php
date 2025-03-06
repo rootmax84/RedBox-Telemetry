@@ -56,6 +56,7 @@ include("head.php");
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
+            <div class="storage-usage-img"></div>
             <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
         <?php } ?>
         <div class="container">
