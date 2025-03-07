@@ -358,6 +358,7 @@ input[type=text]:disabled {
 
 .navbar {
   min-width: 420px;
+  box-shadow: 1px 1px 4px 1px rgb(2, 2, 2, 0.3);
 }
 
 body::-webkit-scrollbar {
