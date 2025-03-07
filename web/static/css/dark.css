@@ -7,7 +7,8 @@ html {
 }
 
 .navbar {
-  filter: invert(1) grayscale();
+  filter: hue-rotate(180deg) contrast(1.1);
+  box-shadow: 1px 1px 4px 1px rgb(220, 220, 220, .2);
 }
 
 #redhead {
