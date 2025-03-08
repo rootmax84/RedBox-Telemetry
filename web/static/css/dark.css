@@ -50,3 +50,7 @@ html {
 .leaflet-control-attribution a {
   filter: invert(1) hue-rotate(180deg) contrast(1) saturate(1.5);
 }
+
+.login {
+  box-shadow: none;
+}
