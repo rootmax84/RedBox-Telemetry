@@ -43,7 +43,7 @@ else if ($_GET['action'] == "reg") {
 	    <h4 l10n="admin.reg.title"></h4>
 		<input class="form-control" type="text" name="reg_login" value="" l10n-placeholder="login.login" required autofocus><br>
 		<input class="form-control" type="password" name="reg_pass" value="" l10n-placeholder="login.pwd" autocomplete="new-password" required>
-		<div style="padding:15px 0"><label style="font-size:13px;font-family:'Open Sans'"><input type="checkbox" name="reg_legacy"><span l10n="admin.reg.obd"></span></label></div>
+		<div style="padding:15px 0"><label style="font-size:13px;font-family:'Open Sans'"><input type="checkbox" style="margin-bottom:3px" name="reg_legacy"><span l10n="admin.reg.obd" style="margin-left:3px"></span></label></div>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.reg.btn"></button>
 <?php
 }
