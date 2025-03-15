@@ -206,11 +206,22 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
             });
 
             function mergeSession() {
+                const mergedSession = document.querySelector('input[type="checkbox"].session-checkbox[disabled]');
+                let msDate = "";
+                if (mergedSession) {
+                        const checkboxCell = mergedSession.closest('td');
+                        const nextCell = checkboxCell.nextElementSibling;
+                    if (nextCell) {
+                        msDate = nextCell.textContent.trim();
+                    } else {
+                        msDate = <?php echo $mergesession; ?>;
+                    }
+                }
                 let maximum = <?php echo isset($merge_max) ? $merge_max : 50000; ?>;
                 let oversize = total > maximum;
                 let dialogOpt = {
                     title : oversize ? localization.key['dialog.merge.big.title'] : localization.key['dialog.confirm'],
-                    message: oversize ? `${localization.key['dialog.merge.big.msg']} ${maximum/1000}k ${localization.key['dialog.merge.big.datapoints']}<br>${localization.key['dialog.merge.big.sel']} ${total/1000}k` : `${localization.key['dialog.merge.sessions']} <?php echo $mergesession; ?>?`,
+                    message: oversize ? `${localization.key['dialog.merge.big.msg']} ${maximum/1000}k ${localization.key['dialog.merge.big.datapoints']}<br>${localization.key['dialog.merge.big.sel']} ${total/1000}k` : `${localization.key['dialog.merge.sessions']} (${msDate})?`,
                     btnClassSuccessText: oversize ? "OK" : localization.key['btn.yes'],
                     btnClassFailText: localization.key['btn.no'],
                     btnClassFail: oversize ? "hidden" : "btn btn-info btn-sm",
