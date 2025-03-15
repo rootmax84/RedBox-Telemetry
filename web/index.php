@@ -284,7 +284,7 @@ if (isset($sids[0])) {
         plotData.chosen();
         updCharts();
         if (window.history.replaceState) window.history.replaceState(null, null, window.location.href);
-        $(".copyright").html(`&copy; ${(new Date).getFullYear()} RedBox Automotive`);
+        $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
       });
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
