@@ -169,8 +169,7 @@ function create_users_table()
 	last_attempt DATETIME,
 	PRIMARY KEY (id),
 	UNIQUE KEY user (user),
-	UNIQUE KEY token (token),
-	KEY indexes (s,pass,tg_token,tg_chatid))
+	UNIQUE KEY token (token))
 	ENGINE=".$db_engine." DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
   $db->query($table);
@@ -193,7 +192,8 @@ function perform_migration() {
     $migrations = [
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS stream_lock TINYINT(1) NOT NULL DEFAULT 0",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS login_attempts TINYINT UNSIGNED DEFAULT 0",
-        "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS last_attempt DATETIME"
+        "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS last_attempt DATETIME",
+        "DROP INDEX IF EXISTS indexes ON $db_users"
     ];
 
     foreach ($migrations as $migration) {
