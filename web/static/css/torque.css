@@ -833,3 +833,7 @@ input[type="checkbox"]:disabled:checked::after {
     transform: translate(-50%, -40%) rotate(45deg) scale(1);
   }
 }
+
+.label {
+  white-space: normal;
+}
