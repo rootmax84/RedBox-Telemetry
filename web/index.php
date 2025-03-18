@@ -774,7 +774,7 @@ if ($current_page < $total_pages) {
 </ul>
 <div id="log">
     <div style="display:flex; justify-content:center; margin-bottom:10px;">
-	     <span class="label label-default" id="log-msg-def" l10n="import.label" style="width:320px;white-space:normal"></span>
+	     <span class="label label-default" id="log-msg-def" l10n="import.label" style="width:320px"></span>
 	     <span class="label label-success" id="log-msg-ok"></span>
 	     <span class="label label-danger" id="log-msg-err"></span>
     </div>
