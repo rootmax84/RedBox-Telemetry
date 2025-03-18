@@ -794,7 +794,7 @@ input[type="checkbox"]:checked::after {
   top: 35%;
   left: 50%;
   transform: translate(-50%, -40%) rotate(45deg);
-  animation: appear 0.15s cubic-bezier(0.19, 1, 0.22, 1);
+  animation: appear .5s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 input[type="checkbox"]:hover {
