@@ -693,7 +693,9 @@ a {
 .table-del-merge-pid th {
   position: sticky;
   top: 44px;
-  background-color: #fff;
+  background: #fff;
+  background: linear-gradient(180deg, rgba(255,255,255,1) 85%, rgba(255,255,255,0) 100%);
+  z-index: 2;
 }
 
 .navbar-inverse {
@@ -777,6 +779,7 @@ input[type="checkbox"] {
   margin: 0;
   vertical-align: middle;
   position: relative;
+  z-index: 1;
 }
 
 input[type="checkbox"]:checked {
