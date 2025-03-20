@@ -840,3 +840,28 @@ input[type="checkbox"]:disabled:checked::after {
 .label {
   white-space: normal;
 }
+
+.heat-data {
+  background: #fff;
+  padding: 4px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  opacity: .7;
+}
+
+.heat-data:hover {
+  opacity: 1;
+}
+
+#heat-dataSourceSelect {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 12px;
+  border: 0;
+  outline: 0;
+}
+
+.heat-data-tooltip {
+  font-size: 10px;
+}

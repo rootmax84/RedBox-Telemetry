@@ -432,7 +432,6 @@ let updCharts = ()=>{
 
 //Start of Leaflet Map Providers js code
 let initMapLeaflet = () => {
-
     let osm = new L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
@@ -473,8 +472,201 @@ let initMapLeaflet = () => {
         c.setCoordinates(e);
     }
     map.on('click', onMapClick);
-
     L.control.locate({position: "bottomright", showPopup: false}).addTo(map);
+
+    let hotlineLayer = null;
+    let currentDataSource = null;
+
+    function createDataSourceSelector() {
+        let control = L.control({position: 'bottomleft'});
+
+        control.onAdd = function(map) {
+            let div = L.DomUtil.create('div', 'data-source-selector');
+
+            // Создаем базовую структуру селектора
+            div.innerHTML = `
+                <div class="heat-data">
+                    <select id="heat-dataSourceSelect">
+                        <option value="">-</option>
+                    </select>
+                </div>
+            `;
+
+            L.DomEvent.disableClickPropagation(div);
+            L.DomEvent.disableScrollPropagation(div);
+
+            setTimeout(() => {
+                updateDataSourceSelector();
+
+                const select = document.getElementById('heat-dataSourceSelect');
+                if (select) {
+                    select.addEventListener('change', function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        this.title = selectedOption.text;
+                    });
+
+                    select.title = select.options[select.selectedIndex].text;
+                }
+            }, 100);
+
+            return div;
+        };
+
+        return control;
+    }
+
+    function updateDataSourceSelector() {
+        let select = document.getElementById('heat-dataSourceSelect');
+        if (!select) {
+            setTimeout(updateDataSourceSelector, 500);
+            return;
+        }
+
+        let currentValue = select.value;
+
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+
+        if (flotData && flotData.length > 0) {
+            flotData.forEach((source, index) => {
+                let option = document.createElement('option');
+                option.value = index;
+                option.textContent = source.label;
+                select.appendChild(option);
+            });
+
+            if (currentValue !== '' && currentValue < flotData.length) {
+                select.value = currentValue;
+                select.title = select.options[select.selectedIndex].text;
+            }
+        }
+    }
+
+    let dataSourceSelector = createDataSourceSelector().addTo(map);
+
+    function handleSelectorChange(e) {
+        let sourceIndex = e.target.value;
+        updateHotline(sourceIndex);
+    }
+
+    function addSelectorEventHandler() {
+        const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
+        if (dataSourceSelect) {
+            dataSourceSelect.removeEventListener('change', handleSelectorChange);
+
+            dataSourceSelect.addEventListener('change', handleSelectorChange);
+        } else {
+            setTimeout(addSelectorEventHandler, 500);
+        }
+    }
+
+    setTimeout(addSelectorEventHandler, 500);
+
+    let lastFlotDataLength = 0;
+    setInterval(() => {
+        if (flotData && flotData.length !== lastFlotDataLength) {
+            lastFlotDataLength = flotData.length;
+            updateDataSourceSelector();
+        }
+    }, 1000);
+
+    function prepareHotlineData(sourceIndex, rangeIndices) {
+
+        if (sourceIndex === null || sourceIndex === "" || !flotData || !flotData[sourceIndex]) {
+            return null;
+        }
+
+        let source = flotData[sourceIndex];
+        let dataPoints = source.data;
+
+        let filteredPath = path;
+        if (rangeIndices) {
+            filteredPath = path.slice(rangeIndices[0], rangeIndices[1]);
+        }
+
+        if (!filteredPath.length || !dataPoints.length) {
+            return null;
+        }
+
+        let values = dataPoints.map(point => point[1]);
+        let minValue = Math.min(...values);
+        let maxValue = Math.max(...values);
+
+        if (minValue === maxValue) {
+            minValue = minValue - 1;
+            maxValue = maxValue + 1;
+
+            if (minValue === -1 && maxValue === 1) {
+                return null;
+            }
+        }
+
+        let hotlinePoints = [];
+
+        const minLength = Math.min(filteredPath.length, dataPoints.length);
+
+        for (let i = 0; i < minLength; i++) {
+            let point = L.latLng(filteredPath[i][0], filteredPath[i][1]);
+            point.alt = dataPoints[i][1];
+            hotlinePoints.push(point);
+        }
+
+        return {
+            points: hotlinePoints,
+            min: minValue,
+            max: maxValue
+        };
+    }
+
+    function updateHotline(sourceIndex, rangeIndices) {
+
+        if (hotlineLayer) {
+            map.removeLayer(hotlineLayer);
+            hotlineLayer = null;
+        }
+
+        if (sourceIndex === null || sourceIndex === "") {
+            currentDataSource = null;
+            if (!map.hasLayer(polyline)) {
+                polyline.addTo(map);
+            }
+            return;
+        }
+
+        let hotlineData = prepareHotlineData(sourceIndex, rangeIndices);
+        if (!hotlineData) {
+            if (!map.hasLayer(polyline)) {
+                polyline.addTo(map);
+            }
+            return;
+        }
+
+        if (map.hasLayer(polyline)) {
+            map.removeLayer(polyline);
+        }
+
+        currentDataSource = sourceIndex;
+
+        try {
+            hotlineLayer = L.hotline(hotlineData.points, {
+                min: hotlineData.min,
+                max: hotlineData.max,
+                palette: {
+                    0.0: 'green',
+                    0.5: 'yellow',
+                    1.0: 'red'
+                },
+                weight: 3,
+                outlineColor: '#aaa',
+                outlineWidth: 1
+            }).addTo(map);
+        } catch (error) {
+            if (!map.hasLayer(polyline)) {
+                polyline.addTo(map);
+            }
+        }
+    }
 
     //Dynamic tracking marker when stream is open
     const rate = Number($.cookie('tracking-rate')) || 1000;
@@ -491,14 +683,49 @@ let initMapLeaflet = () => {
                 {permanent:true, direction:'right', className:"stream-marker"}
             ).addTo(map);
             map.setView(marker.getLatLng(), map.getZoom());
+
             //update travel line/end point
             if (path.at(0)[0] != lat && path.at(0)[1] != lon) {
                 path.unshift([lat,lon]);
-                polyline.setLatLngs(path);
                 endcir.setLatLng(path.at(0));
+
+                if (currentDataSource !== null) {
+                    if (flotData && flotData[currentDataSource]) {
+                        if (hotlineLayer) {
+                            let currentLatLngs = hotlineLayer.getLatLngs();
+
+                            let latestDataPoint = flotData[currentDataSource].data[0];
+
+                            if (latestDataPoint) {
+                                let newPoint = L.latLng(lat, lon, latestDataPoint[1]);
+
+                                if (Array.isArray(currentLatLngs[0])) {
+                                    currentLatLngs[0].unshift(newPoint);
+                                } else {
+                                    currentLatLngs.unshift(newPoint);
+                                }
+
+                                hotlineLayer.setLatLngs(currentLatLngs);
+                            } else {
+                                updateHotline(currentDataSource);
+                            }
+                        } else {
+                            updateHotline(currentDataSource);
+                        }
+                    } else {
+                        if (!map.hasLayer(polyline)) {
+                            polyline.setLatLngs(path);
+                            polyline.addTo(map);
+                        } else {
+                            polyline.setLatLngs(path);
+                        }
+                    }
+                } else {
+                    polyline.setLatLngs(path);
+                }
             }
+            setTimeout(()=>{map.removeLayer(marker)}, rate);
         }
-        setTimeout(()=>{map.removeLayer(marker)}, rate);
     }, rate);
 
     // start and end point marker
@@ -507,28 +734,62 @@ let initMapLeaflet = () => {
     let startCrd = path[pathL-1];
     const startcir = L.circleMarker(startCrd, {color:'green',title:'Start',alt:'Start Point',radius:6,weight:1}).addTo(map);
     const endcir = L.circleMarker(endCrd, {color:'black',title:'End',alt:'End Point',radius:6,weight:1}).addTo(map);
+
     // travel line
     let polyline = L.polyline(path, {color: 'red'}).addTo(map);
+
     // zoom the map to the polyline
     map.fitBounds(polyline.getBounds(), {maxZoom: 15});
 
-    mapUpdRange = (a,b) => {//new function to update the map sources according to the trim slider
+    mapUpdRange = (a,b) => {
         path = window.MapData.path.slice(a,b).filter(([a,b])=>(a>0||a<0||b>0||b<0));
         if (!path.length) return;
-        polyline.setLatLngs(path);
+
         startcir.setLatLng(path[path.length-1]);
         endcir.setLatLng(path[0]);
+
+        if (currentDataSource !== null) {
+            updateHotline(currentDataSource, [a, b]);
+        } else {
+            polyline.setLatLngs(path);
+            polyline.addTo(map);
+        }
+
         map.fitBounds(polyline.getBounds(), {maxZoom: 15});
     };
 
     const markerCir = L.circleMarker(startCrd, {color:'purple',alt:'Start Point',radius:10,weight:1});
     const markerPnt = L.circleMarker(startCrd, {color:'purple',alt:'End Point',radius:5,weight:1});
-    markerUpd = itm => {//this functions updates the marker while hovering the chart and clears it when not hovering
+
+    markerUpd = itm => {
+        map.eachLayer(layer => {
+            if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
+                map.removeLayer(layer);
+            }
+        });
+
         if (itm && itm.dataIndex > 0) {
             const pos = path[itm.dataIndex] || path.at(-1) || [0,0];
             [markerCir, markerPnt].forEach(marker => {
                 marker.setLatLng(pos).addTo(map);
             });
+
+            if (currentDataSource !== null && flotData && flotData[currentDataSource]) {
+                let dataPoint = flotData[currentDataSource].data[itm.dataIndex];
+                if (dataPoint) {
+                    let value = dataPoint[1];
+                    let label = flotData[currentDataSource].label;
+
+                    L.tooltip({
+                        permanent: false,
+                        direction: 'top',
+                        className: 'heat-data-tooltip'
+                    })
+                    .setLatLng(pos)
+                    .setContent(`${label}: ${value}`)
+                    .addTo(map);
+                }
+            }
         } else {
             [markerCir, markerPnt].forEach(marker => map.removeLayer(marker));
         }

@@ -54,3 +54,29 @@ html {
 .login {
   box-shadow: none;
 }
+
+.leaflet-map-pane canvas {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.heat-data-tooltip {
+  box-shadow: none !important;
+}
+
+.heat-data {
+  box-shadow: none;
+  background-color: #1a1a1a;
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.leaflet-control-coordinates {
+  box-shadow: none;
+  background-color: #1a1a1a;
+  filter: invert(1) hue-rotate(180deg);
+  color: #fff;
+}
+
+#heat-dataSourceSelect {
+  background-color: #1a1a1a;
+  color: #fff;
+}

@@ -86,6 +86,10 @@ L.Control.Coordinates = L.Control.extend({
     setCoordinates: function(obj) {
         if (!this.visible) {
             L.DomUtil.removeClass(this._container, 'hidden');
+            this.visible = true;
+        } else {
+            L.DomUtil.addClass(this._container, 'hidden');
+            this.visible = false;
         }
 
         if (obj.latlng) {
