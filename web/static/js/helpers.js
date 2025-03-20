@@ -40,6 +40,7 @@ function updatePlot() {
 //start of chart plotting js code
 let plot = null; //definition of plot variable in script but outside doPlot function to be able to reuse as a controller when updating base data
 let flotData = [];
+let heatData = [];
 let chartUpdRange = null;
 let mapUpdRange = null;
 
@@ -182,6 +183,7 @@ function doPlot(position) {
         flotData.forEach(i=>dataSet.push({label:i.label,data:i.data.slice(a,b)}));
         plot.setData(dataSet);
         plot.draw();
+        heatData = dataSet;
     }
     plot = $.plot("#placeholder", flotData, {
         xaxes: [ {
@@ -535,15 +537,15 @@ let initMapLeaflet = () => {
             select.remove(1);
         }
 
-        if (flotData && flotData.length > 0) {
-            flotData.forEach((source, index) => {
+        if (heatData && heatData.length > 0) {
+            heatData.forEach((source, index) => {
                 let option = document.createElement('option');
                 option.value = index;
                 option.textContent = source.label;
                 select.appendChild(option);
             });
 
-            if (currentValue !== '' && currentValue < flotData.length) {
+            if (currentValue !== '' && currentValue < heatData.length) {
                 select.value = currentValue;
                 select.title = select.options[select.selectedIndex].text;
             }
@@ -572,19 +574,19 @@ let initMapLeaflet = () => {
 
     let lastFlotDataLength = 0;
     setInterval(() => {
-        if (flotData && flotData.length !== lastFlotDataLength) {
-            lastFlotDataLength = flotData.length;
+        if (heatData && heatData.length !== lastFlotDataLength) {
+            lastFlotDataLength = heatData.length;
             updateDataSourceSelector();
         }
     }, 1000);
 
     function prepareHotlineData(sourceIndex, rangeIndices) {
 
-        if (sourceIndex === null || sourceIndex === "" || !flotData || !flotData[sourceIndex]) {
+        if (sourceIndex === null || sourceIndex === "" || !heatData || !heatData[sourceIndex]) {
             return null;
         }
 
-        let source = flotData[sourceIndex];
+        let source = heatData[sourceIndex];
         let dataPoints = source.data;
 
         let filteredPath = path;
@@ -697,11 +699,11 @@ let initMapLeaflet = () => {
                 endcir.setLatLng(path.at(0));
 
                 if (currentDataSource !== null) {
-                    if (flotData && flotData[currentDataSource]) {
+                    if (heatData && heatData[currentDataSource]) {
                         if (hotlineLayer) {
                             let currentLatLngs = hotlineLayer.getLatLngs();
 
-                            let latestDataPoint = flotData[currentDataSource].data[0];
+                            let latestDataPoint = heatData[currentDataSource].data[0];
 
                             if (latestDataPoint) {
                                 let newPoint = L.latLng(lat, lon, latestDataPoint[1]);
@@ -781,11 +783,11 @@ let initMapLeaflet = () => {
                 marker.setLatLng(pos).addTo(map);
             });
 
-            if (currentDataSource !== null && flotData && flotData[currentDataSource]) {
-                let dataPoint = flotData[currentDataSource].data[itm.dataIndex];
+            if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
+                let dataPoint = heatData[currentDataSource].data[itm.dataIndex];
                 if (dataPoint) {
                     let value = dataPoint[1];
-                    let label = flotData[currentDataSource].label;
+                    let label = heatData[currentDataSource].label;
 
                     L.tooltip({
                         permanent: false,
