@@ -748,7 +748,11 @@ let initMapLeaflet = () => {
     const endcir = L.circleMarker(endCrd, {color:'black',title:'End',alt:'End Point',radius:6,weight:1}).addTo(map);
 
     // travel line
-    let polyline = L.polyline(path, {color: 'red'}).addTo(map);
+    let polyline = L.polyline(path, {
+        color: '#3d3d3d',
+        dashArray: '3, 3',
+        weight: '2'
+    }).addTo(map);
 
     // zoom the map to the polyline
     map.fitBounds(polyline.getBounds(), {maxZoom: 15});
