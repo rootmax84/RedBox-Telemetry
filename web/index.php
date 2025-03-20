@@ -668,39 +668,61 @@ $number_of_page = ceil ($number_of_result / $results_per_page);
 
 $res = $db->query("SELECT TABLE_SCHEMA AS '$db_name', ROUND(SUM(DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) AS 'Size (MB)' FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db_name'")->fetch_array();
 $r = $db->query("SELECT user, s, last_attempt FROM $db_users ORDER BY id = (SELECT MIN(id) FROM $db_users) DESC, user ASC  LIMIT " . $page_first_result . "," . $results_per_page);
- if ($r->num_rows > 0) {
-   while ($row = $r->fetch_assoc()) {
-	$db_sz = $db->query("SHOW TABLE STATUS LIKE '".$row["user"].$db_log_prefix."'")->fetch_array();
-	if ($row["user"] == $admin) $last = "-";
-	else {
-	    $last = $db->query("SELECT time FROM ".$row["user"].$db_log_prefix." ORDER BY time DESC LIMIT 1")->fetch_array();
-	    if ($last) {
-	     $seconds = intval($last[0]/1000);
-	     $last = date($admin_timeformat_12 ? "Y-m-d h:i:sa" : "Y-m-d H:i:s", $seconds);
-	    } else $last= "-";
-	}
-	echo "<tr ondblclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($row["user"]) . "&limit=" . $row["s"] . "\";'>";
-	echo "<td>".$i++."</td>";
-	if ($row["user"] == $admin)
-	 echo "<td>".$row["user"]." (admin)"."</td>";
-	else if ($row["s"] == 0)
-	 echo "<td style='text-decoration:line-through'>".$row["user"]."</td>";
-	else
-	 echo "<td>".$row["user"]."</td>";
-	if ($row["user"] == $admin)
-	 echo "<td>-</td>";
-	else
-	 echo "<td>".$row["s"]."</td>";
-	if ($row["user"] == $admin)
-	 echo "<td>-</td>";
-	else
-	 echo "<td>".round($db_sz[6]/1024/1024 + $db_sz['Index_length']/1024/1024,0)."</td>";
-	echo "<td>".$last."</td>";
-	    if (empty($row["last_attempt"])) echo "<td>-</td>";
-	    else echo "<td>".date($admin_timeformat_12 ? "Y-m-d h:i:sa" : "Y-m-d H:i:s", strtotime($row["last_attempt"]))."</td>";
-	echo "</tr>";
-   }
- }
+if ($r->num_rows > 0) {
+    while ($row = $r->fetch_assoc()) {
+        $username = htmlspecialchars($row["user"]);
+        $isAdmin = ($username == $admin);
+        $isDisabled = ($row["s"] == 0);
+        $isUnlimited = ($row["s"] == -1);
+        
+        // DB size
+        $dbSize = "-";
+        if (!$isAdmin) {
+            $db_sz = $db->query("SHOW TABLE STATUS LIKE '".$username.$db_log_prefix."'")->fetch_array();
+            $dbSize = round(($db_sz[6] + $db_sz['Index_length']) / (1024 * 1024), 0);
+        }
+        
+        // Last activity
+        $lastActivity = "-";
+        if (!$isAdmin) {
+            $lastResult = $db->query("SELECT time FROM ".$username.$db_log_prefix." ORDER BY time DESC LIMIT 1")->fetch_array();
+            if ($lastResult) {
+                $seconds = intval($lastResult[0] / 1000);
+                $timeFormat = $admin_timeformat_12 ? "Y-m-d h:i:sa" : "Y-m-d H:i:s";
+                $lastActivity = date($timeFormat, $seconds);
+            }
+        }
+        
+        // Last in
+        $lastAttempt = empty($row["last_attempt"]) ? "-" : 
+            date($admin_timeformat_12 ? "Y-m-d h:i:sa" : "Y-m-d H:i:s", strtotime($row["last_attempt"]));
+
+        // limit format
+        $limit = "-";
+        if (!$isAdmin) {
+            $limit = $isUnlimited ? "∞" : $row["s"];
+        }
+        
+        // Username style and text
+        $usernameDisplay = $username;
+        $usernameStyle = "";
+        if ($isAdmin) {
+            $usernameDisplay .= " (admin)";
+        } else if ($isDisabled) {
+            $usernameStyle = "text-decoration:line-through";
+        }
+        
+        // Output table
+        echo "<tr ondblclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($username) . "&limit=" . $row["s"] . "\";'>";
+        echo "<td>" . $i++ . "</td>";
+        echo "<td" . ($usernameStyle ? " style='$usernameStyle'" : "") . ">" . $usernameDisplay . "</td>";
+        echo "<td>" . $limit . "</td>";
+        echo "<td>" . $dbSize . "</td>";
+        echo "<td>" . $lastActivity . "</td>";
+        echo "<td>" . $lastAttempt . "</td>";
+        echo "</tr>";
+    }
+}
 ?>
 </tbody>
 </table>
