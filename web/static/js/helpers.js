@@ -643,6 +643,11 @@ let initMapLeaflet = () => {
             if (!map.hasLayer(polyline)) {
                 polyline.addTo(map);
             }
+
+            if (hotlineLegend) {
+                map.removeControl(hotlineLegend);
+                hotlineLegend = null;
+            }
             return;
         }
 
@@ -650,6 +655,11 @@ let initMapLeaflet = () => {
         if (!hotlineData) {
             if (!map.hasLayer(polyline)) {
                 polyline.addTo(map);
+            }
+
+            if (hotlineLegend) {
+                map.removeControl(hotlineLegend);
+                hotlineLegend = null;
             }
             return;
         }
@@ -673,12 +683,94 @@ let initMapLeaflet = () => {
                 outlineColor: '#aaa',
                 outlineWidth: 1
             }).addTo(map);
+
+            updateLegend(hotlineData.min, hotlineData.max);
+
         } catch (error) {
             if (!map.hasLayer(polyline)) {
                 polyline.addTo(map);
             }
+
+            if (hotlineLegend) {
+                map.removeControl(hotlineLegend);
+                hotlineLegend = null;
+            }
         }
     }
+
+    let hotlineLegend = null;
+
+    function updateLegend(min, max) {
+        if (hotlineLegend) {
+            map.removeControl(hotlineLegend);
+        }
+
+        hotlineLegend = L.control.hotlineLegend({
+            min: Math.round(min),
+            max: Math.round(max),
+            palette: {0: 'green', 0.5: 'yellow', 1: 'red'},
+            position: 'bottomright'
+        }).addTo(map);
+    }
+
+    L.Control.HotlineLegend = L.Control.extend({
+        options: {
+            position: 'bottomright',
+            min: 0,
+            max: 1,
+            palette: {0: 'green', 0.5: 'yellow', 1: 'red'},
+            width: 15,
+            height: 80
+        },
+
+        initialize: function(options) {
+            L.Util.setOptions(this, options);
+        },
+
+        onAdd: function(map) {
+            this._container = L.DomUtil.create('div', 'hotline-legend-container');
+            this._container.style.display = 'flex';
+            this._container.style.flexDirection = 'row';
+            this._container.style.textShadow = "0px 0 2px rgb(255 255 255)";
+
+            var labelsContainer = L.DomUtil.create('div', 'hotline-legend-labels', this._container);
+            labelsContainer.style.display = 'flex';
+            labelsContainer.style.flexDirection = 'column';
+            labelsContainer.style.justifyContent = 'space-between';
+            labelsContainer.style.marginRight = '3px';
+            labelsContainer.style.fontSize = '10px';
+            labelsContainer.style.fontWeight = 'bold';
+
+            var maxLabel = L.DomUtil.create('div', 'hotline-legend-label', labelsContainer);
+            maxLabel.innerHTML = this.options.max;
+
+            var minLabel = L.DomUtil.create('div', 'hotline-legend-label', labelsContainer);
+            minLabel.innerHTML = this.options.min;
+
+            var canvas = L.DomUtil.create('canvas', 'hotline-legend-canvas', this._container);
+            canvas.width = this.options.width;
+            canvas.height = this.options.height;
+            canvas.style.display = 'block';
+
+            var ctx = canvas.getContext('2d');
+            var gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+
+            for (var stop in this.options.palette) {
+                gradient.addColorStop(stop, this.options.palette[stop]);
+            }
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'black';
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+            return this._container;
+        }
+    });
+
+    L.control.hotlineLegend = function(options) {
+        return new L.Control.HotlineLegend(options);
+    };
 
     //Dynamic tracking marker when stream is open
     const rate = Number($.cookie('tracking-rate')) || 1000;

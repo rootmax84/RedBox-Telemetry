@@ -80,3 +80,7 @@ html {
   background-color: #1a1a1a;
   color: #fff;
 }
+
+.hotline-legend-canvas {
+  filter: invert(1) hue-rotate(180deg);
+}
