@@ -817,6 +817,7 @@ let initMapLeaflet = () => {
 
         hotlineLegend = L.control.hotlineLegend({
             min: Math.round(min),
+            mid: Math.round((min+max) / 2),
             max: Math.round(max),
             palette: {0: 'green', 0.5: 'yellow', 1: 'red'},
             position: 'bottomright'
@@ -827,6 +828,7 @@ let initMapLeaflet = () => {
         options: {
             position: 'bottomright',
             min: 0,
+            mid: .5,
             max: 1,
             palette: {0: 'green', 0.5: 'yellow', 1: 'red'},
             width: 15,
@@ -854,6 +856,9 @@ let initMapLeaflet = () => {
             var maxLabel = L.DomUtil.create('div', 'hotline-legend-label', labelsContainer);
             maxLabel.innerHTML = this.options.max;
 
+            var midLabel = L.DomUtil.create('div', 'hotline-legend-label', labelsContainer);
+            midLabel.innerHTML = this.options.mid;
+
             var minLabel = L.DomUtil.create('div', 'hotline-legend-label', labelsContainer);
             minLabel.innerHTML = this.options.min;
 
@@ -871,8 +876,6 @@ let initMapLeaflet = () => {
 
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = 'black';
-            ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
             return this._container;
         }
