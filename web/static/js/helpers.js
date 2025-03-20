@@ -621,6 +621,60 @@ let initMapLeaflet = () => {
         };
     }
 
+    function findClosestPoint(latlng, points) {
+        if (!points || points.length === 0) return null;
+
+        let minDist = Infinity;
+        let closestPoint = null;
+
+        for (let i = 0; i < points.length; i++) {
+            const dist = latlng.distanceTo(points[i]);
+            if (dist < minDist) {
+                minDist = dist;
+                closestPoint = points[i];
+            }
+        }
+
+        return minDist < 100 ? closestPoint : null;
+    }
+
+    let tooltipHideTimer = null;
+
+    function showTooltipAtPoint(point, sourceIndex) {
+        if (!point) return;
+
+        map.eachLayer(layer => {
+            if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
+                map.removeLayer(layer);
+            }
+        });
+
+        L.tooltip({
+            permanent: false,
+            direction: 'top',
+            className: 'heat-data-tooltip'
+        })
+        .setLatLng(point)
+        .setContent(`${heatData[sourceIndex].label}: ${point.alt}`)
+        .addTo(map);
+
+        if ('ontouchstart' in window) {
+            if (tooltipHideTimer) {
+                clearTimeout(tooltipHideTimer);
+                tooltipHideTimer = null;
+            }
+
+            tooltipHideTimer = setTimeout(() => {
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
+                        map.removeLayer(layer);
+                    }
+                });
+                tooltipHideTimer = null;
+            }, 5000);
+        }
+    }
+
     function updateHotline(sourceIndex, rangeIndices) {
 
         if (hotlineLayer) {
@@ -674,9 +728,37 @@ let initMapLeaflet = () => {
                 outlineWidth: 1
             }).addTo(map);
 
-            updateLegend(hotlineData.min, hotlineData.max);
+            hotlineLayer.hotlineData = hotlineData;
+            hotlineLayer.sourceIndex = sourceIndex;
 
+            hotlineLayer.on('mousemove', function(e) {
+                const closestPoint = findClosestPoint(e.latlng, this.hotlineData.points);
+                if (closestPoint) {
+                    showTooltipAtPoint(closestPoint, this.sourceIndex);
+                }
+            });
+
+            hotlineLayer.on('mouseout', function() {
+                if (!('ontouchstart' in window)) {
+                    map.eachLayer(layer => {
+                        if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
+                            map.removeLayer(layer);
+                        }
+                    });
+                }
+            });
+
+            hotlineLayer.on('click', function(e) {
+                const closestPoint = findClosestPoint(e.latlng, this.hotlineData.points);
+                if (closestPoint) {
+                    showTooltipAtPoint(closestPoint, this.sourceIndex);
+                }
+            });
+
+            updateLegend(hotlineData.min, hotlineData.max);
         } catch (error) {
+            console.error('Error in updateHotline:', error);
+
             if (!map.hasLayer(polyline)) {
                 polyline.addTo(map);
             }
@@ -687,6 +769,44 @@ let initMapLeaflet = () => {
             }
         }
     }
+
+    function initTouchHandlers() {
+        if ('ontouchstart' in window) {
+            map.on('touchmove', function(e) {
+                if (!hotlineLayer || !hotlineLayer.hotlineData) return;
+
+                const touch = e.originalEvent.touches[0];
+                const touchPoint = map.containerPointToLatLng([
+                    touch.clientX, 
+                    touch.clientY
+                ]);
+
+                const closestPoint = findClosestPoint(touchPoint, hotlineLayer.hotlineData.points);
+                if (closestPoint) {
+                    showTooltipAtPoint(closestPoint, hotlineLayer.sourceIndex);
+                }
+            });
+            map.on('click', function(e) {
+                setTimeout(() => {
+                    let hasTooltips = false;
+                    map.eachLayer(layer => {
+                        if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
+                            hasTooltips = true;
+                        }
+                    });
+
+                    if (!hasTooltips && hotlineLayer) {
+                        const closestPoint = findClosestPoint(e.latlng, hotlineLayer.hotlineData.points);
+                        if (closestPoint) {
+                            showTooltipAtPoint(closestPoint, hotlineLayer.sourceIndex);
+                        }
+                    }
+                }, 50);
+            });
+        }
+    }
+
+    setTimeout(initTouchHandlers, 1000);
 
     let hotlineLegend = null;
 

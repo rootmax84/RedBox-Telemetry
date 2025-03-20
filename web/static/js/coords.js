@@ -22,6 +22,7 @@ L.Control.Coordinates = L.Control.extend({
     initialize: function(options)
     {
 	L.Control.prototype.initialize.call(this, options);
+	this._hideTimer = null;
     },
 
     onAdd: function(map)
@@ -66,6 +67,11 @@ L.Control.Coordinates = L.Control.extend({
 		onResolve: function(){return;}
 		};
 	    redDialog.make(dialogOpt);
+
+            if (that._hideTimer) {
+                clearTimeout(that._hideTimer);
+                that._hideTimer = null;
+            }
 	}, this);
 
 	return container;
@@ -84,13 +90,21 @@ L.Control.Coordinates = L.Control.extend({
      * @param event object
      */
     setCoordinates: function(obj) {
+        if (this._hideTimer) {
+            clearTimeout(this._hideTimer);
+            this._hideTimer = null;
+        }
+
         if (!this.visible) {
             L.DomUtil.removeClass(this._container, 'hidden');
             this.visible = true;
-        } else {
+        }
+
+        this._hideTimer = setTimeout(() => {
             L.DomUtil.addClass(this._container, 'hidden');
             this.visible = false;
-        }
+            this._hideTimer = null;
+        }, 5000);
 
         if (obj.latlng) {
             // Нормализация долготы
