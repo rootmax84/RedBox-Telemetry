@@ -290,7 +290,14 @@ function doPlot(position) {
         $("#slider-range11").slider('values',0,a);
         $("#slider-range11").slider('values',1,b);
         $("#slider-time").val( (new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
-        if($("#map").length) mapUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
+
+        const mapIndexStart = jsTimeMap.length-b-1;
+        const mapIndexEnd = jsTimeMap.length-a-1;
+
+        if($("#map").length) {
+            updateMapWithRangePreservingHeatline(mapIndexStart, mapIndexEnd);
+        }
+
         chartUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
         plot.clearSelection();
     });
@@ -336,7 +343,7 @@ let updCharts = ()=>{
 
             if ($('#placeholder')[0]==undefined) { //this would only be true the first time we load the chart
                 $('#Chart-Container').empty();
-                $('#Chart-Container').append($('<div>',{class:'demo-container'}).append($('<div>',{id:'placeholder',class:'demo-placeholder',style:'height:350px;touch-action:pan-y'})));
+                $('#Chart-Container').append($('<div>',{class:'demo-container'}).append($('<div>',{id:'placeholder',class:'demo-placeholder'})));
                 doPlot("right");
             } else {
                 // refresh chart data
@@ -823,6 +830,7 @@ let initSlider = (jsTimeMap,start,end)=>{
 
         return  date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU');
     }
+
     let sv = $(function() {//jquery range slider
         $( "#slider-range11" ).slider({
             range: true,
@@ -839,12 +847,39 @@ let initSlider = (jsTimeMap,start,end)=>{
             $('#slider-time').attr("sv1", jsTimeMap[$('#slider-range11').slider("values", 1)])
             const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];
             if (Math.abs(a-b)<3) return;
-            if ($("#map").length) mapUpdRange(a,b);
+            if ($("#map").length) {
+                updateMapWithRangePreservingHeatline(a, b);
+            }
             if ($(".demo-container").length) chartUpdRange(a,b);
         });
-    } );
+    });
 }
 //End slider js code
+
+function updateMapWithRangePreservingHeatline(startIndex, endIndex) {
+    const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
+    if (dataSourceSelect) {
+        const prevValue = dataSourceSelect.value;
+
+        if (prevValue !== "") {
+            dataSourceSelect.value = "";
+
+            const changeEvent = new Event('change');
+            dataSourceSelect.dispatchEvent(changeEvent);
+
+            mapUpdRange(startIndex, endIndex);
+
+            setTimeout(() => {
+                dataSourceSelect.value = prevValue;
+                dataSourceSelect.dispatchEvent(changeEvent);
+            }, 300);
+        } else {
+            mapUpdRange(startIndex, endIndex);
+        }
+    } else {
+        mapUpdRange(startIndex, endIndex);
+    }
+}
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker

@@ -597,6 +597,14 @@ img {
   .settings-unit {
     width: 30%;
   }
+
+  .map-container {
+    height: 410px !important;
+  }
+
+  .demo-placeholder {
+    height: 450px !important;
+  }
 }
 
 @media screen and (max-width: 55em) {
@@ -864,4 +872,9 @@ input[type="checkbox"]:disabled:checked::after {
 
 .heat-data-tooltip {
   font-size: 10px;
+}
+
+.demo-placeholder {
+  height: 350px;
+  touch-action: pan-y;
 }
