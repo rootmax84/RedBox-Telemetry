@@ -473,16 +473,6 @@ let initMapLeaflet = () => {
 
     let layerControl = L.control.layers(baseMaps).addTo(map);
 
-    let c = new L.Control.Coordinates({
-        latitudeText: localization.key['lat'],
-        longitudeText: localization.key['lon'],
-    });
-    c.addTo(map);
-
-    function onMapClick(e) {
-        c.setCoordinates(e);
-    }
-    map.on('click', onMapClick);
     L.control.locate({position: "bottomright", showPopup: false}).addTo(map);
 
     let hotlineLayer = null;
@@ -902,6 +892,18 @@ let initMapLeaflet = () => {
             [markerCir, markerPnt].forEach(marker => map.removeLayer(marker));
         }
     }
+
+    //coords
+    let c = new L.Control.Coordinates({
+        latitudeText: localization.key['lat'],
+        longitudeText: localization.key['lon'],
+    });
+    c.addTo(map);
+
+    function onMapClick(e) {
+        c.setCoordinates(e);
+    }
+    map.on('click', onMapClick);
 }
 //End of Leaflet Map Providers js code
 
