@@ -231,6 +231,7 @@
 				    $("#data").css({"z-index":"", "position":"", "float":"", "border-radius":"", "background":"", "margin":"", "backdrop-filter":""});
 				    $("#right-container").css("padding-right","25px");
 				    window.scrollTo(0, 0);
+				    if (stream) animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
 			} else {
 				if (this._screenfull.isEnabled && !this.options.forcePseudoFullscreen) {
 					this._screenfull.request(this.options.fullscreenElement
@@ -247,6 +248,7 @@
 				    $("#data").css({"z-index":"99999", "position":"relative", "float":"right", "border-radius":"5px", "background":"rgba(255, 255, 255, 0.5)", "margin":"21px 10px", "backdrop-filter":"blur(5px)"});
 				    $("#right-container").css("padding-right","0");
 				    window.scrollTo(0, document.body.scrollHeight);
+				    stopPlotUpdates();
 			}
 		},
 

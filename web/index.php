@@ -595,6 +595,7 @@ function dataToggle() {
 		alarm.muted = false;
 		noSleep.enable();
 		stream = true;
+		animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
 	} else {
 		$("#data").hide();
 		$("#data_toggle").html(localization.key['expand']);
@@ -602,6 +603,7 @@ function dataToggle() {
 		alarm.muted = true;
 		noSleep.disable();
 		stream = false;
+		stopPlotUpdates();
 	}
 }
 </script>

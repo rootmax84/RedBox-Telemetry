@@ -133,6 +133,13 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
     $cache_key = "session_data_{$session_id}_{$selectstring}";
     $session_data = false;
 
+    $isStreamQuery = isset($_GET["last"]);
+    $limit = $isStreamQuery ? "LIMIT 1" : "";
+
+    if ($isStreamQuery) {
+        $memcached_connected = false; //Disable cache on stream query
+    }
+
     if ($memcached_connected) {
         try {
             $cached_data = $memcached->get($cache_key);
@@ -146,7 +153,7 @@ if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
 
     if ($session_data === false || $cached_timestamp !== $current_timestamp) {
         try {
-            $sessionqry = $db->execute_query("SELECT $selectstring FROM $db_table WHERE session=? ORDER BY time DESC", [$session_id]);
+            $sessionqry = $db->execute_query("SELECT $selectstring FROM $db_table WHERE session=? ORDER BY time DESC $limit", [$session_id]);
             $session_data = $sessionqry->fetch_all(MYSQLI_ASSOC);
 
             if ($memcached_connected) {

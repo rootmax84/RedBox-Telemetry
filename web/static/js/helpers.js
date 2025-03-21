@@ -32,6 +32,25 @@ $(document).ready(function(){
   $("#update-plot").on("dblclick", updatePlot);
 });
 
+let lastPlotUpdateTime = 0;
+let animationPlotFrameId = null;
+
+//Fetch plot data every 60 sec
+function schedulePlotUpdate(timestamp) {
+  if (!lastPlotUpdateTime || timestamp - lastPlotUpdateTime >= 60000) {
+    updatePlot();
+    lastPlotUpdateTime = timestamp;
+  }
+  animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
+}
+
+function stopPlotUpdates() {
+  if (animationPlotFrameId) {
+    cancelAnimationFrame(animationPlotFrameId);
+    animationPlotFrameId = null;
+  }
+}
+
 function updatePlot() {
     updCharts();
     initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
@@ -306,7 +325,7 @@ function doPlot(position) {
     //End Trim by plot Select
 }
 
-let updCharts = ()=>{
+let updCharts = (last = false)=>{
     if ($('#plot_data').chosen().val().length == 0) {
         const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
         const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
@@ -322,9 +341,37 @@ let updCharts = ()=>{
         $('#Summary-Container').append(noChart);
     } else if ($('#plot_data').chosen().val().length <= 10){
         $("#chart-load").css("display","block");
-        let varPrm = 'plot.php?id='+$('#seshidtag').chosen().val();
+        let varPrm = last ? 'plot.php?last&id='+$('#seshidtag').chosen().val() : 'plot.php?id='+$('#seshidtag').chosen().val();
         $('#plot_data').chosen().val().forEach((v,i)=>varPrm+='&s'+(i+1)+'='+v);
         fetch(varPrm).then(d => d.json()).then(gData => {
+            if (last) {
+                $("#chart-load").css("display","none");
+
+                function updateHeatData(gData) {
+                  const heatDataMap = {};
+                  heatData.forEach(item => {
+                    heatDataMap[item.label] = item;
+                  });
+
+                  gData.forEach(item => {
+                    const label = item[1];
+                    const data = item[2].map(a => [parseInt(a[0]), a[1]]);
+
+                    if (!heatDataMap[label]) {
+                      const newItem = {
+                        label: label,
+                        data: data
+                      };
+                      heatData.push(newItem);
+                      heatDataMap[label] = newItem;
+                    } else {
+                      heatDataMap[label].data = heatDataMap[label].data.concat(data);
+                    }
+                  });
+                }
+                updateHeatData(gData);
+                return;
+            }
             flotData = [];
             $("#chart-load").css("display","none");
             gData.forEach(v => flotData.push({label: v[1], data: v[2].map(a => [parseInt(a[0]), a[1]])}));
@@ -908,10 +955,10 @@ let initMapLeaflet = () => {
 
                 if (currentDataSource !== null) {
                     if (heatData && heatData[currentDataSource]) {
+                        updCharts(true);
                         if (hotlineLayer) {
                             let currentLatLngs = hotlineLayer.getLatLngs();
-
-                            let latestDataPoint = heatData[currentDataSource].data[0];
+                            let latestDataPoint = heatData[currentDataSource].data.at(-1);
 
                             if (latestDataPoint) {
                                 let newPoint = L.latLng(lat, lon, latestDataPoint[1]);
