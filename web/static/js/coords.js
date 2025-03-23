@@ -67,12 +67,12 @@ L.Control.Coordinates = L.Control.extend({
 		onResolve: function(){return;}
 		};
 	    redDialog.make(dialogOpt);
-
-            if (that._hideTimer) {
-                clearTimeout(that._hideTimer);
-                that._hideTimer = null;
-            }
 	}, this);
+
+	if (that._hideTimer) {
+		clearTimeout(that._hideTimer);
+		that._hideTimer = null;
+	}
 
 	return container;
     },
