@@ -243,7 +243,9 @@ $translations = [
         'overdata' => 'Too much variables for plotting!',
         'new.token' => 'Welcome! Click renew to create token.',
         'lon' => 'Longitude',
-        'lat' => 'Latitude'
+        'lat' => 'Latitude',
+        'maintenance.title' => 'We\'ll be back shortly.',
+        'maintenance.text' => 'Service under maintenance.'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -487,7 +489,9 @@ $translations = [
         'overdata' => 'Слишком много переменных для построения графика!',
         'new.token' => 'Добро пожаловать! Нажмите обновить, чтобы создать токен.',
         'lon' => 'Долгота',
-        'lat' => 'Широта'
+        'lat' => 'Широта',
+        'maintenance.title' => 'Мы скоро вернемся.',
+        'maintenance.text' => 'Сервис на обслуживании.'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -731,7 +735,9 @@ $translations = [
         'overdata' => '¡Demasiadas variables para graficar!',
         'new.token' => '¡Bienvenido! Haz clic en renovar para crear un token.',
         'lon' => 'Longitud',
-        'lat' => 'Latitud'
+        'lat' => 'Latitud',
+        'maintenance.title' => 'Volveremos pronto.',
+        'maintenance.text' => 'Servicio en mantenimiento.'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -975,7 +981,9 @@ $translations = [
         'overdata' => 'Zu viele Variablen zum Plotten!',
         'new.token' => 'Willkommen! Klicken Sie auf erneuern, um ein Token zu erstellen.',
         'lon' => 'Längengrad',
-        'lat' => 'Breitengrad'
+        'lat' => 'Breitengrad',
+        'maintenance.title' => 'Wir sind bald zurück.',
+        'maintenance.text' => 'Service in Wartung.'
     ],
 ];
 
