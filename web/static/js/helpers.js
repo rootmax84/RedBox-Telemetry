@@ -645,10 +645,6 @@ let initMapLeaflet = () => {
         if (minValue === maxValue) {
             minValue = minValue - 1;
             maxValue = maxValue + 1;
-
-            if (minValue === -1 && maxValue === 1) {
-                return null;
-            }
         }
 
         let hotlinePoints = [];
@@ -771,7 +767,7 @@ let initMapLeaflet = () => {
                     1.0: 'red'
                 },
                 weight: 3,
-                outlineColor: '#aaa',
+                outlineColor: '#444',
                 outlineWidth: 1
             }).addTo(map);
 
