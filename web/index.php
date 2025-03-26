@@ -802,7 +802,7 @@ if ($current_page < $total_pages) {
 	     <span class="label label-success" id="log-msg-ok"></span>
 	     <span class="label label-danger" id="log-msg-err"></span>
     </div>
-    <div style="display:flex; justify-content:center; margin-bottom:10px;">
+    <div style="display:flex; justify-content:center;">
 	    <form method="POST" action="redlog.php" onsubmit="return submitLog(this);" style="display:contents">
 	     <input class="btn btn-default" style="border-radius:5px;width:100%" type="file" multiple name="file[]" id="logFile" onchange="checkLog();" accept=".txt">
 	     <input class="btn btn-default upload-log-btn" id="log-upload-btn" value="" type="submit">
@@ -881,9 +881,12 @@ function checkLog() {
  let filesProcessed = 0;
 
  if (!log_data.files.length) {
+    $("#log-list").css({"display":"none"});
     msg_def.innerHTML = localization.key['import.label'];
     up_btn.hide();
     return;
+ } else {
+    $("#log-list").css({"display":"grid"});
  }
 
  msg_def.innerHTML = localization.key['import.read'];

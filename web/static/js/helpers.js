@@ -522,6 +522,42 @@ let initMapLeaflet = () => {
 
     L.control.locate({position: "bottomright", showPopup: false}).addTo(map);
 
+    // Live stream control
+    L.Control.streamButton = L.Control.extend({
+      options: {
+        position: 'topright'
+      },
+
+      onAdd: function(map) {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+
+        container.innerHTML = `
+          <div class="map-stream-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" style="opacity:.5"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2m-8-5v.01M12 18l-3.5-5a4 4 0 1 1 7 0z"/></svg>
+          </div>
+        `;
+
+        const button = container.querySelector('.map-stream-button');
+        const svg = button.querySelector('svg');
+
+        button.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          dataToggle();
+          svg.style.opacity = stream ? '1' : '0.5';
+          svg.style.color = stream ? '#008000' : 'inherit';
+          if (map._isFullscreen) {
+            setTimeout(() => { window.scrollTo(0, document.body.scrollHeight) }, 100);
+          }
+        });
+
+        L.DomEvent.disableClickPropagation(container);
+        return container;
+      }
+    });
+
+    const streamButton = new L.Control.streamButton();
+    map.addControl(streamButton);
+
     let hotlineLayer = null;
     let currentDataSource = null;
 

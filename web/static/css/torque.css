@@ -524,11 +524,12 @@ img {
 }
 
 #log-list {
-  display: grid;
+  display: none;
   width: fit-content;
   font-size: 12px;
   margin: 10px auto 0;
   text-align: left;
+  padding-inline-start: 15px;
 }
 
 .upload-log-btn {
@@ -878,4 +879,19 @@ input[type="checkbox"]:disabled:checked::after {
 .demo-placeholder {
   height: 350px;
   touch-action: pan-y;
+}
+
+.map-stream-button {
+  width: 30px;
+  height: 30px;
+  background-color: #fff;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.map-stream-button:hover {
+  background-color: #f4f4f4;
 }
