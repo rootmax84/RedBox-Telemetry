@@ -525,7 +525,7 @@ let initMapLeaflet = () => {
     // Live stream control
     L.Control.streamButton = L.Control.extend({
       options: {
-        position: 'topright'
+        position: 'topleft'
       },
 
       onAdd: function(map) {
