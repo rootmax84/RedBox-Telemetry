@@ -855,11 +855,6 @@ input[type="checkbox"]:disabled:checked::after {
   padding: 4px;
   border-radius: 4px;
   box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-  opacity: .7;
-}
-
-.heat-data:hover {
-  opacity: 1;
 }
 
 #heat-dataSourceSelect {
@@ -870,6 +865,7 @@ input[type="checkbox"]:disabled:checked::after {
   border: 0;
   outline: 0;
   background: inherit;
+  cursor: pointer;
 }
 
 .heat-data-tooltip {
@@ -885,7 +881,6 @@ input[type="checkbox"]:disabled:checked::after {
   width: 30px;
   height: 30px;
   background-color: #fff;
-  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -905,7 +900,6 @@ input[type="checkbox"]:disabled:checked::after {
   height: 30px;
   width: 30px;
   background-color: #fff;
-  border-bottom: 1px solid #ccc;
 }
 
 .leaflet-control-zoom-stream:hover {

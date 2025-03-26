@@ -520,10 +520,13 @@ let initMapLeaflet = () => {
 
     let layerControl = L.control.layers(baseMaps).addTo(map);
 
-    L.control.locate({position: "bottomright", showPopup: false}).addTo(map);
+    const locateControl = L.control.locate({
+        position: "topleft",
+        showPopup: false,
+    });
 
-    // Live stream control. Inject into zoom buttons container
-    const addStreamButtonToZoomControl = function(map) {
+    // Live stream control / Coords control. Inject into zoom/fullscreen buttons container
+    const addControlsToZoomContainer = function(map) {
         const zoomControl = document.querySelector('.leaflet-control-zoom');
 
         if (!zoomControl) return;
@@ -549,9 +552,17 @@ let initMapLeaflet = () => {
         });
 
         zoomControl.appendChild(streamButton);
+        locateControl.addTo(map);
+        const locateContainer = document.querySelector('.leaflet-control-locate');
+
+        if (locateContainer) {
+            locateContainer.classList.remove('leaflet-bar');
+            locateContainer.classList.add('locate-in-zoom');
+            zoomControl.appendChild(locateContainer);
+        }
     };
 
-    addStreamButtonToZoomControl(map);
+    addControlsToZoomContainer(map);
 
     let hotlineLayer = null;
     let currentDataSource = null;
