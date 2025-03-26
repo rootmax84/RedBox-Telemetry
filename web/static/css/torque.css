@@ -895,3 +895,29 @@ input[type="checkbox"]:disabled:checked::after {
 .map-stream-button:hover {
   background-color: #f4f4f4;
 }
+
+.leaflet-control-zoom-stream {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center;
+  font-size: 18px;
+  height: 30px;
+  width: 30px;
+  background-color: #fff;
+  border-bottom: 1px solid #ccc;
+}
+
+.leaflet-control-zoom-stream:hover {
+  background-color: #f4f4f4;
+}
+
+.leaflet-touch .leaflet-control-zoom-stream {
+  height: 30px;
+  width: 30px;
+}
+
+.leaflet-control-zoom-stream svg {
+  vertical-align: middle;
+  display: inline-block;
+}

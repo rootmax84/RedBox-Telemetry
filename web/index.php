@@ -584,6 +584,7 @@ function logToggle() {
 }
 
 const noSleep = new NoSleep();
+let streamBtn_svg = null
 let stream = false;
 let src = null;
 function dataToggle() {
@@ -605,6 +606,7 @@ function dataToggle() {
 		stream = false;
 		stopPlotUpdates();
 	}
+	streamBtn_svg.style.color = stream ? '#008000' : 'inherit';
 }
 </script>
 	</div>

@@ -522,41 +522,36 @@ let initMapLeaflet = () => {
 
     L.control.locate({position: "bottomright", showPopup: false}).addTo(map);
 
-    // Live stream control
-    L.Control.streamButton = L.Control.extend({
-      options: {
-        position: 'topleft'
-      },
+    // Live stream control. Inject into zoom buttons container
+    const addStreamButtonToZoomControl = function(map) {
+        const zoomControl = document.querySelector('.leaflet-control-zoom');
 
-      onAdd: function(map) {
-        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        if (!zoomControl) return;
 
-        container.innerHTML = `
-          <div class="map-stream-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" style="opacity:.5"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2m-8-5v.01M12 18l-3.5-5a4 4 0 1 1 7 0z"/></svg>
-          </div>
+        const streamButton = L.DomUtil.create('a', 'leaflet-control-zoom-stream');
+        streamButton.href = 'javascript:void(0)';
+        streamButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
+            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2m-8-5v.01M12 18l-3.5-5a4 4 0 1 1 7 0z"/>
+          </svg>
         `;
 
-        const button = container.querySelector('.map-stream-button');
-        const svg = button.querySelector('svg');
+        const svg = streamButton.querySelector('svg');
+        streamBtn_svg = svg;
 
-        button.addEventListener('mousedown', function(e) {
-          e.preventDefault();
+        L.DomEvent.on(streamButton, 'mousedown', function(e) {
+          L.DomEvent.preventDefault(e);
+          L.DomEvent.stopPropagation(e);
           dataToggle();
-          svg.style.opacity = stream ? '1' : '0.5';
-          svg.style.color = stream ? '#008000' : 'inherit';
           if (map._isFullscreen) {
-            setTimeout(() => { window.scrollTo(0, document.body.scrollHeight) }, 500);
+            $('html, body').animate({ scrollTop: $(document).height() });
           }
         });
 
-        L.DomEvent.disableClickPropagation(container);
-        return container;
-      }
-    });
+        zoomControl.appendChild(streamButton);
+    };
 
-    const streamButton = new L.Control.streamButton();
-    map.addControl(streamButton);
+    addStreamButtonToZoomControl(map);
 
     let hotlineLayer = null;
     let currentDataSource = null;
