@@ -546,7 +546,7 @@ let initMapLeaflet = () => {
           svg.style.opacity = stream ? '1' : '0.5';
           svg.style.color = stream ? '#008000' : 'inherit';
           if (map._isFullscreen) {
-            setTimeout(() => { window.scrollTo(0, document.body.scrollHeight) }, 100);
+            setTimeout(() => { window.scrollTo(0, document.body.scrollHeight) }, 500);
           }
         });
 
