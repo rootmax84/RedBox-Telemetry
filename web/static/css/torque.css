@@ -893,13 +893,8 @@ input[type="checkbox"]:disabled:checked::after {
 
 .leaflet-control-zoom-stream {
   display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center;
-  font-size: 18px;
-  height: 30px;
-  width: 30px;
-  background-color: #fff;
+  align-items: center;
+  justify-content: center;
 }
 
 .leaflet-control-zoom-stream:hover {
