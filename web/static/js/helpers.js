@@ -951,6 +951,7 @@ let initMapLeaflet = () => {
             canvas.width = this.options.width;
             canvas.height = this.options.height;
             canvas.style.display = 'block';
+            canvas.style.borderRadius = '4px';
 
             var ctx = canvas.getContext('2d');
             var gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);

@@ -64,23 +64,29 @@ html {
 }
 
 .heat-data {
-  box-shadow: none;
-  background-color: #1a1a1a;
+  background-color: #000;
   filter: invert(1) hue-rotate(180deg);
 }
 
 .leaflet-control-coordinates {
-  box-shadow: none;
-  background-color: #1a1a1a;
+  background-color: #000;
   filter: invert(1) hue-rotate(180deg);
   color: #fff;
 }
 
 #heat-dataSourceSelect {
-  background-color: #1a1a1a;
+  background-color: #000;
   color: #fff;
 }
 
 .hotline-legend-canvas {
   filter: invert(1) hue-rotate(180deg);
+}
+
+.leaflet-control-coordinates, .heat-data, .hotline-legend-canvas {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+#heat-dataSourceSelect option {
+  background: #191919;
 }

@@ -292,7 +292,6 @@ input[type=text]:disabled {
 .leaflet-control-coordinates {
   background: white;
   border-radius: 4px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
   cursor: pointer !important;
   padding: 2px 5px;
   font-size: 12px;
@@ -854,7 +853,6 @@ input[type="checkbox"]:disabled:checked::after {
   background: #fff;
   padding: 4px;
   border-radius: 4px;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
 }
 
 #heat-dataSourceSelect {
@@ -909,4 +907,9 @@ input[type="checkbox"]:disabled:checked::after {
 .leaflet-control-zoom-stream svg {
   vertical-align: middle;
   display: inline-block;
+}
+
+.leaflet-control-coordinates, .heat-data, .hotline-legend-canvas {
+  background-clip: padding-box;
+  border: 2px solid rgba(0, 0, 0, 0.2);
 }
