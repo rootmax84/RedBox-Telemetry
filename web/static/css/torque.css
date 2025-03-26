@@ -292,7 +292,7 @@ input[type=text]:disabled {
 .leaflet-control-coordinates {
   background: white;
   border-radius: 4px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
   cursor: pointer !important;
   padding: 2px 5px;
   font-size: 12px;
