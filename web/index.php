@@ -587,7 +587,7 @@ const noSleep = new NoSleep();
 let streamBtn_svg = null
 let stream = false;
 let src = null;
-function dataToggle(mapFullscreen = false) {
+function dataToggle() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
 		$("#data_toggle").html(localization.key['collapse']);
@@ -596,7 +596,7 @@ function dataToggle(mapFullscreen = false) {
 		alarm.muted = false;
 		noSleep.enable();
 		stream = true;
-		if (!mapFullscreen) animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
+		animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
 	} else {
 		$("#data").hide();
 		$("#data_toggle").html(localization.key['expand']);

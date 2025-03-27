@@ -35,9 +35,9 @@ $(document).ready(function(){
 let lastPlotUpdateTime = 0;
 let animationPlotFrameId = null;
 
-//Fetch plot data every 60 sec
+//Fetch plot data every 10 sec
 function schedulePlotUpdate(timestamp) {
-  if (!lastPlotUpdateTime || timestamp - lastPlotUpdateTime >= 60000) {
+  if (!lastPlotUpdateTime || timestamp - lastPlotUpdateTime >= 10000) {
     updatePlot();
     lastPlotUpdateTime = timestamp;
   }
@@ -540,7 +540,7 @@ let initMapLeaflet = () => {
         L.DomEvent.on(streamButton, 'mousedown', function(e) {
           L.DomEvent.preventDefault(e);
           L.DomEvent.stopPropagation(e);
-          dataToggle(map._isFullscreen);
+          dataToggle();
           if (map._isFullscreen) {
             $('html, body').animate({ scrollTop: $(document).height() });
           }
@@ -980,7 +980,7 @@ let initMapLeaflet = () => {
             map.setView(marker.getLatLng(), map.getZoom());
 
             //update travel line/end point
-            if (path.at(0)[0] != lat && path.at(0)[1] != lon) {
+            if (!path.length || path.at(0) && (path.at(0)[0] != lat || path.at(0)[1] != lon)) {
                 path.unshift([lat,lon]);
                 endcir.setLatLng(path.at(0));
 
@@ -1001,6 +1001,11 @@ let initMapLeaflet = () => {
                                 }
 
                                 hotlineLayer.setLatLngs(currentLatLngs);
+
+                                // update hotlineData.points for tooltip
+                                if (hotlineLayer.hotlineData && Array.isArray(hotlineLayer.hotlineData.points)) {
+                                    hotlineLayer.hotlineData.points.unshift(newPoint);
+                                }
                             } else {
                                 updateHotline(currentDataSource);
                             }
@@ -1180,17 +1185,17 @@ function updateMapWithRangePreservingHeatline(startIndex, endIndex, reset = fals
             const changeEvent = new Event('change');
             dataSourceSelect.dispatchEvent(changeEvent);
 
-            mapUpdRange(startIndex, endIndex);
+            if (!stream) mapUpdRange(startIndex, endIndex);
 
             setTimeout(() => {
                 dataSourceSelect.value = prevValue;
                 dataSourceSelect.dispatchEvent(changeEvent);
             }, 300);
         } else {
-            mapUpdRange(startIndex, endIndex);
+            if (!stream) mapUpdRange(startIndex, endIndex);
         }
     } else {
-        mapUpdRange(startIndex, endIndex);
+        if (!stream) mapUpdRange(startIndex, endIndex);
     }
 }
 
