@@ -654,46 +654,94 @@ let initMapLeaflet = () => {
     }, 1000);
 
     function prepareHotlineData(sourceIndex, rangeIndices) {
-
-        if (sourceIndex === null || sourceIndex === "" || !heatData || !heatData[sourceIndex]) {
+        if (!heatData || !heatData[sourceIndex] || !heatData[sourceIndex].data) {
             return null;
         }
 
-        let source = heatData[sourceIndex];
-        let dataPoints = source.data;
+        const sourceData = heatData[sourceIndex].data;
 
-        let filteredPath = path;
-        if (rangeIndices) {
-            filteredPath = path.slice(rangeIndices[0], rangeIndices[1]);
-        }
-
-        if (!filteredPath.length || !dataPoints.length) {
+        if (!sourceData || sourceData.length === 0) {
             return null;
         }
 
-        let values = dataPoints.map(point => point[1]);
-        let minValue = Math.min(...values);
-        let maxValue = Math.max(...values);
+        const coordinates = window.routeCoordinates || polyline.getLatLngs();
 
-        if (minValue === maxValue) {
-            minValue = minValue - 1;
-            maxValue = maxValue + 1;
+        if (!coordinates || coordinates.length === 0) {
+            return null;
         }
 
-        let hotlinePoints = [];
+        let dataToUse = sourceData;
+        let coordsToUse = coordinates;
 
-        const minLength = Math.min(filteredPath.length, dataPoints.length);
+        if (rangeIndices && rangeIndices.length === 2) {
+            const [startIdx, endIdx] = rangeIndices;
+            dataToUse = sourceData.slice(startIdx, endIdx + 1);
+            coordsToUse = coordinates.slice(startIdx, endIdx + 1);
+        }
 
-        for (let i = 0; i < minLength; i++) {
-            let point = L.latLng(filteredPath[i][0], filteredPath[i][1]);
-            point.alt = dataPoints[i][1];
-            hotlinePoints.push(point);
+        const minLength = Math.min(dataToUse.length, coordsToUse.length);
+        if (dataToUse.length !== coordsToUse.length) {
+            dataToUse = dataToUse.slice(0, minLength);
+            coordsToUse = coordsToUse.slice(0, minLength);
+        }
+
+        const points = [];
+        let min = Infinity;
+        let max = -Infinity;
+
+        for (let i = 0; i < dataToUse.length; i++) {
+            let value, timestamp;
+
+            if (Array.isArray(dataToUse[i]) && dataToUse[i].length >= 2) {
+                timestamp = dataToUse[i][0];
+                value = dataToUse[i][1];
+            } else {
+                value = dataToUse[i];
+                timestamp = (window.timeData && window.timeData[i]) || null;
+            }
+
+            if (value === null || value === undefined || isNaN(value)) {
+                continue;
+            }
+
+            let lat, lng;
+
+            if (coordsToUse[i] instanceof L.LatLng) {
+                lat = coordsToUse[i].lat;
+                lng = coordsToUse[i].lng;
+            } else if (Array.isArray(coordsToUse[i])) {
+                lat = coordsToUse[i][0];
+                lng = coordsToUse[i][1];
+            } else {
+                continue;
+            }
+
+            const latLng = L.latLng(lat, lng, value);
+
+            latLng.alt = value;
+            if (timestamp) {
+                latLng.time = timestamp;
+            }
+
+            points.push(latLng);
+
+            min = Math.min(min, value);
+            max = Math.max(max, value);
+        }
+
+        if (points.length === 0) {
+            return null;
+        }
+
+        if (min === max) {
+            min = min - 0.1;
+            max = max + 0.1;
         }
 
         return {
-            points: hotlinePoints,
-            min: minValue,
-            max: maxValue
+            points,
+            min,
+            max
         };
     }
 
@@ -725,13 +773,41 @@ let initMapLeaflet = () => {
             }
         });
 
+        let timeDisplay = '';
+        if (point.time) {
+            const realTimeValue = findNearestRealTime(point.time);
+            const realTime = new Date(realTimeValue);
+
+            const use12HourFormat = $.cookie('timeformat') === '12';
+
+            if (use12HourFormat) {
+                timeDisplay = realTime.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                });
+            } else {
+                timeDisplay = realTime.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+            }
+        }
+
+        const tooltipContent = timeDisplay ? 
+            `${timeDisplay}<br>${heatData[sourceIndex].label}: ${point.alt}` : 
+            `${heatData[sourceIndex].label}: ${point.alt}`;
+
         L.tooltip({
             permanent: false,
             direction: 'top',
             className: 'heat-data-tooltip'
         })
         .setLatLng(point)
-        .setContent(`${heatData[sourceIndex].label}: ${point.alt}`)
+        .setContent(tooltipContent)
         .addTo(map);
 
         if ('ontouchstart' in window) {
@@ -997,7 +1073,13 @@ let initMapLeaflet = () => {
                             let latestDataPoint = heatData[currentDataSource].data.at(-1);
 
                             if (latestDataPoint) {
+                                const currentTime = Date.now();
+
                                 let newPoint = L.latLng(lat, lon, latestDataPoint[1]);
+                                newPoint.alt = latestDataPoint[1];
+                                newPoint.time = currentTime;
+
+                                heatData[currentDataSource].data.unshift([currentTime, latestDataPoint[1]]);
 
                                 if (Array.isArray(currentLatLngs[0])) {
                                     currentLatLngs[0].unshift(newPoint);
