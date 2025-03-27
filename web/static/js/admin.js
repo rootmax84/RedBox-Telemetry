@@ -1,3 +1,5 @@
+'use strict';
+
 function maintenance() {
     let mode;
     let xmlhttp = new XMLHttpRequest();
