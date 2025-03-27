@@ -37,7 +37,7 @@ let animationPlotFrameId = null;
 
 //Fetch plot data every 10 sec
 function schedulePlotUpdate(timestamp) {
-  if (!lastPlotUpdateTime || timestamp - lastPlotUpdateTime >= 10000) {
+  if (timestamp - lastPlotUpdateTime >= 10000) {
     updatePlot();
     lastPlotUpdateTime = timestamp;
   }
@@ -48,6 +48,13 @@ function stopPlotUpdates() {
   if (animationPlotFrameId) {
     cancelAnimationFrame(animationPlotFrameId);
     animationPlotFrameId = null;
+  }
+}
+
+function startPlotUpdates() {
+  if (!animationPlotFrameId) {
+    lastPlotUpdateTime = performance.now();
+    animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
   }
 }
 
