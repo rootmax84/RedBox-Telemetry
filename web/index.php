@@ -588,6 +588,7 @@ let streamBtn_svg = null
 let stream = false;
 let src = null;
 function dataToggle() {
+    updatePlot(function() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
 		$("#data_toggle").html(localization.key['collapse']);
@@ -607,6 +608,7 @@ function dataToggle() {
 		stopPlotUpdates();
 	}
 	streamBtn_svg.style.color = stream ? '#008000' : 'inherit';
+    });
 }
 </script>
 	</div>

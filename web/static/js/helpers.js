@@ -51,9 +51,13 @@ function stopPlotUpdates() {
   }
 }
 
-function updatePlot() {
+function updatePlot(callback) {
     updCharts();
     initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
+
+    if (callback && typeof callback === 'function') {
+        setTimeout(callback);
+    }
 }
 
 //start of chart plotting js code
