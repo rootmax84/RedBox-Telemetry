@@ -43,6 +43,7 @@ function version_url($url) {
 <script src="<?php echo version_url('static/js/theme.js'); ?>"></script>
 <?php } if (isset($_SESSION['admin'])) {?>
 <link rel="stylesheet" href="<?php echo version_url('static/css/admin.css'); ?>">
+<script src="<?php echo version_url('static/js/admin.js'); ?>"></script>
 <?php } ?>
 <script src="<?php echo version_url('static/js/jquery.min.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/jquery.cookie.min.js'); ?>"></script>

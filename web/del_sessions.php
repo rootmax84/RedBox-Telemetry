@@ -170,11 +170,7 @@ if ($current_page < $total_pages) {
 	    }
 	    else delSessions();
        });
-	$(".table-del-merge-pid tr").click(function(e) {
-	    if (e.target.type !== "checkbox") {
-		$(":checkbox", this).trigger("click");
-	    }
-	});
+	sortMergeDel();
      });
 
     function delSessions() {

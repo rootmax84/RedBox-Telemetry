@@ -29,6 +29,11 @@ foreach ($_GET as $key => $value) {
 }
 
 if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empty($mergesess1)) {
+    // get profileName from merged session
+    $profileQuery = "SELECT profileName FROM $db_sessions_table WHERE session = ?";
+    $profileResult = $db->execute_query($profileQuery, [$mergesession])->fetch_assoc();
+    $profileName = $profileResult['profileName'];
+
     $qrystr = "SELECT MIN(time) as time, MAX(timeend) as timeend, MIN(session) as session, SUM(sessionsize) as sessionsize FROM $db_sessions_table WHERE session = ?";
     $i = 1;
     while (isset(${'mergesess' . $i}) || !empty(${'mergesess' . $i})) {
@@ -44,8 +49,8 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
 
     foreach ($sessionids as $value) {
         if ($value == $newsession) {
-            $updatequery = "UPDATE $db_sessions_table SET time=$newtimestart, timeend=$newtimeend, sessionsize=$newsessionsize where session = ?";
-            $db->execute_query($updatequery, [$newsession]);
+            $updatequery = "UPDATE $db_sessions_table SET time=$newtimestart, timeend=$newtimeend, sessionsize=$newsessionsize, profileName=? where session = ?";
+            $db->execute_query($updatequery, [$profileName, $newsession]);
         } else {
             $delquery = "DELETE FROM $db_sessions_table WHERE session = ?";
             $db->execute_query($delquery, [$value]);
@@ -202,12 +207,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
                         noSel();
                     }
                 });
-
-                $(".table-del-merge-pid tr").click(function(e) {
-                    if (e.target.type !== "checkbox") {
-                        $(":checkbox", this).trigger("click");
-                    }
-                });
+                sortMergeDel();
             });
 
             function noSel() {

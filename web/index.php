@@ -616,37 +616,6 @@ function dataToggle() {
 <?php } ?>
 
 <?php if(isset($_SESSION['admin'])) {?>
-<script>
-function maintenance() {
-    let mode;
-    let xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-	$("#wait_layout").hide();
-	mode = this.responseText;
-	if (!mode.length) return;
-	let dialogOpt = {
-	     title: localization.key['dialog.maintenance.title'],
-	     message : `${localization.key['dialog.maintenance.status']} ${mode}`,
-	     btnClassSuccessText: localization.key['dialog.maintenance.en'],
-	     btnClassFailText: localization.key['dialog.maintenance.dis'],
-	     btnClassFail: "btn btn-info btn-sm",
-	     onResolve: function() {
-	      xmlhttp.open("POST","maintenance.php?enable");
-	      xmlhttp.send();
-	     },
-	     onReject: function() {
-	      xmlhttp.open("POST","maintenance.php?disable");
-	      xmlhttp.send();
-	     }
-	};
-	 redDialog.make(dialogOpt);
-      }
-    };
-     xmlhttp.open("POST","maintenance.php?mode");
-     xmlhttp.send();
-}
-</script>
 <div class="admin-card">
     <div>
     <h4 style="text-align:center" l10n="admin.page.title"></h4>
@@ -788,6 +757,7 @@ if ($current_page < $total_pages) {
     <a class="btn btn-default btn-admin" href="#" onclick="maintenance()" l10n="admin.page.btn.maintenance"></a>
 </div>
     </div>
+<script>initTableSorting(".users-list")</script>
 <?php } else if (isset($session_id) && !empty($session_id)) { ?>
     <p class="copyright"></p>
 </div>

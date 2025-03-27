@@ -1357,6 +1357,96 @@ document.addEventListener('mouseover', function(e) {
     }
 }, true);
 
+//Sort. by duration/datapoints in delete/merge sessions
+function sortMergeDel() {
+  if ($("head style.table-sort-indicators").length === 0) {
+    $("<style>")
+      .prop("type", "text/css")
+      .addClass("table-sort-indicators")
+      .html(`
+        th.sorted-asc::after { content: " ▲"; }
+        th.sorted-desc::after { content: " ▼"; }
+      `)
+      .appendTo("head");
+  }
+
+  function assignRowClickHandlers() {
+    $(".table-del-merge-pid tbody tr").off("click").on("click", function(e) {
+      if (e.target.type !== "checkbox") {
+        $(":checkbox", this).trigger("click");
+      }
+    });
+  }
+
+  assignRowClickHandlers();
+
+  $(".table-del-merge-pid thead th:eq(3), .table-del-merge-pid thead th:eq(4)")
+    .addClass("sortable")
+    .css("cursor", "pointer");
+
+  $(".table-del-merge-pid thead th:eq(1)")
+    .addClass("reset-sort")
+    .css("cursor", "pointer");
+
+  var originalRows = $(".table-del-merge-pid tbody tr").toArray();
+
+  $(".table-del-merge-pid thead th.sortable").click(function() {
+    var table = $(this).parents("table").eq(0);
+    var index = $(this).index();
+    var rows = table.find("tbody tr").toArray().sort(comparer(index));
+
+    this.asc = !this.asc;
+    if (!this.asc) {
+      rows = rows.reverse();
+    }
+
+    table.find("th").removeClass("sorted-asc sorted-desc");
+    $(this).addClass(this.asc ? "sorted-asc" : "sorted-desc");
+
+    table.find("tbody").empty();
+    for (var i = 0; i < rows.length; i++) {
+      table.find("tbody").append(rows[i]);
+    }
+
+    assignRowClickHandlers();
+  });
+
+  $(".table-del-merge-pid thead th.reset-sort").click(function() {
+    var table = $(this).parents("table").eq(0);
+
+    table.find("th").removeClass("sorted-asc sorted-desc");
+
+    table.find("tbody").empty();
+    for (var i = 0; i < originalRows.length; i++) {
+      table.find("tbody").append(originalRows[i]);
+    }
+
+    assignRowClickHandlers();
+  });
+
+  function comparer(index) {
+    return function(a, b) {
+      var valA = getCellValue(a, index);
+      var valB = getCellValue(b, index);
+
+      if (index === 3) { // duration
+        return parseDuration(valA) - parseDuration(valB);
+      } else { // datapoints
+        return parseInt(valA) - parseInt(valB);
+      }
+    };
+  }
+
+  function getCellValue(row, index) {
+    return $(row).children("td").eq(index).text().trim();
+  }
+
+  function parseDuration(durationStr) {
+    var parts = durationStr.split(":");
+    return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+  }
+}
+
 let redDialog = {
     options: {
         zIndex: 10000,
