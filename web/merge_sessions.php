@@ -195,7 +195,12 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
 
                 $("#merge-btn").on("click", (e) => {
                     e.preventDefault();
-                    mergeSession();
+                    const checkedCount = $('input[type="checkbox"]:checked').length;
+                    if (checkedCount > 1) {
+                        mergeSession();
+                    } else {
+                        noSel();
+                    }
                 });
 
                 $(".table-del-merge-pid tr").click(function(e) {
@@ -204,6 +209,16 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
                     }
                 });
             });
+
+            function noSel() {
+             let dialogOpt = {
+                title: localization.key['dialog.confirm'],
+                btnClassSuccessText: "OK",
+                btnClassFail: "hidden",
+                message : localization.key['dialog.no.select']
+             };
+             redDialog.make(dialogOpt);
+            }
 
             function mergeSession() {
                 const mergedSession = document.querySelector('input[type="checkbox"].session-checkbox[disabled]');
