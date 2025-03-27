@@ -607,7 +607,7 @@ function dataToggle() {
 		stream = false;
 		stopPlotUpdates();
 	}
-	streamBtn_svg.style.color = stream ? '#008000' : 'inherit';
+	if (streamBtn_svg !== null) streamBtn_svg.style.color = stream ? '#008000' : 'inherit';
     });
 }
 </script>
