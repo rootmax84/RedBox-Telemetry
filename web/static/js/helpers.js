@@ -34,11 +34,12 @@ $(document).ready(function(){
 
 let lastPlotUpdateTime = 0;
 let animationPlotFrameId = null;
+let streamNewData = false;
 
 //Fetch plot data every 10 sec
 function schedulePlotUpdate(timestamp) {
   if (timestamp - lastPlotUpdateTime >= 10000) {
-    updatePlot();
+    if (streamNewData) updatePlot();
     lastPlotUpdateTime = timestamp;
   }
   animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
@@ -1071,6 +1072,7 @@ let initMapLeaflet = () => {
             if (!path.length || path.at(0) && (path.at(0)[0] != lat || path.at(0)[1] != lon)) {
                 path.unshift([lat,lon]);
                 endcir.setLatLng(path.at(0));
+                streamNewData = true;
 
                 if (currentDataSource !== null) {
                     if (heatData && heatData[currentDataSource]) {
@@ -1117,6 +1119,8 @@ let initMapLeaflet = () => {
                 } else {
                     polyline.setLatLngs(path);
                 }
+            } else {
+                streamNewData = false;
             }
             setTimeout(()=>{map.removeLayer(marker)}, rate);
         }
