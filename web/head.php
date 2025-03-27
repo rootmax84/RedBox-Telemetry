@@ -1,8 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-<?php require_once('token_functions.php'); ?>
-<script src="static/js/localization.js"></script>
+<?php require_once('token_functions.php');
+
+function version_url($url) {
+    // If file exists use it modify time
+    $file_path = $_SERVER['DOCUMENT_ROOT'] . '/' . parse_url($url, PHP_URL_PATH);
+    if (file_exists($file_path)) {
+        $timestamp = filemtime($file_path);
+    } else {
+        // otherwise use container start time or current time
+        if (file_exists('/proc/1/stat')) {
+            $timestamp = filemtime('/proc/1/stat'); // Container start timr
+        } else {
+            $timestamp = time(); // Current time
+        }
+    }
+
+    // Add v param to url
+    return $url . (strpos($url, '?') !== false ? '&' : '?') . 'v=' . $timestamp;
+}
+ ?>
+<script src="<?php echo version_url('static/js/localization.js'); ?>"></script>
 <link rel="apple-touch-icon" sizes="180x180" href="static/img/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="static/img/favicon-16x16.png">
@@ -16,26 +35,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=0.8">
 <title>RedBox Telemetry</title>
 <meta name="description" content="RedBox Telemetry">
-<link rel="stylesheet" href="static/css/bootstrap.min.css">
-<link rel="stylesheet" href="static/css/chosen.min.css">
-<link rel="stylesheet" href="static/css/torque.css">
-<link rel="stylesheet" href="static/css/Control.FullScreen.css">
+<link rel="stylesheet" href="<?php echo version_url('static/css/bootstrap.min.css'); ?>">
+<link rel="stylesheet" href="<?php echo version_url('static/css/chosen.min.css'); ?>">
+<link rel="stylesheet" href="<?php echo version_url('static/css/torque.css'); ?>">
+<link rel="stylesheet" href="<?php echo version_url('static/css/Control.FullScreen.css'); ?>">
 <?php if (isset($_SESSION['torque_user'])) {?>
-<script src="static/js/theme.js"></script>
+<script src="<?php echo version_url('static/js/theme.js'); ?>"></script>
 <?php } if (isset($_SESSION['admin'])) {?>
-<link rel="stylesheet" href="static/css/admin.css">
+<link rel="stylesheet" href="<?php echo version_url('static/css/admin.css'); ?>">
 <?php } ?>
-<script src="static/js/jquery.min.js"></script>
-<script src="static/js/jquery.cookie.min.js"></script>
-<script src="static/js/jquery-ui.min.js"></script>
-<script src="static/js/jquery-ui.touch-punch.min.js"></script>
-<script src="static/js/jquery.peity.min.js"></script>
-<script src="static/js/chosen.jquery.min.js"></script>
-<link rel="stylesheet" href="static/css/leaflet.css">
-<script src="static/js/leaflet.js"></script>
-<script src="static/js/leaflet.hotline.min.js"></script>
-<script src="static/js/coords.js"></script>
-<script src="static/js/nosleep.js"></script>
+<script src="<?php echo version_url('static/js/jquery.min.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/jquery.cookie.min.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/jquery-ui.min.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/jquery-ui.touch-punch.min.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/jquery.peity.min.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/chosen.jquery.min.js'); ?>"></script>
+<link rel="stylesheet" href="<?php echo version_url('static/css/leaflet.css'); ?>">
+<script src="<?php echo version_url('static/js/leaflet.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/leaflet.hotline.min.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/coords.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/nosleep.js'); ?>"></script>
 <script>
     $(document).ready(function() {
      localization = new Localization();
@@ -137,7 +156,7 @@ if (username.trim() !== "") {
     document.title += ` - ${username}`;
 }
 </script>
-<script src="static/js/helpers.js"></script>
+<script src="<?php echo version_url('static/js/helpers.js'); ?>"></script>
 </head>
 <?php if (isset($_SESSION['torque_user'])) {?>
 <a id="top-btn"></a>
