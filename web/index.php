@@ -243,14 +243,14 @@ if (isset($sids[0])) {
 ?>
     <body>
     <!-- Flot Local Javascript files -->
-    <script src="static/js/jquery.flot.js"></script>
-    <script src="static/js/jquery.flot.axislabels.js"></script>
-    <script src="static/js/jquery.flot.hiddengraphs.js"></script>
-    <script src="static/js/jquery.flot.multihighlight-delta.js"></script>
-    <script src="static/js/jquery.flot.selection.js"></script>
-    <script src="static/js/jquery.flot.time.js"></script>
-    <script src="static/js/jquery.flot.resize.min.js"></script>
-    <script src="static/js/Control.FullScreen.js"></script>
+    <script src="<?php echo version_url('static/js/jquery.flot.js'); ?>"></script>
+    <script src="<?php echo version_url('static/js/jquery.flot.axislabels.js'); ?>"></script>
+    <script src="<?php echo version_url('static/js/jquery.flot.hiddengraphs.js'); ?>"></script>
+    <script src="<?php echo version_url('static/js/jquery.flot.multihighlight-delta.js'); ?>"></script>
+    <script src="<?php echo version_url('static/js/jquery.flot.selection.js'); ?>"></script>
+    <script src="<?php echo version_url('static/js/jquery.flot.time.js'); ?>"></script>
+    <script src="<?php echo version_url('static/js/jquery.flot.resize.min.js'); ?>"></script>
+    <script src="<?php echo version_url('static/js/Control.FullScreen.js'); ?>"></script>
     <!-- Configure Jquery Flot graph and plot code -->
     <script>
       $(document).ready(function(){
