@@ -915,24 +915,29 @@ let initMapLeaflet = () => {
             this._container = L.DomUtil.create('div', 'hotline-legend-container');
             this._container.style.display = 'flex';
             this._container.style.flexDirection = 'row';
-            this._container.style.textShadow = "0px 0 2px rgb(255 255 255)";
 
             var labelsContainer = L.DomUtil.create('div', 'hotline-legend-labels', this._container);
             labelsContainer.style.display = 'flex';
             labelsContainer.style.flexDirection = 'column';
             labelsContainer.style.justifyContent = 'space-between';
-            labelsContainer.style.marginRight = '3px';
+            labelsContainer.style.marginRight = '2px';
             labelsContainer.style.fontSize = '10px';
             labelsContainer.style.fontWeight = 'bold';
 
-            var maxLabel = L.DomUtil.create('div', 'hotline-legend-label', labelsContainer);
-            maxLabel.innerHTML = this.options.max;
+            function createLabel(container, value) {
+                var label = L.DomUtil.create('div', 'hotline-legend-label', container);
+                label.style.border = '2px solid rgba(0, 0, 0, 0.2)';
+                label.style.borderRadius = '4px';
+                label.style.padding = '2px';
+                label.style.background = '#fff';
+                label.style.backgroundClip = 'padding-box';
+                label.innerHTML = value;
+                return label;
+            }
 
-            var midLabel = L.DomUtil.create('div', 'hotline-legend-label', labelsContainer);
-            midLabel.innerHTML = this.options.mid;
-
-            var minLabel = L.DomUtil.create('div', 'hotline-legend-label', labelsContainer);
-            minLabel.innerHTML = this.options.min;
+            var maxLabel = createLabel(labelsContainer, this.options.max);
+            var midLabel = createLabel(labelsContainer, this.options.mid);
+            var minLabel = createLabel(labelsContainer, this.options.min);
 
             var canvas = L.DomUtil.create('canvas', 'hotline-legend-canvas', this._container);
             canvas.width = this.options.width;
