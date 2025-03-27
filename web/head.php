@@ -32,11 +32,9 @@
 <script src="static/js/jquery.peity.min.js"></script>
 <script src="static/js/chosen.jquery.min.js"></script>
 <link rel="stylesheet" href="static/css/leaflet.css">
-<link rel="stylesheet" href="static/css/locate.css">
 <script src="static/js/leaflet.js"></script>
 <script src="static/js/leaflet.hotline.min.js"></script>
 <script src="static/js/coords.js"></script>
-<script src="static/js/locate.js"></script>
 <script src="static/js/nosleep.js"></script>
 <script>
     $(document).ready(function() {
