@@ -935,6 +935,7 @@ let initMapLeaflet = () => {
                 label.style.padding = '2px';
                 label.style.background = '#fff';
                 label.style.backgroundClip = 'padding-box';
+                label.style.textAlign = 'center';
                 label.innerHTML = value;
                 return label;
             }
