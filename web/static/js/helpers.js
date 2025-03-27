@@ -540,7 +540,7 @@ let initMapLeaflet = () => {
         L.DomEvent.on(streamButton, 'mousedown', function(e) {
           L.DomEvent.preventDefault(e);
           L.DomEvent.stopPropagation(e);
-          dataToggle();
+          dataToggle(map._isFullscreen);
           if (map._isFullscreen) {
             $('html, body').animate({ scrollTop: $(document).height() });
           }
