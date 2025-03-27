@@ -901,9 +901,9 @@ let initMapLeaflet = () => {
         }
 
         hotlineLegend = L.control.hotlineLegend({
-            min: Math.round(min),
-            mid: Math.round((min+max) / 2),
-            max: Math.round(max),
+            min: Number.isInteger(min) ? min : min.toFixed(2),
+            mid: Number.isInteger(min + max) ? Math.round((min+max)/2) : ((min+max)/2).toFixed(2),
+            max: Number.isInteger(max) ? max : max.toFixed(2),
             palette: {0: 'green', 0.5: 'yellow', 1: 'red'},
             position: 'bottomright'
         }).addTo(map);
