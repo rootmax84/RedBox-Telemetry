@@ -1130,14 +1130,34 @@ let initMapLeaflet = () => {
     let pathL = path.length;
     let endCrd = path[0];
     let startCrd = path[pathL-1];
-    const startcir = L.circleMarker(startCrd, {color:'green',title:'Start',alt:'Start Point',radius:6,weight:1}).addTo(map);
-    const endcir = L.circleMarker(endCrd, {color:'black',title:'End',alt:'End Point',radius:6,weight:1}).addTo(map);
+
+    // start marker
+    const playSvgIcon = L.divIcon({
+        html: `<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                 <polygon points="5,3 21,12 5,21" fill="green" stroke="white" stroke-width="1"/>
+               </svg>`,
+        className: 'svg-icon',
+        iconAnchor: [12, 12]
+    });
+
+    // end marker
+    const stopSvgIcon = L.divIcon({
+        html: `<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+             <rect x="5" y="5" width="14" height="14" fill="black" stroke="white" stroke-width="1"/>
+               </svg>`,
+        className: 'svg-icon',
+        iconAnchor: [12, 12]
+    });
+
+    const startcir = L.marker(startCrd, {icon: playSvgIcon, title: 'Start', alt: 'Start Point'}).addTo(map);
+    const endcir = L.marker(endCrd, {icon: stopSvgIcon, title: 'End', alt: 'End Point'}).addTo(map);
 
     // travel line
     let polyline = L.polyline(path, {
-        color: '#3d3d3d',
-        dashArray: '3, 3',
-        weight: '2'
+        color: '#000000',
+        dashArray: '5, 5',
+        weight: 3,
+        opacity: 0.9
     }).addTo(map);
 
     // zoom the map to the polyline
@@ -1161,7 +1181,7 @@ let initMapLeaflet = () => {
     };
 
     const markerCir = L.circleMarker(startCrd, {color:'purple',alt:'Start Point',radius:10,weight:1});
-    const markerPnt = L.circleMarker(startCrd, {color:'purple',alt:'End Point',radius:5,weight:1});
+    const markerPnt = L.circleMarker(startCrd, {color:'purple',alt:'End Point',radius:5,weight:1,fillOpacity:1});
 
     markerUpd = itm => {
         map.eachLayer(layer => {
