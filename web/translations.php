@@ -247,7 +247,8 @@ $translations = [
         'maintenance.title' => 'We\'ll be back shortly.',
         'maintenance.text' => 'Service under maintenance.',
         'travel.start' => 'Start',
-        'travel.end' => 'End'
+        'travel.end' => 'End',
+        'sessions.filter' => 'Data points filtering before chart rendering'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -495,7 +496,8 @@ $translations = [
         'maintenance.title' => 'Мы скоро вернемся.',
         'maintenance.text' => 'Сервис на обслуживании.',
         'travel.start' => 'Начало',
-        'travel.end' => 'Конец'
+        'travel.end' => 'Конец',
+        'sessions.filter' => 'Фильтрация датапоинтов перед отрисовкой графика'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -743,7 +745,8 @@ $translations = [
         'maintenance.title' => 'Volveremos pronto.',
         'maintenance.text' => 'Servicio en mantenimiento.',
         'travel.start' => 'Inicio',
-        'travel.end' => 'Fin'
+        'travel.end' => 'Fin',
+        'sessions.filter' => 'Filtrado de puntos de datos antes de la renderización del gráfico'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -991,7 +994,8 @@ $translations = [
         'maintenance.title' => 'Wir sind bald zurück.',
         'maintenance.text' => 'Service in Wartung.',
         'travel.start' => 'Start',
-        'travel.end' => 'Ende'
+        'travel.end' => 'Ende',
+        'sessions.filter' => 'Filterung von Datenpunkten vor der Grafikdarstellung'
     ],
 ];
 

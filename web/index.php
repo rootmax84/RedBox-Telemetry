@@ -134,7 +134,7 @@ if (isset($sids[0])) {
     }
 
     // GPS data
-    $gps_cache_key = "gps_data_" . $session_id;
+    $gps_cache_key = "gps_data_" . $username . "_" . $session_id;
     $gps_data = false;
 
     if ($memcached_connected) {
@@ -149,7 +149,8 @@ if (isset($sids[0])) {
     }
 
     if ($gps_data === false || $cached_timestamp !== $current_timestamp) {
-        $gps_time_data = $db->execute_query("SELECT kff1006, kff1005, time FROM $db_table WHERE session=? ORDER BY time DESC", [$session_id]);
+        $gpsQuery = getFilteredGpsQuery($db_table, $_SESSION['sessions_filter']);
+        $gps_time_data = $db->execute_query($gpsQuery, [$session_id]);
         $geolocs = [];
         $timearray = [];
         $i = 0;

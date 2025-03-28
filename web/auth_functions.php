@@ -114,7 +114,7 @@ function auth_user()
     }
 
     try {
-        $userqry = $db->execute_query("SELECT user, pass, s, time, gap FROM $db_users WHERE user=?", [$user]);
+        $userqry = $db->execute_query("SELECT user, pass, s, time, gap, sessions_filter FROM $db_users WHERE user=?", [$user]);
     } catch(Exception $e) { return false; }
 
     if (!$userqry->num_rows) {
@@ -131,6 +131,7 @@ function auth_user()
             $_COOKIE['timeformat'] = $row["time"];
             setcookie("tracking-rate", $live_data_rate);
             setcookie("gap", $row["gap"]);
+            $_SESSION['sessions_filter'] = $row["sessions_filter"];
             update_login_attempts($user, true);
             $db->close();
             return true;
@@ -165,6 +166,7 @@ function create_users_table()
 	time enum('24','12') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '24',
 	gap enum('5000','10000','20000','30000','60000') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '5000',
 	stream_lock tinyint(1) NOT NULL DEFAULT 0,
+	sessions_filter tinyint(1) NOT NULL DEFAULT 1,
 	login_attempts TINYINT UNSIGNED DEFAULT 0,
 	last_attempt DATETIME,
 	PRIMARY KEY (id),
@@ -191,6 +193,7 @@ function perform_migration() {
 
     $migrations = [
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS stream_lock TINYINT(1) NOT NULL DEFAULT 0",
+        "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS login_attempts TINYINT UNSIGNED DEFAULT 0",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS last_attempt DATETIME",
         "DROP INDEX IF EXISTS indexes ON $db_users"

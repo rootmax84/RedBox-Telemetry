@@ -3,15 +3,13 @@
     require_once('db_limits.php');
 
     //Conversion and gap settings
-    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap,stream_lock FROM $db_users WHERE user=?", [$username])->fetch_row();
-    [$speed, $temp, $pressure, $boost, $time, $gap, $stream_lock] = $setqry;
+    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter FROM $db_users WHERE user=?", [$username])->fetch_row();
+    [$speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter] = $setqry;
 
     //Telegram token/chatid
     $row = $db->execute_query("SELECT tg_token, tg_chatid FROM $db_users WHERE user=?", [$username])->fetch_assoc();
     $token = $row["tg_token"];
     $chatid = $row["tg_chatid"];
-
-    cache_flush();
 
     $db->close();
 
@@ -79,6 +77,13 @@
 		 <label l10n="user.set.lock"></label><select class="form-control" name="stream_lock">
 		    <option value="0"<?php if ($stream_lock == "0") echo ' selected'; ?> l10n="btn.no"></option>
 		    <option value="1"<?php if ($stream_lock == "1") echo ' selected'; ?> l10n="btn.yes"></option>
+		</select>
+		 <label l10n="sessions.filter"></label><select class="form-control" name="sessions_filter">
+		    <option value="1"<?php if ($sessions_filter == "1") echo ' selected'; ?> l10n="btn.no"></option>
+		    <option value="2"<?php if ($sessions_filter == "2") echo ' selected'; ?>>75%</option>
+		    <option value="3"<?php if ($sessions_filter == "3") echo ' selected'; ?>>50%</option>
+		    <option value="4"<?php if ($sessions_filter == "4") echo ' selected'; ?>>33%</option>
+		    <option value="5"<?php if ($sessions_filter == "5") echo ' selected'; ?>>25%</option>
 		</select>
 		 <label l10n="user.set.chart.fill"></label><select class="form-control" id="chart-fill">
 		    <option value="false" l10n="btn.no"></option>

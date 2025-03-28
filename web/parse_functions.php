@@ -88,4 +88,100 @@ function getLastUpdateTimestamp(mysqli $db, string $session_id, string $db_sessi
 
     return null;
 }
+
+/**
+ * Datapoints filter for GPS data
+ */
+function getFilteredGpsQuery($db_table, $filterRate) {
+    $filterRate = max(1, min(5, intval($filterRate)));
+
+    if ($filterRate === 1) {
+        // 100% of data (without filtering)
+        return "SELECT kff1006, kff1005, time FROM $db_table WHERE session=? ORDER BY time DESC";
+    } else if ($filterRate === 2) {
+        // 75%
+        return "SELECT * FROM (
+            SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            FROM $db_table
+            WHERE session=?
+        ) as filtered_data
+        WHERE row_num % 4 < 3
+        ORDER BY time DESC";
+    } else if ($filterRate === 3) {
+        // 50%
+        return "SELECT * FROM (
+            SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            FROM $db_table
+            WHERE session=?
+        ) as filtered_data
+        WHERE row_num % 2 = 0
+        ORDER BY time DESC";
+    } else if ($filterRate === 4) {
+        // 33%
+        return "SELECT * FROM (
+            SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            FROM $db_table
+            WHERE session=?
+        ) as filtered_data
+        WHERE row_num % 3 = 0
+        ORDER BY time DESC";
+    } else {
+        // 25%
+        return "SELECT * FROM (
+            SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            FROM $db_table
+            WHERE session=?
+        ) as filtered_data
+        WHERE row_num % 4 = 0
+        ORDER BY time DESC";
+    }
+}
+
+/**
+ * Datapoints filter for sessions pids data
+ */
+function getFilteredQuery($selectstring, $db_table, $streamLimit, $filterRate) {
+    $filterRate = max(1, min(5, intval($filterRate)));
+
+    if ($filterRate === 1) {
+        // 100% of data (without filtering)
+        return "SELECT $selectstring FROM $db_table WHERE session=? ORDER BY time DESC $streamLimit";
+    } else if ($filterRate === 2) {
+        // 75%
+        return "SELECT * FROM (
+            SELECT $selectstring, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            FROM $db_table
+            WHERE session=?
+        ) as filtered_data
+        WHERE row_num % 4 < 3
+        ORDER BY time DESC $streamLimit";
+    } else if ($filterRate === 3) {
+        // 50%
+        return "SELECT * FROM (
+            SELECT $selectstring, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            FROM $db_table
+            WHERE session=?
+        ) as filtered_data
+        WHERE row_num % 2 = 0
+        ORDER BY time DESC $streamLimit";
+    } else if ($filterRate === 4) {
+        // 33%
+        return "SELECT * FROM (
+            SELECT $selectstring, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            FROM $db_table
+            WHERE session=?
+        ) as filtered_data
+        WHERE row_num % 3 = 0
+        ORDER BY time DESC $streamLimit";
+    } else {
+        // 25%
+        return "SELECT * FROM (
+            SELECT $selectstring, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            FROM $db_table
+            WHERE session=?
+        ) as filtered_data
+        WHERE row_num % 4 = 0
+        ORDER BY time DESC $streamLimit";
+    }
+}
 ?>

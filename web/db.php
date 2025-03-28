@@ -76,6 +76,16 @@ function cache_flush($token = null) {
             if ($token !== null) {
                 $keys[] = "user_data_{$token}";
             }
+            // Clean users GPS and sessions data cache
+            $allKeys = $memcached->getAllKeys();
+            if ($allKeys !== false) {
+                foreach ($allKeys as $key) {
+                    if (strpos($key, "gps_data_{$username}_") === 0 || 
+                        strpos($key, "session_data_{$username}_") === 0) {
+                        $keys[] = $key;
+                    }
+                }
+            }
             foreach ($keys as $key) {
                 $memcached->delete($key);
             }
