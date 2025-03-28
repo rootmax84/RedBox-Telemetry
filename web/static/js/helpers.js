@@ -1332,12 +1332,12 @@ document.querySelector('html').style.transition = ".2s"
    let head = document.getElementsByTagName('head')[0];
    let link = document.createElement('link');
    link.rel = 'stylesheet';
-   link.href = 'static/css/dark.css';
+   link.href = darkCssUrl;
    head.appendChild(link);
   break;
   case "dark":
    localStorage.setItem("theme", "default");
-   let lNode =  document.querySelector('link[href*="static/css/dark.css"]');
+   let lNode =  document.querySelector(`link[href*="${darkCssUrl}"]`);
    lNode.parentNode.removeChild(lNode);
   break;
  }

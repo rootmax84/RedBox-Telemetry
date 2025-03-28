@@ -40,6 +40,7 @@ function version_url($url) {
 <link rel="stylesheet" href="<?php echo version_url('static/css/torque.css'); ?>">
 <link rel="stylesheet" href="<?php echo version_url('static/css/Control.FullScreen.css'); ?>">
 <?php if (isset($_SESSION['torque_user'])) {?>
+<script>let darkCssUrl = "<?php echo version_url('static/css/dark.css'); ?>";</script>
 <script src="<?php echo version_url('static/js/theme.js'); ?>"></script>
 <?php } if (isset($_SESSION['admin'])) {?>
 <link rel="stylesheet" href="<?php echo version_url('static/css/admin.css'); ?>">
