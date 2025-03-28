@@ -90,3 +90,7 @@ html {
 #heat-dataSourceSelect option {
   background: #191919;
 }
+
+.travel-tooltip {
+  box-shadow: none !important;
+}

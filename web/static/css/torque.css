@@ -917,3 +917,7 @@ input[type="checkbox"]:disabled:checked::after {
 .travel-line-stroke, .circle-marker-stroke {
   filter: drop-shadow(0 0 1px white);
 }
+
+.travel-tooltip {
+  font-size: 10px;
+}

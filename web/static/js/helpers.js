@@ -1152,8 +1152,8 @@ let initMapLeaflet = () => {
     const startcir = L.marker(startCrd, {icon: playSvgIcon, alt: 'Start Point'}).addTo(map);
     const endcir = L.marker(endCrd, {icon: stopSvgIcon, alt: 'End Point'}).addTo(map);
 
-    startcir.unbindTooltip().bindTooltip(localization.key['travel.start']);
-    endcir.unbindTooltip().bindTooltip(localization.key['travel.end']);
+    startcir.unbindTooltip().bindTooltip(localization.key['travel.start'], {className: 'travel-tooltip'});
+    endcir.unbindTooltip().bindTooltip(localization.key['travel.end'], {className: 'travel-tooltip'});
 
     // travel line
     let polyline = L.polyline(path, {
@@ -1183,7 +1183,6 @@ let initMapLeaflet = () => {
 
         map.fitBounds(polyline.getBounds(), {maxZoom: 15});
     };
-
 
     const markerCir = L.circleMarker(startCrd, {color:'purple',alt:'Start Point',radius:10,weight:1, className: 'circle-marker-stroke'});
     const markerPnt = L.circleMarker(startCrd, {color:'purple',alt:'End Point',radius:5,weight:1,fillOpacity:1, className: 'circle-marker-stroke'});
