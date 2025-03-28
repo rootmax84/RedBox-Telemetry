@@ -245,7 +245,9 @@ $translations = [
         'lon' => 'Longitude',
         'lat' => 'Latitude',
         'maintenance.title' => 'We\'ll be back shortly.',
-        'maintenance.text' => 'Service under maintenance.'
+        'maintenance.text' => 'Service under maintenance.',
+        'travel.start' => 'Start',
+        'travel.end' => 'End'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -491,7 +493,9 @@ $translations = [
         'lon' => 'Долгота',
         'lat' => 'Широта',
         'maintenance.title' => 'Мы скоро вернемся.',
-        'maintenance.text' => 'Сервис на обслуживании.'
+        'maintenance.text' => 'Сервис на обслуживании.',
+        'travel.start' => 'Начало',
+        'travel.end' => 'Конец'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -737,7 +741,9 @@ $translations = [
         'lon' => 'Longitud',
         'lat' => 'Latitud',
         'maintenance.title' => 'Volveremos pronto.',
-        'maintenance.text' => 'Servicio en mantenimiento.'
+        'maintenance.text' => 'Servicio en mantenimiento.',
+        'travel.start' => 'Inicio',
+        'travel.end' => 'Fin'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -983,7 +989,9 @@ $translations = [
         'lon' => 'Längengrad',
         'lat' => 'Breitengrad',
         'maintenance.title' => 'Wir sind bald zurück.',
-        'maintenance.text' => 'Service in Wartung.'
+        'maintenance.text' => 'Service in Wartung.',
+        'travel.start' => 'Start',
+        'travel.end' => 'Ende'
     ],
 ];
 
