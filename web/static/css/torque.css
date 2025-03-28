@@ -913,3 +913,7 @@ input[type="checkbox"]:disabled:checked::after {
   background-clip: padding-box;
   border: 2px solid rgba(0, 0, 0, 0.2);
 }
+
+.travel-line-stroke, .circle-marker-stroke {
+  filter: drop-shadow(0 0 1px white);
+}

@@ -1157,7 +1157,8 @@ let initMapLeaflet = () => {
         color: '#000000',
         dashArray: '5, 5',
         weight: 3,
-        opacity: 0.9
+        opacity: 0.9,
+        className: 'travel-line-stroke'
     }).addTo(map);
 
     // zoom the map to the polyline
@@ -1180,8 +1181,8 @@ let initMapLeaflet = () => {
         map.fitBounds(polyline.getBounds(), {maxZoom: 15});
     };
 
-    const markerCir = L.circleMarker(startCrd, {color:'purple',alt:'Start Point',radius:10,weight:1});
-    const markerPnt = L.circleMarker(startCrd, {color:'purple',alt:'End Point',radius:5,weight:1,fillOpacity:1});
+    const markerCir = L.circleMarker(startCrd, {color:'purple',alt:'Start Point',radius:10,weight:1, className: 'circle-marker-stroke'});
+    const markerPnt = L.circleMarker(startCrd, {color:'purple',alt:'End Point',radius:5,weight:1,fillOpacity:1, className: 'circle-marker-stroke'});
 
     markerUpd = itm => {
         map.eachLayer(layer => {
