@@ -1404,7 +1404,7 @@ function sortMergeDel() {
 
   assignRowClickHandlers();
 
-  $(".table-del-merge-pid thead th:eq(3), .table-del-merge-pid thead th:eq(4)")
+  $(".table-del-merge-pid thead th:eq(3), .table-del-merge-pid thead th:eq(4), .table-del-merge-pid thead th:eq(5)")
     .addClass("sortable")
     .css("cursor", "pointer");
 
@@ -1455,8 +1455,10 @@ function sortMergeDel() {
 
       if (index === 3) { // duration
         return parseDuration(valA) - parseDuration(valB);
-      } else { // datapoints
+      } else if (index === 4) { // datapoints
         return parseInt(valA) - parseInt(valB);
+      } else if (index === 5) { // profile (string comparison)
+        return valA.localeCompare(valB);
       }
     };
   }
