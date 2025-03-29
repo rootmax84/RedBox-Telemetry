@@ -143,56 +143,6 @@ $allowedProfileFields = [
     'profileOdometer', 'profileMPGAdjust', 'profileBoostAdjust', 'profileDragCoeff', 'profileOBDAdjust'
 ];
 
-// Forward request to another URL if specified
-if (!empty($forward_url)) {
-    $method = $_SERVER['REQUEST_METHOD'];
-    $forward_data = $_REQUEST;
-    $forward_data['token'] = $token;
-
-    $ch = curl_init();
-
-    if ($method === 'GET') {
-        $query = http_build_query($forward_data);
-        $url_with_query = $forward_url . (strpos($forward_url, '?') === false ? '?' : '&') . $query;
-        curl_setopt($ch, CURLOPT_URL, $url_with_query);
-        curl_setopt($ch, CURLOPT_HTTPGET, true);
-    } else {
-        curl_setopt($ch, CURLOPT_URL, $forward_url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $forward_data);
-    }
-
-    // Set cURL options
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-    curl_setopt($ch, CURLOPT_NOSIGNAL, 1);
-
-    // Forward headers
-    $headers = [];
-    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-        $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
-    }
-    if (!empty($headers)) {
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    }
-
-    // Execute request
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    // Log result
-    if ($error) {
-        error_log("Failed to forward {$method} request for user {$user} to {$forward_url}: $error");
-    } elseif ($http_code >= 400) {
-        error_log("Forwarded {$method} request for user {$user} to {$forward_url}, but got HTTP error: $http_code");
-    } else {
-        error_log("Successfully forwarded {$method} request for user {$user} to {$forward_url}");
-    }
-}
-
 // Iterate over all the k* _GET arguments to check that a field exists
 if (sizeof($_REQUEST) > 0) {
   $keys = [];
@@ -314,4 +264,54 @@ $db->close();
 
 // Return the response required by Torque/RedManage
 echo "OK!";
+
+// Forward request to another URL if specified
+fastcgi_finish_request();
+if (!empty($forward_url)) {
+    $method = $_SERVER['REQUEST_METHOD'];
+    $forward_data = $_REQUEST;
+    $forward_data['token'] = $token;
+
+    $ch = curl_init();
+
+    if ($method === 'GET') {
+        $query = http_build_query($forward_data);
+        $url_with_query = $forward_url . (strpos($forward_url, '?') === false ? '?' : '&') . $query;
+        curl_setopt($ch, CURLOPT_URL, $url_with_query);
+        curl_setopt($ch, CURLOPT_HTTPGET, true);
+    } else {
+        curl_setopt($ch, CURLOPT_URL, $forward_url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $forward_data);
+    }
+
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+    curl_setopt($ch, CURLOPT_NOSIGNAL, 1);
+
+    // Forward headers if needed
+    $headers = [];
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
+    }
+    if (!empty($headers)) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    }
+
+    // Execute and log
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // Logging
+    if ($error) {
+        error_log("[Forwarding] Failed to forward {$method} request for user {$user} to {$forward_url}: $error");
+    } elseif ($http_code >= 400) {
+        error_log("[Forwarding] Forwarded {$method} request for user {$user} to {$forward_url}, but got HTTP error: $http_code");
+    } else {
+        error_log("[Forwarding] Successfully forwarded {$method} request for user {$user} to {$forward_url}");
+    }
+}
 ?>
