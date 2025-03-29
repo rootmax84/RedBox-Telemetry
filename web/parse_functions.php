@@ -184,4 +184,33 @@ function getFilteredQuery($selectstring, $db_table, $streamLimit, $filterRate) {
         ORDER BY time DESC $streamLimit";
     }
 }
+
+/**
+ * Forward url validation
+ */
+function isValidExternalHttpUrl($url) {
+    // 1. Check if it's a valid URL
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return false;
+    }
+
+    // 2. Check if the scheme is http or https
+    $scheme = parse_url($url, PHP_URL_SCHEME);
+    if (!in_array(strtolower($scheme), ['http', 'https'])) {
+        return false;
+    }
+
+    // 3. Get the host from the URL
+    $host = parse_url($url, PHP_URL_HOST);
+
+    // 4. Get the current host (the server's own domain)
+    $currentHost = $_SERVER['HTTP_HOST'] ?? '';
+
+    // 5. Normalize both hosts by removing 'www.' and converting to lowercase
+    $host = strtolower(preg_replace('/^www\./', '', $host));
+    $currentHost = strtolower(preg_replace('/^www\./', '', $currentHost));
+
+    // 6. Return true only if the URL doesn't point to the same host
+    return $host !== $currentHost;
+}
 ?>

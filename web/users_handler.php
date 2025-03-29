@@ -2,6 +2,7 @@
 require_once ('token_functions.php');
 require_once ('auth_functions.php');
 require_once ('db.php');
+require_once ('parse_functions.php');
 include_once ('translations.php');
 
 if (isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $_POST['stream_lock'], $_POST['sessions_filter']) && isset($username) && $username != $admin){ //Update users settings
@@ -50,7 +51,17 @@ else if (isset($_POST['tg_token']) && isset($_POST['tg_chatid']) && isset($usern
     $response = notify("RedBox Telemetry test message", $_POST['tg_token'], $_POST['tg_chatid']); //Send test message
     die($response == NULL ? $translations[$_COOKIE['lang']]['set.nothing'] : ($response['ok'] ? $translations[$_COOKIE['lang']]['set.tg.send'] : $response['description']));
 }
-
+else if (isset($_POST['forward_url']) && isset($username) && $username != $admin){ //Set forward url
+    if (isValidExternalHttpUrl($_POST['forward_url']) || empty($_POST['forward_url'])) {
+        $row = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc();
+        $db->execute_query("UPDATE $db_users SET forward_url=? WHERE user=?", [$_POST['forward_url'], $username]);
+        $db->close();
+        cache_flush($row["token"]);
+        die($translations[$_COOKIE['lang']]['user.url.updated']);
+    } else {
+        die($translations[$_COOKIE['lang']]['user.url.err']);
+    }
+}
 if (!isset($_SESSION['admin'])) {
     header("Location: .");
     die;

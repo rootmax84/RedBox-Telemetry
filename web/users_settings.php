@@ -3,8 +3,8 @@
     require_once('db_limits.php');
 
     //Conversion and gap settings
-    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter FROM $db_users WHERE user=?", [$username])->fetch_row();
-    [$speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter] = $setqry;
+    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,forward_url FROM $db_users WHERE user=?", [$username])->fetch_row();
+    [$speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter, $forward_url] = $setqry;
 
     //Telegram token/chatid
     $row = $db->execute_query("SELECT tg_token, tg_chatid FROM $db_users WHERE user=?", [$username])->fetch_assoc();
@@ -110,6 +110,15 @@
 		    <option value="de">Deutsch</option>
 		</select>
 		 <br>
+		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.save"></button></div>
+		</form>
+        </div>
+	<hr>
+            <div class="settings-unit">
+             <h4 l10n="user.url.title"></h4>
+             <h6 style="color:#777" l10n="user.url.label"></h6>
+		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
+		 <input class="form-control" type="text" name="forward_url"  l10n-placeholder="user.url.placeholder" maxlength="2083" value="<?php echo $forward_url; ?>"><br>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.save"></button></div>
 		</form>
         </div>

@@ -167,6 +167,7 @@ function create_users_table()
 	gap enum('5000','10000','20000','30000','60000') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '5000',
 	stream_lock tinyint(1) NOT NULL DEFAULT 0,
 	sessions_filter tinyint(1) NOT NULL DEFAULT 1,
+	forward_url varchar(2083) NULL,
 	login_attempts TINYINT UNSIGNED DEFAULT 0,
 	last_attempt DATETIME,
 	PRIMARY KEY (id),
@@ -194,6 +195,7 @@ function perform_migration() {
     $migrations = [
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS stream_lock TINYINT(1) NOT NULL DEFAULT 0",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
+        "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS forward_url varchar(2083) NULL",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS login_attempts TINYINT UNSIGNED DEFAULT 0",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS last_attempt DATETIME",
         "DROP INDEX IF EXISTS indexes ON $db_users"
