@@ -253,7 +253,8 @@ $translations = [
         'maintenance.text' => 'Service under maintenance.',
         'travel.start' => 'Start',
         'travel.end' => 'End',
-        'sessions.filter' => 'Data points filtering before chart rendering'
+        'sessions.filter' => 'Data points filtering before chart rendering',
+        'vars.placeholder' => 'Choose data...'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -507,7 +508,8 @@ $translations = [
         'maintenance.text' => 'Сервис на обслуживании.',
         'travel.start' => 'Начало',
         'travel.end' => 'Конец',
-        'sessions.filter' => 'Фильтрация датапоинтов перед отрисовкой графика'
+        'sessions.filter' => 'Фильтрация датапоинтов перед отрисовкой графика',
+        'vars.placeholder' => 'Выберите данные...'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -761,7 +763,8 @@ $translations = [
         'maintenance.text' => 'Servicio en mantenimiento.',
         'travel.start' => 'Inicio',
         'travel.end' => 'Fin',
-        'sessions.filter' => 'Filtrado de puntos de datos antes de la renderización del gráfico'
+        'sessions.filter' => 'Filtrado de puntos de datos antes de la renderización del gráfico',
+        'vars.placeholder' => 'Seleccione datos...'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -1015,7 +1018,8 @@ $translations = [
         'maintenance.text' => 'Service in Wartung.',
         'travel.start' => 'Start',
         'travel.end' => 'Ende',
-        'sessions.filter' => 'Filterung von Datenpunkten vor der Grafikdarstellung'
+        'sessions.filter' => 'Filterung von Datenpunkten vor der Grafikdarstellung',
+        'vars.placeholder' => 'Daten auswählen...'
     ],
 ];
 

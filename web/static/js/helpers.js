@@ -20,6 +20,8 @@ $(document).ready(function(){
   $("select#selyear").chosen({width: "100%", disable_search: true, allow_single_deselect: true});
   $("select#selmonth").chosen({width: "100%", disable_search: true, allow_single_deselect: true});
   $("select#plot_data").chosen({width: "100%"});
+  // Fill placeholder
+  $('#plot_data').attr('data-placeholder', localization.key['vars.placeholder']).trigger("chosen:updated");
   // Center the selected element
   $("div#seshidtag_chosen a.chosen-single span").css('text-align', 'center');
   $("div#selprofile_chosen a.chosen-single span").css('text-align', 'center');
