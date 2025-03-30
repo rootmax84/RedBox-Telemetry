@@ -254,7 +254,8 @@ $translations = [
         'travel.start' => 'Start',
         'travel.end' => 'End',
         'sessions.filter' => 'Data points filtering before chart rendering',
-        'vars.placeholder' => 'Choose data...'
+        'vars.placeholder' => 'Choose data...',
+        'vars.nores' => 'No results match'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -509,7 +510,8 @@ $translations = [
         'travel.start' => 'Начало',
         'travel.end' => 'Конец',
         'sessions.filter' => 'Фильтрация датапоинтов перед отрисовкой графика',
-        'vars.placeholder' => 'Выберите данные...'
+        'vars.placeholder' => 'Выберите данные...',
+        'vars.nores' => 'Ничего не найдено'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -764,7 +766,8 @@ $translations = [
         'travel.start' => 'Inicio',
         'travel.end' => 'Fin',
         'sessions.filter' => 'Filtrado de puntos de datos antes de la renderización del gráfico',
-        'vars.placeholder' => 'Seleccione datos...'
+        'vars.placeholder' => 'Seleccione datos...',
+        'vars.nores' => 'No se encontraron resultados'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -1019,7 +1022,8 @@ $translations = [
         'travel.start' => 'Start',
         'travel.end' => 'Ende',
         'sessions.filter' => 'Filterung von Datenpunkten vor der Grafikdarstellung',
-        'vars.placeholder' => 'Daten auswählen...'
+        'vars.placeholder' => 'Daten auswählen...',
+        'vars.nores_de' => 'Keine Ergebnisse gefunden'
     ],
 ];
 
