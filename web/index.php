@@ -19,19 +19,9 @@ if (!isset($_GET["page"])) {
     $page = $_GET["page"];
 }
 
-$filteryear = "";
-$filtermonth = "";
-$filterprofile = "";
-
-if (isset($_GET["year"])) {
-	$filteryear = $_GET['year'];
-}
-if (isset($_GET["month"])) {
-	$filtermonth = $_GET['month'];
-}
-if (isset($_GET["profile"])) {
-	$filterprofile = $_GET['profile'];
-}
+$filteryear = $_GET["year"] ?? "";
+$filtermonth = $_GET["month"] ?? "";
+$filterprofile = $_GET["profile"] ?? "";
 
 $i=1;
 $var1 = "";
