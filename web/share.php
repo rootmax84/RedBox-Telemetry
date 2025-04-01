@@ -2,7 +2,6 @@
 $_SESSION['torque_logged_in'] = true;
 require_once('db.php');
 require_once('parse_functions.php');
-require_once('timezone.php');
 include_once('translations.php');
 $lang = $_COOKIE['lang'] ?? 'en';
 
@@ -10,9 +9,16 @@ $session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 $uid = filter_input(INPUT_GET, 'uid', FILTER_SANITIZE_NUMBER_INT);
 $key = filter_input(INPUT_GET, 'key', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
-$user_data = $db->execute_query("SELECT user, share FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
+$user_data = $db->execute_query("SELECT user, share, sessions_filter, time, gap FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
 $username = $user_data['user'];
 $share_key = $user_data['share'];
+$_SESSION['sessions_filter'] = $user_data['sessions_filter'];
+setcookie('gap', $user_data['gap']);
+
+setcookie('timeformat', $user_data['time']);
+$_COOKIE['timeformat'] = $user_data['time'];
+require_once('timezone.php');
+
 $db_table = $username.$db_log_prefix;
 $db_sessions_table = $username.$db_sessions_prefix;
 $db_pids_table = $username.$db_pids_prefix;
