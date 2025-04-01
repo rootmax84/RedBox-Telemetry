@@ -1,8 +1,4 @@
 <?php
-if (!isset($_SESSION)) {
-    session_start();
-}
-
 include("timezone.php");
 include_once("translations.php");
 $lang = $_COOKIE['lang'];

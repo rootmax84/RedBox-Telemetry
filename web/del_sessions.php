@@ -4,8 +4,6 @@ require_once('get_sessions.php');
 require_once('db_limits.php');
 global $delsession;
 
-if (!isset($_SESSION)) { session_start(); }
-
 $delsession = filter_input(INPUT_POST, 'delsession', FILTER_SANITIZE_NUMBER_INT) 
             ?? filter_input(INPUT_GET, 'delsession', FILTER_SANITIZE_NUMBER_INT);
 

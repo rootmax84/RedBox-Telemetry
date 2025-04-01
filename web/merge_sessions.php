@@ -3,8 +3,6 @@ require_once('db.php');
 require_once('get_sessions.php');
 require_once('db_limits.php');
 
-if (!isset($_SESSION)) { session_start(); }
-
 $mergesession = filter_input(INPUT_POST, 'mergesession', FILTER_SANITIZE_NUMBER_INT) 
               ?? filter_input(INPUT_GET, 'mergesession', FILTER_SANITIZE_NUMBER_INT);
 

@@ -1,6 +1,4 @@
 <?php
-if (!isset($_SESSION)) { session_start(); }
-
 $deletesession = filter_input(INPUT_POST, 'deletesession', FILTER_SANITIZE_NUMBER_INT) 
                ?? filter_input(INPUT_GET, 'deletesession', FILTER_SANITIZE_NUMBER_INT);
 
