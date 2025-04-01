@@ -1,40 +1,35 @@
 <?php
 require('db.php');
 
-// Capture the session ID we're going to be working with
-$seshid = $_GET["seshid"] ?? $_POST["seshidtag"] ?? $_SESSION['recent_session_id'];
-
-// Only ignore GET['id'] if month is specified and NOT "ALL"
-$month = $_POST["selmonth"] ?? $_GET["month"] ?? "";
-if (!($month !== "" && $month !== "ALL")) {
-    $seshid = $_GET["id"] ?? $seshid;
-}
-
+// Capture the session ID (timestamp like 1741674322414)
+$seshid = $_GET["seshid"] ?? $_POST["seshidtag"] ?? $_GET["id"] ?? $_SESSION['recent_session_id'];
 $seshid = $db->escape_string(strval($seshid));
 
-$baselink = ".";
-$outurl = $baselink;
-
-// Add id parameter if it exists and (month is not specified or month is "ALL")
-if ($seshid && (!($month !== "" && $month !== "ALL"))) {
-    $outurl .= "?id=" . $seshid;
+// Convert session timestamp to month name
+$session_month = '';
+if ($seshid && is_numeric($seshid)) {
+    $timestamp = intval(substr($seshid, 0, -3)); // Remove milliseconds
+    $session_month = date('F', $timestamp); // Full month name (e.g. "January")
 }
 
-// Capture the profile we will be working with
+$baselink = ".";
+$outurl = $baselink . "?id=" . $seshid;
+
+// Add month parameter from session if not explicitly provided
+$month = $_POST["selmonth"] ?? $_GET["month"] ?? $session_month;
+if ($month !== "") {
+    $outurl .= "&month=" . $month;
+}
+
+// Other parameters (profile and year)
 $profile = $_POST["selprofile"] ?? $_GET["profile"] ?? null;
 if ($profile) {
-    $outurl .= (strpos($outurl, '?') === false ? "?" : "&") . "profile=" . $profile;
+    $outurl .= "&profile=" . $profile;
 }
 
-// Capture the year we will be working with
 $year = $_POST["selyear"] ?? $_GET["year"] ?? null;
 if ($year) {
-    $outurl .= (strpos($outurl, '?') === false ? "?" : "&") . "year=" . $year;
-}
-
-// Capture the month we will be working with
-if ($month !== "") {
-    $outurl .= (strpos($outurl, '?') === false ? "?" : "&") . "month=" . $month;
+    $outurl .= "&year=" . $year;
 }
 
 header("Location: " . $outurl);
