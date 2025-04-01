@@ -138,6 +138,47 @@ include("head.php");
             plotData.chosen();
             updCharts();
             $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
+
+            const langSwitch = document.getElementById('lang-switch');
+            const selectedLang = document.getElementById('selected-lang');
+            const langOptions = document.getElementById('lang-options');
+
+            function closeDropdown() {
+                langOptions.classList.remove('show');
+            }
+
+            selectedLang.addEventListener('click', function(event) {
+                event.stopPropagation();
+                if (langOptions.classList.contains('show')) {
+                  closeDropdown();
+                } else {
+                  langOptions.classList.add('show');
+                }
+            });
+
+            langOptions.querySelectorAll('li').forEach(option => {
+                option.addEventListener('click', function() {
+                  const selectedValue = this.getAttribute('data-value');
+                  const selectedText = this.textContent;
+                  closeDropdown();
+
+                  fetch(`translations.php?lang=${selectedValue}`)
+                    .then(() => {
+                      //return localization.setLang(selectedValue);
+                        localization.setLang(selectedValue);
+                        location.reload();
+                    })
+                    .catch(error => {
+                      console.error('Error:', error);
+                    });
+                });
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!langSwitch.contains(event.target)) {
+                  closeDropdown();
+                }
+            });
         });
     </script>
     
@@ -148,6 +189,15 @@ include("head.php");
         <?php } ?>
         
         <div class="container">
+                <div class="login-lang" id="lang-switch" style="position:absolute;top:10px;right:10px">
+                    <div class="selected-lang" id="selected-lang" style="width:24px;height:24px"></div>
+                      <ul class="lang-options" id="lang-options">
+                        <li data-value="en">English</li>
+                        <li data-value="ru">Русский</li>
+                        <li data-value="es">Español</li>
+                        <li data-value="de">Deutsch</li>
+                      </ul>
+                </div>
             <div class="navbar-header">
                 <a class="navbar-brand" href=".">
                     <div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry
