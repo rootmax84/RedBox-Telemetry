@@ -1235,8 +1235,8 @@ let initMapLeaflet = () => {
 
     //coords
     let c = new L.Control.Coordinates({
-        latitudeText: localization.key['lat'],
-        longitudeText: localization.key['lon'],
+        latitudeText: localization.key['lat'] ?? 'Latitude',
+        longitudeText: localization.key['lon'] ?? 'Longitude',
     });
     c.addTo(map);
 
