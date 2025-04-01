@@ -356,7 +356,6 @@ if (isset($sids[0])) {
 	   <tr>
 	    <td>
 	     <select id="seshidtag" name="seshidtag" class="form-control chosen-select" onchange="$('#wait_layout').show();this.form.submit()" data-placeholder="Select Session...">
-	      <option value="" disabled>Select Session...</option>
 <?php foreach ($seshdates as $dateid => $datestr) { ?>
 	      <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr']; ?></option>
 <?php } ?>
