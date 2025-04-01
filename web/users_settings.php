@@ -2,9 +2,9 @@
     require_once('db.php');
     require_once('db_limits.php');
 
-    //Conversion and gap settings
-    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,forward_url FROM $db_users WHERE user=?", [$username])->fetch_row();
-    [$speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter, $forward_url] = $setqry;
+    //Conversion and gap settings etc
+    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,forward_url,share FROM $db_users WHERE user=?", [$username])->fetch_row();
+    [$speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter, $forward_url, $share_key] = $setqry;
 
     //Telegram token/chatid
     $row = $db->execute_query("SELECT tg_token, tg_chatid FROM $db_users WHERE user=?", [$username])->fetch_assoc();
@@ -84,6 +84,10 @@
 		    <option value="3"<?php if ($sessions_filter == "3") echo ' selected'; ?>>50%</option>
 		    <option value="4"<?php if ($sessions_filter == "4") echo ' selected'; ?>>33%</option>
 		    <option value="5"<?php if ($sessions_filter == "5") echo ' selected'; ?>>25%</option>
+		</select>
+		 <label l10n="user.share"></label><select class="form-control" name="user_share">
+		    <option value="0"<?php if (!$share_key) echo ' selected'; ?> l10n="btn.no"></option>
+		    <option value="1"<?php if ($share_key) echo ' selected'; ?> l10n="btn.yes"></option>
 		</select>
 		 <label l10n="user.set.chart.fill"></label><select class="form-control" id="chart-fill">
 		    <option value="false" l10n="btn.no"></option>

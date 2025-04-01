@@ -213,4 +213,19 @@ function isValidExternalHttpUrl($url) {
     // 6. Return true only if the URL doesn't point to the same host
     return $host !== $currentHost;
 }
+
+/**
+ * Share URL key generator
+ */
+function shareKey(): string
+{
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $result = '';
+
+    for ($i = 0; $i < 8; $i++) {
+        $result .= $chars[random_int(0, strlen($chars) - 1)];
+    }
+
+    return $result;
+}
 ?>

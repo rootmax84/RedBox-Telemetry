@@ -5,8 +5,10 @@ require_once ('db.php');
 require_once ('parse_functions.php');
 include_once ('translations.php');
 
-if (isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $_POST['stream_lock'], $_POST['sessions_filter']) && isset($username) && $username != $admin){ //Update users settings
-    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=?, sessions_filter=? WHERE user=?", [$_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $_POST['stream_lock'], $_POST['sessions_filter'], $username]);
+if (isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $_POST['stream_lock'], $_POST['sessions_filter'], $_POST['user_share']) && isset($username) && $username != $admin){ //Update users settings
+    $share_key = $_POST['user_share'] ? shareKey() : NULL;
+    $_SESSION['share_key'] = $share_key;
+    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=?, sessions_filter=?, share=? WHERE user=?", [$_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], $_POST['time'], $_POST['gap'], $_POST['stream_lock'], $_POST['sessions_filter'], $share_key, $username]);
     $db->close();
     setcookie("timeformat", $_POST['time'] == '1' ? '24' : '12');
     setcookie("gap", $_POST['gap']);

@@ -8,6 +8,10 @@ let chartTooltip = () => {
     });
 };
 
+let sid = null;
+let uid = null;
+let key = null;
+
 const chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
 const chart_fillGradient = localStorage.getItem(`${username}-chart_fillGradient`) === "true";
 const chart_steps = localStorage.getItem(`${username}-chart_steps`) === "true";
@@ -356,7 +360,12 @@ let updCharts = (last = false)=>{
         $('#Summary-Container').append(noChart);
     } else if ($('#plot_data').chosen().val().length <= 10){
         $("#chart-load").css("display","block");
-        let varPrm = last ? 'plot.php?last&id='+$('#seshidtag').chosen().val() : 'plot.php?id='+$('#seshidtag').chosen().val();
+        let varPrm = null;
+        if (sid && uid && key) {
+            varPrm = `plot.php?id=${sid}&uid=${uid}&key=${key}`;
+        } else {
+            varPrm = last ? 'plot.php?last&id='+$('#seshidtag').chosen().val() : 'plot.php?id='+$('#seshidtag').chosen().val();
+        }
         $('#plot_data').chosen().val().forEach((v,i)=>varPrm+='&s'+(i+1)+'='+v);
         fetch(varPrm).then(d => d.json()).then(gData => {
             if (last) {
@@ -564,7 +573,7 @@ let initMapLeaflet = () => {
         zoomControl.appendChild(streamButton);
     };
 
-    addControlsToZoomContainer(map);
+    if (!uid && !sid && !key) addControlsToZoomContainer(map);
 
     let hotlineLayer = null;
     let currentDataSource = null;

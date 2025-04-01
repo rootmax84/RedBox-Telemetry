@@ -4,6 +4,7 @@ if (isset($_GET['c'])) {
         'loginfailed', 'csrffailed', 'toomanyattempts' => 401,
         'dberror' => 503,
         'maintenance' => 423,
+        'noshare' => 404,
         default => 200,
     };
     http_response_code($http_code);
@@ -42,6 +43,11 @@ include("head.php");
         else if ($_GET['c'] == "maintenance") { ?>
             <script>setTimeout(()=>{location.href='.'}, 10000);</script>
             <h4 style="line-height:1.5" l10n='catch.maintenance'></h4>
+        <?php
+        }
+        else if ($_GET['c'] == "noshare") { ?>
+            <script>setTimeout(()=>{location.href='.'}, 5000);</script>
+            <h4 l10n='catch.noshare'></h4>
         <?php
         }
     ?>

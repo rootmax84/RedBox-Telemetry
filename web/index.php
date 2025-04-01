@@ -291,6 +291,9 @@ if (isset($sids[0])) {
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
     <div class="storage-usage-img"></div>
+    <?php if (isset($_SESSION['share_key'])) {?>
+        <div class="share-img" onClick="shareSession()"></div>
+    <?php } ?>
     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
 <?php } ?>
       <div class="container">
@@ -1051,6 +1054,22 @@ function dragleave(event) {
     event.preventDefault();
     dropArea.style.borderColor = '';
 }
+
+function shareSession() {
+    const url = `${window.location.origin}/share.php?uid=<?php echo $_SESSION['uid']; ?>&id=<?php echo $session_id; ?>&key=<?php echo $_SESSION['share_key']; ?>`;
+    let dialogOpt = {
+        title : localization.key['dialog.confirm'],
+        message: localization.key['share.dialog.text'],
+        btnClassSuccessText: localization.key['btn.yes'],
+        btnClassFailText: localization.key['btn.no'],
+        btnClassFail: "btn btn-info btn-sm",
+        onResolve: function() {
+             navigator.clipboard.writeText(url);
+        }
+    };
+    redDialog.make(dialogOpt);
+}
+
 </script>
 <?php } ?>
   </body>

@@ -114,7 +114,7 @@ function auth_user()
     }
 
     try {
-        $userqry = $db->execute_query("SELECT user, pass, s, time, gap, sessions_filter FROM $db_users WHERE user=?", [$user]);
+        $userqry = $db->execute_query("SELECT id, user, pass, s, time, gap, sessions_filter, share FROM $db_users WHERE user=?", [$user]);
     } catch(Exception $e) { return false; }
 
     if (!$userqry->num_rows) {
@@ -132,6 +132,8 @@ function auth_user()
             setcookie("tracking-rate", $live_data_rate);
             setcookie("gap", $row["gap"]);
             $_SESSION['sessions_filter'] = $row["sessions_filter"];
+            $_SESSION['share_key'] = $row["share"];
+            $_SESSION['uid'] = $row["id"];
             update_login_attempts($user, true);
             $db->close();
             return true;
@@ -168,6 +170,7 @@ function create_users_table()
 	stream_lock tinyint(1) NOT NULL DEFAULT 0,
 	sessions_filter tinyint(1) NOT NULL DEFAULT 1,
 	forward_url varchar(2083) NULL,
+	share char(8) NULL,
 	login_attempts TINYINT UNSIGNED DEFAULT 0,
 	last_attempt DATETIME,
 	PRIMARY KEY (id),
@@ -196,6 +199,7 @@ function perform_migration() {
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS stream_lock TINYINT(1) NOT NULL DEFAULT 0",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS forward_url varchar(2083) NULL",
+        "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS share CHAR(8) NULL",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS login_attempts TINYINT UNSIGNED DEFAULT 0",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS last_attempt DATETIME",
         "DROP INDEX IF EXISTS indexes ON $db_users"

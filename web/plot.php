@@ -1,11 +1,27 @@
 <?php
-require_once('db.php');
-require_once('parse_functions.php');
+$sid = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
+$uid = filter_input(INPUT_GET, 'uid', FILTER_SANITIZE_NUMBER_INT);
+$key = filter_input(INPUT_GET, 'key', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
-if (!isset($sids) && !isset($_SESSION['admin'])) { //this is to default to get the session list and default to json output if called directly
-	require_once('get_sessions.php');
-	$json = [];
+if ($sid && $uid && $key) {
+    $_SESSION['torque_logged_in'] = true;
+    require_once('db.php');
+    $user_data = $db->execute_query("SELECT user, share, sessions_filter FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
+    $username = $user_data['user'];
+    $share_key = $user_data['share'];
+    $_SESSION['sessions_filter'] = $user_data['sessions_filter'];
+
+    if (!$username || $share_key !== $key) exit;
+    $db_table = $username.$db_log_prefix;
+    $db_sessions_table = $username.$db_sessions_prefix;
+    $db_pids_table = $username.$db_pids_prefix;
+} else {
+    require_once('db.php');
 }
+
+require_once('parse_functions.php');
+$json = [];
+
 // Convert data units
 //gx rpm devider
 $temp_rpm_dev = function ($rpm_dev) { return round($rpm_dev/100, 2); };
@@ -23,7 +39,7 @@ $tmp_ert = function ($ert) { return round($ert/60,0); };
 $tmp_gear = function ($gear) { return $gear == '255' ? '0' : $gear; };
 
 // Grab the session number
-if (isset($_GET["id"]) && $sids && in_array($_GET["id"], $sids)) {
+if (isset($_GET["id"])) {
     $session_id = $db->real_escape_string($_GET['id']);
     $cached_timestamp = null;
     $current_timestamp = getLastUpdateTimestamp($db, $session_id, $db_sessions_table);
