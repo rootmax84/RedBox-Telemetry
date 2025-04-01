@@ -164,7 +164,6 @@ include("head.php");
 
                   fetch(`translations.php?lang=${selectedValue}`)
                     .then(() => {
-                      //return localization.setLang(selectedValue);
                         localization.setLang(selectedValue);
                         location.reload();
                     })
