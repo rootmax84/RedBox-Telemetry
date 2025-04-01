@@ -196,7 +196,7 @@ include("head.php");
         <div class="container">
                 <div class="login-lang" id="lang-switch" style="position:absolute;top:10px;right:10px">
                     <div class="selected-lang" id="selected-lang" style="width:24px;height:24px"></div>
-                      <ul class="lang-options" id="lang-options">
+                      <ul class="lang-options" id="lang-options" style="background:#fff">
                         <li data-value="en">English</li>
                         <li data-value="ru">Русский</li>
                         <li data-value="es">Español</li>
