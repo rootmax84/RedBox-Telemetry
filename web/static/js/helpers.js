@@ -538,8 +538,8 @@ let initMapLeaflet = () => {
     });
 
     let baseMaps = {
-        [localization.key['layer.map']]: osm,
-        [localization.key['layer.sat']]: esri
+        [localization.key['layer.map'] ?? 'Map']: osm,
+        [localization.key['layer.sat'] ?? 'Satellite']: esri
     };
 
     let layerControl = L.control.layers(baseMaps).addTo(map);
@@ -1164,8 +1164,8 @@ let initMapLeaflet = () => {
     const startcir = L.marker(startCrd, {icon: playSvgIcon, alt: 'Start Point'}).addTo(map);
     const endcir = L.marker(endCrd, {icon: stopSvgIcon, alt: 'End Point'}).addTo(map);
 
-    startcir.unbindTooltip().bindTooltip(localization.key['travel.start'], {className: 'travel-tooltip'});
-    endcir.unbindTooltip().bindTooltip(localization.key['travel.end'], {className: 'travel-tooltip'});
+    startcir.unbindTooltip().bindTooltip(localization.key['travel.start'] ?? 'Start', {className: 'travel-tooltip'});
+    endcir.unbindTooltip().bindTooltip(localization.key['travel.end'] ?? 'End', {className: 'travel-tooltip'});
 
     // travel line
     let polyline = L.polyline(path, {
