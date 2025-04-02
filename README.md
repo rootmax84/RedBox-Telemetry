@@ -20,6 +20,13 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - Notifications via Telegram
 - PWA support
 - Dynamic layout/units conversion
+- Map heatline by selected data source
+- Sharing session(s)
+- Delete/Export selected part of session
+- Customizable data point filter before graph rendering
+- Simple API for fetch last metrics
+- API exporter for Prometheus/Grafana
+- Forward ingress requests to extrenal systems
 - Localized UI (EN/RU/ES/DE)
 - and more ...
 
@@ -55,7 +62,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 ### Migrate standalone installation to docker:
 
 1. Backup database from standalone installation: ```mariadb-dump --databases $database_name -uroot -p$password > /some/path/backup.sql```
-2. Restore this backup to docker mariadb container: ```docker exec -i ratel_mariadb sh -c 'exec mariadb -uroot -p$passowrd --database $database_name' < /some/path/backup.sql```
+2. Restore this backup to docker mariadb container: ```docker exec -i ratel_mariadb sh -c 'exec mariadb -uroot -p$password --database $database_name' < /some/path/backup.sql```
 
 ### Demo:
 [Click it](https://demo.redbox.pw/ratel/)
@@ -169,3 +176,8 @@ rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kZ
 post_max_size = 100M
 upload_max_filesize = 50M
 ```
+
+### MISC
+* [API exporter for Prometheus](https://github.com/rootmax84/RedBox-Telemetry/wiki/API-exporter-for-Prometheus)
+* [Grafana Dashboard example](https://github.com/rootmax84/RedBox-Telemetry/wiki/Grafana-Dashboard-example)
+* [API exporter stack example](https://github.com/rootmax84/RedBox-Telemetry/wiki/API-exporter-example)

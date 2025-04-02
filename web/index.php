@@ -515,7 +515,7 @@ initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 	    <a class="btn btn-default func-btn" onclick="exportSession('JSON')">JSON</a>
 	  </div>
 	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" onclick="exportSession('KML')">KML</a>
+	    <a class="btn btn-default func-btn" onclick="exportSession('KML')" <?php if (!$imapdata) { ?> disabled <?php } ?>>KML</a>
 	  </div>
 	  <div class="btn-group btn-group-justified func-btn">
 	    <a class="btn btn-default func-btn" onclick="exportSession('RBX')" <?php if ($id != "RedManage") { ?> disabled <?php } ?>>RBX</a>
@@ -907,23 +907,47 @@ function checkLog() {
 }
 
 function delSession() {
- $("#wait_layout").hide();
- const sessionId = "<?php echo $session_id; ?>";
- const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
- if (!sessionId.length) return;
- let dialogOpt = {
-    title : localization.key['dialog.confirm'],
+  $("#wait_layout").hide();
+  const sessionId = "<?php echo $session_id; ?>";
+  const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
+  if (!sessionId.length) return;
+
+  // Format time based on cookie setting
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    // Check if timeformat cookie is set to 12-hour format
+    if ($.cookie('timeformat') == '12') {
+      return date.toLocaleTimeString('en-US'); // 12-hour format with AM/PM
+    } else {
+      return date.toLocaleTimeString('ru-RU'); // 24-hour format
+    }
+  };
+
+  let messageText = `${localization.key['dialog.del.session']} (${sessionDate})`;
+  if (cutStart !== null && cutEnd !== null) {
+    const startTime = formatTime(cutStart);
+    const endTime = formatTime(cutEnd);
+    messageText += ` <strong>${localization.key['dialog.del.range']}</strong> ${startTime} - ${endTime}`;
+  }
+  messageText += "?";
+
+  let dialogOpt = {
+    title: localization.key['dialog.confirm'],
     btnClassSuccessText: localization.key['btn.yes'],
     btnClassFailText: localization.key['btn.no'],
     btnClassFail: "btn btn-info btn-sm",
-    message: `${localization.key['dialog.del.session']} (${sessionDate})?`,
-    onResolve: function(){
-     $("#wait_layout").show();
-     location.href = `?deletesession=${sessionId}`;
+    message: messageText,
+    onResolve: function() {
+      $("#wait_layout").show();
+      let url = `?deletesession=${sessionId}`;
+      if (cutStart !== null && cutEnd !== null) {
+        url += `&cutstart=${cutStart}&cutend=${cutEnd}`;
+      }
+      location.href = url;
     },
-    onReject: function(){ return; }
- };
- redDialog.make(dialogOpt);
+    onReject: function() { return; }
+  };
+  redDialog.make(dialogOpt);
 }
 
 function showToken() {
@@ -974,20 +998,45 @@ function tokenError() {
 }
 
 function exportSession(type) {
- $("#wait_layout").hide();
- const sessionId = "<?php echo $session_id; ?>";
- const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
- let dialogOpt = {
-    title : localization.key['dialog.confirm'],
+  $("#wait_layout").hide();
+  const sessionId = "<?php echo $session_id; ?>";
+  const sessionDate = "<?php echo isset($session_id) ? $seshdates[$session_id] : ''; ?>";
+
+  // Format time based on cookie setting
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    // Check if timeformat cookie is set to 12-hour format
+    if ($.cookie('timeformat') === '12') {
+      return date.toLocaleTimeString('en-US'); // 12-hour format with AM/PM
+    } else {
+      return date.toLocaleTimeString('ru-RU'); // 24-hour format
+    }
+  };
+
+  let messageText = `${localization.key['dialog.export']} ${type} (${sessionDate})`;
+  if (cutStart !== null && cutEnd !== null) {
+    const startTime = formatTime(cutStart);
+    const endTime = formatTime(cutEnd);
+    messageText += ` <strong>${localization.key['dialog.del.range']}</strong> ${startTime} - ${endTime}`;
+  }
+  messageText += "?";
+
+  let dialogOpt = {
+    title: localization.key['dialog.confirm'],
     btnClassSuccessText: localization.key['btn.yes'],
     btnClassFailText: localization.key['btn.no'],
     btnClassFail: "btn btn-info btn-sm",
-    message: `${localization.key['dialog.export']} ${type} (${sessionDate})?`,
-    onResolve: function(){
-     location.href = `./export.php?sid=${sessionId}&filetype=${type.toLowerCase()}`;
+    message: messageText,
+    onResolve: function() {
+
+      let url = `./export.php?sid=${sessionId}&filetype=${type.toLowerCase()}`;
+      if (cutStart !== null && cutEnd !== null) {
+        url += `&cutstart=${cutStart}&cutend=${cutEnd}`;
+      }
+      location.href = url;
     }
- };
- redDialog.make(dialogOpt);
+  };
+  redDialog.make(dialogOpt);
 }
 
 function delSessions() {

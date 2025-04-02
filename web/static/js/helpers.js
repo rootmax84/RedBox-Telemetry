@@ -323,22 +323,30 @@ function doPlot(position) {
         // Convert range to real time markers
         const realFrom = findNearestRealTime(range.xaxis.from);
         const realTo = findNearestRealTime(range.xaxis.to);
-        // Find jsTimeMap indexes
-        const a = jsTimeMap.findIndex(t => t >= realFrom);
-        const b = jsTimeMap.findIndex(t => t >= realTo);
-        if (Math.abs(a-b)<3) return;
-        $("#slider-range11").slider('values',0,a);
-        $("#slider-range11").slider('values',1,b);
-        $("#slider-time").val( (new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
 
-        const mapIndexStart = jsTimeMap.length-b-1;
-        const mapIndexEnd = jsTimeMap.length-a-1;
+        // Find jsTimeMap indexes with edge case handling
+        const origA = jsTimeMap.findIndex(t => t >= realFrom);
+        const origB = jsTimeMap.findIndex(t => t >= realTo);
+
+        // Handle edge cases and prepare final values
+        const a = (origA === -1 || realFrom <= jsTimeMap[0] || origA <= 1) ? 0 : origA;
+        const b = (origB === -1) ? jsTimeMap.length - 1 : origB;
+
+        if (Math.abs(a-b) < 3) return;
+
+        // Set slider values
+        $("#slider-range11").slider('values', 0, a);
+        $("#slider-range11").slider('values', 1, b);
+        $("#slider-time").val((new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
+
+        const mapIndexStart = jsTimeMap.length - b - 1;
+        const mapIndexEnd = jsTimeMap.length - a - 1;
 
         if($("#map").length) {
             updateMapWithRangePreservingHeatline(mapIndexStart, mapIndexEnd);
         }
 
-        chartUpdRange(jsTimeMap.length-b-1,jsTimeMap.length-a-1);
+        chartUpdRange(jsTimeMap.length - b - 1, jsTimeMap.length - a - 1);
         plot.clearSelection();
     });
     //End Trim by plot Select
@@ -1248,12 +1256,15 @@ let initMapLeaflet = () => {
 //End of Leaflet Map Providers js code
 
 //slider js code
+let [cutStart, cutEnd] = [null, null];
 let initSlider = (jsTimeMap,start,end)=>{
     $("#slider-range11").off();
     if ($("#slider-range11").hasClass("ui-slider")) {
         $("#slider-range11").slider("destroy");
         initSlider(jsTimeMap,start,end);
     }
+
+    const [sessStart, sessEnd] = [jsTimeMap[0], jsTimeMap.at(-1)]
 
     let TimeStartv = timelookup(start);
     let TimeEndv = timelookup(end);
@@ -1290,6 +1301,12 @@ let initSlider = (jsTimeMap,start,end)=>{
             $('#slider-time').attr("sv1", jsTimeMap[$('#slider-range11').slider("values", 1)])
             const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];
             if (Math.abs(a-b)<3) return;
+
+            [cutStart, cutEnd] = [jsTimeMap[$('#slider-range11').slider("values",0)], jsTimeMap[$('#slider-range11').slider("values",1)]];
+            if (cutStart === sessStart && cutEnd === sessEnd) {
+                [cutStart, cutEnd] = [null, null];
+            }
+
             if ($("#map").length) {
                 updateMapWithRangePreservingHeatline(a, b);
             }
