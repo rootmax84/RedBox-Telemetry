@@ -225,6 +225,7 @@ if (isset($sids[0])) {
     <!-- Configure Jquery Flot graph and plot code -->
     <script>
       $(document).ready(function(){
+        $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
 
         if (!document.getElementById('plot_data')) return;
 
@@ -255,7 +256,6 @@ if (isset($sids[0])) {
         plotData.chosen();
         updCharts();
         if (window.history.replaceState) window.history.replaceState(null, null, window.location.href);
-        $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
       });
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
@@ -757,6 +757,9 @@ if ($current_page < $total_pages) {
     </div>
     <ul id="log-list"></ul>
    </div>
+</div>
+<div class="row center-block" style="transform:translateY(-30px);text-align:center">
+    <p class="copyright"></p>
 </div>
 <script>
 let src = new EventSource("stream.php");
