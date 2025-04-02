@@ -16,6 +16,10 @@ RUN echo '#!/bin/sh' > /start.sh && \
     echo 'echo "======================"' >> /start.sh && \
     echo 'echo "== RedBox Telemetry =="' >> /start.sh && \
     echo 'echo "======================"' >> /start.sh && \
+    echo 'if [ ! -f /var/www/html/creds.php ] && [ -f /var/www/html/creds.php.example ]; then' >> /start.sh && \
+    echo '    cp /var/www/html/creds.php.example /var/www/html/creds.php' >> /start.sh && \
+    echo '    echo "creds.php created from example file"' >> /start.sh && \
+    echo 'fi' >> /start.sh && \
     echo 'touch /var/www/html/install' >> /start.sh && \
     echo 'php-fpm8.4 -D' >> /start.sh && \
     echo 'nginx -g "daemon off;"' >> /start.sh && \
