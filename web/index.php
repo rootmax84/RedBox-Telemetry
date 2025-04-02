@@ -227,7 +227,10 @@ if (isset($sids[0])) {
       $(document).ready(function(){
         $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
 
-        if (!document.getElementById('plot_data')) return;
+        if (!document.getElementById('plot_data')) {
+            $(".share-img").css("display", "none");
+            return;
+        }
 
         let plotData = $('#plot_data');
         let lastValue = plotData.val() || [];
