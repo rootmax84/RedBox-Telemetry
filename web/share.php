@@ -217,7 +217,7 @@ include("head.php");
             <h4 l10n="sel.var"></h4>
             <div class="row center-block" style="padding-top:3px;">
                 <select data-placeholder="Choose data..." multiple class="chosen-select" size="<?php echo $numcols; ?>" style="width:100%;" id="plot_data" name="plotdata[]">
-                    <?php foreach ($coldata as $xcol) { ?>
+                    <?php $var1 = ""; foreach ($coldata as $xcol) { ?>
                         <option value="<?php echo $xcol['colname']; ?>" <?php $i = 1; while (isset(${'var' . $i})) { if (${'var' . $i} == $xcol['colname'] || $xcol['colfavorite'] == 1) { echo " selected"; } $i = $i + 1; } ?>>
                             <?php echo $xcol['colcomment']; ?>
                         </option>
