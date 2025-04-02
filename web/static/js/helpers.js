@@ -346,8 +346,8 @@ function doPlot(position) {
 
 let updCharts = (last = false)=>{
     if ($('#plot_data').chosen().val().length == 0) {
-        const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
-        const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'])));
+        const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'] ?? 'No Variables Selected to Plot')));
+        const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'] ?? 'No Variables Selected to Plot')));
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
             heatData = [];
@@ -494,8 +494,8 @@ let updCharts = (last = false)=>{
             });
             if ($('#plot_data').chosen().val() == null) updCharts();
         }).catch(err => {
-            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'])));
-            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'])));
+            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'] ?? 'No data')));
+            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'] ?? 'No data')));
             $('#Chart-Container').empty();
             $('#Chart-Container').append(noChart2);
             $('#Summary-Container').empty();
@@ -1268,7 +1268,7 @@ let initSlider = (jsTimeMap,start,end)=>{
         let date = new Date(t);
 
         if (isNaN(date.getTime())) {
-            return localization.key['nodata'];
+            return localization.key['nodata'] ?? 'No data';
         }
 
         return  date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU');
