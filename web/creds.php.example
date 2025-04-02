@@ -8,17 +8,17 @@ if (isset($_SESSION['torque_user'])) {
 }
 
 // MySQL settings
-$db_host = '';     // Type mariadb if use docker
-$db_user = '';     // Enter your MySQL username
-$db_pass = '';     // Enter your MySQL password
-$db_port = '';     // Default port 3306
-$db_name = '';
+$db_host = 'mariadb';  // Type mariadb if use docker
+$db_user = 'ratel';    // Enter your MySQL username
+$db_pass = 'ratel';    // Enter your MySQL password
+$db_port = '3306';     // Default port 3306
+$db_name = 'ratel';
 $db_log_prefix = '_logs';
 $db_sessions_prefix = '_sessions';
 $db_pids_prefix = '_pids';
-$db_engine = 'INNODB'; //Engine for database tables (Recommended ROCKSDB). Applies to newly created users
+$db_engine = 'ROCKSDB'; //Or INNODB. Engine for database tables (Recommended ROCKSDB). Applies to newly created users
 $db_innodb_compression = false; //Use row compression with innodb engine. Applies to newly created users
-$db_memcached = 'localhost'; //Address of memcached host. Type memcached if use docker (OPTIONAL)
+$db_memcached = 'memcached'; //Address of memcached host. Type memcached if use docker (OPTIONAL)
 $db_users = 'users';
 $db_table = $username.$db_log_prefix;
 $db_sessions_table = $username.$db_sessions_prefix;

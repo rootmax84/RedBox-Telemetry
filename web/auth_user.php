@@ -2,7 +2,7 @@
 require_once ('creds.php');
 require_once ('auth_functions.php');
 require_once ('token_functions.php');
-if (!isset($_SESSION)) { session_start(); }
+session_start();
 
 $current_script = basename($_SERVER['SCRIPT_FILENAME']);
 $csrf_exempt_scripts = ['get_token.php', 'ul.php', 'adminer.php']; //CSRF exclude

@@ -6,35 +6,15 @@ require_once('timezone.php');
 include_once('translations.php');
 $lang = $_COOKIE['lang'];
 
-if (!isset($_SESSION['admin'])) $_SESSION['recent_session_id'] = strval(isset($sids)?max($sids):null);
-
 // Capture the session ID if one has been chosen already
-if (isset($_GET["id"])) {
-	$session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
-}
+$session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT) ?: null;
 
-if (!isset($_GET["page"])) {
-    $page = 1;
-} else {
-    $page = $_GET["page"];
-}
-
+$page = $_GET["page"] ?? 1;
 $filteryear = $_GET["year"] ?? "";
 $filtermonth = $_GET["month"] ?? "";
 $filterprofile = $_GET["profile"] ?? "";
 
-$i=1;
 $var1 = "";
-while ( isset($_POST["s$i"]) || isset($_GET["s$i"]) ) {
-	${'var' . $i} = "";
-	if (isset($_POST["s$i"])) {
-		${'var' . $i} = $_POST["s$i"];
-	}
-	elseif (isset($_GET["s$i"])) {
-		${'var' . $i} = $_GET["s$i"];
-	}
-	$i = $i + 1;
-}
 
 // From the output of the get_sessions.php file, populate the page with info from
 //  the current session. Using successful existence of a session as a trigger, 

@@ -7,12 +7,7 @@ global $delsession;
 $delsession = filter_input(INPUT_POST, 'delsession', FILTER_SANITIZE_NUMBER_INT) 
             ?? filter_input(INPUT_GET, 'delsession', FILTER_SANITIZE_NUMBER_INT);
 
-if (!isset ($_GET["page"]) ) {
-    $page = 1;
-} else {
-    $page = $_GET["page"];
-    $_SESSION["page"] = $page;
-}
+$page = $_GET["page"] ?? 1;
 
 $sessionids = [];
 

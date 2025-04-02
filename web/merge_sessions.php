@@ -6,11 +6,7 @@ require_once('db_limits.php');
 $mergesession = filter_input(INPUT_POST, 'mergesession', FILTER_SANITIZE_NUMBER_INT) 
               ?? filter_input(INPUT_GET, 'mergesession', FILTER_SANITIZE_NUMBER_INT);
 
-if (!isset($_GET["page"])) {
-    $page = 1;
-} else {
-    $page = $_GET["page"];
-}
+$page = $_GET["page"] ?? 1;
 
 $sessionids = [];
 
