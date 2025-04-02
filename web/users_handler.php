@@ -17,7 +17,7 @@ if (isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], 
     die($translations[$_COOKIE['lang']]['set.common.updated']);
 }
 
-if (isset($_GET['get_token']) && isset($username) && $username != $admin){ //Get current user token
+else if (isset($_GET['get_token']) && isset($username) && $username != $admin){ //Get current user token
     $row = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc();
     $token = $row["token"];
     $token = $token === NULL ? $translations[$_COOKIE['lang']]['new.token'] : $token;
