@@ -46,7 +46,7 @@ let streamNewData = false;
 //Fetch plot data every 10 sec
 function schedulePlotUpdate(timestamp) {
   if (timestamp - lastPlotUpdateTime >= 10000) {
-    if (streamNewData) updatePlot();
+    if (streamNewData || document.querySelector('span.nogps[l10n="nogps"]') !== null) updatePlot();
     lastPlotUpdateTime = timestamp;
   }
   animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
