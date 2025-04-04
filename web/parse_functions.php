@@ -228,4 +228,87 @@ function shareKey(): string
 
     return $result;
 }
+
+/**
+ * Checks rate limits for requests based on client IP
+ * Running memcached required
+ *
+ * @param int $limit Maximum number of attempts allowed
+ * @param int $period Time period in seconds for the limit
+ * @param bool $success If true, resets the counter for successful attempts
+ * @return bool True if within limits, false if exceeded
+ */
+function checkRateLimit($limit = 10, $period = 3600, $success = false) {
+    global $memcached, $memcached_connected;
+
+    // Determine client IP considering possible proxies
+    $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+
+    // If IP contains a list of addresses (comma separated), take the first one
+    if (strpos($ip, ',') !== false) {
+        $ip = trim(explode(',', $ip)[0]);
+    }
+
+    $rate_key = "rate_limit:block:{$ip}";
+    $backoff_key = "rate_backoff:block:{$ip}";
+
+    // If this is a successful request, reset the counter and return true
+    if ($success && $memcached_connected) {
+        try {
+
+            $memcached->delete($rate_key);
+            $memcached->delete($backoff_key);
+        } catch (Exception $e) {
+            error_log("Memcached error clearing rate limit: " . $e->getMessage());
+        }
+        return true;
+    }
+
+    if (!$memcached_connected) {
+        return true; // If memcached is not connected, skip the check
+    }
+
+    try {
+        $attempts = $memcached->get($rate_key);
+        if ($attempts === false) {
+            $attempts = 0;
+        }
+
+        // Check if we need to enforce a backoff period
+        $backoff = $memcached->get($backoff_key);
+        if ($backoff !== false) {
+            $now = time();
+            if ($now < $backoff) {
+                // Still in backoff period, reject request
+                return false;
+            }
+        }
+
+        $attempts++;
+        $memcached->set($rate_key, $attempts, $period);
+
+        if ($attempts > $limit) {
+            // Calculate exponential backoff time
+            // Start with 5 seconds, double with each attempt beyond limit
+            $backoff_seconds = min(1800, 5 * pow(2, $attempts - $limit - 1)); // Cap at 30 minutes
+            $backoff_until = time() + $backoff_seconds;
+
+            // Store the backoff timestamp
+            $memcached->set($backoff_key, $backoff_until, $period);
+
+            return false;
+        }
+
+        // For non-blocked but repeated requests, set a short backoff to slow down attempts
+        if ($attempts > 3) {
+            $short_backoff = time() + ($attempts - 3); // 1 second per attempt beyond 3
+            $memcached->set($backoff_key, $short_backoff, $period);
+        }
+
+        return true;
+    } catch (Exception $e) {
+        error_log("Memcached error in rate limiting: " . $e->getMessage());
+        return true; // In case of cache error, don't block access
+    }
+}
 ?>

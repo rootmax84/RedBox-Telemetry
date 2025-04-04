@@ -5,6 +5,11 @@ require_once('parse_functions.php');
 include_once('translations.php');
 $lang = $_COOKIE['lang'] ?? 'en';
 
+if (!checkRateLimit(5)) {
+    header('Location: catch.php?c=block');
+    exit;
+}
+
 $session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 $uid = filter_input(INPUT_GET, 'uid', FILTER_SANITIZE_NUMBER_INT);
 $key = filter_input(INPUT_GET, 'key', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -30,6 +35,8 @@ if ($username) {
     if (!$current_timestamp || $share_key !== $key) {
         header('Location: catch.php?c=noshare');
         exit;
+    } else {
+        checkRateLimit(5, 3600, true);
     }
 
     // GPS data
