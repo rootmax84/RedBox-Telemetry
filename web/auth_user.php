@@ -1,5 +1,4 @@
 <?php
-require_once ('creds.php');
 require_once ('auth_functions.php');
 require_once ('token_functions.php');
 if (!isset($_SESSION)) { session_start(); }
