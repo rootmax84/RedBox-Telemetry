@@ -950,44 +950,6 @@ let initMapLeaflet = () => {
         }
     }
 
-    function initTouchHandlers() {
-        if ('ontouchstart' in window) {
-            map.on('touchmove', function(e) {
-                if (!hotlineLayer || !hotlineLayer.hotlineData) return;
-
-                const touch = e.originalEvent.touches[0];
-                const touchPoint = map.containerPointToLatLng([
-                    touch.clientX, 
-                    touch.clientY
-                ]);
-
-                const closestPoint = findClosestPoint(touchPoint, hotlineLayer.hotlineData.points);
-                if (closestPoint) {
-                    showTooltipAtPoint(closestPoint, hotlineLayer.sourceIndex);
-                }
-            });
-            map.on('click', function(e) {
-                setTimeout(() => {
-                    let hasTooltips = false;
-                    map.eachLayer(layer => {
-                        if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
-                            hasTooltips = true;
-                        }
-                    });
-
-                    if (!hasTooltips && hotlineLayer) {
-                        const closestPoint = findClosestPoint(e.latlng, hotlineLayer.hotlineData.points);
-                        if (closestPoint) {
-                            showTooltipAtPoint(closestPoint, hotlineLayer.sourceIndex);
-                        }
-                    }
-                }, 50);
-            });
-        }
-    }
-
-    setTimeout(initTouchHandlers, 1000);
-
     let hotlineLegend = null;
 
     function updateLegend(min, max) {
