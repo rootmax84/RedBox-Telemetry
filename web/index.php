@@ -28,13 +28,6 @@ if (isset($sids[0])) {
         header('Location: .');
     }
 
-    //For the merge function, we need to find out, what would be the next session
-    $idx = array_search($session_id, $sids);
-    $session_id_next = "";
-    if ($idx > 0) {
-        $session_id_next = $sids[$idx - 1];
-    }
-
     $cached_timestamp = null;
     $current_timestamp = getLastUpdateTimestamp($db, $session_id, $db_sessions_table);
 
