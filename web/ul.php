@@ -138,9 +138,7 @@ if ($dbfields === false) {
 }
 
 $allowedProfileFields = [
-    'profileName', 'profileFuelType', 'profileWeight', 'profileVe', 'profileFuelCost',
-    'profileDisplacement', 'profileTankCapacity', 'profileTankUsed', 'profileVehicleType',
-    'profileOdometer', 'profileMPGAdjust', 'profileBoostAdjust', 'profileDragCoeff', 'profileOBDAdjust'
+    'profileName'
 ];
 
 // Iterate over all the k* _GET arguments to check that a field exists
@@ -194,7 +192,7 @@ if (sizeof($_REQUEST) > 0) {
     }
 
     // If the field doesn't already exist, add it to the database except id key
-    if (!in_array($key, $dbfields) && $key != "id" && $key != "lang" && $submitval == 1) {
+    if (!in_array($key, $dbfields) && $submitval == 1 && preg_match('/^k[0-9a-fA-F]+$/', $key)) {
       cache_flush();
       $dataType = is_numeric($value) ? "float" : "VARCHAR(255)";
 
