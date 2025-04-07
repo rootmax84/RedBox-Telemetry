@@ -24,7 +24,7 @@ function getBearerToken(): ?string
  * Send notification to Telegram
  * @return array|null Returns decoded response or null on failure
  */
-function notify(string $text, string $tg_token, string $tg_chatid): ?array
+function notify(?string $text, ?string $tg_token, ?string $tg_chatid): ?array
 {
     if (empty($tg_token) || empty($tg_chatid)) {
         return null;
