@@ -264,10 +264,10 @@ if (isset($sids[0])) {
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
     <div class="storage-usage-img"></div>
-    <?php if (isset($_SESSION['share_key'])) {?>
-        <div class="share-img" onClick="shareSession()"></div>
-    <?php } ?>
     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
+<?php } ?>
+<?php if (isset($_SESSION['share_key'])) {?>
+        <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
 <?php } ?>
       <div class="container">
        <div id="theme-switch"></div>

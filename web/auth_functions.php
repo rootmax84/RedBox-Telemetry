@@ -124,7 +124,6 @@ function auth_user()
         $row = $userqry->fetch_assoc();
         if (password_verify($pass, $row["pass"])) {
             $_SESSION['torque_user'] = $row["user"];
-            $_SESSION['torque_pass'] = $row["pass"];
             $_SESSION['torque_limit'] = $row["s"];
             setcookie("stream", true);
             setcookie("timeformat", $row["time"]);
