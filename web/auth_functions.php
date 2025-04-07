@@ -154,12 +154,13 @@ function create_users_table()
 
   $table = "CREATE TABLE IF NOT EXISTS " . $db_users . " (
 	id bigint unsigned NOT NULL AUTO_INCREMENT,
-	s bigint NOT NULL DEFAULT 100,
+	s mediumint NOT NULL DEFAULT 100,
 	user varchar(190) COLLATE utf8mb4_bin NOT NULL,
 	pass varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
 	token varchar(190) COLLATE utf8mb4_unicode_ci NULL,
 	tg_token varchar(190) COLLATE utf8mb4_unicode_ci NULL,
 	tg_chatid varchar(190) COLLATE utf8mb4_unicode_ci NULL,
+	forward_url varchar(2083) NULL,
 	speed enum('No conversion','km to miles','miles to km') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	temp enum('No conversion','Celsius to Fahrenheit','Fahrenheit to Celsius') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	pressure enum('No conversion','Psi to Bar','Bar to Psi') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
@@ -168,10 +169,9 @@ function create_users_table()
 	gap enum('5000','10000','20000','30000','60000') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '5000',
 	stream_lock tinyint(1) NOT NULL DEFAULT 0,
 	sessions_filter tinyint(1) NOT NULL DEFAULT 1,
-	forward_url varchar(2083) NULL,
-	share char(8) NULL,
-	login_attempts TINYINT UNSIGNED DEFAULT 0,
+	login_attempts tinyint UNSIGNED DEFAULT 0,
 	last_attempt DATETIME,
+	share char(8) NULL,
 	PRIMARY KEY (id),
 	UNIQUE KEY user (user),
 	UNIQUE KEY token (token))
