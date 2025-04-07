@@ -454,7 +454,7 @@ try {
                 die($login.$translations[$_COOKIE['lang']]['admin.del.catch']);
             }
 
-            $db->query("DELETE FROM $db_users WHERE user=" . quote_value($login));
+            $db->execute_query("DELETE FROM $db_users WHERE user=?", [$login]);
             if ($memcached_connected) {
                 $username = $login;
                 $token = $userqry->fetch_assoc()['token'];
