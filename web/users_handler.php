@@ -436,7 +436,7 @@ try {
         else if (isset($_POST['del_login'])) {
             $login = $_POST['del_login'];
 
-            $userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
+            $userqry = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login]);
 
             if (!$userqry->num_rows || strlen($login) < 1) {
                 die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
@@ -455,6 +455,11 @@ try {
             }
 
             $db->query("DELETE FROM $db_users WHERE user=" . quote_value($login));
+            if ($memcached_connected) {
+                $username = $login;
+                $token = $userqry->fetch_assoc()['token'];
+                cache_flush($token);
+            }
             $response = $translations[$_COOKIE['lang']]['admin.del.ok'].$login;
         }
 
