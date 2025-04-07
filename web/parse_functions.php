@@ -255,7 +255,6 @@ function checkRateLimit($limit = 10, $period = 3600, $success = false) {
     // If this is a successful request, reset the counter and return true
     if ($success && $memcached_connected) {
         try {
-
             $memcached->delete($rate_key);
             $memcached->delete($backoff_key);
         } catch (Exception $e) {
