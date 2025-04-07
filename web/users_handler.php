@@ -120,7 +120,7 @@ try {
     if (isset($_SESSION['admin'])) {
         // User editing
         if (isset($_POST['e_login'])) {
-            $login = $_POST['e_login'];
+            $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['e_login']);
             $password = $_POST['e_pass'];
             $e_limit = $_POST['e_limit'];
 
@@ -158,7 +158,7 @@ try {
 
         // User creation
         else if (isset($_POST['reg_login'], $_POST['reg_pass'])) {
-            $login = $_POST['reg_login'];
+            $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['reg_login']);
             $password = $_POST['reg_pass'];
 
             $userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
@@ -434,7 +434,7 @@ try {
 
         // User deletion
         else if (isset($_POST['del_login'])) {
-            $login = $_POST['del_login'];
+            $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['del_login']);
 
             $userqry = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login]);
 
@@ -465,7 +465,7 @@ try {
 
         // User data truncation
         else if (isset($_POST['trunc_login'])) {
-            $login = $_POST['trunc_login'];
+            $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['trunc_login']);
 
             $userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
 
