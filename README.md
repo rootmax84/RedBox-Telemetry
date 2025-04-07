@@ -8,27 +8,27 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 ### Key features:
 - True multiuser with separate data and global admin
 - Data upload requires authorization with a bearer token
-- Leaflet MAP provider
-- Export KML
-- Live data streaming and tracking
+- Leaflet map provider
+- Export to KML format
+- Live data streaming and real-time tracking
 - RedManage dashboards support
 - Import data from RedManage logger
-- Users data limits
+- User data limits and quotas
 - Light/Dark themes
 - Maintenance mode
-- Admin panel
+- Comprehensive admin panel
 - Notifications via Telegram
 - PWA support
-- Dynamic layout/units conversion
-- Map heatline by selected data source
-- Sharing session(s)
-- Delete/Export selected part of session
-- Customizable data point filter before graph rendering
-- Simple API for fetch last metrics
-- API exporter for Prometheus/Grafana
-- Forward ingress requests to extrenal systems
+- Dynamic layout and units conversion
+- Map heatline visualization by selected data source
+- Session sharing capabilities
+- Ability to delete/export selected parts of sessions
+- Customizable data point filtering before graph rendering
+- Simple API for fetching latest metrics
+- API exporter for Prometheus/Grafana integration
+- Forward ingress requests to external systems
 - Localized UI (EN/RU/ES/DE)
-- and more ...
+- and more...
 
 ### Standalone installation requirements:
 - PHP8.2+
