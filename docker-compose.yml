@@ -1,6 +1,11 @@
 ---
 services:
     mariadb:
+        deploy:
+            resources:
+                limits:
+                    cpus: '2'
+                    memory: 512M
         build: docker/mariadb
         container_name: ratel_mariadb
         volumes:
