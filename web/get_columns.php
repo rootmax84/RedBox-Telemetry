@@ -3,7 +3,11 @@ $columns_cache_key = "columns_data_{$db_pids_table}";
 
 $coldata = [];
 if ($memcached_connected) {
-    $coldata = $memcached->get($columns_cache_key);
+    try {
+        $coldata = $memcached->get($columns_cache_key);
+    } catch (Exception $e) {
+        $coldata = [];
+    }
 }
 
 if (empty($coldata)) {
@@ -21,7 +25,8 @@ if (empty($coldata)) {
         try {
             $memcached->set($columns_cache_key, $coldata, 3600);
         } catch (Exception $e) {
-            error_log("Memcached error (columns data): " . $e->getMessage());
+            $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+            error_log($errorMessage);
         }
     }
 }

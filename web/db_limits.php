@@ -11,7 +11,11 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
 
     $db_limit = false;
     if ($memcached_connected) {
-        $db_limit = $memcached->get($db_limit_cache_key);
+        try {
+            $db_limit = $memcached->get($db_limit_cache_key);
+        } catch (Exception $e) {
+            $db_limit = false;
+        }
     }
 
     if ($db_limit === false) {
@@ -20,14 +24,19 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
             try {
                 $memcached->set($db_limit_cache_key, $db_limit, 300);
             } catch (Exception $e) {
-                error_log("Memcached error (db_limit): " . $e->getMessage());
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }
 
     $user_status = false;
     if ($memcached_connected) {
-        $user_status = $memcached->get($user_status_cache_key);
+        try {
+            $user_status = $memcached->get($user_status_cache_key);
+        } catch (Exception $e) {
+            $user_status = false;
+        }
     }
 
     if ($user_status === false) {
@@ -37,7 +46,8 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
             try {
                 $memcached->set($user_status_cache_key, $user_status, 300);
             } catch (Exception $e) {
-                error_log("Memcached error (user_status): " . $e->getMessage());
+                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                error_log($errorMessage);
             }
         }
     }

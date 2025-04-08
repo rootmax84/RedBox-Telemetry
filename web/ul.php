@@ -45,7 +45,11 @@ if (!empty($token)) {
  $user_data = false;
 
  if ($memcached_connected) {
-    $user_data = $memcached->get($cache_key);
+    try {
+        $user_data = $memcached->get($cache_key);
+    } catch (Exception $e) {
+        $user_data = false;
+    }
  }
 
  //Check auth via Bearer token
@@ -88,7 +92,11 @@ $db_limit_cache_key = "db_limit_" . $db_table;
 $db_limit = false;
 
 if ($memcached_connected) {
-    $db_limit = $memcached->get($db_limit_cache_key);
+    try {
+        $db_limit = $memcached->get($db_limit_cache_key);
+    } catch (Exception $e) {
+        $db_limit = false;
+    }
 }
 
 if ($db_limit === false) {
@@ -115,7 +123,11 @@ $table_structure_cache_key = "table_structure_" . $db_table;
 $dbfields = false;
 
 if ($memcached_connected) {
-    $dbfields = $memcached->get($table_structure_cache_key);
+    try {
+        $dbfields = $memcached->get($table_structure_cache_key);
+    } catch (Exception $e) {
+        $dbfields = false;
+    }
 }
 
 // Create an array of all the existing fields in the database
