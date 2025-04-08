@@ -73,7 +73,7 @@ if (!empty($token)) {
 
  if ($user_data) {
     $access = 1;
-    $user = $user_data['user'];
+    $username = $user_data['user'];
     $limit = $user_data['s'];
     $tg_token = $user_data['tg_token'];
     $tg_chatid = $user_data['tg_chatid'];
@@ -86,7 +86,7 @@ if ($access != 1 || $limit == 0){
      die($translations[$lang]['denied']);
 }
 
-$db_table = $user.$db_log_prefix;
+$db_table = $username.$db_log_prefix;
 
 $db_limit_cache_key = "db_limit_" . $db_table;
 $db_limit = false;
@@ -116,8 +116,8 @@ if ($db_limit >= $limit && $limit != -1){
     die($translations[$lang]['no_space']);
 }
 
-$db_sessions_table = $user.$db_sessions_prefix;
-$db_pids_table = $user.$db_pids_prefix;
+$db_sessions_table = $username.$db_sessions_prefix;
+$db_pids_table = $username.$db_pids_prefix;
 
 $table_structure_cache_key = "table_structure_" . $db_table;
 $dbfields = false;
@@ -317,11 +317,11 @@ if (!empty($forward_url)) {
 
     // Logging
     if ($error) {
-        error_log("[Forwarding] Failed to forward {$method} request for user {$user} to {$forward_url}: $error");
+        error_log("[Forwarding] Failed to forward {$method} request for user {$username} to {$forward_url}: $error");
     } elseif ($http_code >= 400) {
-        error_log("[Forwarding] Forwarded {$method} request for user {$user} to {$forward_url}, but got HTTP error: $http_code");
+        error_log("[Forwarding] Forwarded {$method} request for user {$username} to {$forward_url}, but got HTTP error: $http_code");
     } else {
-        error_log("[Forwarding] Successfully forwarded {$method} request for user {$user} to {$forward_url}");
+        error_log("[Forwarding] Successfully forwarded {$method} request for user {$username} to {$forward_url}");
     }
 }
 ?>
