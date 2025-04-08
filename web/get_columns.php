@@ -11,7 +11,6 @@ if ($memcached_connected) {
 }
 
 if (empty($coldata)) {
-    $coldata = [];
     $colqry = $db->query("SELECT id, description, favorite FROM $db_pids_table WHERE populated = 1 ORDER BY description");
     while ($x = $colqry->fetch_assoc()) {
         $coldata[] = [
