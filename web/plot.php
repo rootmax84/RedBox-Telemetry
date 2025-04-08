@@ -49,13 +49,9 @@ if (isset($_GET["id"])) {
     $id = false;
 
     if ($memcached_connected) {
-        try {
-            $cached_id_data = $memcached->get($cache_key_id);
-            if ($cached_id_data !== false) {
-                list($id, $cached_timestamp) = $cached_id_data;
-            }
-        } catch (Exception $e) {
-            $id = false;
+        $cached_id_data = $memcached->get($cache_key_id);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($cached_id_data)) {
+            list($id, $cached_timestamp) = $cached_id_data;
         }
     }
 
@@ -77,13 +73,9 @@ if (isset($_GET["id"])) {
     $setqry = false;
 
     if ($memcached_connected) {
-        try {
-            $cached_settings_data = $memcached->get($cache_key_settings);
-            if ($cached_settings_data !== false) {
-                list($setqry, $cached_timestamp) = $cached_settings_data;
-            }
-        } catch (Exception $e) {
-            $setqry = false;
+        $cached_settings_data = $memcached->get($cache_key_settings);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($cached_settings_data)) {
+            list($setqry, $cached_timestamp) = $cached_settings_data;
         }
     }
 
@@ -110,13 +102,9 @@ if (isset($_GET["id"])) {
     $keyarr = false;
 
     if ($memcached_connected) {
-        try {
-            $cached_pids_data = $memcached->get($cache_key_pids);
-            if ($cached_pids_data !== false) {
-                list($keyarr, $cached_timestamp) = $cached_pids_data;
-            }
-        } catch (Exception $e) {
-            $keyarr = false;
+        $cached_pids_data = $memcached->get($cache_key_pids);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($cached_pids_data)) {
+            list($keyarr, $cached_timestamp) = $cached_pids_data;
         }
     }
 
@@ -157,13 +145,9 @@ if (isset($_GET["id"])) {
     }
 
     if ($memcached_connected) {
-        try {
-            $cached_data = $memcached->get($cache_key);
-            if ($cached_data !== false) {
-                list($session_data, $cached_timestamp) = $cached_data;
-            }
-        } catch (Exception $e) {
-            $session_data = false;
+        $cached_data = $memcached->get($cache_key);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($cached_data)) {
+            list($session_data, $cached_timestamp) = $cached_data;
         }
     }
 

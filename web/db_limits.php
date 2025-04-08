@@ -11,11 +11,7 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
 
     $db_limit = false;
     if ($memcached_connected) {
-        try {
-            $db_limit = $memcached->get($db_limit_cache_key);
-        } catch (Exception $e) {
-            $db_limit = false;
-        }
+        $db_limit = $memcached->get($db_limit_cache_key);
     }
 
     if ($db_limit === false) {
@@ -32,11 +28,7 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
 
     $user_status = false;
     if ($memcached_connected) {
-        try {
-            $user_status = $memcached->get($user_status_cache_key);
-        } catch (Exception $e) {
-            $user_status = false;
-        }
+        $user_status = $memcached->get($user_status_cache_key);
     }
 
     if ($user_status === false) {

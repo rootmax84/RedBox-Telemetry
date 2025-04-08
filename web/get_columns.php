@@ -3,9 +3,8 @@ $columns_cache_key = "columns_data_{$db_pids_table}";
 
 $coldata = [];
 if ($memcached_connected) {
-    try {
-        $coldata = $memcached->get($columns_cache_key);
-    } catch (Exception $e) {
+    $coldata = $memcached->get($columns_cache_key);
+    if ($memcached->getResultCode() !== Memcached::RES_SUCCESS) {
         $coldata = [];
     }
 }

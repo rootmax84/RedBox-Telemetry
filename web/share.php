@@ -44,13 +44,9 @@ if ($username) {
     $gps_data = false;
 
     if ($memcached_connected) {
-        try {
-            $g_cached_data = $memcached->get($gps_cache_key);
-            if ($g_cached_data !== false) {
-                list($gps_data, $cached_timestamp) = $g_cached_data;
-            }
-        } catch (Exception $e) {
-            $gps_data = false;
+        $g_cached_data = $memcached->get($gps_cache_key);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($g_cached_data)) {
+            list($gps_data, $cached_timestamp) = $g_cached_data;
         }
     }
 

@@ -36,13 +36,9 @@ if (isset($sids[0])) {
     $yeararray = false;
 
     if ($memcached_connected) {
-        try {
-            $y_cached_data = $memcached->get($years_cache_key);
-            if ($y_cached_data !== false) {
-                list($yeararray, $cached_timestamp) = $y_cached_data;
-            }
-        } catch (Exception $e) {
-            $yeararray = false;
+        $y_cached_data = $memcached->get($years_cache_key);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($y_cached_data)) {
+            list($yeararray, $cached_timestamp) = $y_cached_data;
         }
     }
 
@@ -70,13 +66,9 @@ if (isset($sids[0])) {
     $profilearray = false;
 
     if ($memcached_connected) {
-        try {
-            $p_cached_data = $memcached->get($profiles_cache_key);
-            if ($p_cached_data !== false) {
-                list($profilearray, $cached_timestamp) = $p_cached_data;
-            }
-        } catch (Exception $e) {
-            $profilearray = false;
+        $p_cached_data = $memcached->get($profiles_cache_key);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($p_cached_data)) {
+            list($profilearray, $cached_timestamp) = $p_cached_data;
         }
     }
 
@@ -101,13 +93,9 @@ if (isset($sids[0])) {
     $gps_data = false;
 
     if ($memcached_connected) {
-        try {
-            $g_cached_data = $memcached->get($gps_cache_key);
-            if ($g_cached_data !== false) {
-                list($gps_data, $cached_timestamp) = $g_cached_data;
-            }
-        } catch (Exception $e) {
-            $gps_data = false;
+        $g_cached_data = $memcached->get($gps_cache_key);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($g_cached_data)) {
+            list($gps_data, $cached_timestamp) = $g_cached_data;
         }
     }
 
@@ -152,13 +140,9 @@ if (isset($sids[0])) {
     $stream_lock = false;
 
     if ($memcached_connected) {
-        try {
-            $s_cached_data = $memcached->get($stream_lock_cache_key);
-            if ($s_cached_data !== false) {
-                list($stream_lock, $cached_timestamp) = $s_cached_data;
-            }
-        } catch (Exception $e) {
-            $stream_lock = false;
+        $s_cached_data = $memcached->get($stream_lock_cache_key);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($s_cached_data)) {
+            list($stream_lock, $cached_timestamp) = $s_cached_data;
         }
     }
 
@@ -179,13 +163,9 @@ if (isset($sids[0])) {
     $id = false;
 
     if ($memcached_connected) {
-        try {
-            $i_cached_data = $memcached->get($session_id_cache_key);
-            if ($i_cached_data !== false) {
-                list($id, $cached_timestamp) = $i_cached_data;
-            }
-        } catch (Exception $e) {
-            $id = false;
+        $i_cached_data = $memcached->get($session_id_cache_key);
+        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($i_cached_data)) {
+            list($id, $cached_timestamp) = $i_cached_data;
         }
     }
 
