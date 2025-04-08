@@ -35,7 +35,7 @@ $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WH
 [$speed, $temp, $pressure, $boost] = $setqry;
 
 if (!$s->num_rows || !$d->num_rows) {
-    echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>Select PIDs to show in Functions ↓</span></td></tr>\n\nretry: 5000\n\n";
+    echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>" . $translations[$_COOKIE['lang']]['stream.empty'] . "</span></td></tr>\n\nretry: 5000\n\n";
     die;
 }
 
@@ -138,7 +138,7 @@ function outputLastRecordDate($time, $rate) {
         $time_format = $_COOKIE['timeformat'] == "12" ? "d.m.Y h:i:sa" : "d.m.Y H:i:s";
         $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>" . $translations[$_COOKIE['lang']]['stream.last'] . date($time_format, $seconds) . "</span></td></tr>";
     } else {
-        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>No data available</span></td></tr>";
+        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>" . $translations[$_COOKIE['lang']]['nodata'] . "</span></td></tr>";
     }
     echo "data: {$data}\n";
     if (isset($seconds) && time() - $seconds < 10) {

@@ -21,25 +21,52 @@ include("head.php");
     <body>
     <script>
         function submitForm(form) {
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            if (submitBtn.disabled) {
+                return false;
+            }
+
+            submitBtn.disabled = true;
+
             let formData = new FormData(form);
 
             document.querySelectorAll("td[contenteditable=true], input[type='checkbox'], select").forEach(function(el) {
                 let fieldPid = el.getAttribute("id");
+                if (!fieldPid) return;
+
                 let value;
                 if (el.type === "checkbox") {
                     value = el.checked;
                 } else {
                     value = el.value || el.textContent;
                 }
-                formData.append(fieldPid, value);
+                formData.set(fieldPid, value);
             });
 
-            let xhr = new XMLHttpRequest();
-            xhr.onload = function() {
-                xhrResponse(xhr.responseText);
-            };
-            xhr.open(form.method, form.getAttribute("action"));
-            xhr.send(formData);
+            fetch(form.getAttribute("action"), {
+                method: form.method,
+                body: formData
+            })
+            .then(response => response.text())
+            .then(responseText => {
+                xhrResponse(responseText);
+                if (submitBtn) {
+                    setTimeout(() => {
+                        submitBtn.disabled = false;
+                    }, 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (submitBtn) {
+                    setTimeout(() => {
+                        submitBtn.disabled = false;
+                    }, 1000);
+                }
+            });
+
             return false;
         }
 

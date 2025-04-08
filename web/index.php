@@ -944,39 +944,46 @@ function delSession() {
 }
 
 function showToken() {
-$("#wait_layout").show();
-let xhr = new XMLHttpRequest();
- xhr.onreadystatechange = function() {
-  if (this.readyState == 4 && this.status == 200) {
-	$("#wait_layout").hide();
-	let token = this.responseText;
-	let dialogOpt = {
-	    title : `${localization.key['dialog.token']} <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="float: right;"><path fill="currentColor" d="M7 14q-.825 0-1.412-.587T5 12t.588-1.412T7 10t1.413.588T9 12t-.587 1.413T7 14m0 4q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q1.675 0 3.038.825T12.2 9H21l3 3l-4.5 4.5l-2-1.5l-2 1.5l-2.125-1.5H12.2q-.8 1.35-2.162 2.175T7 18m0-2q1.4 0 2.463-.85T10.875 13H14l1.45 1.025L17.5 12.5l1.775 1.375L21.15 12l-1-1h-9.275q-.35-1.3-1.412-2.15T7 8Q5.35 8 4.175 9.175T3 12t1.175 2.825T7 16"></path></svg>`,
-	    btnClassSuccessText: localization.key['btn.copy'],
-	    btnClassFail: "btn btn-info btn-sm",
-	    btnClassFailText: localization.key['btn.renew'],
-	    message : token,
-	    onResolve: function(){
-	     navigator.clipboard.writeText(token);
-	    },
-	    onReject: function(){
-	     $("#wait_layout").show();
-	     let xhr = new XMLHttpRequest();
-	     xhr.onreadystatechange = function() {
-	     if (this.readyState == 4) {
-		this.status == 200 ? showToken() : tokenError();
-	      }
-	     }
-	     xhr.open("GET","users_handler.php?renew_token");
-	     xhr.send();
-	    }
-	};
-	redDialog.make(dialogOpt);
-	$("#dialogText").css({"letter-spacing":".6px", "font-family":"monospace"});
-  }
-};
- xhr.open("GET", "users_handler.php?get_token");
- xhr.send();
+    $("#wait_layout").show();
+
+    fetch("users_handler.php?get_token")
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            }
+        })
+        .then(token => {
+            $("#wait_layout").hide();
+            const dialogOpt = {
+                title: `${localization.key['dialog.token']} <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="float: right;"><path fill="currentColor" d="M7 14q-.825 0-1.412-.587T5 12t.588-1.412T7 10t1.413.588T9 12t-.587 1.413T7 14m0 4q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q1.675 0 3.038.825T12.2 9H21l3 3l-4.5 4.5l-2-1.5l-2 1.5l-2.125-1.5H12.2q-.8 1.35-2.162 2.175T7 18m0-2q1.4 0 2.463-.85T10.875 13H14l1.45 1.025L17.5 12.5l1.775 1.375L21.15 12l-1-1h-9.275q-.35-1.3-1.412-2.15T7 8Q5.35 8 4.175 9.175T3 12t1.175 2.825T7 16"></path></svg>`,
+                btnClassSuccessText: localization.key['btn.copy'],
+                btnClassFail: "btn btn-info btn-sm",
+                btnClassFailText: localization.key['btn.renew'],
+                message: token,
+                onResolve: function() {
+                    navigator.clipboard.writeText(token);
+                },
+                onReject: function() {
+                    $("#wait_layout").show();
+                    fetch("users_handler.php?renew_token")
+                        .then(response => {
+                            if (response.ok) {
+                                showToken();
+                            } else {
+                                tokenError();
+                            }
+                        })
+                        .catch(() => tokenError());
+                }
+            };
+            redDialog.make(dialogOpt);
+            $("#dialogText").css({"letter-spacing": ".6px", "font-family": "monospace"});
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            $("#wait_layout").hide();
+            tokenError();
+        });
 }
 
 function tokenError() {

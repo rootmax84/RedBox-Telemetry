@@ -141,9 +141,14 @@
 <script>
 "use strict";
 function submitForm(el) {
-  let xhr = new XMLHttpRequest();
-  xhr.onload = function(){ xhrResponse(xhr.responseText); }
-  xhr.open(el.method, el.getAttribute("action"));
+  const submitBtn = el.querySelector('button[type="submit"]');
+
+  if (submitBtn.disabled) {
+    return false;
+  }
+
+  submitBtn.disabled = true;
+
   localStorage.setItem(`${username}-chart_fill`, $("#chart-fill").val());
   localStorage.setItem(`${username}-chart_fillGradient`, $("#chart-fillGradient").val());
   localStorage.setItem(`${username}-chart_steps`, $("#chart-steps").val());
@@ -151,14 +156,25 @@ function submitForm(el) {
 
   lang = $("#lang").val();
   fetch(`translations.php?lang=${lang}`)
+    .then(() => localization.setLang(lang))
     .then(() => {
-      return localization.setLang(lang);
+      return fetch(el.getAttribute("action"), {
+        method: el.method,
+        body: new FormData(el),
+      });
     })
-    .then(() => {
-      xhr.send(new FormData(el));
+    .then(response => response.text())
+    .then(responseText => {
+      xhrResponse(responseText);
+      setTimeout(() => {
+        submitBtn.disabled = false;
+      }, 1000);
     })
     .catch(error => {
       console.error('Error:', error);
+      setTimeout(() => {
+        submitBtn.disabled = false;
+      }, 1000);
     });
 
   return false;
