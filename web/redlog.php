@@ -222,7 +222,12 @@ for ($f = 0; $f < count($files); $f++) {
         $db->execute_query("INSERT INTO $db_table (session, time, kff1005, kff1006, k21fa, kff1202, k5, k5c, kf, kb4, kc, kb, k1f, k2118, k2120, k2122, k2125, kff1238, k46, k2101, kd, k10, k11, ke, k2112, k2100, k2113, k21cc, kff1214, kff1218, k78, k2111, k2119, k2124, k21e1, k21e2, k2126, kff1001, kff120c) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", $insertData);
     } catch (Exception $e) {
         header('HTTP/1.0 406');
-        echo htmlspecialchars($files[$f]['name']) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+        $file = htmlspecialchars($files[$f]['name']);
+        if (str_contains($e, 'Duplicate')) {
+            echo $file . " " . $translations[$_COOKIE['lang']]['redlog.dup'];
+        } else {
+            echo $file . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+        }
         $db->execute_query("DELETE FROM $db_table WHERE session=?", [$session]);
         $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$session]);
         die;
