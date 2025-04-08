@@ -90,9 +90,12 @@ try {
 
         // Handle Telegram integration
         if (isset($_POST['tg_token'], $_POST['tg_chatid'])) {
+            $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
+            cache_flush($token);
+
             $db->execute_query("UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?", [$_POST['tg_token'], $_POST['tg_chatid'], $username]);
 
-            $testMessage = notify("RedBox Telemetry test message", $_POST['tg_token'], $_POST['tg_chatid']);
+            $testMessage = notify("👋", $_POST['tg_token'], $_POST['tg_chatid']);
 
             $response = $testMessage === null 
                 ? $translations[$_COOKIE['lang']]['set.nothing']
@@ -455,11 +458,9 @@ try {
             }
 
             $db->execute_query("DELETE FROM $db_users WHERE user=?", [$login]);
-            if ($memcached_connected) {
-                $username = $login;
-                $token = $userqry->fetch_assoc()['token'];
-                cache_flush($token);
-            }
+            $username = $login;
+            $token = $userqry->fetch_assoc()['token'];
+            cache_flush($token);
             $response = $translations[$_COOKIE['lang']]['admin.del.ok'].$login;
         }
 
