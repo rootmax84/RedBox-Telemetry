@@ -138,6 +138,33 @@ if ($dbfields === false) {
     }
 }
 
+$rate_limit_key = "rate_limit_" . $username;
+$max_upload_requests_per_second = $max_upload_requests_per_second ?? 100;
+
+if ($memcached_connected) {
+    $current_requests = $memcached->get($rate_limit_key);
+
+    if ($current_requests === false) {
+        try {
+            $memcached->set($rate_limit_key, 1, 1);
+        } catch (Exception $e) {
+            error_log(sprintf("Memcached error on upload: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+        }
+    } else {
+        if ($current_requests >= $max_upload_requests_per_second) {
+            http_response_code(429);
+            error_log("Upload spammer detected: " . $username);
+            die($translations[$lang]['upload.429']);
+        } else {
+            try {
+                $memcached->increment($rate_limit_key, 1);
+            } catch (Exception $e) {
+                error_log(sprintf("Memcached error on upload: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+            }
+        }
+    }
+}
+
 $allowedProfileFields = [
     'profileName'
 ];
