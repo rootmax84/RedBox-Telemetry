@@ -50,7 +50,7 @@ if (!empty($token)) {
 
  //Check auth via Bearer token
  if ($user_data === false) {
-    $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid, forward_url FROM $db_users WHERE token=?", [$token]);
+    $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid, forward_url, forward_token FROM $db_users WHERE token=?", [$token]);
     if ($userqry->num_rows) {
         $access = 1;
         $user_data = $userqry->fetch_assoc();
@@ -74,6 +74,7 @@ if (!empty($token)) {
     $tg_token = $user_data['tg_token'];
     $tg_chatid = $user_data['tg_chatid'];
     $forward_url = $user_data['forward_url'] ?? null;
+    $forward_token = $user_data['forward_token'] ?? null;
  }
 } else $access = 0;
 
@@ -268,7 +269,6 @@ fastcgi_finish_request();
 if (!empty($forward_url)) {
     $method = $_SERVER['REQUEST_METHOD'];
     $forward_data = $_REQUEST;
-    $forward_data['token'] = $token;
 
     $ch = curl_init();
 
@@ -288,9 +288,11 @@ if (!empty($forward_url)) {
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
     curl_setopt($ch, CURLOPT_NOSIGNAL, 1);
 
-    // Forward headers if needed
+    // Forward headers
     $headers = [];
-    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+    if (!empty($forward_token)) {
+        $headers[] = 'Authorization: Bearer ' . $forward_token;
+    } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
         $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
     }
     if (!empty($headers)) {
