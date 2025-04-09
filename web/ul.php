@@ -270,6 +270,10 @@ if (!empty($forward_url)) {
     $method = $_SERVER['REQUEST_METHOD'];
     $forward_data = $_REQUEST;
 
+    if (empty($forward_data['eml'])) {
+        $forward_data['eml'] = $username . '@redbox.null';
+    }
+
     $ch = curl_init();
 
     if ($method === 'GET') {
