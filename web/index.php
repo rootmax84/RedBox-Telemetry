@@ -236,6 +236,7 @@ if (isset($sids[0])) {
       });
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+    <div class="fetch-data"></div>
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
     <div class="storage-usage-img"></div>
     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>

@@ -368,7 +368,7 @@ let updCharts = (last = false)=>{
         $('#Summary-Container').empty();
         $('#Summary-Container').append(noChart);
     } else if ($('#plot_data').chosen().val().length <= 10){
-        $(".pure-g, #Chart-Container").css("filter", "opacity(.8)");
+        $(".fetch-data").css("display", "block");
         let varPrm = null;
         if (sid && uid && key) {
             varPrm = `plot.php?id=${sid}&uid=${uid}&key=${key}`;
@@ -378,7 +378,7 @@ let updCharts = (last = false)=>{
         $('#plot_data').chosen().val().forEach((v,i)=>varPrm+='&s'+(i+1)+'='+v);
         fetch(varPrm).then(d => d.json()).then(gData => {
             if (last) {
-                $(".pure-g, #Chart-Container").css("filter", "none");
+                $(".fetch-data").css("display", "none");
 
                 function updateHeatData(gData) {
                   const heatDataMap = {};
@@ -406,7 +406,7 @@ let updCharts = (last = false)=>{
                 return;
             }
             flotData = [];
-            $(".pure-g, #Chart-Container").css("filter", "none");
+            $(".fetch-data").css("display", "none");
             gData.forEach(v => flotData.push({label: v[1], data: v[2].map(a => [parseInt(a[0]), a[1]])}));
 
             // Processing data to remove time gaps on merged sessions
@@ -509,7 +509,7 @@ let updCharts = (last = false)=>{
             $('#Chart-Container').append(noChart2);
             $('#Summary-Container').empty();
             $('#Summary-Container').append(noChart);
-            $(".pure-g, #Chart-Container").css("filter", "none");
+            $(".fetch-data").css("display", "none");
             console.error(err);
         });
     }
@@ -1466,6 +1466,14 @@ function sortMergeDel() {
   }
 }
 
+const mapResize = (() => {
+    let timer = null;
+    return () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => map.invalidateSize(), 100);
+    };
+})();
+
 function resizeSplitter() {
 
   if (nogps) {
@@ -1506,8 +1514,8 @@ function resizeSplitter() {
     const containerWidth = container.offsetWidth;
     const pointerRelativeX = x - containerOffsetLeft;
 
-    const leftMin = 250;
-    const rightMin = 250;
+    const leftMin = 300;
+    const rightMin = 300;
     const maxLeft = containerWidth - rightMin;
     const minLeft = leftMin;
 
@@ -1518,7 +1526,7 @@ function resizeSplitter() {
 
     leftPane.style.width = `${leftWidthPercent}%`;
     rightPane.style.width = `${rightWidthPercent}%`;
-    map.invalidateSize();
+    mapResize();
   }
 
   function saveSplitterPosition() {
@@ -1538,7 +1546,7 @@ function resizeSplitter() {
                 leftPane.style.width = `${percent}%`;
                 rightPane.style.width = `${100 - percent}%`;
             }
-            map.invalidateSize();
+            mapResize();
         });
     }
   }
@@ -1547,7 +1555,7 @@ function resizeSplitter() {
     localStorage.removeItem(STORAGE_KEY);
     leftPane.style.width = '50%';
     rightPane.style.width = '50%';
-    map.invalidateSize();
+    mapResize();
   }
 
   // Mouse

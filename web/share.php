@@ -192,6 +192,7 @@ include("head.php");
     </script>
     
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+        <div class="fetch-data"></div>
         <?php if (!isset($_SESSION['admin']) && $limit > 0) { ?>
             <div class="storage-usage-img"></div>
             <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
@@ -244,7 +245,9 @@ include("head.php");
                         <!-- MAP -->
                         <div id="map-div"><div class="row center-block map-container" id="map"></div></div>
                     </div>
-                <?php } ?>
+                <?php } else { ?>
+                    <div id="nogps"></div>
+                <?php   } ?>
             </div>
             <br>
 

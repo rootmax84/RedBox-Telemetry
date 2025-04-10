@@ -1021,3 +1021,14 @@ input[type="checkbox"]:disabled:checked::after {
     height: auto;
   }
 }
+
+.fetch-data {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 15px auto;
+  width: 16px;
+  height: 16px;
+  background: url("data:image/gif;base64,R0lGODdhEAAQAHcAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQJDAAAACwAAAAAEAAQAMAAAAAAAAACG4SPaRHA3s5TtNpr54q4+w8mGjaW0YM2aciGBQAh+QQJDAAAACwBAAUADgAFAMAAAAAAAAACD4QTpovQnxBkabl68JymAAAh+QQJDAAAACwBAAUADgAFAMAAAAAAAAACD4QfcagJDpWJy60nZ6axAAAh+QQJDAAAACwBAAUADgAFAMAAAAAAAAACD4R/EbkKDtVib1ZEjaOxAAAh+QQJDAAAACwBAAUADgAFAMAAAAAAAAACD4SPFhuw3t5T7cgKE73oFgA7");
+  display: none;
+}
