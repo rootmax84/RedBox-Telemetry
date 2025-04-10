@@ -1485,7 +1485,7 @@ function resizeSplitter() {
   const resizer = document.querySelector('.resizer');
   const leftPane = document.querySelector('.left');
   const rightPane = document.querySelector('.right');
-  const STORAGE_KEY = 'splitter-left-width';
+  const STORAGE_KEY = `${username}-splitter_left_width`;
 
   let isResizing = false;
 
