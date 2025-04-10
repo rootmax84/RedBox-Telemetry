@@ -232,6 +232,7 @@ if (isset($sids[0])) {
         plotData.chosen();
         updCharts();
         if (window.history.replaceState) window.history.replaceState(null, null, window.location.href);
+        resizeSplitter();
       });
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
@@ -349,16 +350,11 @@ if (isset($sids[0])) {
 <?php   if ( $filtermonth <> "" ) { ?>
 	    <input type="hidden" name="selmonth" value="<?php echo $filtermonth; ?>">
 <?php   } ?>
-         <div id="chart-load"></div>
 	</div>
 
-<div <?php if($imapdata) { ?> class="pure-g" <?php } ?>>
-  <div <?php if($imapdata) { ?> class="pure-u-md-1-2" <?php } ?>>
+<div <?php if($imapdata) { ?> class="pure-g split-container" <?php } ?>>
+  <div <?php if($imapdata) { ?> class="pure-u-md-1-2 pane left" <?php } ?>>
     <!-- Chart Block -->
-    <div id="update-plot">
-        <?php if($imapdata) { ?> <h4 class="wide-h" l10n="chart"></h4>
-        <?php } else { ?> <h4 l10n="chart"><span class="nogps" l10n="nogps"></span></h4> <?php } ?>
-    </div>
     <div id="Chart-Container" class="row center-block" style="z-index:1;position:relative;">
     <?php   if ( $var1 <> "" ) { ?>
     <div class="demo-container">
@@ -371,13 +367,15 @@ if (isset($sids[0])) {
     <?php   } ?>
     </div>
   </div>
+  <div class="resizer"></div>
 <?php if ($imapdata) { ?>
- <div class="pure-u-md-1-2">
+ <div class="pure-u-md-1-2 pane right">
     <!-- MAP -->
-    <h4 class="wide-h" l10n="tracking"></h4>
     <div id="map-div"><div class="row center-block map-container" id="map"></div></div>
   </div>
-<?php } ?>
+<?php } else { ?>
+    <div id="nogps"></div>
+<?php   } ?>
 </div>
 <br>
 

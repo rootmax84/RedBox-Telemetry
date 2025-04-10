@@ -147,6 +147,7 @@ include("head.php");
             plotData.chosen();
             updCharts();
             $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
+            resizeSplitter();
 
             const langSwitch = document.getElementById('lang-switch');
             const selectedLang = document.getElementById('selected-lang');
@@ -226,30 +227,21 @@ include("head.php");
                         </option>
                     <?php } ?>
                 </select>
-                <div id="chart-load"></div>
             </div>
 
-            <div <?php if($imapdata) { ?> class="pure-g" <?php } ?>>
-                <div <?php if($imapdata) { ?> class="pure-u-md-1-2" <?php } ?>>
+            <div <?php if($imapdata) { ?> class="pure-g split-container" <?php } ?>>
+                <div <?php if($imapdata) { ?> class="pure-u-md-1-2 pane left" <?php } ?>>
                     <!-- Chart Block -->
-                    <div id="update-plot">
-                        <?php if($imapdata) { ?>
-                            <h4 class="wide-h" l10n="chart"></h4>
-                        <?php } else { ?>
-                            <h4 l10n="chart"><span class="nogps" l10n="nogps"></span></h4>
-                        <?php } ?>
-                    </div>
                     <div id="Chart-Container" class="row center-block" style="z-index:1;position:relative;">
                             <div style="display:flex; justify-content:center;">
                                 <h5><span class="label label-warning">. . .</span></h5>
                             </div>
                     </div>
                 </div>
-                
+                 <div class="resizer"></div>
                 <?php if ($imapdata) { ?>
-                    <div class="pure-u-md-1-2">
+                    <div class="pure-u-md-1-2 pane right">
                         <!-- MAP -->
-                        <h4 class="wide-h" l10n="tracking"></h4>
                         <div id="map-div"><div class="row center-block map-container" id="map"></div></div>
                     </div>
                 <?php } ?>

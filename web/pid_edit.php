@@ -80,6 +80,25 @@ include("head.php");
             redDialog.make(dialogOpt);
 
         }
+
+    $(document).on('keydown paste', '[contenteditable="true"]', function(e) {
+        let max = $(this).is('[id^="description"]') ? 64 : 16;
+        let currentText = $(this).text();
+
+        if (e.type === 'paste') {
+            setTimeout(() => {
+                if ($(this).text().length > max) {
+                    $(this).text(currentText.substring(0, max));
+                }
+            }, 0);
+            return true;
+        }
+
+        if (currentText.length >= max && 
+            ![8, 46, 37, 38, 39, 40].includes(e.keyCode)) {
+            return false;
+        }
+    });
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>

@@ -36,7 +36,6 @@ $(document).ready(function(){
   $("select#plot_data").chosen({placeholder_text_multiple: "Choose data.."});
   // Reset flot zoom
   $("#Chart-Container").on("dblclick", ()=>{initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
-  $("#update-plot").on("dblclick", updatePlot);
 });
 
 let lastPlotUpdateTime = 0;
@@ -46,7 +45,7 @@ let streamNewData = false;
 //Fetch plot data every 10 sec
 function schedulePlotUpdate(timestamp) {
   if (timestamp - lastPlotUpdateTime >= 10000) {
-    if (streamNewData || document.querySelector('span.nogps[l10n="nogps"]') !== null) updatePlot();
+    if (streamNewData || document.querySelector('#nogps')) updatePlot();
     lastPlotUpdateTime = timestamp;
   }
   animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
@@ -359,7 +358,7 @@ let updCharts = (last = false)=>{
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
             heatData = [];
-            updateMapWithRangePreservingHeatline(null,null,true);
+            if (typeof map !== 'undefined') updateMapWithRangePreservingHeatline(null,null,true);
             plot.shutdown();
         }
         $('#Chart-Container').empty();
@@ -367,7 +366,7 @@ let updCharts = (last = false)=>{
         $('#Summary-Container').empty();
         $('#Summary-Container').append(noChart);
     } else if ($('#plot_data').chosen().val().length <= 10){
-        $("#chart-load").css("display","block");
+        $(".pure-g, #Chart-Container").css("filter", "opacity(.8)");
         let varPrm = null;
         if (sid && uid && key) {
             varPrm = `plot.php?id=${sid}&uid=${uid}&key=${key}`;
@@ -377,7 +376,7 @@ let updCharts = (last = false)=>{
         $('#plot_data').chosen().val().forEach((v,i)=>varPrm+='&s'+(i+1)+'='+v);
         fetch(varPrm).then(d => d.json()).then(gData => {
             if (last) {
-                $("#chart-load").css("display","none");
+                $(".pure-g, #Chart-Container").css("filter", "none");
 
                 function updateHeatData(gData) {
                   const heatDataMap = {};
@@ -405,7 +404,7 @@ let updCharts = (last = false)=>{
                 return;
             }
             flotData = [];
-            $("#chart-load").css("display","none");
+            $(".pure-g, #Chart-Container").css("filter", "none");
             gData.forEach(v => flotData.push({label: v[1], data: v[2].map(a => [parseInt(a[0]), a[1]])}));
 
             // Processing data to remove time gaps on merged sessions
@@ -508,7 +507,7 @@ let updCharts = (last = false)=>{
             $('#Chart-Container').append(noChart2);
             $('#Summary-Container').empty();
             $('#Summary-Container').append(noChart);
-            $('#chart-load').hide();
+            $(".pure-g, #Chart-Container").css("filter", "none");
             console.error(err);
         });
     }
@@ -1462,6 +1461,113 @@ function sortMergeDel() {
     var parts = durationStr.split(":");
     return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
   }
+}
+
+function resizeSplitter() {
+  if (typeof map === 'undefined') {
+    $(".resizer").css("display","none");
+    return;
+  }
+
+  const container = document.querySelector('.split-container');
+  const resizer = document.querySelector('.resizer');
+  const leftPane = document.querySelector('.left');
+  const rightPane = document.querySelector('.right');
+  const STORAGE_KEY = 'splitter-left-width';
+
+  let isResizing = false;
+
+  function isHorizontal() {
+    return getComputedStyle(container).flexDirection === 'row';
+  }
+
+  function startResize() {
+    if (!isHorizontal()) return;
+    isResizing = true;
+    document.body.style.cursor = 'col-resize';
+  }
+
+  function stopResize() {
+    if (isResizing) {
+      saveSplitterPosition();
+    }
+    isResizing = false;
+    document.body.style.cursor = 'default';
+  }
+
+  function resize(x) {
+    if (!isResizing || !isHorizontal()) return;
+
+    const containerOffsetLeft = container.offsetLeft;
+    const containerWidth = container.offsetWidth;
+    const pointerRelativeX = x - containerOffsetLeft;
+
+    const leftMin = 300;
+    const rightMin = 300;
+    const maxLeft = containerWidth - rightMin;
+    const minLeft = leftMin;
+
+    if (pointerRelativeX < minLeft || pointerRelativeX > maxLeft) return;
+
+    const leftWidthPercent = (pointerRelativeX / containerWidth) * 100;
+    const rightWidthPercent = 100 - leftWidthPercent;
+
+    leftPane.style.width = `${leftWidthPercent}%`;
+    rightPane.style.width = `${rightWidthPercent}%`;
+  }
+
+  function saveSplitterPosition() {
+    if (!isHorizontal()) return;
+    const width = leftPane.getBoundingClientRect().width;
+    const containerWidth = container.offsetWidth;
+    const percent = (width / containerWidth) * 100;
+    localStorage.setItem(STORAGE_KEY, percent.toFixed(2));
+  }
+
+  function restoreSplitterPosition() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        const percent = parseFloat(saved);
+        requestAnimationFrame(() => {
+            if (isHorizontal() && percent > 10 && percent < 90) {
+                leftPane.style.width = `${percent}%`;
+                rightPane.style.width = `${100 - percent}%`;
+            }
+        });
+    }
+  }
+
+  function resetSplitterPosition() {
+    localStorage.removeItem(STORAGE_KEY);
+    leftPane.style.width = '50%';
+    rightPane.style.width = '50%';
+  }
+
+  // Mouse
+  resizer.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startResize();
+  });
+
+  document.addEventListener('mousemove', e => resize(e.clientX));
+  document.addEventListener('mouseup', stopResize);
+
+  // Touch
+  resizer.addEventListener('touchstart', e => startResize());
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length > 0) {
+      resize(e.touches[0].clientX);
+    }
+  });
+  document.addEventListener('touchend', stopResize);
+
+  // Double click to reset
+  resizer.addEventListener('dblclick', () => {
+    resetSplitterPosition();
+  });
+
+  // Restore on load
+  restoreSplitterPosition();
 }
 
 let redDialog = {
