@@ -580,6 +580,10 @@ img {
   display: inline-block;
 }
 
+.pages a:hover {
+  text-decoration: underline;
+}
+
 .pages {
   text-align: center;
   font-family: monospace;
