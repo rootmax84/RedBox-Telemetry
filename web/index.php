@@ -699,8 +699,6 @@ if ($current_page < $total_pages) {
     <a class="btn btn-default btn-admin" href="./users_admin.php?action=reg" l10n="admin.page.btn.reg"></a>
     <a class="btn btn-default btn-admin" href="./users_admin.php?action=edit" l10n="admin.page.btn.edit"></a>
     <a class="btn btn-default btn-admin" href="./users_admin.php?action=del" l10n="admin.page.btn.del"></a>
-</div>
-<div class="admin-panel">
     <a class="btn btn-default btn-admin" href="./users_admin.php?action=trunc" l10n="admin.page.btn.trunc"></a>
     <a class="btn btn-default btn-admin" href="./adminer.php?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>" target="_blank">Adminer</a>
     <a class="btn btn-default btn-admin" href="#" onclick="maintenance()" l10n="admin.page.btn.maintenance"></a>

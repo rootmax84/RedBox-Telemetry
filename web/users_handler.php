@@ -166,7 +166,7 @@ try {
 
             $userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
 
-            if ($userqry->num_rows || strlen($login) < 1) {
+            if ($userqry->num_rows || strlen($login) < 1 || strlen($login) > 32) {
                 die($translations[$_COOKIE['lang']]['admin.user.exists']);
             }
 

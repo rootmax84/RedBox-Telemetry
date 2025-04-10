@@ -33,9 +33,11 @@ tbody tr:hover {
 
 .admin-panel {
   display: flex;
-  padding: 5px 0 0;
-  width: 410px;
+  padding: 0 10px 10px;
+  width: fit-content;
   margin: 0 auto;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .admin-card {
@@ -48,9 +50,7 @@ tbody tr:hover {
 }
 
 .btn-admin {
-  width: 100%;
-  padding: 5px;
-  margin: 0 2px 0;
+  flex: 1 0 30%;
   border-radius: 5px;
 }
 

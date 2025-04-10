@@ -32,8 +32,8 @@ if ($_GET['action'] == "edit") {
     $limit = isset($_GET['limit']) ? $_GET['limit'] : null;
 ?>
 	    <h4 l10n="admin.edit.title"></h4>
-		<input class="form-control" type="text" name="e_login" value="<?php echo $user; ?>" l10n-placeholder="login.login" required autofocus <?php if(isset($user)){?> readonly <?php }?>></br>
-		<input class="form-control" type="password" name="e_pass" value="" l10n-placeholder="login.pwd" autocomplete="new-password"></br>
+		<input class="form-control" type="text" name="e_login" value="<?php echo $user; ?>" maxlength="32" l10n-placeholder="login.login" required autofocus <?php if(isset($user)){?> readonly <?php }?>></br>
+		<input class="form-control" type="password" name="e_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password"></br>
 		<input class="form-control" type="number" min="-1" max="100000" name="e_limit" l10n-placeholder="input.limits" value="<?php if($user != $admin) echo $limit; ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.edit.btn"></button>
 <?php
@@ -41,8 +41,8 @@ if ($_GET['action'] == "edit") {
 else if ($_GET['action'] == "reg") {
 ?>
 	    <h4 l10n="admin.reg.title"></h4>
-		<input class="form-control" type="text" name="reg_login" value="" l10n-placeholder="login.login" required autofocus><br>
-		<input class="form-control" type="password" name="reg_pass" value="" l10n-placeholder="login.pwd" autocomplete="new-password" required>
+		<input class="form-control" type="text" name="reg_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus><br>
+		<input class="form-control" type="password" name="reg_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password" required>
 		<div style="padding:15px 0"><label style="font-size:13px;font-family:'Open Sans'"><input type="checkbox" style="margin-bottom:3px" name="reg_legacy"><span l10n="admin.reg.obd" style="margin-left:3px"></span></label></div>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.reg.btn"></button>
 <?php
@@ -50,14 +50,14 @@ else if ($_GET['action'] == "reg") {
 else if ($_GET['action'] == "del") {
 ?>
 	    <h4 l10n="admin.del.title"></h4>
-		<input class="form-control" type="text" name="del_login" value="" l10n-placeholder="login.login" required autofocus><br>
+		<input class="form-control" type="text" name="del_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus><br>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.del.btn"></button>
 <?php
 }
 else if ($_GET['action'] == "trunc") {
 ?>
 	    <h4 l10n="admin.trunc.title"></h4>
-		<input class="form-control" type="text" name="trunc_login" value="" l10n-placeholder="login.login" required autofocus></br>
+		<input class="form-control" type="text" name="trunc_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus></br>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.trunc.btn"></button>
 <?php
 }
