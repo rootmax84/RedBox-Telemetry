@@ -974,7 +974,7 @@ input[type="checkbox"]:disabled:checked::after {
 }
 
 .resizer {
-  width: 6px;
+  width: 10px;
   height: 150px;
   background: #e6e6e6;
   border-radius: 5px;
@@ -984,6 +984,21 @@ input[type="checkbox"]:disabled:checked::after {
   margin-left: -5px;
   transition: height .25s ease, background .25s ease;
   transform: translateY(-20px);
+}
+
+.resizer::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 4px;
+  background-color: #999; /* mid */
+  border-radius: 50%;
+  box-shadow:
+    0 -10px 0 0 #999, /* Top */
+    0 10px 0 0 #999;  /* Bottom */
 }
 
 .resizer:hover,
