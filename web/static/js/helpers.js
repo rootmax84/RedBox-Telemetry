@@ -520,6 +520,7 @@ let updCharts = (last = false)=>{
 //End of chart plotting js code
 
 //Start of Leaflet Map Providers js code
+let map = null;
 let initMapLeaflet = () => {
     let osm = new L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -532,7 +533,7 @@ let initMapLeaflet = () => {
         attribution: '© Esri'});
 
     let path = window.MapData.path;
-    let map = new L.Map("map", {
+    map = new L.Map("map", {
         center: new L.LatLng(0, 0),
         dragging: !L.Browser.mobile,
         zoom: 6, scrollWheelZoom: false,
@@ -1502,8 +1503,8 @@ function resizeSplitter() {
     const containerWidth = container.offsetWidth;
     const pointerRelativeX = x - containerOffsetLeft;
 
-    const leftMin = 300;
-    const rightMin = 300;
+    const leftMin = 250;
+    const rightMin = 250;
     const maxLeft = containerWidth - rightMin;
     const minLeft = leftMin;
 
@@ -1514,6 +1515,7 @@ function resizeSplitter() {
 
     leftPane.style.width = `${leftWidthPercent}%`;
     rightPane.style.width = `${rightWidthPercent}%`;
+    map.invalidateSize();
   }
 
   function saveSplitterPosition() {
@@ -1533,6 +1535,7 @@ function resizeSplitter() {
                 leftPane.style.width = `${percent}%`;
                 rightPane.style.width = `${100 - percent}%`;
             }
+            map.invalidateSize();
         });
     }
   }
