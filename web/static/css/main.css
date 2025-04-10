@@ -962,7 +962,6 @@ input[type="checkbox"]:disabled:checked::after {
 
 .pane {
   overflow: hidden;
-  height: 100%;
 }
 
 .left {
