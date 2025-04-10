@@ -37,7 +37,7 @@ if ($deletesession !== '' && $deletesession !== false && $deletesession !== null
         );
 
         cache_flush();
-        header("Location: .");
+        header("Location: .?id=" . $deletesession);
     } else {
         // Delete the entire session
         $db->execute_query("DELETE FROM $db_table WHERE session=?", [$deletesession]);
