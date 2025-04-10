@@ -974,7 +974,7 @@ input[type="checkbox"]:disabled:checked::after {
 }
 
 .resizer {
-  width: 8px;
+  width: 6px;
   height: 150px;
   background: #e6e6e6;
   border-radius: 5px;
@@ -983,6 +983,7 @@ input[type="checkbox"]:disabled:checked::after {
   align-self: center;
   margin-left: -5px;
   transition: height .25s ease, background .25s ease;
+  transform: translateY(-20px);
 }
 
 .resizer:hover,
