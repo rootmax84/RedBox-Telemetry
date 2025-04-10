@@ -1003,8 +1003,8 @@ input[type="checkbox"]:disabled:checked::after {
 
 .resizer:hover,
 .resizer:active {
-  height: 200px;
-  background: #bbbbbb;
+  height: 180px;
+  background: #d5d5d5;
 }
 
 @media screen and (max-width: 55em) {

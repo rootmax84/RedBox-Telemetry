@@ -37,7 +37,7 @@ function version_url($url) {
 <meta name="description" content="RedBox Telemetry">
 <link rel="stylesheet" href="<?php echo version_url('static/css/bootstrap.min.css'); ?>">
 <link rel="stylesheet" href="<?php echo version_url('static/css/chosen.min.css'); ?>">
-<link rel="stylesheet" href="<?php echo version_url('static/css/torque.css'); ?>">
+<link rel="stylesheet" href="<?php echo version_url('static/css/main.css'); ?>">
 <link rel="stylesheet" href="<?php echo version_url('static/css/Control.FullScreen.css'); ?>">
 <?php if (isset($_SESSION['torque_user'])) {?>
 <script>let darkCssUrl = "<?php echo version_url('static/css/dark.css'); ?>";</script>
