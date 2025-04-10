@@ -36,16 +36,18 @@ $(document).ready(function(){
   $("select#plot_data").chosen({placeholder_text_multiple: "Choose data.."});
   // Reset flot zoom
   $("#Chart-Container").on("dblclick", ()=>{initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
+  nogps = document.querySelector('#nogps');
 });
 
 let lastPlotUpdateTime = 0;
 let animationPlotFrameId = null;
 let streamNewData = false;
+let nogps = null;
 
 //Fetch plot data every 10 sec
 function schedulePlotUpdate(timestamp) {
   if (timestamp - lastPlotUpdateTime >= 10000) {
-    if (streamNewData || document.querySelector('#nogps')) updatePlot();
+    if (streamNewData || nogps) updatePlot();
     lastPlotUpdateTime = timestamp;
   }
   animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
@@ -358,7 +360,7 @@ let updCharts = (last = false)=>{
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
             heatData = [];
-            if (typeof map !== 'undefined') updateMapWithRangePreservingHeatline(null,null,true);
+            if (nogps === null) updateMapWithRangePreservingHeatline(null,null,true);
             plot.shutdown();
         }
         $('#Chart-Container').empty();
@@ -1465,7 +1467,8 @@ function sortMergeDel() {
 }
 
 function resizeSplitter() {
-  if (typeof map === 'undefined') {
+
+  if (nogps) {
     $(".resizer").css("display","none");
     return;
   }
