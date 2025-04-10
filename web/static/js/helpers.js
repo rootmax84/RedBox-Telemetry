@@ -1322,9 +1322,9 @@ if ('serviceWorker' in navigator) {
 
 function toggle_dark() {
 document.querySelector('html').style.transition = ".2s"
- switch (localStorage.getItem("theme")) {
+ switch (localStorage.getItem(`${username}-theme`)) {
   case "default":
-   localStorage.setItem("theme", "dark");
+   localStorage.setItem(`${username}-theme`, "dark");
    let head = document.getElementsByTagName('head')[0];
    let link = document.createElement('link');
    link.rel = 'stylesheet';
@@ -1332,7 +1332,7 @@ document.querySelector('html').style.transition = ".2s"
    head.appendChild(link);
   break;
   case "dark":
-   localStorage.setItem("theme", "default");
+   localStorage.setItem(`${username}-theme`, "default");
    let lNode =  document.querySelector(`link[href*="${darkCssUrl}"]`);
    lNode.parentNode.removeChild(lNode);
   break;
