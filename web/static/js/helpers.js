@@ -1544,6 +1544,7 @@ function resizeSplitter() {
     localStorage.removeItem(STORAGE_KEY);
     leftPane.style.width = '50%';
     rightPane.style.width = '50%';
+    map.invalidateSize();
   }
 
   // Mouse
