@@ -22,6 +22,10 @@ function version_url($url) {
 }
  ?>
 <script src="<?php echo version_url('static/js/localization.js'); ?>"></script>
+<meta property="og:title" content="RedBox Telemetry">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://<?php echo $_SERVER['HTTP_HOST']; ?>/static/img/android-chrome-192x192.png">
+<meta property="og:description" content="Go hard!">
 <link rel="apple-touch-icon" sizes="180x180" href="static/img/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="static/img/favicon-16x16.png">

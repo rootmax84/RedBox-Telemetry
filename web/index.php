@@ -1068,34 +1068,41 @@ function shareSession() {
     if (result.signature) {
         const sig = result.signature;
         const url = `${window.location.origin}/share.php?uid=${encodeURIComponent(uid)}&id=${encodeURIComponent(id)}&sig=${sig}`;
-        let dialogOpt = {
+        if (navigator.share) {
+            navigator.share({
+                text: `${new Date(Number(id)).toLocaleString()}`,
+                url: url,
+            })
+        } else {
+            let dialogOpt = {
             title : localization.key['dialog.confirm'],
             message: localization.key['share.dialog.text'],
             btnClassSuccessText: localization.key['btn.yes'],
             btnClassFailText: localization.key['btn.no'],
             btnClassFail: "btn btn-info btn-sm",
             onResolve: function() {
-                try {
-                    // Try modern Clipboard API first
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(url);
-                    } else {
-                        // Fallback for HTTP contexts
-                        const textarea = document.createElement('textarea');
-                        textarea.value = url;
-                        textarea.style.position = 'fixed';
-                        textarea.style.opacity = '0';
-                        document.body.appendChild(textarea);
-                        textarea.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(textarea);
+                    try {
+                        // Try modern Clipboard API first
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(url);
+                        } else {
+                            // Fallback for HTTP contexts
+                            const textarea = document.createElement('textarea');
+                            textarea.value = url;
+                            textarea.style.position = 'fixed';
+                            textarea.style.opacity = '0';
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                        }
+                    } catch (err) {
+                        console.error('Failed to copy: ', err);
                     }
-                } catch (err) {
-                    console.error('Failed to copy: ', err);
                 }
-            }
-        };
-        redDialog.make(dialogOpt);
+            };
+            redDialog.make(dialogOpt);
+        }
     } else {
         serverError(result);
     }
