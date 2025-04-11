@@ -1022,12 +1022,21 @@ input[type="checkbox"]:disabled:checked::after {
 }
 
 .fetch-data {
+  width: 32px;
+  height: 32px;
+  --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-width='2' d='M12 6.99998C9.1747 6.99987 6.99997 9.24998 7 12C7.00003 14.55 9.02119 17 12 17C14.7712 17 17 14.75 17 12'%3E%3CanimateTransform attributeName='transform' attributeType='XML' dur='560ms' from='0,12,12' repeatCount='indefinite' to='360,12,12' type='rotate'/%3E%3C/path%3E%3C/svg%3E");
+  background-color: currentColor;
+  -webkit-mask-image: var(--svg);
+  mask-image: var(--svg);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  color: #5d5d5d;
+  opacity: .5;
   position: absolute;
   left: 0;
   right: 0;
-  margin: 15px auto;
-  width: 16px;
-  height: 16px;
-  background: url("data:image/gif;base64,R0lGODdhEAAQAHcAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQJDAAAACwAAAAAEAAQAMAAAAAAAAACG4SPaRHA3s5TtNpr54q4+w8mGjaW0YM2aciGBQAh+QQJDAAAACwBAAUADgAFAMAAAAAAAAACD4QTpovQnxBkabl68JymAAAh+QQJDAAAACwBAAUADgAFAMAAAAAAAAACD4QfcagJDpWJy60nZ6axAAAh+QQJDAAAACwBAAUADgAFAMAAAAAAAAACD4R/EbkKDtVib1ZEjaOxAAAh+QQJDAAAACwBAAUADgAFAMAAAAAAAAACD4SPFhuw3t5T7cgKE73oFgA7");
+  margin: 6px auto;
   display: none;
 }
