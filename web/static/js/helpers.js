@@ -1510,22 +1510,29 @@ function resizeSplitter() {
   function resize(x) {
     if (!isResizing || !isHorizontal()) return;
 
-    const containerOffsetLeft = container.offsetLeft;
-    const containerWidth = container.offsetWidth;
-    const pointerRelativeX = x - containerOffsetLeft;
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const pointerRelativeX = x - containerRect.left;
 
     const leftMin = 300;
     const rightMin = 300;
     const maxLeft = containerWidth - rightMin;
     const minLeft = leftMin;
+    const tolerance = 10;
 
-    if (pointerRelativeX < minLeft || pointerRelativeX > maxLeft) return;
+    if (pointerRelativeX <= minLeft + tolerance) {
+            leftPane.style.width = `${(minLeft / containerWidth) * 100}%`;
+            rightPane.style.width = `${(rightMin / containerWidth) * 100}%`;
+        } else if (pointerRelativeX >= maxLeft - tolerance) {
+            leftPane.style.width = `${(maxLeft / containerWidth) * 100}%`;
+            rightPane.style.width = `${(rightMin / containerWidth) * 100}%`;
+        } else {
+            const leftWidthPercent = (pointerRelativeX / containerWidth) * 100;
+            const rightWidthPercent = 100 - leftWidthPercent;
+            leftPane.style.width = `${leftWidthPercent}%`;
+            rightPane.style.width = `${rightWidthPercent}%`;
+        }
 
-    const leftWidthPercent = (pointerRelativeX / containerWidth) * 100;
-    const rightWidthPercent = 100 - leftWidthPercent;
-
-    leftPane.style.width = `${leftWidthPercent}%`;
-    rightPane.style.width = `${rightWidthPercent}%`;
     mapResize();
   }
 
