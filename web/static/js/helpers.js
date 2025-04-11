@@ -1518,12 +1518,11 @@ function resizeSplitter() {
     const rightMin = 300;
     const maxLeft = containerWidth - rightMin;
     const minLeft = leftMin;
-    const tolerance = 10;
 
-    if (pointerRelativeX <= minLeft + tolerance) {
+    if (pointerRelativeX <= minLeft) {
             leftPane.style.width = `${(minLeft / containerWidth) * 100}%`;
             rightPane.style.width = `${(rightMin / containerWidth) * 100}%`;
-        } else if (pointerRelativeX >= maxLeft - tolerance) {
+        } else if (pointerRelativeX >= maxLeft) {
             leftPane.style.width = `${(maxLeft / containerWidth) * 100}%`;
             rightPane.style.width = `${(rightMin / containerWidth) * 100}%`;
         } else {
