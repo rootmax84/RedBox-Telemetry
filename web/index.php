@@ -241,9 +241,7 @@ if (isset($sids[0])) {
     <div class="storage-usage-img"></div>
     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
 <?php } ?>
-<?php if (isset($_SESSION['share_key'])) {?>
         <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
-<?php } ?>
       <div class="container">
        <div id="theme-switch"></div>
 	<div class="navbar-header">
@@ -947,10 +945,10 @@ function showToken() {
                             if (response.ok) {
                                 showToken();
                             } else {
-                                tokenError();
+                                serverError();
                             }
                         })
-                        .catch(() => tokenError());
+                        .catch(() => serverError());
                 }
             };
             redDialog.make(dialogOpt);
@@ -959,17 +957,17 @@ function showToken() {
         .catch(error => {
             console.error('Error:', error);
             $("#wait_layout").hide();
-            tokenError();
+            serverError();
         });
 }
 
-function tokenError() {
+function serverError(msg = '') {
  $("#wait_layout").hide();
  let dialogOpt = {
     title : localization.key['dialog.token.err'],
     btnClassSuccessText: "OK",
     btnClassFail: "hidden",
-    message : localization.key['dialog.token.err.msg']
+    message : `${localization.key['dialog.token.err.msg']} ${msg}`
  };
  redDialog.make(dialogOpt);
 }
@@ -1057,35 +1055,54 @@ function dragleave(event) {
 }
 
 function shareSession() {
-    const url = `${window.location.origin}/share.php?uid=<?php echo $_SESSION['uid']; ?>&id=<?php echo $session_id; ?>&key=<?php echo $_SESSION['share_key']; ?>`;
-    let dialogOpt = {
-        title : localization.key['dialog.confirm'],
-        message: localization.key['share.dialog.text'],
-        btnClassSuccessText: localization.key['btn.yes'],
-        btnClassFailText: localization.key['btn.no'],
-        btnClassFail: "btn btn-info btn-sm",
-        onResolve: function() {
-            try {
-                // Try modern Clipboard API first
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(url);
-                } else {
-                    // Fallback for HTTP contexts
-                    const textarea = document.createElement('textarea');
-                    textarea.value = url;
-                    textarea.style.position = 'fixed';
-                    textarea.style.opacity = '0';
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
+  const uid = "<?php echo $_SESSION['uid']; ?>";
+  const id = "<?php echo $session_id; ?>";
+
+  fetch('sign.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uid, id })
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.signature) {
+        const sig = result.signature;
+        const url = `${window.location.origin}/share.php?uid=${encodeURIComponent(uid)}&id=${encodeURIComponent(id)}&sig=${sig}`;
+        let dialogOpt = {
+            title : localization.key['dialog.confirm'],
+            message: localization.key['share.dialog.text'],
+            btnClassSuccessText: localization.key['btn.yes'],
+            btnClassFailText: localization.key['btn.no'],
+            btnClassFail: "btn btn-info btn-sm",
+            onResolve: function() {
+                try {
+                    // Try modern Clipboard API first
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(url);
+                    } else {
+                        // Fallback for HTTP contexts
+                        const textarea = document.createElement('textarea');
+                        textarea.value = url;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                    }
+                } catch (err) {
+                    console.error('Failed to copy: ', err);
                 }
-            } catch (err) {
-                console.error('Failed to copy: ', err);
             }
-        }
-    };
-    redDialog.make(dialogOpt);
+        };
+        redDialog.make(dialogOpt);
+    } else {
+        serverError(result);
+    }
+  })
+  .catch(err => {
+    serverError(err);
+  });
 }
 
 </script>

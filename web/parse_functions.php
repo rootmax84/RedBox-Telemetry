@@ -215,21 +215,6 @@ function isValidExternalHttpUrl($url) {
 }
 
 /**
- * Share URL key generator
- */
-function shareKey(): string
-{
-    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $result = '';
-
-    for ($i = 0; $i < 8; $i++) {
-        $result .= $chars[random_int(0, strlen($chars) - 1)];
-    }
-
-    return $result;
-}
-
-/**
  * Checks rate limits for requests based on client IP
  * Running memcached required
  *

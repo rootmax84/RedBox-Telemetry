@@ -10,7 +10,7 @@ let chartTooltip = () => {
 
 let sid = null;
 let uid = null;
-let key = null;
+let sig = null;
 
 const chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
 const chart_fillGradient = localStorage.getItem(`${username}-chart_fillGradient`) === "true";
@@ -370,8 +370,8 @@ let updCharts = (last = false)=>{
     } else if ($('#plot_data').chosen().val().length <= 10){
         $(".fetch-data").css("display", "block");
         let varPrm = null;
-        if (sid && uid && key) {
-            varPrm = `plot.php?id=${sid}&uid=${uid}&key=${key}`;
+        if (sid && uid && sig) {
+            varPrm = `plot.php?id=${sid}&uid=${uid}&sig=${sig}`;
         } else {
             varPrm = last ? 'plot.php?last&id='+$('#seshidtag').chosen().val() : 'plot.php?id='+$('#seshidtag').chosen().val();
         }
@@ -583,7 +583,7 @@ let initMapLeaflet = () => {
         zoomControl.appendChild(streamButton);
     };
 
-    if (!uid && !sid && !key) addControlsToZoomContainer(map);
+    if (!uid && !sid && !sig) addControlsToZoomContainer(map);
 
     let hotlineLayer = null;
     let currentDataSource = null;

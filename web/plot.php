@@ -1,17 +1,26 @@
 <?php
-$sid = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
-$uid = filter_input(INPUT_GET, 'uid', FILTER_SANITIZE_NUMBER_INT);
-$key = filter_input(INPUT_GET, 'key', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
-if ($sid && $uid && $key) {
+if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $_SESSION['torque_logged_in'] = true;
     require_once('db.php');
-    $user_data = $db->execute_query("SELECT user, share, sessions_filter FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
+
+    $share_secret = $share_secret ?? 'default_secret'; //default if missed in creds.php
+
+    $uid = $_GET['uid'];
+    $sid = $_GET['id'];
+    $sig = $_GET['sig'];
+
+    $payload = "uid={$uid}&id={$sid}";
+    $expected_sig = hash_hmac('sha256', $payload, $share_secret);
+    if (!hash_equals($expected_sig, $sig)) {
+        header('Location: catch.php?c=noshare');
+        exit;
+    }
+
+    $user_data = $db->execute_query("SELECT user, sessions_filter FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
     $username = $user_data['user'];
-    $share_key = $user_data['share'];
     $_SESSION['sessions_filter'] = $user_data['sessions_filter'];
 
-    if (!$username || $share_key !== $key) exit;
     $db_table = $username.$db_log_prefix;
     $db_sessions_table = $username.$db_sessions_prefix;
     $db_pids_table = $username.$db_pids_prefix;

@@ -10,13 +10,21 @@ if (!checkRateLimit(5)) {
     exit;
 }
 
-$session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
-$uid = filter_input(INPUT_GET, 'uid', FILTER_SANITIZE_NUMBER_INT);
-$key = filter_input(INPUT_GET, 'key', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+$share_secret = $share_secret ?? 'default_secret'; //default if missed in creds.php
 
-$user_data = $db->execute_query("SELECT user, share, sessions_filter, time, gap FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
+if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
+    $uid = $_GET['uid'];
+    $session_id = $_GET['id'];
+    $sig = $_GET['sig'];
+    $payload = "uid={$uid}&id={$session_id}";
+    $expected_sig = hash_hmac('sha256', $payload, $share_secret);
+} else {
+    header('Location: .');
+    exit;
+}
+
+$user_data = $db->execute_query("SELECT user, sessions_filter, time, gap FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
 $username = $user_data['user'];
-$share_key = $user_data['share'];
 $_SESSION['sessions_filter'] = $user_data['sessions_filter'];
 setcookie('gap', $user_data['gap']);
 
@@ -32,7 +40,7 @@ if ($username) {
     $cached_timestamp = null;
     $current_timestamp = getLastUpdateTimestamp($db, $session_id, $db_sessions_table);
 
-    if (!$current_timestamp || $share_key !== $key) {
+    if (!$current_timestamp || !hash_equals($expected_sig, $sig)) {
         header('Location: catch.php?c=noshare');
         exit;
     } else {
@@ -115,7 +123,7 @@ include("head.php");
         let stream = false;
         sid = `<?php echo $session_id; ?>`;
         uid = `<?php echo $uid; ?>`;
-        key = `<?php echo $share_key; ?>`;
+        sig = `<?php echo $sig; ?>`;
         
         $(document).ready(function(){
             if (!document.getElementById('plot_data')) return;

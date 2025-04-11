@@ -8,20 +8,17 @@ include_once ('translations.php');
 function handleUserSettings($db, $translations, $username, $admin, $db_users) {
     if (!isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], 
           $_POST['time'], $_POST['gap'], $_POST['stream_lock'], 
-          $_POST['sessions_filter'], $_POST['user_share']) || $username == $admin) {
+          $_POST['sessions_filter']) || $username == $admin) {
         return false;
     }
-
-    $share_key = $_POST['user_share'] ? shareKey() : null;
-    $_SESSION['share_key'] = $share_key;
 
     $params = [
         $_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], 
         $_POST['time'], $_POST['gap'], $_POST['stream_lock'], 
-        $_POST['sessions_filter'], $share_key, $username
+        $_POST['sessions_filter'], $username
     ];
 
-    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=?, sessions_filter=?, share=? WHERE user=?", $params);
+    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=?, sessions_filter=? WHERE user=?", $params);
 
     setcookie("timeformat", $_POST['time'] == '1' ? '24' : '12');
     setcookie("gap", $_POST['gap']);
