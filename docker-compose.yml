@@ -8,6 +8,7 @@ services:
                     memory: 512M
         build: docker/mariadb
         container_name: ratel_mariadb
+        command: --innodb-buffer-pool-size=64M --skip-log-bin --transaction-isolation=READ-COMMITTED --binlog-format=ROW
         volumes:
             - ./db:/var/lib/mysql
             - ./docker/mariadb/config/rocksdb.cnf:/etc/mysql/mariadb.conf.d/rocksdb.cnf:ro
