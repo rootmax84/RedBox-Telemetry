@@ -14,6 +14,7 @@ services:
             - ./docker/mariadb/config/rocksdb.cnf:/etc/mysql/mariadb.conf.d/rocksdb.cnf:ro
             - /etc/timezone:/etc/timezone:ro
             - /etc/localtime:/etc/localtime:ro
+            - /sys/fs/cgroup:/sys/fs/cgroup
         environment:
             MYSQL_ROOT_PASSWORD: root
             MYSQL_DATABASE: ratel
