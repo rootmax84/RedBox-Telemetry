@@ -56,6 +56,33 @@ if (!empty($token)) {
     $access = 0;
 }
 
+$rate_limit_key = "api_rate_limit_" . $user;
+$max_api_requests_per_second = $max_api_requests_per_second ?? 10;
+
+if ($memcached_connected) {
+    $current_requests = $memcached->get($rate_limit_key);
+    if ($current_requests === false) {
+        try {
+            $memcached->set($rate_limit_key, 1, 1);
+        } catch (Exception $e) {
+            error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+        }
+    } else {
+        if ($current_requests >= $max_api_requests_per_second) {
+            http_response_code(429);
+            error_log("API spammer detected: " . $user);
+            echo json_encode(['error' => 'Too many requests']);
+            exit;
+        } else {
+            try {
+                $memcached->increment($rate_limit_key, 1);
+            } catch (Exception $e) {
+                error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+            }
+        }
+    }
+}
+
 if ($access != 1 || $limit == 0) {
     header('HTTP/1.0 403 Forbidden');
     echo json_encode(['error' => 'Access denied']);
