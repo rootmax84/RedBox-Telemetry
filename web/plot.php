@@ -1,25 +1,32 @@
 <?php
+require_once('parse_functions.php');
 
 if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $_SESSION['torque_logged_in'] = true;
     require_once('db.php');
 
-    $share_secret = $share_secret ?? 'default_secret'; //default if missed in creds.php
-
     $uid = $_GET['uid'];
     $sid = $_GET['id'];
     $sig = $_GET['sig'];
+
+    if (!checkRateLimit(5)) {
+        header('Location: catch.php?c=block');
+        exit;
+    }
+
+    $user_data = $db->execute_query("SELECT user, sessions_filter, share_secret FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
+    $username = $user_data['user'];
+    $share_secret = $user_data['share_secret'];
+    $_SESSION['sessions_filter'] = $user_data['sessions_filter'];
 
     $payload = "uid={$uid}&id={$sid}";
     $expected_sig = hash_hmac('sha256', $payload, $share_secret);
     if (!hash_equals($expected_sig, $sig)) {
         header('Location: catch.php?c=noshare');
         exit;
+    } else {
+        checkRateLimit(5, 3600, true);
     }
-
-    $user_data = $db->execute_query("SELECT user, sessions_filter FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
-    $username = $user_data['user'];
-    $_SESSION['sessions_filter'] = $user_data['sessions_filter'];
 
     $db_table = $username.$db_log_prefix;
     $db_sessions_table = $username.$db_sessions_prefix;
@@ -28,7 +35,6 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     require_once('db.php');
 }
 
-require_once('parse_functions.php');
 $json = [];
 
 // Convert data units

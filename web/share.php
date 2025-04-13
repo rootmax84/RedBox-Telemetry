@@ -10,27 +10,28 @@ if (!checkRateLimit(5)) {
     exit;
 }
 
-$share_secret = $share_secret ?? 'default_secret'; //default if missed in creds.php
+require_once('timezone.php');
 
 if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $uid = $_GET['uid'];
     $session_id = $_GET['id'];
     $sig = $_GET['sig'];
+
+    $user_data = $db->execute_query("SELECT user, sessions_filter, time, gap, share_secret FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
+    $username = $user_data['user'];
+    $share_secret = $user_data['share_secret'];
+    $_SESSION['sessions_filter'] = $user_data['sessions_filter'];
+    setcookie('gap', $user_data['gap']);
+
+    setcookie('timeformat', $user_data['time']);
+    $_COOKIE['timeformat'] = $user_data['time'];
+
     $payload = "uid={$uid}&id={$session_id}";
     $expected_sig = hash_hmac('sha256', $payload, $share_secret);
 } else {
     header('Location: .');
     exit;
 }
-
-$user_data = $db->execute_query("SELECT user, sessions_filter, time, gap FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
-$username = $user_data['user'];
-$_SESSION['sessions_filter'] = $user_data['sessions_filter'];
-setcookie('gap', $user_data['gap']);
-
-setcookie('timeformat', $user_data['time']);
-$_COOKIE['timeformat'] = $user_data['time'];
-require_once('timezone.php');
 
 $db_table = $username.$db_log_prefix;
 $db_sessions_table = $username.$db_sessions_prefix;

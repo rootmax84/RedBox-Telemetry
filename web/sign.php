@@ -1,7 +1,5 @@
 <?php
-require_once('creds.php');
-
-$share_secret = $share_secret ?? 'default_secret'; //default if missed in creds.php
+require_once('db.php');
 
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
@@ -16,7 +14,16 @@ $uid = $data['uid'];
 $id = $data['id'];
 
 $payload = "uid={$uid}&id={$id}";
-$signature = hash_hmac('sha256', $payload, $share_secret);
+
+$secret = $_SESSION['share_secret'];
+
+if (empty($_SESSION['share_secret'])) {
+    $secret = bin2hex(random_bytes(16));
+    $db->execute_query("UPDATE $db_users SET share_secret=? WHERE user=?", [$secret, $username]);
+    $_SESSION['share_secret'] = $secret;
+}
+
+$signature = hash_hmac('sha256', $payload, $secret);
 
 echo json_encode(['signature' => $signature]);
 ?>

@@ -125,6 +125,15 @@
         </div>
 	<hr>
             <div class="settings-unit">
+             <h4 l10n="share.sec.title"></h4>
+             <h6 style="color:#777" l10n="share.sec.label"></h6>
+		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
+		 <input class="form-control" type="text" name="share_secret" value="1" style="display:none">
+		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.renew"></button></div>
+		</form>
+        </div>
+	<hr>
+            <div class="settings-unit">
              <h4 l10n="user.pwd.title"></h4>
              <h6 style="color:#777" l10n="user.pwd.label"></h6>
 		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">

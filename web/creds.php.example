@@ -25,7 +25,6 @@ $db_sessions_table = $username.$db_sessions_prefix;
 $db_pids_table = $username.$db_pids_prefix;
 $def_limit = 100; //Default user db size limit MB
 $max_upload_requests_per_second = 100; //Spamming protection
-$share_secret = 'your_super_secret'; //Session sharing secret. Keep it safe
 
 $salt = ['cost' => 10]; //Password salt cost. Min/Max/Default 4/31/10. Higher value = more CPU usage on authorization process
 $admin = "admin";

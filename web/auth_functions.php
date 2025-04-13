@@ -114,7 +114,7 @@ function auth_user()
     }
 
     try {
-        $userqry = $db->execute_query("SELECT id, user, pass, s, time, gap, sessions_filter FROM $db_users WHERE user=?", [$user]);
+        $userqry = $db->execute_query("SELECT id, user, pass, s, time, gap, sessions_filter, share_secret FROM $db_users WHERE user=?", [$user]);
     } catch(Exception $e) { return false; }
 
     if (!$userqry->num_rows) {
@@ -132,6 +132,7 @@ function auth_user()
             setcookie("gap", $row["gap"]);
             $_SESSION['sessions_filter'] = $row["sessions_filter"];
             $_SESSION['uid'] = $row["id"];
+            $_SESSION['share_secret'] = $row["share_secret"];
             update_login_attempts($user, true);
             $db->close();
             return true;
@@ -161,6 +162,7 @@ function create_users_table()
 	tg_chatid varchar(190) COLLATE utf8mb4_unicode_ci NULL,
 	forward_url varchar(2083) NULL,
 	forward_token varchar(190) NULL,
+	share_secret char(32) NULL,
 	speed enum('No conversion','km to miles','miles to km') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	temp enum('No conversion','Celsius to Fahrenheit','Fahrenheit to Celsius') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
 	pressure enum('No conversion','Psi to Bar','Bar to Psi') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'No conversion',
@@ -198,7 +200,7 @@ function perform_migration() {
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS forward_url varchar(2083) NULL",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS forward_token varchar(190) NULL",
-        "ALTER TABLE $db_users DROP COLUMN IF EXISTS share",
+        "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS share_secret char(32)",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS login_attempts TINYINT UNSIGNED DEFAULT 0",
         "ALTER TABLE $db_users ADD COLUMN IF NOT EXISTS last_attempt DATETIME",
         "DROP INDEX IF EXISTS indexes ON $db_users"

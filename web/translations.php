@@ -260,7 +260,10 @@ $translations = [
         'sessions.filter' => 'Data points filtering before chart rendering',
         'vars.placeholder' => 'Choose data...',
         'vars.nores' => 'No results match',
-        'share.dialog.text' => 'Copy session link to clipboard?'
+        'share.dialog.text' => 'Copy session link to clipboard?',
+        'share.sec.title' => 'Secret for shared sessions',
+        'share.sec.label' => 'After updating the secret, old links will stop working',
+        'share.sec.update' => 'Secret updated'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -521,7 +524,10 @@ $translations = [
         'sessions.filter' => 'Фильтрация датапоинтов перед отрисовкой графика',
         'vars.placeholder' => 'Выберите данные...',
         'vars.nores' => 'Ничего не найдено',
-        'share.dialog.text' => 'Скопировать ссылку на сессию в буфер обмена?'
+        'share.dialog.text' => 'Скопировать ссылку на сессию в буфер обмена?',
+        'share.sec.title' => 'Секрет для расшаренных сессий',
+        'share.sec.label' => 'После обновления секрета старые ссылки перестанут работать',
+        'share.sec.update' => 'Секрет обновлен'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -782,7 +788,10 @@ $translations = [
         'sessions.filter' => 'Filtrado de puntos de datos antes de la renderización del gráfico',
         'vars.placeholder' => 'Seleccione datos...',
         'vars.nores' => 'No se encontraron resultados',
-        'share.dialog.text' => '¿Copiar enlace de la sesión al portapapeles?'
+        'share.dialog.text' => '¿Copiar enlace de la sesión al portapapeles?',
+        'share.sec.title' => 'Secreto para sesiones compartidas',
+        'share.sec.label' => 'Después de actualizar el secreto, los enlaces antiguos dejarán de funcionar',
+        'share.sec.update' => 'Secreto actualizado'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -1043,7 +1052,10 @@ $translations = [
         'sessions.filter' => 'Filterung von Datenpunkten vor der Grafikdarstellung',
         'vars.placeholder' => 'Daten auswählen...',
         'vars.nores_de' => 'Keine Ergebnisse gefunden',
-        'share.dialog.text' => 'Link zur Sitzung in die Zwischenablage kopieren?'
+        'share.dialog.text' => 'Link zur Sitzung in die Zwischenablage kopieren?',
+        'share.sec.title' => 'Geheimnis für geteilte Sitzungen',
+        'share.sec.label' => 'Nach dem Aktualisieren des Geheimnisses funktionieren alte Links nicht mehr',
+        'share.sec.update' => 'Geheimnis aktualisiert'
     ],
 ];
 
