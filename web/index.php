@@ -1057,6 +1057,7 @@ function dragleave(event) {
 function shareSession() {
   const uid = "<?php echo $_SESSION['uid']; ?>";
   const id = "<?php echo $session_id; ?>";
+    $(".fetch-data").css("display", "block");
 
   fetch('sign.php', {
     method: 'POST',
@@ -1068,6 +1069,7 @@ function shareSession() {
     if (result.signature) {
         const sig = result.signature;
         const url = `${window.location.origin}/share.php?uid=${encodeURIComponent(uid)}&id=${encodeURIComponent(id)}&sig=${sig}`;
+        $(".fetch-data").css("display", "none");
         if (navigator.share) {
             navigator.share({
                 text: `${new Date(Number(id)).toLocaleString()}`,
@@ -1104,10 +1106,12 @@ function shareSession() {
             redDialog.make(dialogOpt);
         }
     } else {
+        $(".fetch-data").css("display", "none");
         serverError(result.error);
     }
   })
   .catch(err => {
+    $(".fetch-data").css("display", "none");
     serverError(err);
   });
 }
