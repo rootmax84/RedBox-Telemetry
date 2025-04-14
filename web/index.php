@@ -1104,7 +1104,7 @@ function shareSession() {
             redDialog.make(dialogOpt);
         }
     } else {
-        serverError(result);
+        serverError(result.error);
     }
   })
   .catch(err => {
