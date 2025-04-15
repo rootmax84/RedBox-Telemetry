@@ -33,16 +33,6 @@ html {
   filter: invert(1);
 }
 
-.form-control {
-  background-color: #1a1a1a;
-  color: #fff;
-  filter: invert(1) hue-rotate(180deg);
-}
-
-.form-control[readonly] {
-  background-color: #000;
-}
-
 .esri-dark {
   filter: invert(1) hue-rotate(180deg) contrast(1) saturate(1.5);
 }
@@ -75,8 +65,7 @@ html {
 }
 
 #heat-dataSourceSelect {
-  background-color: #000;
-  color: #fff;
+  color: #9f9f9f;
 }
 
 .hotline-legend-canvas {
@@ -88,7 +77,7 @@ html {
 }
 
 #heat-dataSourceSelect option {
-  background: #191919;
+  background: #1e1e1e;
 }
 
 .travel-tooltip {

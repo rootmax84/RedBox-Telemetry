@@ -164,6 +164,9 @@ include("head.php");
                 },
                 noResultsText: localization.key['vars.nores'] || 'Oops, nothing found!',
                 placeholderValue: localization.key['vars.placeholder'] || 'Choose data...',
+                classNames: {
+                    containerInner: ['choices__inner', 'choices__inner__plot'],
+                },
             });
 
             plotData.on('change', handleChange);

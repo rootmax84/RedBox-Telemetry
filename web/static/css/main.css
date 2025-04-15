@@ -851,7 +851,7 @@ input[type="checkbox"]:disabled:checked::after {
 }
 
 .heat-data {
-  background: #fff;
+  background: #f9f9f9;
   padding: 4px;
   border-radius: 4px;
 }
@@ -865,6 +865,7 @@ input[type="checkbox"]:disabled:checked::after {
   outline: 0;
   background: inherit;
   cursor: pointer;
+  color: #222;
 }
 
 .heat-data-tooltip {
@@ -1058,6 +1059,20 @@ input[type="checkbox"]:disabled:checked::after {
   border: 1px dashed #a7a7a7;
 }
 
+.choices__inner {
+  min-height: 30px;
+  padding: 2px 8px !important;
+}
+
+.choices__inner__plot {
+  min-height: 44px;
+  padding: 7.5px 7.5px 3.75px !important;
+}
+
+.choices__settings__text {
+  text-align: left !important;
+}
+
 .slider-container {
   position: relative;
   width: 100%;
@@ -1080,4 +1095,26 @@ input[type="checkbox"]:disabled:checked::after {
 
 .ui-widget-header {
   background: #fff;
+}
+
+.form-control {
+  background-color: #f9f9f9;
+  border-color: #ddd;
+  color: #222;
+  box-shadow: none;
+}
+
+.form-control:focus {
+  border-color: #b7b7b7;
+  box-shadow: none;
+}
+
+.form-control[readonly] {
+  pointer-events: none;
+  color: #6f6666;
+  background: #e7e7e7;
+}
+
+.settings--cell {
+  padding-bottom: 10px;
 }

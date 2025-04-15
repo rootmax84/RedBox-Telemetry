@@ -67,6 +67,7 @@ tbody tr:hover {
 #right-container {
   padding-right: 0;
   padding-left: 0;
+  padding-top: 45px;
 }
 
 .login {
