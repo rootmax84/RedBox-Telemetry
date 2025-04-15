@@ -209,7 +209,7 @@ if (isset($sids[0])) {
         let lastValue = plotData.val() || [];
 
         function handleChange() {
-            const newValue = plotData.val() || [];
+            const newValue = plotDataChoices.getValue(true) || [];
             if (JSON.stringify(newValue) !== JSON.stringify(lastValue)) {
                 lastValue = newValue;
                 updCharts();
@@ -228,128 +228,158 @@ if (isset($sids[0])) {
             observer.observe(targetNode, {childList: true, subtree: true});
         }
 
+        plotDataChoices = new Choices('#plot_data', {
+            removeItemButton: true,
+            placeholder: true,
+            shouldSort: false,
+            searchEnabled: false,
+            itemSelectText: null,
+            maxItemCount: 10,
+            maxItemText: (maxItemCount) => {
+            return `${localization.key['overdata']} ${maxItemCount}`;
+            },
+            noResultsText: localization.key['vars.nores'] || 'Oops, nothing found!',
+            placeholderValue: localization.key['vars.placeholder'] || 'Choose data...',
+        });
+
+        seshidtagChoices = new Choices('#seshidtag', {
+            itemSelectText: null,
+            shouldSort: false,
+            noResultsText: localization.key['vars.nores'] || 'Oops, nothing found!',
+        });
+
+        const selprofileChoices = new Choices('#selprofile', {
+            searchEnabled: false,
+            itemSelectText: null,
+            shouldSort: false,
+        });
+
+        const selyearChoices = new Choices('#selyear', {
+            searchEnabled: false,
+            itemSelectText: null,
+            shouldSort: false,
+        });
+
+        const selmonthChoices = new Choices('#selmonth', {
+            searchEnabled: false,
+            itemSelectText: null,
+            shouldSort: false,
+        });
+
         plotData.on('change', handleChange);
-        plotData.chosen();
+
+        $('#seshidtag, #selprofile, #selyear, #selmonth').on('change', function() {
+          $('#wait_layout').show();
+          this.form.submit();
+        }).not('#plot_data');
+
         updCharts();
         if (window.history.replaceState) window.history.replaceState(null, null, window.location.href);
         resizeSplitter();
       });
     </script>
-    <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
-    <div class="fetch-data"></div>
-<?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
+
+<div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+  <div class="fetch-data"></div>
+  <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
     <div class="storage-usage-img"></div>
     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
-<?php } ?>
-        <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
-      <div class="container">
-       <div id="theme-switch"></div>
-	<div class="navbar-header">
-	    <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
-	</div>
-      </div>
+  <?php } ?>
+  <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
+  <div class="container">
+    <div id="theme-switch"></div>
+    <div class="navbar-header">
+      <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
     </div>
-    <div id="right-container" class="col-md-auto col-xs-12">
-<?php if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) {?>
-	<h4 l10n="sel.sess">...</h4>
-	<div class="row center-block" style="padding-bottom:4px;">
-	  <!-- Filter the session list by year and month -->
-	  <h5 l10n="filter.sess"></h5>
-	  <form method="post" class="form-horizontal" action="url.php?id=<?php echo $session_id; ?>">
-	    <table style="width:100%">
-	      <tr>
-		<!-- Profile Filter -->
-		<td style="width:22%">
-		  <select id="selprofile" name="selprofile" class="form-control chosen-select" data-placeholder="Select Profile" onchange="$('#wait_layout').show();this.form.submit()">
-		    <option value="" disabled selected l10n="sel.profile"></option>
-		    <option style="text-align:center" value="ALL"<?php if ($filterprofile == "ALL") echo ' selected'; ?> l10n="profile.any"></option>
-<?php $i = 0; ?>
-<?php while(isset($profilearray[$i])) { ?>
-		    <option value="<?php echo $profilearray[$i]; ?>"<?php if ($filterprofile == $profilearray[$i]) echo ' selected'; ?>><?php echo $profilearray[$i]; ?></option>
-<?php   $i = $i + 1; ?>
-<?php } ?>
-		  </select>
-		</td>
-		<td style="width:2%"></td>
-		<!-- Year Filter -->
-		<td style="width:22%">
-		  <select id="selyear" name="selyear" class="form-control chosen-select" data-placeholder="Select Year" onchange="$('#wait_layout').show();this.form.submit()">
-		    <option value="" disabled selected l10n="sel.year"></option>
-		    <option style="text-align:center" value="ALL"<?php if ($filteryear == "ALL") echo ' selected'; ?> l10n="year.any"></option>
-<?php $i = 0; ?>
-<?php while(isset($yeararray[$i])) { ?>
-		    <option value="<?php echo $yeararray[$i]; ?>"<?php if ($filteryear == $yeararray[$i]) echo ' selected'; ?>><?php echo $yeararray[$i]; ?></option>
-<?php   $i = $i + 1; ?>
-<?php } ?>
-		  </select>
-		</td>
-		<td style="width:2%"></td>
-		<!-- Month Filter -->
-		<td style="width:22%">
-		  <select id="selmonth" name="selmonth" class="form-control chosen-select" data-placeholder="Select Month" onchange="$('#wait_layout').show();this.form.submit()">
-		    <option value="" disabled selected l10n="sel.month"></option>
-		    <option style="text-align:center" value="ALL"<?php if ($filtermonth == "ALL") echo ' selected'; ?> l10n="month.any"></option>
-		    <option value="January"<?php if ($filtermonth == "January") echo ' selected'; ?> l10n="month.jan"></option>
-		    <option value="February"<?php if ($filtermonth == "February") echo ' selected'; ?> l10n="month.feb"></option>
-		    <option value="March"<?php if ($filtermonth == "March") echo ' selected'; ?> l10n="month.mar"></option>
-		    <option value="April"<?php if ($filtermonth == "April") echo ' selected'; ?> l10n="month.apr"></option>
-		    <option value="May"<?php if ($filtermonth == "May") echo ' selected'; ?> l10n="month.may"></option>
-		    <option value="June"<?php if ($filtermonth == "June") echo ' selected'; ?> l10n="month.jun"></option>
-		    <option value="July"<?php if ($filtermonth == "July") echo ' selected'; ?> l10n="month.jul"></option>
-		    <option value="August"<?php if ($filtermonth == "August") echo ' selected'; ?> l10n="month.aug"></option>
-		    <option value="September"<?php if ($filtermonth == "September") echo ' selected'; ?> l10n="month.sep"></option>
-		    <option value="October"<?php if ($filtermonth == "October") echo ' selected'; ?> l10n="month.oct"></option>
-		    <option value="November"<?php if ($filtermonth == "November") echo ' selected'; ?> l10n="month.nov"></option>
-		    <option value="December"<?php if ($filtermonth == "December") echo ' selected'; ?> l10n="month.dec"></option>
-		  </select>
-		</td>
-	      </tr>
-	    </table>
-	  </form><br>
-	  <!-- Session Select Drop-Down List -->
-	<table style="width:100%">
-	  <form method="post" class="form-horizontal" action="url.php">
-	   <tr>
-	    <td>
-	     <select id="seshidtag" name="seshidtag" class="form-control chosen-select" onchange="$('#wait_layout').show();this.form.submit()" data-placeholder="Select Session...">
-<?php foreach ($seshdates as $dateid => $datestr) { ?>
-	      <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr']; ?></option>
-<?php } ?>
-	    </select>
-<?php   if ( $filterprofile <> "" ) { ?>
-	    <input type="hidden" name="selprofile" value="<?php echo $filterprofile; ?>">
-<?php   } ?>
-<?php   if ( $filteryear <> "" ) { ?>
-	    <input type="hidden" name="selyear" value="<?php echo $filteryear; ?>">
-<?php   } ?>
-<?php   if ( $filtermonth <> "" ) { ?>
-	    <input type="hidden" name="selmonth" value="<?php echo $filtermonth; ?>">
-<?php   } ?>
-	    <noscript><input type="submit" class="input-sm"></noscript>
-	  </form>
-	 </td>
-      </tr>
-    </table>
+  </div>
 </div>
 
-<!-- Variable Select Block -->
-	<h4 l10n="sel.var"></h4>
-	  <div class="row center-block" style="padding-top:3px;">
-	      <select data-placeholder="Choose data..." multiple class="chosen-select" size="<?php echo $numcols; ?>" style="width:100%;" id="plot_data" name="plotdata[]">
-<?php   foreach ($coldata as $xcol) { ?>
-		<option value="<?php echo $xcol['colname']; ?>" <?php $i = 1; while ( isset(${'var' . $i}) ) { if ( ${'var' . $i} == $xcol['colname'] || $xcol['colfavorite'] == 1 ) { echo " selected"; } $i = $i + 1; } ?>><?php echo $xcol['colcomment']; ?></option>
-<?php   } ?>
-	    </select>
-<?php   if ( $filterprofile <> "" ) { ?>
-	    <input type="hidden" name="selprofile" value="<?php echo $filterprofile; ?>">
-<?php   } ?>
-<?php   if ( $filteryear <> "" ) { ?>
-	    <input type="hidden" name="selyear" value="<?php echo $filteryear; ?>">
-<?php   } ?>
-<?php   if ( $filtermonth <> "" ) { ?>
-	    <input type="hidden" name="selmonth" value="<?php echo $filtermonth; ?>">
-<?php   } ?>
-	</div>
+<div id="right-container" class="col-md-auto col-xs-12">
+  <?php if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) {?>
+    <h4 l10n="sel.sess">...</h4>
+    <div class="row center-block" style="padding-bottom:4px;">
+      <!-- Filter the session list by year and month -->
+      <h5 l10n="filter.sess"></h5>
+      <form method="post" class="form-horizontal" action="url.php?id=<?php echo $session_id; ?>">
+        <table style="width:100%">
+          <tr>
+            <!-- Profile Filter -->
+            <td style="width:22%">
+              <select id="selprofile" name="selprofile" class="form-control">
+                <option value="" disabled selected l10n="sel.profile"></option>
+                <option style="text-align:center" value="ALL"<?php if ($filterprofile == "ALL") echo ' selected'; ?> l10n="profile.any"></option>
+                <?php $i = 0; ?>
+                <?php while(isset($profilearray[$i])) { ?>
+                  <option value="<?php echo $profilearray[$i]; ?>"<?php if ($filterprofile == $profilearray[$i]) echo ' selected'; ?>><?php echo $profilearray[$i]; ?></option>
+                  <?php $i = $i + 1; ?>
+                <?php } ?>
+              </select>
+            </td>
+            <td style="width:2%"></td>
+            <!-- Year Filter -->
+            <td style="width:22%">
+              <select id="selyear" name="selyear" class="form-control">
+                <option value="" disabled selected l10n="sel.year"></option>
+                <option style="text-align:center" value="ALL"<?php if ($filteryear == "ALL") echo ' selected'; ?> l10n="year.any"></option>
+                <?php $i = 0; ?>
+                <?php while(isset($yeararray[$i])) { ?>
+                  <option value="<?php echo $yeararray[$i]; ?>"<?php if ($filteryear == $yeararray[$i]) echo ' selected'; ?>><?php echo $yeararray[$i]; ?></option>
+                  <?php $i = $i + 1; ?>
+                <?php } ?>
+              </select>
+            </td>
+            <td style="width:2%"></td>
+            <!-- Month Filter -->
+            <td style="width:22%">
+              <select id="selmonth" name="selmonth" class="form-control">
+                <option value="" disabled selected l10n="sel.month"></option>
+                <option style="text-align:center" value="ALL"<?php if ($filtermonth == "ALL") echo ' selected'; ?> l10n="month.any"></option>
+                <option value="January"<?php if ($filtermonth == "January") echo ' selected'; ?> l10n="month.jan"></option>
+                <option value="February"<?php if ($filtermonth == "February") echo ' selected'; ?> l10n="month.feb"></option>
+                <option value="March"<?php if ($filtermonth == "March") echo ' selected'; ?> l10n="month.mar"></option>
+                <option value="April"<?php if ($filtermonth == "April") echo ' selected'; ?> l10n="month.apr"></option>
+                <option value="May"<?php if ($filtermonth == "May") echo ' selected'; ?> l10n="month.may"></option>
+                <option value="June"<?php if ($filtermonth == "June") echo ' selected'; ?> l10n="month.jun"></option>
+                <option value="July"<?php if ($filtermonth == "July") echo ' selected'; ?> l10n="month.jul"></option>
+                <option value="August"<?php if ($filtermonth == "August") echo ' selected'; ?> l10n="month.aug"></option>
+                <option value="September"<?php if ($filtermonth == "September") echo ' selected'; ?> l10n="month.sep"></option>
+                <option value="October"<?php if ($filtermonth == "October") echo ' selected'; ?> l10n="month.oct"></option>
+                <option value="November"<?php if ($filtermonth == "November") echo ' selected'; ?> l10n="month.nov"></option>
+                <option value="December"<?php if ($filtermonth == "December") echo ' selected'; ?> l10n="month.dec"></option>
+              </select>
+            </td>
+          </tr>
+        </table>
+      </form><br>
+      <!-- Session Select Drop-Down List -->
+    <form method="post" class="form-horizontal" action="url.php" id="sessionForm">
+      <select id="seshidtag" name="seshidtag" class="form-control">
+        <?php foreach ($seshdates as $dateid => $datestr) { ?>
+          <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr']; ?></option>
+        <?php } ?>
+            </select>
+        <?php   if ( $filterprofile <> "" ) { ?>
+            <input type="hidden" name="selprofile" value="<?php echo $filterprofile; ?>">
+        <?php   } ?>
+        <?php   if ( $filteryear <> "" ) { ?>
+            <input type="hidden" name="selyear" value="<?php echo $filteryear; ?>">
+        <?php   } ?>
+        <?php   if ( $filtermonth <> "" ) { ?>
+            <input type="hidden" name="selmonth" value="<?php echo $filtermonth; ?>">
+        <?php   } ?>
+      </select>
+    </form>
+    </div>
+
+    <!-- Variable Select Block -->
+    <h4 l10n="sel.var"></h4>
+    <div class="row center-block" style="padding-bottom:10px;">
+      <select multiple id="plot_data">
+        <?php foreach ($coldata as $xcol) { ?>
+          <option value="<?php echo $xcol['colname']; ?>" <?php $i = 1; while (isset(${'var' . $i})) { if (${'var' . $i} == $xcol['colname'] || $xcol['colfavorite'] == 1) { echo " selected"; } $i = $i + 1; } ?>><?php echo $xcol['colcomment']; ?></option>
+        <?php } ?>
+      </select>
+    </div>
 
 <div <?php if($imapdata) { ?> class="pure-g split-container" <?php } ?>>
   <div <?php if($imapdata) { ?> class="pure-u-md-1-2 pane left" <?php } ?>>
@@ -1057,7 +1087,8 @@ function dragleave(event) {
 function shareSession() {
   const uid = "<?php echo $_SESSION['uid']; ?>";
   const id = "<?php echo $session_id; ?>";
-    $(".fetch-data").css("display", "block");
+  $(".fetch-data").css("display", "block");
+  $(".share-img").css("pointer-events", "none");
 
   fetch('sign.php', {
     method: 'POST',
@@ -1069,13 +1100,17 @@ function shareSession() {
     if (result.signature) {
         const sig = result.signature;
         const url = `${window.location.origin}/share.php?uid=${encodeURIComponent(uid)}&id=${encodeURIComponent(id)}&sig=${sig}`;
-        $(".fetch-data").css("display", "none");
         if (navigator.share) {
-            navigator.share({
-                text: `${new Date(Number(id)).toLocaleString()}`,
-                url: url,
-            })
+            return navigator.share({
+              text: `${new Date(Number(id)).toLocaleString()}`,
+              url: url,
+            }).finally(() => {
+                $(".fetch-data").css("display", "none");
+                $(".share-img").css("pointer-events", "auto");
+            });
         } else {
+            $(".fetch-data").css("display", "none");
+            $(".share-img").css("pointer-events", "auto");
             let dialogOpt = {
             title : localization.key['dialog.confirm'],
             message: localization.key['share.dialog.text'],

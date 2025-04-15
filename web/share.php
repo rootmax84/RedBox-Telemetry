@@ -152,8 +152,21 @@ include("head.php");
                 observer.observe(targetNode, {childList: true, subtree: true});
             }
 
+            plotDataChoices = new Choices('#plot_data', {
+                removeItemButton: true,
+                placeholder: true,
+                shouldSort: false,
+                searchEnabled: false,
+                itemSelectText: null,
+                maxItemCount: 10,
+                maxItemText: (maxItemCount) => {
+                return `${localization.key['overdata']} ${maxItemCount}`;
+                },
+                noResultsText: localization.key['vars.nores'] || 'Oops, nothing found!',
+                placeholderValue: localization.key['vars.placeholder'] || 'Choose data...',
+            });
+
             plotData.on('change', handleChange);
-            plotData.chosen();
             updCharts();
             $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
             resizeSplitter();
@@ -229,8 +242,8 @@ include("head.php");
         <?php if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
             <!-- Variable Select Block -->
             <h4 l10n="sel.var"></h4>
-            <div class="row center-block" style="padding-top:3px;">
-                <select data-placeholder="Choose data..." multiple class="chosen-select" size="<?php echo $numcols; ?>" style="width:100%;" id="plot_data" name="plotdata[]">
+            <div class="row center-block" style="padding-bottom:10px;">
+                <select multiple id="plot_data">
                     <?php $var1 = ""; foreach ($coldata as $xcol) { ?>
                         <option value="<?php echo $xcol['colname']; ?>" <?php $i = 1; while (isset(${'var' . $i})) { if (${'var' . $i} == $xcol['colname'] || $xcol['colfavorite'] == 1) { echo " selected"; } $i = $i + 1; } ?>>
                             <?php echo $xcol['colcomment']; ?>

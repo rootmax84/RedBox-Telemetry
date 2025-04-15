@@ -12,30 +12,19 @@ let sid = null;
 let uid = null;
 let sig = null;
 
+//Global select
+let plotDataChoices = null;
+let seshidtagChoices = null;
+
 const chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
 const chart_fillGradient = localStorage.getItem(`${username}-chart_fillGradient`) === "true";
 const chart_steps = localStorage.getItem(`${username}-chart_steps`) === "true";
 const chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
 
 $(document).ready(function(){
-  // Activate Chosen on the selection drop down
-  $("select#seshidtag").chosen({width: "100%"});
-  $("select#selprofile").chosen({width: "100%", disable_search: true, allow_single_deselect: true});
-  $("select#selyear").chosen({width: "100%", disable_search: true, allow_single_deselect: true});
-  $("select#selmonth").chosen({width: "100%", disable_search: true, allow_single_deselect: true});
-  $("select#plot_data").chosen({width: "100%"});
-  // Chosen select text data
-  $('#plot_data').attr('data-placeholder', localization.key['vars.placeholder']).trigger("chosen:updated");
-  $('#plot_data').attr('data-no_results_text', localization.key['vars.nores']).trigger("chosen:updated");
-  // Center the selected element
-  $("div#seshidtag_chosen a.chosen-single span").css('text-align', 'center');
-  $("div#selprofile_chosen a.chosen-single span").css('text-align', 'center');
-  $("div#selyear_chosen a.chosen-single span").css('text-align', 'center');
-  $("div#selmonth_chosen a.chosen-single span").css('text-align', 'center');
-  $("select#plot_data").chosen({no_results_text: "Oops, nothing found!"});
-  $("select#plot_data").chosen({placeholder_text_multiple: "Choose data.."});
   // Reset flot zoom
   $("#Chart-Container").on("dblclick", ()=>{initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
+
   nogps = document.querySelector('#nogps');
 });
 
@@ -354,7 +343,10 @@ function doPlot(position) {
 }
 
 let updCharts = (last = false)=>{
-    if ($('#plot_data').chosen().val().length == 0) {
+    const plotDataSelected = plotDataChoices.getValue(true);
+    const seshidtagValue = seshidtagChoices?.getValue(true) ?? sid;
+
+    if (plotDataSelected.length === 0) {
         const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'] ?? 'No Variables Selected to Plot')));
         const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'] ?? 'No Variables Selected to Plot')));
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
@@ -367,15 +359,15 @@ let updCharts = (last = false)=>{
         $('#Chart-Container').append(noChart2);
         $('#Summary-Container').empty();
         $('#Summary-Container').append(noChart);
-    } else if ($('#plot_data').chosen().val().length <= 10){
+    } else {
         $(".fetch-data").css("display", "block");
         let varPrm = null;
         if (sid && uid && sig) {
             varPrm = `plot.php?id=${sid}&uid=${uid}&sig=${sig}`;
         } else {
-            varPrm = last ? 'plot.php?last&id='+$('#seshidtag').chosen().val() : 'plot.php?id='+$('#seshidtag').chosen().val();
+            varPrm = last ? `plot.php?last&id=${seshidtagValue}` : `plot.php?id=${seshidtagValue}`;
         }
-        $('#plot_data').chosen().val().forEach((v,i)=>varPrm+='&s'+(i+1)+'='+v);
+        plotDataSelected.forEach((v,i) => varPrm += `&s${i+1}=${v}`);
         fetch(varPrm).then(d => d.json()).then(gData => {
             if (last) {
                 $(".fetch-data").css("display", "none");
@@ -501,7 +493,6 @@ let updCharts = (last = false)=>{
                 $(this).text(averagedDataString);
                 $(this).peity('line', { width: '50' });
             });
-            if ($('#plot_data').chosen().val() == null) updCharts();
         }).catch(err => {
             const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'] ?? 'No data')));
             const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'] ?? 'No data')));
@@ -513,11 +504,6 @@ let updCharts = (last = false)=>{
             console.error(err);
         });
     }
-    else{
-        const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-danger'}).html(localization.key['overdata'])));
-        $('#Chart-Container').empty();
-        $('#Chart-Container').append(noChart);
-   }
 }
 //End of chart plotting js code
 

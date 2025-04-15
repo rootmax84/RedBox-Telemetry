@@ -40,7 +40,7 @@ function version_url($url) {
 <title>RedBox Telemetry</title>
 <meta name="description" content="RedBox Telemetry">
 <link rel="stylesheet" href="<?php echo version_url('static/css/bootstrap.min.css'); ?>">
-<link rel="stylesheet" href="<?php echo version_url('static/css/chosen.min.css'); ?>">
+<link rel="stylesheet" href="<?php echo version_url('static/css/choices.min.css'); ?>">
 <link rel="stylesheet" href="<?php echo version_url('static/css/main.css'); ?>">
 <link rel="stylesheet" href="<?php echo version_url('static/css/Control.FullScreen.css'); ?>">
 <?php if (isset($_SESSION['torque_user'])) {?>
@@ -55,7 +55,7 @@ function version_url($url) {
 <script src="<?php echo version_url('static/js/jquery-ui.min.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/jquery-ui.touch-punch.min.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/jquery.peity.min.js'); ?>"></script>
-<script src="<?php echo version_url('static/js/chosen.jquery.min.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/choices.min.js'); ?>"></script>
 <link rel="stylesheet" href="<?php echo version_url('static/css/leaflet.css'); ?>">
 <script src="<?php echo version_url('static/js/leaflet.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/leaflet.hotline.min.js'); ?>"></script>

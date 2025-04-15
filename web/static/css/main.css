@@ -49,32 +49,6 @@ html,body {
   font-size: 80%;
 }
 
-#seshidtag_chosen #selyear_chosen #selmonth_chosen #selprofile_chosen {
-  font-size: 15px;
-}
-
-.chosen-container-single .chosen-single {
-  height: 28px;
-}
-
-.chosen-container-single .chosen-single span {
-  margin-right: 0px;
-}
-
-li.search-field {
-  height: 35px !important;
-}
-
-li.search-choice {
-  margin: 7px 0 3px 5px !important;
-}
-
-ul.chosen-choices li input {
-  height: 100% !important;
-  font-size: 15px;
-  padding-bottom: 10px !rimportant;
-}
-
 @media (min-width: 768px) {
 .navbar-nav{
     margin: 0 auto;
@@ -957,7 +931,6 @@ input[type="checkbox"]:disabled:checked::after {
   flex-direction: row;
   gap: 6px;
   box-sizing: border-box;
-  padding-top: 10px;
 }
 
 .pane {
@@ -1039,4 +1012,48 @@ input[type="checkbox"]:disabled:checked::after {
   right: 0;
   margin: 6px auto;
   display: none;
+}
+
+.choices.is-open {
+  z-index: 3;
+}
+
+.choices {
+  margin-bottom: 0;
+}
+
+.choices[data-type*=select-one] .choices__inner {
+  text-align: center;
+}
+
+.is-open .choices__inner{
+  border-radius: 5px 5px 0 0;
+}
+
+.choices__inner {
+  border-radius: 5px;
+}
+
+.choices__list--dropdown,.choices__list[aria-expanded] {
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+.choices__list--multiple .choices__item {
+  vertical-align: inherit;
+  color: inherit;
+  background-color: #e6e6e6;
+  border: 1px dashed #a7a7a7;
+  border-radius: 2.5px;
+}
+
+.choices[data-type*=select-multiple] .choices__button, .choices[data-type*=text] .choices__button {
+  border-left: 0;
+  background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjEiIGhlaWdodD0iMjEiIHZpZXdCb3g9IjAgMCAyMSAyMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSIjRkZGIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0yLjU5Mi4wNDRsMTguMzY0IDE4LjM2NC0yLjU0OCAyLjU0OEwuMDQ0IDIuNTkyeiIvPjxwYXRoIGQ9Ik0wIDE4LjM2NEwxOC4zNjQgMGwyLjU0OCAyLjU0OEwyLjU0OCAyMC45MTJ6Ii8+PC9nPjwvc3ZnPg==);
+  filter: invert(1);
+}
+
+.choices__list--multiple .choices__item.is-highlighted {
+  background-color: #e6e6e6;
+  border: 1px dashed #a7a7a7;
 }
