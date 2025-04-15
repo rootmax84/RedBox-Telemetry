@@ -1095,6 +1095,7 @@ input[type="checkbox"]:disabled:checked::after {
 
 .ui-widget-header {
   background: #fff;
+  background: linear-gradient(180deg,rgba(255, 255, 255, 1) 0%, rgba(170, 170, 170, 0.15) 100%);
 }
 
 .form-control {
