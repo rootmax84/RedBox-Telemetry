@@ -241,7 +241,6 @@ include("head.php");
     <div id="right-container" class="col-md-auto col-xs-12">
         <?php if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
             <!-- Variable Select Block -->
-            <h4 l10n="sel.var"></h4>
             <div class="row center-block" style="padding-bottom:10px;">
                 <select multiple id="plot_data">
                     <?php $var1 = ""; foreach ($coldata as $xcol) { ?>
@@ -271,26 +270,24 @@ include("head.php");
                     <div id="nogps"></div>
                 <?php   } ?>
             </div>
-            <br>
 
             <!-- slider -->
             <script>
                 jsTimeMap = [<?php echo $itime; ?>].reverse(); //Session time array, reversed for silder
                 initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
             </script>
-            <span class="h4" l10n="trim.sess"></span>
-            <input type="text" id="slider-time" readonly style="border:0; font-family:monospace; width:300px;" disabled>
-            <div id="slider-range11"></div>
+            <div class="slider-container">
+              <input type="text" id="slider-time" readonly disabled>
+              <div id="slider-range11"></div>
+            </div>
             <br>
 
             <!-- Data Summary Block -->
-            <h4 l10n="summary"></h4>
             <div id="Summary-Container" class="row center-block" style="user-select:text;">
                 <div style="display:flex; justify-content:center;">
-                    <h5><span class="label label-warning">. . .</span></h5>
                 </div>
             </div>
-            <br>
+
             <div class="row center-block" style="padding-bottom:18px;text-align:center">
                 <p class="copyright"></p>
             </div>

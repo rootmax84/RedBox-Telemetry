@@ -217,7 +217,7 @@ function doPlot(position) {
         xaxes: [ {
             mode: "time",
             timezone: "browser",
-            axisLabel: localization.key['chart.time.label'],
+            axisLabel: ' ',
             tickFormatter: function(val, axis) {
                 if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) return "";
                 const processedTimes = Object.keys(window.realTimeInfo.timeMapping).map(Number);
@@ -347,8 +347,7 @@ let updCharts = (last = false)=>{
     const seshidtagValue = seshidtagChoices?.getValue(true) ?? sid;
 
     if (plotDataSelected.length === 0) {
-        const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'] ?? 'No Variables Selected to Plot')));
-        const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'] ?? 'No Variables Selected to Plot')));
+        const noChart = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'] ?? 'No Variables Selected to Plot')));
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
             heatData = [];
@@ -356,9 +355,8 @@ let updCharts = (last = false)=>{
             plot.shutdown();
         }
         $('#Chart-Container').empty();
-        $('#Chart-Container').append(noChart2);
+        $('#Chart-Container').append(noChart);
         $('#Summary-Container').empty();
-        $('#Summary-Container').append(noChart);
     } else {
         $(".fetch-data").css("display", "block");
         let varPrm = null;
@@ -494,12 +492,10 @@ let updCharts = (last = false)=>{
                 $(this).peity('line', { width: '50' });
             });
         }).catch(err => {
-            const noChart = $('<div>',{align:'center'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'] ?? 'No data')));
-            const noChart2 = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'] ?? 'No data')));
+            const noChart = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'] ?? 'No data')));
             $('#Chart-Container').empty();
-            $('#Chart-Container').append(noChart2);
+            $('#Chart-Container').append(noChart);
             $('#Summary-Container').empty();
-            $('#Summary-Container').append(noChart);
             $(".fetch-data").css("display", "none");
             console.error(err);
         });

@@ -17,7 +17,7 @@ html,body {
 }
 
 #right-container {
-  padding-top: 60px;
+  padding-top: 70px;
   padding-right: 25px;
   padding-left: 25px;
 }
@@ -596,7 +596,7 @@ img {
   }
 
   .map-container {
-    height: 410px !important;
+    height: 450px !important;
   }
 
   .demo-placeholder {
@@ -1056,4 +1056,28 @@ input[type="checkbox"]:disabled:checked::after {
 .choices__list--multiple .choices__item.is-highlighted {
   background-color: #e6e6e6;
   border: 1px dashed #a7a7a7;
+}
+
+.slider-container {
+  position: relative;
+  width: 100%;
+  padding-top: 30px;
+}
+
+#slider-time {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -54%);
+  width: fit-content;
+  text-align: center;
+  border: 1px solid #ddd;
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  height: 22px;
+  z-index: 1;
+}
+
+.ui-widget-header {
+  background: #fff;
 }

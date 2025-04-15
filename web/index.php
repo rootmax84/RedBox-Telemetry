@@ -296,10 +296,8 @@ if (isset($sids[0])) {
 
 <div id="right-container" class="col-md-auto col-xs-12">
   <?php if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) {?>
-    <h4 l10n="sel.sess">...</h4>
-    <div class="row center-block" style="padding-bottom:4px;">
+    <div class="row center-block" style="padding-bottom:22px;">
       <!-- Filter the session list by year and month -->
-      <h5 l10n="filter.sess"></h5>
       <form method="post" class="form-horizontal" action="url.php?id=<?php echo $session_id; ?>">
         <table style="width:100%">
           <tr>
@@ -315,7 +313,7 @@ if (isset($sids[0])) {
                 <?php } ?>
               </select>
             </td>
-            <td style="width:2%"></td>
+            <td style="width:1%"></td>
             <!-- Year Filter -->
             <td style="width:22%">
               <select id="selyear" name="selyear" class="form-control">
@@ -328,7 +326,7 @@ if (isset($sids[0])) {
                 <?php } ?>
               </select>
             </td>
-            <td style="width:2%"></td>
+            <td style="width:1%"></td>
             <!-- Month Filter -->
             <td style="width:22%">
               <select id="selmonth" name="selmonth" class="form-control">
@@ -372,7 +370,6 @@ if (isset($sids[0])) {
     </div>
 
     <!-- Variable Select Block -->
-    <h4 l10n="sel.var"></h4>
     <div class="row center-block" style="padding-bottom:10px;">
       <select multiple id="plot_data">
         <?php foreach ($coldata as $xcol) { ?>
@@ -406,25 +403,23 @@ if (isset($sids[0])) {
     <div id="nogps"></div>
 <?php   } ?>
 </div>
-<br>
 
 <!-- slider -->
 <script>
 jsTimeMap = [<?php echo $itime; ?>].reverse(); //Session time array, reversed for silder
 initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 </script>
-<span class="h4" l10n="trim.sess"></span>
-<input type="text" id="slider-time" readonly style="border:0; font-family:monospace; width:300px;" disabled>
-<div id="slider-range11"></div>
+<div class="slider-container">
+  <input type="text" id="slider-time" readonly disabled>
+  <div id="slider-range11"></div>
+</div>
 <br>
 
 <!-- Data Summary Block -->
-	<h4 l10n="summary"></h4>
 	<div id="Summary-Container" class="row center-block" style="user-select:text;">
 	  <div style="display:flex; justify-content:center;">
-	    <h5><span class="label label-warning">. . .</span></h5>
 	  </div>
-	</div><br>
+	</div>
 
 	<div class="row center-block" style="padding-bottom:18px;">
 
