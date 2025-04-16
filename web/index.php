@@ -232,7 +232,6 @@ if (isset($sids[0])) {
             removeItemButton: true,
             placeholder: true,
             shouldSort: false,
-            searchEnabled: false,
             itemSelectText: null,
             maxItemCount: 10,
             maxItemText: (maxItemCount) => {
@@ -285,7 +284,7 @@ if (isset($sids[0])) {
 <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
   <div class="fetch-data"></div>
   <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-    <div class="storage-usage-img"></div>
+    <div class="storage-usage-img" onclick></div>
     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
   <?php } ?>
   <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
@@ -662,7 +661,7 @@ if ($r->num_rows > 0) {
         }
         
         // Output table
-        echo "<tr ondblclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($username) . "&limit=" . $row["s"] . "\";'>";
+        echo "<tr onclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($username) . "&limit=" . $row["s"] . "\";'>";
         echo "<td>" . $i++ . "</td>";
         echo "<td" . ($usernameStyle ? " style='$usernameStyle'" : "") . ">" . $usernameDisplay . "</td>";
         echo "<td>" . $limit . "</td>";

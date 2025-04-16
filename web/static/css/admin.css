@@ -3,10 +3,6 @@ table {
   width: 90%;
 }
 
-th:nth-child(2), td:nth-child(2) {
-  user-select: text;
-}
-
 td, th {
   text-align: left;
   padding: 4px;

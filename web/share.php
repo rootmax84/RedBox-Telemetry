@@ -156,7 +156,6 @@ include("head.php");
                 removeItemButton: true,
                 placeholder: true,
                 shouldSort: false,
-                searchEnabled: false,
                 itemSelectText: null,
                 maxItemCount: 10,
                 maxItemText: (maxItemCount) => {
@@ -218,11 +217,6 @@ include("head.php");
     
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <div class="fetch-data"></div>
-        <?php if (!isset($_SESSION['admin']) && $limit > 0) { ?>
-            <div class="storage-usage-img"></div>
-            <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
-        <?php } ?>
-        
         <div class="container">
                 <div class="login-lang" id="lang-switch" style="position:absolute;top:10px;right:10px">
                     <div class="selected-lang" id="selected-lang" style="width:24px;height:24px"></div>

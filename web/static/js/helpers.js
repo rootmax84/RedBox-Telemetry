@@ -24,7 +24,7 @@ const chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2
 $(document).ready(function(){
   // Reset flot zoom
   $("#Chart-Container").on("dblclick", ()=>{initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
-
+  longTap("#Chart-Container", () => {initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
   nogps = document.querySelector('#nogps');
 });
 
@@ -1569,8 +1569,48 @@ function resizeSplitter() {
     resetSplitterPosition();
   });
 
+  // Long tap to reset
+  longTap('.resizer', resetSplitterPosition);
+
   // Restore on load
   restoreSplitterPosition();
+}
+
+function longTap(selector, callback) {
+    let timer;
+
+    let elements;
+    if (selector.startsWith('#')) {
+        elements = [document.getElementById(selector.slice(1))];
+    } else if (selector.startsWith('.')) {
+        elements = Array.from(document.getElementsByClassName(selector.slice(1)));
+    } else {
+        elements = [document.getElementById(selector)];
+    }
+
+    elements.forEach(element => {
+        if (!element) return;
+
+        element.addEventListener('touchstart', function(e) {
+            if (e.touches.length !== 1) return;
+
+            timer = setTimeout(() => {
+                callback(element);
+            }, 1000);
+        });
+
+        element.addEventListener('touchend', function() {
+            clearTimeout(timer);
+        });
+
+        element.addEventListener('touchmove', function() {
+            clearTimeout(timer);
+        });
+
+        element.addEventListener('touchcancel', function() {
+            clearTimeout(timer);
+        });
+    });
 }
 
 let redDialog = {
