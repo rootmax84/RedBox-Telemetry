@@ -62,13 +62,19 @@ function version_url($url) {
 <script src="<?php echo version_url('static/js/coords.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/nosleep.js'); ?>"></script>
 <script>
+    const l10n_time = "<?php preg_match('/\d+/', version_url('translations.php'), $m); echo $m[0]; ?>";
+    const l10n_saved = localStorage.getItem('l10n_time');
+
     $(document).ready(function() {
+
      localization = new Localization();
-     if (!$.cookie('stream')) {
+     if (l10n_saved !== l10n_time) {
         localization.clearCache();
         localization.loadTranslations();
+        localStorage.setItem('l10n_time', l10n_time);
      }
      fetch(`translations.php?lang=${lang}`);
+
      const visitortimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
      fetch("timezone.php?time=" + visitortimezone);
       $("#theme-switch").click( function() {
