@@ -103,7 +103,10 @@ try {
 
         // Handle data forwarding URL
         if (isset($_POST['forward_url'], $_POST['forward_token'])) {
-            if (isValidExternalHttpUrl($_POST['forward_url']) || empty($_POST['forward_url'])) {
+            if (strlen($_POST['forward_token']) > 128) {
+                $response = $translations[$_COOKIE['lang']]['user.url.token.err'];
+            }
+            else if (isValidExternalHttpUrl($_POST['forward_url']) || empty($_POST['forward_url'])) {
                 $row = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc();
 
                 $db->execute_query("UPDATE $db_users SET forward_url=?, forward_token=? WHERE user=?", [$_POST['forward_url'], $_POST['forward_token'], $username]);

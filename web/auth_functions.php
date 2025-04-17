@@ -161,7 +161,7 @@ function create_users_table()
 	tg_token varchar(50) NULL,
 	tg_chatid bigint(20) NULL,
 	forward_url varchar(2083) NULL,
-	forward_token varchar(190) NULL,
+	forward_token varchar(128) NULL,
 	share_secret char(32) NULL,
 	speed enum('No conversion','km to miles','miles to km') NOT NULL DEFAULT 'No conversion',
 	temp enum('No conversion','Celsius to Fahrenheit','Fahrenheit to Celsius') NOT NULL DEFAULT 'No conversion',
