@@ -27,7 +27,7 @@ header('Access-Control-Max-Age: 86400');
 
 //Allow GET only
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    header('HTTP/1.0 405 Method Not Allowed');
+    http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
     exit;
 }
@@ -84,7 +84,7 @@ if ($memcached_connected) {
 }
 
 if ($access != 1 || $limit == 0) {
-    header('HTTP/1.0 403 Forbidden');
+    http_response_code(403);
     echo json_encode(['error' => 'Access denied']);
     exit;
 } else {

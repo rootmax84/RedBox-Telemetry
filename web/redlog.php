@@ -1,7 +1,7 @@
 <?php
 try {
 if (!$_COOKIE['stream']) {
- header('HTTP/1.0 401 Unauthorized');
+ http_response_code(401);
 }
 require_once('db.php');
 include ("timezone.php");
@@ -16,7 +16,7 @@ $files = [];
 
 //Exceed php_post_size
 if (!isset($_FILES['file'])) {
- header('HTTP/1.0 406');
+ http_response_code(406);
  die($translations[$_COOKIE['lang']]['redlog.post.max']);
 }
 
@@ -28,7 +28,7 @@ foreach($_FILES['file'] as $k => $l) {
 }
 
 if(count($files) > 10) { //10 files per upload limit
-  header('HTTP/1.0 406');
+  http_response_code(406);
   echo $translations[$_COOKIE['lang']]['redlog.warn.count'];
   die;
 }
@@ -38,13 +38,13 @@ for ($f = 0; $f < count($files); $f++) {
  $tmp_dir = sys_get_temp_dir();
  $target_file[$f] = tempnam($tmp_dir, 'upload_');
  if (!$target_file[$f]) {
-  header('HTTP/1.0 500 Internal Server Error');
+  http_response_code(500);
   error_log("Error creating temporary file.");
   die($translations[$_COOKIE['lang']]['redlog.err']);
  }
 
  if (!move_uploaded_file($files[$f]['tmp_name'], $target_file[$f]) ) {
-  header('HTTP/1.0 406');
+  http_response_code(406);
   die($translations[$_COOKIE['lang']]['redlog.err']);
  }
 
@@ -54,18 +54,18 @@ for ($f = 0; $f < count($files); $f++) {
  //Check size limit (15MB per file MAX)
  if ($data_size > 15) {
   if (file_exists($target_file[$f])) unlink($target_file[$f]);
-  header('HTTP/1.0 406');
+  http_response_code(406);
   echo htmlspecialchars($files[$f]['name']) . " " . $translations[$_COOKIE['lang']]['redlog.warn.size'];
   die;
  }
  if ($db_limit >= $limit || $data_size >= $limit || ($db_limit+$data_size) >= $limit) {
   if (file_exists($target_file[$f])) unlink($target_file[$f]);
-  header('HTTP/1.0 406');
+  http_response_code(406);
   die($translations[$_COOKIE['lang']]['redlog.nospace']); //No space left. Stops
  }
  else if (!$data || !$data_size || strpos($data, "TIME ECT EOT IAT ATF AAT EXT SPD RPM MAP MAF TPS IGN INJ INJD IAC AFR O2S O2S2 EGT EOP FP ERT MHS BSTD FAN GEAR BS1 BS2 PG0 PG1 VLT RLC GLAT GLON GSPD ODO\n") !== 0) {
   if (file_exists($target_file[$f])) unlink($target_file[$f]);
-  header('HTTP/1.0 406');
+  http_response_code(406);
   echo htmlspecialchars($files[$f]['name']) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
   die;
  }
@@ -84,7 +84,7 @@ for ($f = 0; $f < count($files); $f++) {
   $db->execute_query("INSERT INTO $db_sessions_table (id, session, time, profileName, timeend, sessionsize) VALUES (?,?,?,?,?,?)", ['RedManage', $session, $time, 'RedManage-Log', $time_end, $size]);
  } catch (Exception $e) {
   if (file_exists($target_file[$f])) unlink($target_file[$f]);
-  header('HTTP/1.0 406');
+  http_response_code(406);
   echo htmlspecialchars($files[$f]['name']) . " " . $translations[$_COOKIE['lang']]['redlog.dup'];
   die;
  } //Stop on duplicate
@@ -221,7 +221,7 @@ for ($f = 0; $f < count($files); $f++) {
     try {
         $db->execute_query("INSERT INTO $db_table (session, time, kff1005, kff1006, k21fa, kff1202, k5, k5c, kf, kb4, kc, kb, k1f, k2118, k2120, k2122, k2125, kff1238, k46, k2101, kd, k10, k11, ke, k2112, k2100, k2113, k21cc, kff1214, kff1218, k78, k2111, k2119, k2124, k21e1, k21e2, k2126, kff1001, kff120c) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", $insertData);
     } catch (Exception $e) {
-        header('HTTP/1.0 406');
+        http_response_code(406);
         $file = htmlspecialchars($files[$f]['name']);
         if (str_contains($e, 'Duplicate')) {
             echo $file . " " . $translations[$_COOKIE['lang']]['redlog.dup'];
@@ -243,7 +243,7 @@ echo $ok . " " . $translations[$_COOKIE['lang']]['redlog.upload.ok'];
 $db->close();
 
 } catch (TypeError $e) {
-    header('HTTP/1.0 406');
+    http_response_code(406);
     echo htmlspecialchars($files[$f]['name']) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
     $db->execute_query("DELETE FROM $db_table WHERE session=?", [$session]);
     $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$session]);

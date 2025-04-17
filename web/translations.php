@@ -3,10 +3,8 @@
 $translations = [
     'en' => [
         'required' => 'Username and password are required',
-        'not_found' => 'User not found',
         'disabled' => 'User disabled',
         'blocked' => 'Blocked by 5 minutes',
-        'wrong_pwd' => 'Wrong password',
         'gen_token' => 'Generate token first',
         'maintenance' => 'Server under maintenance',
         'overload' => 'Server overloaded',
@@ -261,10 +259,8 @@ $translations = [
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
-        'not_found' => 'Пользователь не найден',
         'disabled' => 'Пользователь отключен',
         'blocked' => 'Заблокирован на 5 минут',
-        'wrong_pwd' => 'Неверный пароль',
         'gen_token' => 'Сначала сгенерируйте токен',
         'maintenance' => 'Сервер на обслуживании',
         'overload' => 'Сервер перегружен',
@@ -519,10 +515,8 @@ $translations = [
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
-        'not_found' => 'Usuario no encontrado',
         'disabled' => 'Usuario deshabilitado',
         'blocked' => 'Bloqueado por 5 minutos',
-        'wrong_pwd' => 'Contraseña incorrecta',
         'gen_token' => 'Genera el token primero',
         'maintenance' => 'Servidor en mantenimiento',
         'overload' => 'Servidor sobrecargado',
@@ -777,10 +771,8 @@ $translations = [
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
-        'not_found' => 'Benutzer nicht gefunden',
         'disabled' => 'Benutzer deaktiviert',
         'blocked' => 'Für 5 Minuten gesperrt',
-        'wrong_pwd' => 'Falsches Passwort',
         'gen_token' => 'Zuerst Token generieren',
         'maintenance' => 'Server in Wartung',
         'overload' => 'Server überlastet',

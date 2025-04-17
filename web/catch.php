@@ -1,11 +1,11 @@
 <?php
 if (isset($_GET['c'])) {
     $http_code = match($_GET['c']) {
-        'loginfailed', 'csrffailed', 'toomanyattempts' => 401,
+        'loginfailed', 'csrffailed' => 401,
         'dberror' => 503,
         'maintenance' => 423,
         'noshare' => 404,
-        'block' => 429,
+        'block', 'toomanyattempts' => 429,
         default => 200,
     };
     http_response_code($http_code);

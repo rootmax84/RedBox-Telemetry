@@ -4,7 +4,7 @@ require_once ('auth_functions.php');
 require_once ('db.php');
 
 if (!isset($_SESSION['admin'])) {
-    header('HTTP/1.0 403 Forbidden');
+    http_response_code(403);
     header("Location: .");
     die;
 }

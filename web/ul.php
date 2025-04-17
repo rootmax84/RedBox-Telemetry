@@ -9,7 +9,7 @@ header('Access-Control-Max-Age: 86400');
 
 $allowedMethods = ['GET', 'POST', 'OPTIONS'];
 if (!in_array($_SERVER['REQUEST_METHOD'], $allowedMethods)) {
-    header('HTTP/1.0 405 Method Not Allowed');
+    http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
     exit;
 }
@@ -27,7 +27,7 @@ if (!empty($token)) {
 
  //Maintenance mode
  if (file_exists('maintenance')){
-  header('HTTP/1.0 423 Locked');
+  http_response_code(423);
   die($translations[$lang]['maintenance']);
  }
 
@@ -37,7 +37,7 @@ if (!empty($token)) {
  //Server overload check
  $load = sys_getloadavg(); //Fetch CPU load avg
  if ($max_load_avg > 0 && $load[1] > $max_load_avg){
-  header('HTTP/1.0 413 Server overload');
+  http_response_code(503);
   die($translations[$lang]['overload']);
  }
 
@@ -79,7 +79,7 @@ if (!empty($token)) {
 } else $access = 0;
 
 if ($access != 1 || $limit == 0){
-     header('HTTP/1.0 403 Forbidden');
+     http_response_code(403);
      die($translations[$lang]['denied']);
 }
 
@@ -105,7 +105,7 @@ if ($db_limit === false) {
 }
 
 if ($db_limit >= $limit && $limit != -1){
-    header('HTTP/1.0 406 Not Acceptable');
+    http_response_code(507);
     die($translations[$lang]['no_space']);
 }
 

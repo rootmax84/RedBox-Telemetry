@@ -45,7 +45,7 @@ global $db_users;
 $userqry = $db->execute_query("SELECT user, pass, token, s FROM $db_users WHERE user=?", [$user]);
 if ($userqry->num_rows === 0) {
     http_response_code(401);
-    echo $translations[$lang]['not_found'];
+    echo $translations[$lang]['catch.loginfailed'];
     exit;
 }
 
@@ -68,8 +68,8 @@ if (!check_login_attempts($user)) {
 // Password check
 if (!password_verify($pass, $row['pass'])) {
     update_login_attempts($user, false);
-    http_response_code(403);
-    echo $translations[$lang]['wrong_pwd'];
+    http_response_code(401);
+    echo $translations[$lang]['catch.loginfailed'];
     exit;
 }
 

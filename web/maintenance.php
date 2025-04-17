@@ -19,7 +19,7 @@ if (isset($_SESSION['admin'])) {
 }
 
 if (file_exists('maintenance') && $username !== $admin) {
-    header('HTTP/1.0 423 Locked');
+    http_response_code(423);
     header("Refresh:30; url=maintenance.php");
 include("head.php");
 ?>

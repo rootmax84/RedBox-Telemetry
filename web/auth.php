@@ -1,7 +1,7 @@
 <?php
-if (empty($_COOKIE['stream'])) header('HTTP/1.0 401 Unauthorized');
+if (empty($_COOKIE['stream'])) http_response_code(401);
 require_once('creds.php');
-if (file_exists('maintenance')) header('HTTP/1.0 307 Temporary Redirect');
+if (file_exists('maintenance')) http_response_code(307);
 
 if (isset($_GET["update-csrf-token"])) {
     $token = generate_csrf_token();
