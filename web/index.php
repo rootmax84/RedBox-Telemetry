@@ -201,7 +201,6 @@ if (isset($sids[0])) {
         $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
 
         if (!document.getElementById('plot_data')) {
-            $(".share-img").css("display", "none");
             return;
         }
 
@@ -286,8 +285,9 @@ if (isset($sids[0])) {
   <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
     <div class="storage-usage-img" onclick></div>
     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
-  <?php } ?>
+  <?php } if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
   <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
+  <?php } ?>
   <div class="container">
     <div id="theme-switch"></div>
     <div class="navbar-header">
