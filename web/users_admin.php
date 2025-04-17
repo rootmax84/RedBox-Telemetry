@@ -97,16 +97,6 @@ function submitForm(el) {
 
   return false;
 }
-
-function xhrResponse(text) {
- let dialogOpt = {
-    title: localization.key['dialog.result'],
-    message : text,
-    btnClassSuccessText: "OK",
-    btnClassFail: "hidden",
- };
- redDialog.make(dialogOpt);
-}
 </script>
 </body>
 </html>

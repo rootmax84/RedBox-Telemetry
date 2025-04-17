@@ -217,16 +217,6 @@ function submitForm(el) {
   return false;
 }
 
-function xhrResponse(text) {
- let dialogOpt = {
-    title: localization.key['dialog.result'],
-    message : text,
-    btnClassSuccessText: "OK",
-    btnClassFail: "hidden",
- };
- redDialog.make(dialogOpt);
-}
-
 $(document).ready(function() {
     $("#chart-fill").val(localStorage.getItem(`${username}-chart_fill`) || "false");
     $("#chart-fillGradient").val(localStorage.getItem(`${username}-chart_fillGradient`) || "false");

@@ -69,3 +69,16 @@ tbody tr:hover {
 .login {
   margin: 50px auto;
 }
+
+.delete-icon {
+  cursor: pointer;
+  color: red;
+  margin-right: 10px;
+  display: inline-block;
+  transition: transform .2s ease;
+}
+
+
+.delete-icon:hover {
+  transform: scale(1.7);
+}

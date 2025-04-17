@@ -1613,6 +1613,27 @@ function longTap(selector, callback) {
     });
 }
 
+function serverError(msg = '') {
+ $("#wait_layout").hide();
+ let dialogOpt = {
+    title : localization.key['dialog.token.err'],
+    btnClassSuccessText: "OK",
+    btnClassFail: "hidden",
+    message : `${localization.key['dialog.token.err.msg']} ${msg}`
+ };
+ redDialog.make(dialogOpt);
+}
+
+function xhrResponse(text) {
+ let dialogOpt = {
+    title: localization.key['dialog.result'],
+    message : text,
+    btnClassSuccessText: "OK",
+    btnClassFail: "hidden",
+ };
+ redDialog.make(dialogOpt);
+}
+
 let redDialog = {
     options: {
         zIndex: 10000,

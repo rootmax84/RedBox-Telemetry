@@ -663,7 +663,12 @@ if ($r->num_rows > 0) {
         // Output table
         echo "<tr onclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($username) . "&limit=" . $row["s"] . "\";'>";
         echo "<td>" . $i++ . "</td>";
-        echo "<td" . ($usernameStyle ? " style='$usernameStyle'" : "") . ">" . $usernameDisplay . "</td>";
+        echo "<td" . ($usernameStyle ? " style='$usernameStyle'" : "") . ">";
+        if (!$isAdmin) {
+            echo "<span class='delete-icon' onclick='event.stopPropagation(); adminUserDelete(\"$username\")'>&times;</span>";
+        }
+        echo $usernameDisplay;
+        echo "</td>";
         echo "<td>" . $limit . "</td>";
         echo "<td>" . $dbSize . "</td>";
         echo "<td>" . $lastActivity . "</td>";
@@ -986,17 +991,6 @@ function showToken() {
             $("#wait_layout").hide();
             serverError();
         });
-}
-
-function serverError(msg = '') {
- $("#wait_layout").hide();
- let dialogOpt = {
-    title : localization.key['dialog.token.err'],
-    btnClassSuccessText: "OK",
-    btnClassFail: "hidden",
-    message : `${localization.key['dialog.token.err.msg']} ${msg}`
- };
- redDialog.make(dialogOpt);
 }
 
 function exportSession(type) {

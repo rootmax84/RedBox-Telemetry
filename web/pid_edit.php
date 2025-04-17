@@ -70,17 +70,6 @@ include("head.php");
             return false;
         }
 
-        function xhrResponse(text) {
-            let dialogOpt = {
-                title: localization.key['dialog.result'],
-                message: text,
-                btnClassSuccessText: "OK",
-                btnClassFail: "hidden",
-            };
-            redDialog.make(dialogOpt);
-
-        }
-
     $(document).on('keydown paste', '[contenteditable="true"]', function(e) {
         let max = $(this).is('[id^="description"]') ? 64 : 16;
         let currentText = $(this).text();

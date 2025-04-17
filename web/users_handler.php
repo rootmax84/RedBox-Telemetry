@@ -57,7 +57,7 @@ function handlePasswordChange($db, $translations, $username, $admin, $salt, $db_
     if ($_POST['new_p1'] != $_POST['new_p2']) {
         return $translations[$_COOKIE['lang']]['set.pwd.not.match'];
     }
-    if (strlen($_POST['new_p1']) < 8) {
+    if (mb_strlen($_POST['new_p1']) < 8) {
         return $translations[$_COOKIE['lang']]['set.pwd.short'];
     }
     if ($_POST['old_p'] == $_POST['new_p1']) {
@@ -141,17 +141,17 @@ try {
             if (!$row) {
                 die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
             }
-            if (strlen($password) > 1 && strlen($password) < 5) {
+            if (mb_strlen($password) > 1 && mb_strlen($password) < 5) {
                 die($translations[$_COOKIE['lang']]['admin.pwd.short']);
             }
-            if (!strlen($e_limit) && !strlen($password)) {
+            if (!strlen($e_limit) && !mb_strlen($password)) {
                 die($translations[$_COOKIE['lang']]['set.nothing']);
             }
-            if (!strlen($password) && strlen($e_limit)) {
+            if (!mb_strlen($password) && strlen($e_limit)) {
                 $db->execute_query("UPDATE $db_users SET s=? WHERE id=?", [$e_limit, $row['id']]);
                 $response = $translations[$_COOKIE['lang']]['admin.limit.changed'].$login;
             }
-            else if (strlen($password) && !strlen($e_limit)) {
+            else if (mb_strlen($password) && !strlen($e_limit)) {
                 $db->execute_query("UPDATE $db_users SET pass=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $row['id']]);
                 $response = $translations[$_COOKIE['lang']]['admin.pwd.changed'].$login;
             }
@@ -171,11 +171,11 @@ try {
 
             $userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
 
-            if ($userqry->num_rows || strlen($login) < 1 || strlen($login) > 32) {
+            if ($userqry->num_rows || mb_strlen($login) < 1 || mb_strlen($login) > 32) {
                 die($translations[$_COOKIE['lang']]['admin.user.exists']);
             }
 
-            if (strlen($password) < 5) {
+            if (mb_strlen($password) < 5) {
                 die($translations[$_COOKIE['lang']]['admin.pwd.short']);
             }
 
@@ -228,7 +228,7 @@ try {
             // Create sessions table
             $sessions_table = "CREATE TABLE ".$login.$db_sessions_prefix." (
                 id varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '-',
-                profileName varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Not Specified',
+                profileName varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Not Specified',
                 ip char(15) NOT NULL DEFAULT '0.0.0.0',
                 sessionsize mediumint(8) unsigned NOT NULL DEFAULT 0,
                 session bigint(20) unsigned NOT NULL,
@@ -239,9 +239,9 @@ try {
 
             // Create pids table
             $pids_table = "CREATE TABLE ".$login.$db_pids_prefix." (
-                id varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+                id varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
                 description varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Description',
-                units varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Units',
+                units varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Units',
                 populated tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Is This Variable Populated?',
                 stream tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Is This Variable show in Stream?',
                 favorite tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Is This Variable show as default?',
@@ -446,7 +446,7 @@ try {
 
             $userqry = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login]);
 
-            if (!$userqry->num_rows || strlen($login) < 1) {
+            if (!$userqry->num_rows || mb_strlen($login) < 1) {
                 die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
             }
 
@@ -475,7 +475,7 @@ try {
 
             $userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
 
-            if (!$userqry->num_rows || strlen($login) < 1) {
+            if (!$userqry->num_rows || mb_strlen($login) < 1) {
                 die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
             }
 

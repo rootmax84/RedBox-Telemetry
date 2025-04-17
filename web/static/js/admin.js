@@ -131,3 +131,30 @@ function initTableSorting(tableSelector) {
       .appendTo("head");
   }
 }
+
+function adminUserDelete(username) {
+    let dialogOpt = {
+        title: localization.key['dialog.confirm'],
+        btnClassSuccessText: localization.key['btn.yes'],
+        btnClassFailText: localization.key['btn.no'],
+        btnClassFail: "btn btn-info btn-sm",
+        message: `${localization.key['admin.del.title']} ${username}?`,
+        onResolve: function() {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            const formData = new FormData();
+            formData.append('del_login', username);
+            formData.append('csrf_token', csrfToken);
+
+            fetch('users_handler.php', { method: 'POST', body: formData })
+                .then(response => response.text())
+                .then(text => {
+                    xhrResponse(text);
+                    document.querySelectorAll('tr').forEach(row => {
+                        if (row.textContent.includes(username)) row.remove();
+                    });
+                })
+                .catch(error => serverError(error.message));
+        }
+    };
+    redDialog.make(dialogOpt);
+}
