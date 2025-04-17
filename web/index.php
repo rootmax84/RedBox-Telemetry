@@ -287,6 +287,7 @@ if (isset($sids[0])) {
     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
   <?php } if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
   <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
+  <div class="chart-fill-toggle" onClick="chartToggle()" style="right:<?php echo ($limit < 0) ? '70px' : '100px'; ?>"></div>
   <?php } ?>
   <div class="container">
     <div id="theme-switch"></div>

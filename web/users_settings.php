@@ -104,32 +104,6 @@
 		</select>
 		</div>
 		<div class="settings--cell">
-		 <label l10n="user.set.chart.fill"></label><select class="form-control" id="chart-fill">
-		    <option value="false" l10n="btn.no"></option>
-		    <option value="true" l10n="btn.yes"></option>
-		</select>
-		</div>
-		<div class="settings--cell">
-		 <label l10n="user.set.chart.fill.gradient"></label><select class="form-control" id="chart-fillGradient">
-		    <option value="false" l10n="btn.no"></option>
-		    <option value="true" l10n="btn.yes"></option>
-		</select>
-		</div>
-		<div class="settings--cell">
-		 <label l10n="user.set.chart.steps"></label><select class="form-control" id="chart-steps">
-		    <option value="false" l10n="btn.no"></option>
-		    <option value="true" l10n="btn.yes"></option>
-		</select>
-		</div>
-		<div class="settings--cell">
-		 <label l10n="user.set.chart.width"></label><select class="form-control" id="chart-lineWidth">
-		    <option value="1" l10n="user.conv.chart.width.thin"></option>
-		    <option value="1.5" l10n="user.conv.chart.width.thinner"></option>
-		    <option value="2" l10n="user.conv.chart.width.default"></option>
-		    <option value="3" l10n="user.conv.chart.width.thick"></option>
-		</select>
-		</div>
-		<div class="settings--cell">
 		 <label l10n="user.set.lang"></label><select class="form-control" id="lang">
 		    <option value="en">English</option>
 		    <option value="ru">Русский</option>
@@ -186,11 +160,6 @@ function submitForm(el) {
 
   submitBtn.disabled = true;
 
-  localStorage.setItem(`${username}-chart_fill`, $("#chart-fill").val());
-  localStorage.setItem(`${username}-chart_fillGradient`, $("#chart-fillGradient").val());
-  localStorage.setItem(`${username}-chart_steps`, $("#chart-steps").val());
-  localStorage.setItem(`${username}-chart_lineWidth`, $("#chart-lineWidth").val());
-
   lang = $("#lang").val();
   fetch(`translations.php?lang=${lang}`)
     .then(() => localization.setLang(lang))
@@ -218,10 +187,6 @@ function submitForm(el) {
 }
 
 $(document).ready(function() {
-    $("#chart-fill").val(localStorage.getItem(`${username}-chart_fill`) || "false");
-    $("#chart-fillGradient").val(localStorage.getItem(`${username}-chart_fillGradient`) || "false");
-    $("#chart-steps").val(localStorage.getItem(`${username}-chart_steps`) || "false");
-    $("#chart-lineWidth").val(localStorage.getItem(`${username}-chart_lineWidth`) || "2");
     $("#lang").val(lang) || "en";
 
     document.querySelectorAll('select').forEach(select => {

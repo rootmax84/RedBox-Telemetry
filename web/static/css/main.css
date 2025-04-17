@@ -329,6 +329,30 @@ input[type=text]:disabled {
   opacity:.7;
 }
 
+.chart-fill-toggle {
+  width: 24px;
+  height: 24px;
+  --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M7.755 13.38v6.83a1.54 1.54 0 0 1-1.54 1.54h-1.81a1.54 1.54 0 0 1-1.55-1.54v-6.83a1.54 1.54 0 0 1 1.55-1.55h1.81a1.54 1.54 0 0 1 1.54 1.55m6.7-9.58v16.41a1.54 1.54 0 0 1-1.55 1.54h-1.81a1.55 1.55 0 0 1-1.55-1.54V3.8a1.56 1.56 0 0 1 1.55-1.55h1.81a1.55 1.55 0 0 1 1.55 1.55m6.69 5.18v11.23a1.54 1.54 0 0 1-1.54 1.54h-1.81a1.54 1.54 0 0 1-1.55-1.54V8.98a1.55 1.55 0 0 1 1.55-1.55h1.85a1.55 1.55 0 0 1 1.5 1.55'/%3E%3C/svg%3E");
+  background-color: currentColor;
+  -webkit-mask-image: var(--svg);
+  mask-image: var(--svg);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  cursor: pointer;
+  color: #5d5d5d;
+  opacity: .5;
+  position: fixed;
+  right: 10px;
+  top: 10px;
+  transition: .25s;
+}
+
+.chart-fill-toggle:hover{
+  opacity:.8;
+}
+
 .navbar {
   min-width: 420px;
   box-shadow: 1px 1px 4px 1px rgb(2, 2, 2, 0.3);
@@ -437,7 +461,8 @@ img {
   opacity: .7;
 }
 
-.storage-usage-img:hover ~ .share-img {
+.storage-usage-img:hover ~ .share-img,
+.storage-usage-img:hover ~ .chart-fill-toggle {
   opacity: 0;
 }
 

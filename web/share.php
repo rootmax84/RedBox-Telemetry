@@ -218,6 +218,7 @@ include("head.php");
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <div class="fetch-data"></div>
         <div class="container">
+                <div class="chart-fill-toggle" onClick="chartToggle()" style="right:40px"></div>
                 <div class="login-lang" id="lang-switch" style="position:absolute;top:10px;right:10px">
                     <div class="selected-lang" id="selected-lang" style="width:24px;height:24px"></div>
                       <ul class="lang-options" id="lang-options" style="background:#fff">

@@ -16,10 +16,9 @@ let sig = null;
 let plotDataChoices = null;
 let seshidtagChoices = null;
 
-const chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
-const chart_fillGradient = localStorage.getItem(`${username}-chart_fillGradient`) === "true";
-const chart_steps = localStorage.getItem(`${username}-chart_steps`) === "true";
-const chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
+let chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
+let chart_fillGradient = localStorage.getItem(`${username}-chart_fillGradient`) === "true";
+let chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
 
 $(document).ready(function(){
   // Reset flot zoom
@@ -205,6 +204,13 @@ function findNearestRealTime(processedTime) {
 }
 
 function doPlot(position) {
+    //Remove plot presence
+    if (plot) {
+        $("#placeholder").unbind("plothover plottouchmove plotselected");
+        plot.shutdown();
+        $("#placeholder").empty();
+    }
+
     //asigned the plot to a new variable and new function to update the plot in realtime when using the slider
     chartUpdRange = (a,b) => {
         let dataSet = [];
@@ -260,7 +266,6 @@ function doPlot(position) {
             },
             lines: {
                 fill: chart_fill,
-                steps: chart_steps,
                 lineWidth: chart_lineWidth,
                 gradient: chart_fillGradient
             },
@@ -1633,6 +1638,65 @@ function xhrResponse(text) {
  };
  redDialog.make(dialogOpt);
 }
+
+let isToggleInProgress = false;
+const TOGGLE_DELAY = 300;
+
+function chartToggle() {
+    if (isToggleInProgress) return;
+
+    isToggleInProgress = true;
+
+    const fillKey = `${username}-chart_fill`;
+    const gradientKey = `${username}-chart_fillGradient`;
+    const widthKey = `${username}-chart_lineWidth`;
+
+    const isFill = localStorage.getItem(fillKey) === 'true';
+    const isGradient = localStorage.getItem(gradientKey) === 'true';
+    const currentWidth = parseFloat(localStorage.getItem(widthKey)) || 2;
+
+    const widthSequence = [2, 3, 1, 1.5];
+    const currentWidthIndex = widthSequence.indexOf(currentWidth);
+    const nextWidthIndex = (currentWidthIndex + 1) % widthSequence.length;
+    const newWidth = widthSequence[nextWidthIndex];
+
+    let newFill = isFill;
+    let newGradient = isGradient;
+    let finalWidth = newWidth;
+
+    if (!isFill && !isGradient) {
+        if (newWidth === 2 && currentWidth === 1.5) {
+            newFill = true;
+            finalWidth = 2;
+        }
+    } else if (isFill && !isGradient) {
+        if (newWidth === 2 && currentWidth === 1.5) {
+            newGradient = true;
+            finalWidth = 2;
+        }
+    } else if (isFill && isGradient) {
+        if (newWidth === 2 && currentWidth === 1.5) {
+            newFill = false;
+            newGradient = false;
+            finalWidth = 2;
+        }
+    }
+
+    localStorage.setItem(fillKey, newFill);
+    localStorage.setItem(gradientKey, newGradient);
+    localStorage.setItem(widthKey, finalWidth);
+
+    chart_fill = newFill;
+    chart_fillGradient = newGradient;
+    chart_lineWidth = finalWidth;
+
+    doPlot();
+    initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))
+
+    setTimeout(() => {
+        isToggleInProgress = false;
+    }, TOGGLE_DELAY);
+};
 
 let redDialog = {
     options: {
