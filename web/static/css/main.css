@@ -531,7 +531,9 @@ img {
 
 #func, #exp {
   width: 410px;
-  margin: 0 auto;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .func-btn {
