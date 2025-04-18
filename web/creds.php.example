@@ -19,6 +19,7 @@ $db_pids_prefix = '_pids';
 $db_engine = 'ROCKSDB'; //Or INNODB. Engine for database tables (Recommended ROCKSDB). Applies to newly created users
 $db_innodb_compression = false; //Use row compression with innodb engine. Applies to newly created users
 $db_memcached = 'memcached'; //Address of memcached host. Type memcached if use docker (OPTIONAL)
+$db_memcached_ttl = 3600;
 $db_users = 'users';
 $db_table = $username.$db_log_prefix;
 $db_sessions_table = $username.$db_sessions_prefix;

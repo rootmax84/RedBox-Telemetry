@@ -75,7 +75,7 @@ if (isset($_GET["id"])) {
 
         if ($memcached_connected) {
             try {
-                $memcached->set($cache_key_id, [$id, $current_timestamp], 3600);
+                $memcached->set($cache_key_id, [$id, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -99,7 +99,7 @@ if (isset($_GET["id"])) {
 
         if ($memcached_connected) {
             try {
-                $memcached->set($cache_key_settings, [$setqry, $current_timestamp], 3600);
+                $memcached->set($cache_key_settings, [$setqry, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -132,7 +132,7 @@ if (isset($_GET["id"])) {
 
         if ($memcached_connected) {
             try {
-                $memcached->set($cache_key_pids, [$keyarr, $current_timestamp], 3600);
+                $memcached->set($cache_key_pids, [$keyarr, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -174,7 +174,7 @@ if (isset($_GET["id"])) {
 
             if ($memcached_connected) {
                 try {
-                    $memcached->set($cache_key, [$session_data, $current_timestamp], 3600);
+                    $memcached->set($cache_key, [$session_data, $current_timestamp], $db_memcached_ttl ?? 3600);
                 } catch (Exception $e) {
                     $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                     error_log($errorMessage);

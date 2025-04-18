@@ -56,7 +56,7 @@ if (!empty($token)) {
         $user_data = $userqry->fetch_assoc();
         if ($memcached_connected) {
             try {
-                $memcached->set($cache_key, $user_data, 3600);
+                $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error on upload auth: %s (Code: %d)", $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -130,7 +130,7 @@ if ($dbfields === false) {
     }
     if ($memcached_connected) {
         try {
-            $memcached->set($table_structure_cache_key, $dbfields, 3600);
+            $memcached->set($table_structure_cache_key, $dbfields, $db_memcached_ttl ?? 3600);
         } catch (Exception $e) {
             $errorMessage = sprintf("Memcached error on upload: %s (Code: %d)", $e->getMessage(), $e->getCode());
             error_log($errorMessage);

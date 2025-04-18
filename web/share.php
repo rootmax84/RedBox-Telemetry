@@ -75,7 +75,7 @@ if ($username) {
         $gps_data = ['geolocs' => $geolocs, 'timearray' => $timearray];
         if ($memcached_connected) {
             try {
-                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], 1800);
+                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);

@@ -53,7 +53,7 @@ if (isset($sids[0])) {
         }
         if ($memcached_connected) {
             try {
-                $memcached->set($years_cache_key, [$yeararray, $current_timestamp], 3600);
+                $memcached->set($years_cache_key, [$yeararray, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -80,7 +80,7 @@ if (isset($sids[0])) {
         }
         if ($memcached_connected) {
             try {
-                $memcached->set($profiles_cache_key, [$profilearray, $current_timestamp], 3600);
+                $memcached->set($profiles_cache_key, [$profilearray, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -115,7 +115,7 @@ if (isset($sids[0])) {
         $gps_data = ['geolocs' => $geolocs, 'timearray' => $timearray];
         if ($memcached_connected) {
             try {
-                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], 1800);
+                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -150,7 +150,7 @@ if (isset($sids[0])) {
         $stream_lock = $db->execute_query("SELECT stream_lock FROM $db_users WHERE user=?", [$username])->fetch_row()[0];
         if ($memcached_connected) {
             try {
-                $memcached->set($stream_lock_cache_key, [$stream_lock, $current_timestamp], 3600);
+                $memcached->set($stream_lock_cache_key, [$stream_lock, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -173,7 +173,7 @@ if (isset($sids[0])) {
         $id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
         if ($memcached_connected) {
             try {
-                $memcached->set($session_id_cache_key, [$id, $current_timestamp], 3600);
+                $memcached->set($session_id_cache_key, [$id, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
