@@ -143,6 +143,7 @@ function outputLastRecordDate($time, $rate) {
     echo "data: {$data}\n";
     if (isset($seconds) && time() - $seconds < 10) {
         echo "retry: {$rate}\n\n";
+        setcookie("plot", true, time() + 10, "/");
     } else {
         echo "retry: 5000\n\n";
     }

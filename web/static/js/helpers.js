@@ -35,7 +35,7 @@ let nogps = null;
 //Fetch plot data every 10 sec
 function schedulePlotUpdate(timestamp) {
   if (timestamp - lastPlotUpdateTime >= 10000) {
-    if (streamNewData || nogps) updatePlot();
+    if ($.cookie('plot') !== undefined) updatePlot();
     lastPlotUpdateTime = timestamp;
   }
   animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
@@ -1040,10 +1040,9 @@ let initMapLeaflet = () => {
             map.setView(marker.getLatLng(), map.getZoom());
 
             //update travel line/end point
-            if (!path.length || path.at(0) && (path.at(0)[0] != lat || path.at(0)[1] != lon)) {
+            if ($.cookie('plot') !== undefined) {
                 path.unshift([lat,lon]);
                 endcir.setLatLng(path.at(0));
-                streamNewData = true;
 
                 if (currentDataSource !== null) {
                     if (heatData && heatData[currentDataSource]) {
@@ -1090,8 +1089,6 @@ let initMapLeaflet = () => {
                 } else {
                     polyline.setLatLngs(path);
                 }
-            } else {
-                streamNewData = false;
             }
             setTimeout(()=>{map.removeLayer(marker)}, rate);
         }
