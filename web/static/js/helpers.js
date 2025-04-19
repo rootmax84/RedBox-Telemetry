@@ -29,7 +29,6 @@ $(document).ready(function(){
 
 let lastPlotUpdateTime = 0;
 let animationPlotFrameId = null;
-let streamNewData = false;
 let nogps = null;
 
 //Fetch plot data every 10 sec
@@ -315,6 +314,7 @@ function doPlot(position) {
     chartTooltip();
     //Trim by plot Select
     $("#placeholder").bind("plotselected", (evt,range)=>{
+        if (stream) return; //Disable trim
         // Convert range to real time markers
         const realFrom = findNearestRealTime(range.xaxis.from);
         const realTo = findNearestRealTime(range.xaxis.to);
@@ -356,7 +356,6 @@ let updCharts = (last = false)=>{
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
             heatData = [];
-            if (nogps === null) updateMapWithRangePreservingHeatline(null,null,true);
             plot.shutdown();
         }
         $('#Chart-Container').empty();
@@ -644,8 +643,14 @@ let initMapLeaflet = () => {
     let dataSourceSelector = createDataSourceSelector().addTo(map);
 
     function handleSelectorChange(e) {
-        let sourceIndex = e.target.value;
-        updateHotline(sourceIndex);
+        const sourceIndex = e.target.value;
+
+        requestAnimationFrame(() => {
+            updateHotline('');
+            requestAnimationFrame(() => {
+                updateHotline(sourceIndex);
+            });
+        });
     }
 
     function addSelectorEventHandler() {
@@ -664,7 +669,6 @@ let initMapLeaflet = () => {
     let lastFlotDataLength = 0;
     setInterval(() => {
         if (heatData && heatData.length !== lastFlotDataLength) {
-            updateMapWithRangePreservingHeatline(null,null,true);
             lastFlotDataLength = heatData.length;
             updateDataSourceSelector();
         }
@@ -1026,6 +1030,7 @@ let initMapLeaflet = () => {
     //Dynamic tracking marker when stream is open
     const rate = Number($.cookie('tracking-rate')) || 1000;
     setInterval(()=>{
+        $(".slider-container").css("display",stream ? "none" : "block");
         let marker = null;
         let lat = stream ? parseFloat($('#lat').html()) : null;
         let lon = stream ? parseFloat($('#lon').html()) : null;
@@ -1071,6 +1076,27 @@ let initMapLeaflet = () => {
                                 // update hotlineData.points for tooltip
                                 if (hotlineLayer.hotlineData && Array.isArray(hotlineLayer.hotlineData.points)) {
                                     hotlineLayer.hotlineData.points.unshift(newPoint);
+
+                                    const newValue = latestDataPoint[1];
+                                    const newMin = Math.min(hotlineLayer.hotlineData.min, newValue);
+                                    const newMax = Math.max(hotlineLayer.hotlineData.max, newValue);
+
+                                    hotlineLayer.options.min = newMin;
+                                    hotlineLayer.options.max = newMax;
+                                    hotlineLayer.redraw();
+
+                                    if (hotlineLegend) {
+                                        const labels = hotlineLegend._container.querySelectorAll('.hotline-legend-label');
+                                        if (labels.length >= 3) {
+                                            labels[0].innerHTML = Number.isInteger(newMax) ? newMax : newMax.toFixed(2);
+                                            labels[1].innerHTML = Number.isInteger((newMin+newMax)/2) ? 
+                                                Math.round((newMin+newMax)/2) : ((newMin+newMax)/2).toFixed(2);
+                                            labels[2].innerHTML = Number.isInteger(newMin) ? newMin : newMin.toFixed(2);
+                                        }
+                                    }
+
+                                    hotlineLayer.hotlineData.min = newMin;
+                                    hotlineLayer.hotlineData.max = newMax;
                                 }
                             } else {
                                 updateHotline(currentDataSource);
@@ -1256,7 +1282,7 @@ let initSlider = (jsTimeMap,start,end)=>{
             }
 
             if ($("#map").length) {
-                updateMapWithRangePreservingHeatline(a, b);
+                if ($.cookie('plot') === undefined) updateMapWithRangePreservingHeatline(a, b);
             }
             if ($(".demo-container").length) chartUpdRange(a,b);
         });
@@ -1264,16 +1290,8 @@ let initSlider = (jsTimeMap,start,end)=>{
 }
 //End slider js code
 
-function updateMapWithRangePreservingHeatline(startIndex, endIndex, reset = false) {
+function updateMapWithRangePreservingHeatline(startIndex, endIndex) {
     const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
-
-    if (reset) {
-        dataSourceSelect.value = "";
-
-        const changeEvent = new Event('change');
-        dataSourceSelect.dispatchEvent(changeEvent);
-        return;
-    }
 
     if (dataSourceSelect) {
         const prevValue = dataSourceSelect.value;
@@ -1284,17 +1302,17 @@ function updateMapWithRangePreservingHeatline(startIndex, endIndex, reset = fals
             const changeEvent = new Event('change');
             dataSourceSelect.dispatchEvent(changeEvent);
 
-            if (!stream) mapUpdRange(startIndex, endIndex);
+            mapUpdRange(startIndex, endIndex);
 
             setTimeout(() => {
                 dataSourceSelect.value = prevValue;
                 dataSourceSelect.dispatchEvent(changeEvent);
             }, 300);
         } else {
-            if (!stream) mapUpdRange(startIndex, endIndex);
+            mapUpdRange(startIndex, endIndex);
         }
     } else {
-        if (!stream) mapUpdRange(startIndex, endIndex);
+        mapUpdRange(startIndex, endIndex);
     }
 }
 
