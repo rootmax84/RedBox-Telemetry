@@ -90,7 +90,7 @@ try {
             $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
             cache_flush($token);
 
-            $db->execute_query("UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?", [$_POST['tg_token'], $_POST['tg_chatid'], $username]);
+            $db->execute_query("UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?", [$_POST['tg_token'], $_POST['tg_chatid'] !== '' ? $_POST['tg_chatid'] : null, $username]);
 
             $testMessage = notify("👋", $_POST['tg_token'], $_POST['tg_chatid']);
 

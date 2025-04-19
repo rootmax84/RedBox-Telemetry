@@ -35,7 +35,7 @@
 		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
 		<div class="settings--cell">
 		 <input class="form-control" type="text" name="tg_token"  l10n-placeholder="user.tg.token" maxlength="64" autocomplete="new-password" value="<?php echo $token; ?>"><br>
-		 <input class="form-control" type="text" name="tg_chatid" l10n-placeholder="user.tg.id" maxlength="64" autocomplete="new-password" value="<?php echo $chatid; ?>">
+		 <input class="form-control" type="number" name="tg_chatid" l10n-placeholder="user.tg.id" autocomplete="new-password" value="<?php echo $chatid; ?>">
 		</div>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.save"></button></div>
 		</form>
