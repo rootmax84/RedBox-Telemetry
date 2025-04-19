@@ -83,3 +83,7 @@ html {
 .travel-tooltip {
   box-shadow: none !important;
 }
+
+.live {
+  filter: hue-rotate(180deg);
+}

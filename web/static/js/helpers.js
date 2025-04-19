@@ -25,6 +25,14 @@ $(document).ready(function(){
   $("#Chart-Container").on("dblclick", ()=>{initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
   longTap("#Chart-Container", () => {initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
   nogps = document.querySelector('#nogps');
+
+  setInterval(()=>{
+    if ($.cookie('plot') !== undefined) {
+        $('.live').css('display','block');
+    } else {
+        $('.live').css('display','none');
+    }
+  }, 5000);
 });
 
 let lastPlotUpdateTime = 0;
@@ -1272,7 +1280,7 @@ let initSlider = (jsTimeMap,start,end)=>{
         let date = new Date(t);
 
         if (isNaN(date.getTime())) {
-            return localization.key['nodata'] ?? 'No data';
+            return '';
         }
 
         return  date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU');
