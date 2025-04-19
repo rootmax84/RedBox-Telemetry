@@ -54,6 +54,7 @@ function stopPlotUpdates() {
     animationPlotFrameId = null;
   }
   streamInteractToggle();
+  plot.clearSelection();
 }
 
 function startPlotUpdates() {
