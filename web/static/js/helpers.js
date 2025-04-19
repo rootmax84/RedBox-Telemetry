@@ -45,12 +45,21 @@ function stopPlotUpdates() {
     cancelAnimationFrame(animationPlotFrameId);
     animationPlotFrameId = null;
   }
+  streamInteractToggle();
 }
 
 function startPlotUpdates() {
   if (!animationPlotFrameId) {
     lastPlotUpdateTime = performance.now();
     animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
+  }
+  streamInteractToggle();
+}
+
+function streamInteractToggle() {
+  if (plot && plot.getOptions) {
+    plot.getOptions().selection.mode = stream ? null : "x";
+    $(".slider-container").css("display", stream ? "none" : "block");
   }
 }
 
@@ -1041,10 +1050,6 @@ let initMapLeaflet = () => {
     //Dynamic tracking marker when stream is open
     const rate = Number($.cookie('tracking-rate')) || 1000;
     setInterval(()=>{
-        $(".slider-container").css("display",stream ? "none" : "block");
-        if (plot && plot.getOptions) {
-            plot.getOptions().selection.mode = stream ? null : "x";
-        }
         let marker = null;
         let lat = stream ? parseFloat($('#lat').html()) : null;
         let lon = stream ? parseFloat($('#lon').html()) : null;
@@ -1672,7 +1677,7 @@ let isToggleInProgress = false;
 const TOGGLE_DELAY = 300;
 
 function chartToggle() {
-    if (isToggleInProgress) return;
+    if (isToggleInProgress || !flotData.length) return;
 
     isToggleInProgress = true;
 
