@@ -642,20 +642,27 @@ let initMapLeaflet = () => {
 
     let dataSourceSelector = createDataSourceSelector().addTo(map);
 
-    function handleSelectorChange(e) {
-        const sourceIndex = e.target.value;
+    const handleSelectorChange = (() => {
+        const RESET_DELAY = 1000;
+        let updateTimeout = null;
+        return function(e) {
+            const sourceIndex = e.target.value;
 
-        if (stream) {
-            requestAnimationFrame(() => {
+            if (updateTimeout) {
+                clearTimeout(updateTimeout);
+            }
+
+            if (stream) {
                 updateHotline('');
-                requestAnimationFrame(() => {
+                updateTimeout = setTimeout(() => {
                     updateHotline(sourceIndex);
-                });
-            });
-        } else {
-            updateHotline(sourceIndex);
-        }
-    }
+                    updateTimeout = null;
+                }, RESET_DELAY);
+            } else {
+                updateHotline(sourceIndex);
+            }
+        };
+    })();
 
     function addSelectorEventHandler() {
         const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
@@ -1035,6 +1042,9 @@ let initMapLeaflet = () => {
     const rate = Number($.cookie('tracking-rate')) || 1000;
     setInterval(()=>{
         $(".slider-container").css("display",stream ? "none" : "block");
+        if (plot && plot.getOptions) {
+            plot.getOptions().selection.mode = stream ? null : "x";
+        }
         let marker = null;
         let lat = stream ? parseFloat($('#lat').html()) : null;
         let lon = stream ? parseFloat($('#lon').html()) : null;

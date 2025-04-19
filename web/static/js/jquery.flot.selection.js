@@ -341,7 +341,8 @@ The plugin allso adds the following methods to the plot object:
 
         plot.hooks.drawOverlay.push(function (plot, ctx) {
             // draw selection
-            if (selection.show && selectionIsSane()) {
+            var mode = plot.getOptions().selection.mode;
+            if (selection.show && selectionIsSane() && mode !== null) {
                 var plotOffset = plot.getPlotOffset();
                 var o = plot.getOptions();
 
@@ -349,7 +350,6 @@ The plugin allso adds the following methods to the plot object:
                 ctx.translate(plotOffset.left, plotOffset.top);
 
                 var c = $.color.parse(o.selection.color);
-
                 ctx.strokeStyle = c.scale("a", 0.8).toString();
                 ctx.lineWidth = 1;
                 ctx.lineJoin = o.selection.shape;
