@@ -279,6 +279,7 @@ if (isset($sids[0])) {
         resizeSplitter();
       });
     </script>
+
 <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
   <div class="fetch-data"></div>
   <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
