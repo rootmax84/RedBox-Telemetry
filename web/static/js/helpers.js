@@ -645,12 +645,16 @@ let initMapLeaflet = () => {
     function handleSelectorChange(e) {
         const sourceIndex = e.target.value;
 
-        requestAnimationFrame(() => {
-            updateHotline('');
+        if (stream) {
             requestAnimationFrame(() => {
-                updateHotline(sourceIndex);
+                updateHotline('');
+                requestAnimationFrame(() => {
+                    updateHotline(sourceIndex);
+                });
             });
-        });
+        } else {
+            updateHotline(sourceIndex);
+        }
     }
 
     function addSelectorEventHandler() {
