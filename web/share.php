@@ -220,7 +220,7 @@ include("head.php");
         <div class="container">
                 <div class="chart-fill-toggle" onClick="chartToggle()" style="right:40px"></div>
                 <div class="login-lang" id="lang-switch" style="position:absolute;top:10px;right:10px">
-                    <div class="selected-lang" id="selected-lang" style="width:24px;height:24px"></div>
+                    <div class="selected-lang" id="selected-lang" style="width:24px;height:24px;color:#5d5d5d"></div>
                       <ul class="lang-options" id="lang-options" style="background:#fff">
                         <li data-value="en">English</li>
                         <li data-value="ru">Русский</li>
