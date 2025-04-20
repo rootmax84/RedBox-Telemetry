@@ -115,6 +115,65 @@ include("head.php");
         };
         redDialog.make(dialogOpt);
     }
+
+    function sortPID() {
+        if ($("head style.table-sort-indicators").length === 0) {
+            $("<style>")
+                .prop("type", "text/css")
+                .html(`
+                    th.sortable { cursor: pointer; }
+                    th.sorted-asc::after { content: " ▲"; }
+                    th.sorted-desc::after { content: " ▼"; }
+                `)
+                .appendTo("head");
+        }
+
+        $(".table-del-merge-pid thead th").not(":eq(2)").addClass("sortable");
+
+        $(".table-del-merge-pid thead th.sortable").click(function() {
+            const table = $(this).closest("table");
+            const columnIndex = $(this).index();
+            const rows = table.find("tbody tr").get();
+
+            const isAscending = !$(this).hasClass("sorted-asc");
+            table.find("th").removeClass("sorted-asc sorted-desc");
+            $(this).addClass(isAscending ? "sorted-asc" : "sorted-desc");
+
+            rows.sort((a, b) => {
+                const valueA = getCellValue(a, columnIndex);
+                const valueB = getCellValue(b, columnIndex);
+
+                if (columnIndex === 0) {
+                    const hexA = valueA.substring(1);
+                    const hexB = valueB.substring(1);
+                    return parseInt(hexA, 16) - parseInt(hexB, 16);
+                }
+                else if (columnIndex === 1) {
+                    return valueA.localeCompare(valueB);
+                }
+                else if (columnIndex >= 3 && columnIndex <= 5) {
+                    return (valueA ? 1 : 0) - (valueB ? 1 : 0);
+                }
+            return 0;
+        });
+
+            if (!isAscending) rows.reverse();
+            table.find("tbody").empty().append(rows);
+        });
+
+        function getCellValue(row, index) {
+            const cell = $(row).children("td").eq(index);
+            if (index === 0) {
+                return cell.contents()
+                    .filter(function() { return this.nodeType === 3; })
+                    .text().trim();
+            }
+            else if (index >= 3 && index <= 5) {
+                return cell.find("input[type='checkbox']").is(":checked");
+            }
+            return cell.text().trim();
+        }
+    } $(function() { sortPID(); });
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
