@@ -36,7 +36,12 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - php-memcached (OPTIONAL)
 - memcached (OPTIONAL)
 - nginx with php-fpm(recommended) or Apache2 web-server(not tested) with proper SSL configuration
-- Latest available MySQL/MariaDB (OPTIONAL: mariadb-plugin-rocksdb for using ROCKSDB engine)
+- Database:
+  - MySQL 8.0+
+     (Optional: MyRocks engine via Percona Server for MySQL, for using the RocksDB storage engine — not tested)
+  - MariaDB 10.6+
+     (Optional: ```mariadb-plugin-rocksdb``` for using the RocksDB storage engine)
+  - <b>Recommended</b>: Use the RocksDB engine — it's pretty fast and storage-efficient
 
 ### Installation standalone:
 1. Create database and user with all privileges on this database
