@@ -153,67 +153,87 @@ for ($f = 0; $f < count($files); $f++) {
  $db->query($alter);
 
  //Insert data
- for ($i = 0; $i < sizeof($data)-1; $i+=37) {
-    $time= $data[$i];
-    $ect = $data[$i+1];
-    $eot = $data[$i+2];
-    $iat = $data[$i+3];
-    $atf = $data[$i+4];
-    $aat = $data[$i+5];
-    $ext = $data[$i+6];
-    $spd = $data[$i+7];
-    $rpm = $data[$i+8];
-    $map = $data[$i+9];
-    $boost = ($data[$i+9]-101)/100;
-    $maf = $data[$i+10];
-    $tps = $data[$i+11];
-    $ign = $data[$i+12];
-    $inj = $data[$i+13];
-    $injd = $data[$i+14];
-    $iac = $data[$i+15];
-    $afr = $data[$i+16];
-    $o2s = $data[$i+17];
-    $o2s2 = $data[$i+18];
-    $egt = $data[$i+19];
-    $eop = $data[$i+20];
-    $fp = $data[$i+21];
-    $ert = $data[$i+22];
-    $mhs = $data[$i+23];
-    $bstd = $data[$i+24];
-    $fan = $data[$i+25];
-    $gear = $data[$i+26];
-    $bs1 = $data[$i+27];
-    $bs2 = $data[$i+28];
-    $pg0 = $data[$i+29];
-    $pg1 = $data[$i+30];
-    $vlt = $data[$i+31];
-    $rlc = $data[$i+32];
-    $glat = $data[$i+33];
-    $glon = $data[$i+34];
-    $gspd = $data[$i+35];
-    $odo = $data[$i+36];
+ $batch = [];
+ $batchSize = 500;
+ $total = sizeof($data);
+ $columns = "session, time, kff1005, kff1006, k21fa, kff1202, k5, k5c, kf, kb4, kc, kb, k1f, k2118, k2120, k2122, k2125, kff1238, k46, k2101, kd, k10, k11, ke, k2112, k2100, k2113, k21cc, kff1214, kff1218, k78, k2111, k2119, k2124, k21e1, k21e2, k2126, kff1001, kff120c";
 
-    // Prepare data for insertion
-    $insertData = [
-        $session, $time, $glon, $glat, $rlc, $boost, $ect, $eot, $iat, $atf, $rpm, $map, $ert, $mhs, $bstd, $fan, $pg0, $vlt,
-        $aat, $ext, $spd, $maf, $tps, $ign, $inj, $injd, $iac, $afr, $o2s, $o2s2, $egt, $eop, $fp, $gear, $bs1, $bs2, $pg1,
-        $gspd, $odo
-    ];
+ try {
+    $db->begin_transaction();
 
-    try {
-        $db->execute_query("INSERT INTO $db_table (session, time, kff1005, kff1006, k21fa, kff1202, k5, k5c, kf, kb4, kc, kb, k1f, k2118, k2120, k2122, k2125, kff1238, k46, k2101, kd, k10, k11, ke, k2112, k2100, k2113, k21cc, kff1214, kff1218, k78, k2111, k2119, k2124, k21e1, k21e2, k2126, kff1001, kff120c) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", $insertData);
-    } catch (Exception $e) {
-        http_response_code(406);
-        $file = htmlspecialchars($files[$f]['name']);
-        if (str_contains($e, 'Duplicate')) {
-            echo $file . " " . $translations[$_COOKIE['lang']]['redlog.dup'];
-        } else {
-            echo $file . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+    for ($i = 0; $i < $total - 1; $i += 37) {
+        $time = $data[$i];
+        $ect = $data[$i + 1];
+        $eot = $data[$i + 2];
+        $iat = $data[$i + 3];
+        $atf = $data[$i + 4];
+        $aat = $data[$i + 5];
+        $ext = $data[$i + 6];
+        $spd = $data[$i + 7];
+        $rpm = $data[$i + 8];
+        $map = $data[$i + 9];
+        $boost = ($map - 101) / 100;
+        $maf = $data[$i + 10];
+        $tps = $data[$i + 11];
+        $ign = $data[$i + 12];
+        $inj = $data[$i + 13];
+        $injd = $data[$i + 14];
+        $iac = $data[$i + 15];
+        $afr = $data[$i + 16];
+        $o2s = $data[$i + 17];
+        $o2s2 = $data[$i + 18];
+        $egt = $data[$i + 19];
+        $eop = $data[$i + 20];
+        $fp = $data[$i + 21];
+        $ert = $data[$i + 22];
+        $mhs = $data[$i + 23];
+        $bstd = $data[$i + 24];
+        $fan = $data[$i + 25];
+        $gear = $data[$i + 26];
+        $bs1 = $data[$i + 27];
+        $bs2 = $data[$i + 28];
+        $pg0 = $data[$i + 29];
+        $pg1 = $data[$i + 30];
+        $vlt = $data[$i + 31];
+        $rlc = $data[$i + 32];
+        $glat = $data[$i + 33];
+        $glon = $data[$i + 34];
+        $gspd = $data[$i + 35];
+        $odo = $data[$i + 36];
+
+        $row = [
+            $session, $time, $glon, $glat, $rlc, $boost, $ect, $eot, $iat, $atf, $rpm, $map, $ert, $mhs, $bstd, $fan, $pg0, $vlt,
+            $aat, $ext, $spd, $maf, $tps, $ign, $inj, $injd, $iac, $afr, $o2s, $o2s2, $egt, $eop, $fp, $gear, $bs1, $bs2, $pg1,
+            $gspd, $odo
+        ];
+
+        $batch[] = $row;
+
+        if (count($batch) >= $batchSize) {
+            bulkInsert($db, $db_table, $columns, $batch);
+            $batch = [];
         }
-        $db->execute_query("DELETE FROM $db_table WHERE session=?", [$session]);
-        $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$session]);
-        die;
     }
+
+    if (!empty($batch)) {
+        bulkInsert($db, $db_table, $columns, $batch);
+    }
+
+    $db->commit();
+ } catch (Exception $e) {
+    $db->rollBack();
+    http_response_code(406);
+    $file = htmlspecialchars($files[$f]['name']);
+
+    if (str_contains($e->getMessage(), 'Duplicate')) {
+        echo $file . " " . $translations[$_COOKIE['lang']]['redlog.dup'];
+    } else {
+        echo $file . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+    }
+
+    $db->execute_query("DELETE FROM $db_table WHERE session=?", [$session]);
+    $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$session]);
+    die;
 }
  $ok++;
  unlink($target_file[$f]);
@@ -230,5 +250,18 @@ $db->close();
     $db->execute_query("DELETE FROM $db_table WHERE session=?", [$session]);
     $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$session]);
     die;
+}
+
+function bulkInsert($db, $table, $columns, $rows) {
+    $placeholders = [];
+    $values = [];
+
+    foreach ($rows as $row) {
+        $placeholders[] = '(' . rtrim(str_repeat('?,', count($row)), ',') . ')';
+        $values = array_merge($values, $row);
+    }
+
+    $sql = "INSERT INTO $table ($columns) VALUES " . implode(',', $placeholders);
+    $db->execute_query($sql, $values);
 }
 ?>
