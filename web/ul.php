@@ -247,10 +247,8 @@ if (sizeof($_REQUEST) > 0) {
         cache_flush();
       }
     }
-    if (!in_array('timeend', $sesskeys)) {
-        $sesskeys[] = 'timeend';
-        $sessvalues[] = $sesstime ?? round(microtime(true) * 1000);
-    }
+    $sesskeys[] = 'timeend';
+    $sessvalues[] = $sesstime;
     $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).") VALUES (".quote_values($sessvalues).") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
     $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
 
