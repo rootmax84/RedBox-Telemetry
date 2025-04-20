@@ -432,6 +432,7 @@ initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
  <span class="tlue" l10n="stream"></span>
  <span class="divider"></span>
  <span class="toggle" id="data_toggle" l10n="expand"></span>
+ <?php if ($stream_lock) { echo '<span class="stream-lock-container"><span class="stream-lock"></span></span>'; } ?>
 </p>
 <div id="data" style="display:none">
 	    <table class="table live-data" style="width:410px;font-size:0.875em;margin:0 auto;">
