@@ -23,7 +23,11 @@ if ($session_id) {
 $query .= " ORDER BY time DESC LIMIT 1";
 
 $r = $db->execute_query($query, $placeholders);
-if (!$r->num_rows) die;
+
+if (!$r->num_rows) {
+    echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>" . $translations[$_COOKIE['lang']]['nodata'] . "</span></td></tr>\n\nretry: 5000\n\n";
+    die;
+}
 
 $s = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 OR id IN ('kff1005', 'kff1006') ORDER by description ASC");
 $d = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1");

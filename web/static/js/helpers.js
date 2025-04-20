@@ -29,6 +29,7 @@ $(document).ready(function(){
   setInterval(()=>{
     if ($.cookie('plot') !== undefined) {
         $('.live').css('display','block');
+        updateSessionDuration();
     } else {
         $('.live').css('display','none');
     }
@@ -1766,6 +1767,48 @@ function copyToClipboard(text = '') {
     } catch (err) {
         requestAnimationFrame(() => serverError(err));
     }
+}
+
+function updateSessionDuration() {
+  const timeInput = document.getElementById('slider-time');
+  if (!timeInput) {
+    return;
+  }
+
+  const getTime = (attr) => {
+    const value = timeInput.getAttribute(attr);
+    if (!value) return null;
+    const timestamp = parseInt(value);
+    return isNaN(timestamp) ? null : timestamp;
+  };
+
+  const startTime = getTime('sv0');
+  const endTime = getTime('sv1');
+
+  if (!startTime || !endTime || endTime <= startTime) {
+    return;
+  }
+
+  const durationSec = Math.floor((endTime - startTime) / 1000);
+  const hours = Math.floor(durationSec / 3600);
+  const minutes = Math.floor((durationSec % 3600) / 60);
+  const seconds = durationSec % 60;
+
+  const durationStr = [
+    hours.toString().padStart(2, '0'),
+    minutes.toString().padStart(2, '0'),
+    seconds.toString().padStart(2, '0')
+  ].join(':');
+
+  const durationText = localization?.key?.['get.sess.length'];
+  const currSessionText = localization?.key?.['get.sess.curr'];
+
+  $(`.choices__item:contains("${currSessionText}")`).text((i, oldText) => 
+    oldText.replace(
+      new RegExp(`\\(${durationText}[^)]+\\)`),
+      `(${durationText} ${durationStr})`
+    )
+  );
 }
 
 let redDialog = {
