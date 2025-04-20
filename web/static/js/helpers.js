@@ -1741,6 +1741,33 @@ function chartToggle() {
     }, TOGGLE_DELAY);
 };
 
+function copyToClipboard(text = '') {
+    try {
+        // Try modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch((err) => {
+                requestAnimationFrame(() => serverError(err));
+            });
+        } else {
+            // Fallback for HTTP or unsupported contexts
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            if (!successful) {
+                requestAnimationFrame(() => serverError(new Error('execCommand failed')));
+            }
+        }
+    } catch (err) {
+        requestAnimationFrame(() => serverError(err));
+    }
+}
+
 let redDialog = {
     options: {
         zIndex: 10000,

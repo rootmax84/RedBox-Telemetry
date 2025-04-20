@@ -970,7 +970,7 @@ function showToken() {
                 btnClassFailText: localization.key['btn.renew'],
                 message: token,
                 onResolve: function() {
-                    navigator.clipboard.writeText(token);
+                    copyToClipboard(token);
                 },
                 onReject: function() {
                     $("#wait_layout").show();
@@ -1111,24 +1111,7 @@ function shareSession() {
             btnClassFailText: localization.key['btn.no'],
             btnClassFail: "btn btn-info btn-sm",
             onResolve: function() {
-                    try {
-                        // Try modern Clipboard API first
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            navigator.clipboard.writeText(url);
-                        } else {
-                            // Fallback for HTTP contexts
-                            const textarea = document.createElement('textarea');
-                            textarea.value = url;
-                            textarea.style.position = 'fixed';
-                            textarea.style.opacity = '0';
-                            document.body.appendChild(textarea);
-                            textarea.select();
-                            document.execCommand('copy');
-                            document.body.removeChild(textarea);
-                        }
-                    } catch (err) {
-                        console.error('Failed to copy: ', err);
-                    }
+                    copyToClipboard(url);
                 }
             };
             redDialog.make(dialogOpt);
