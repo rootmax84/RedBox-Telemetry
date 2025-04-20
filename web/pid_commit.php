@@ -10,6 +10,7 @@ if (empty($_POST)) {
 $db->begin_transaction();
 
 try {
+  if (!isset($_POST["delete"])) {
     foreach ($_POST as $field_name => $val) {
         $field_name = strip_tags(trim($field_name));
         $val = strip_tags(trim($val));
@@ -30,15 +31,15 @@ try {
             $val = ($val === 'true') ? 1 : 0;
         }
 
-        if ($val === "delete") {
-            $db->execute_query("DELETE FROM $db_pids_table WHERE id = ?", [$id]);
-            if (column_exists($db, $db_table, $id)) {
-                $db->query("ALTER TABLE $db_table DROP COLUMN " . quote_name($id));
-            }
-        } else {
-            $db->execute_query("UPDATE $db_pids_table SET " . quote_name($field_name) . " = ? WHERE id = ?", [$val, $id]);
-        }
+        $db->execute_query("UPDATE $db_pids_table SET " . quote_name($field_name) . " = ? WHERE id = ?", [$val, $id]);
     }
+  } else {
+        $pid = $_POST["delete"];
+        $db->execute_query("DELETE FROM $db_pids_table WHERE id = ?", [$pid]);
+        if (column_exists($db, $db_table, $pid)) {
+            $db->query("ALTER TABLE $db_table DROP COLUMN " . quote_name($pid));
+        }
+  }
 
     $db->commit();
     echo $translations[$_COOKIE['lang']]['dialog.pid.update'];

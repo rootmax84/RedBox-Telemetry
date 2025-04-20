@@ -140,6 +140,7 @@ function adminUserDelete(username) {
         btnClassFail: "btn btn-info btn-sm",
         message: `${localization.key['admin.del.title']} ${username}?`,
         onResolve: function() {
+            $("#wait_layout").show();
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
             const formData = new FormData();
             formData.append('del_login', username);
@@ -148,10 +149,9 @@ function adminUserDelete(username) {
             fetch('users_handler.php', { method: 'POST', body: formData })
                 .then(response => response.text())
                 .then(text => {
+                    $("#wait_layout").hide();
                     xhrResponse(text);
-                    document.querySelectorAll('tr').forEach(row => {
-                        if (row.textContent.includes(username)) row.remove();
-                    });
+                    document.querySelector(`tr[data-username="${username}"]`)?.remove();
                 })
                 .catch(error => serverError(error.message));
         }

@@ -1178,3 +1178,16 @@ input[type="checkbox"]:disabled:checked::after {
 .settings--cell {
   padding-bottom: 10px;
 }
+
+.delete-icon {
+  cursor: pointer;
+  color: red;
+  margin-right: 10px;
+  display: inline-block;
+  transition: transform .2s ease;
+}
+
+
+.delete-icon:hover {
+  transform: scale(1.7);
+}

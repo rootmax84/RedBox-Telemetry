@@ -663,7 +663,7 @@ if ($r->num_rows > 0) {
         }
         
         // Output table
-        echo "<tr onclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($username) . "&limit=" . $row["s"] . "\";'>";
+        echo "<tr onclick='window.location=\"./users_admin.php?action=edit&user=" . urlencode($username) . "&limit=" . $row["s"] . "\";' data-username=".$username.">";
         echo "<td>" . $i++ . "</td>";
         echo "<td" . ($usernameStyle ? " style='$usernameStyle'" : "") . ">";
         if (!$isAdmin) {

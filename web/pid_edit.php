@@ -88,6 +88,33 @@ include("head.php");
             return false;
         }
     });
+
+    function deletePID(pid) {
+        let dialogOpt = {
+            title: localization.key['dialog.confirm'],
+            btnClassSuccessText: localization.key['btn.yes'],
+            btnClassFailText: localization.key['btn.no'],
+            btnClassFail: "btn btn-info btn-sm",
+            message: `${localization.key['dialog.pid.delete']} ${pid}?`,
+            onResolve: function() {
+                $("#wait_layout").show();
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const formData = new FormData();
+                formData.append('delete', pid);
+                formData.append('csrf_token', csrfToken);
+
+                fetch('pid_commit.php', { method: 'POST', body: formData })
+                    .then(response => response.text())
+                    .then(text => {
+                        $("#wait_layout").hide();
+                        xhrResponse(text);
+                        document.querySelector(`tr[data-pid="${pid}"]`)?.remove();
+                    })
+                    .catch(error => serverError(error.message));
+            }
+        };
+        redDialog.make(dialogOpt);
+    }
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
@@ -119,8 +146,8 @@ include("head.php");
             </thead>
             <tbody>
                 <?php foreach ($keydata as $i => $keycol) { ?>
-                    <tr<?php echo ($i & 1) ? ' class="odd"' : ''; ?>>
-                        <td id="id:<?php echo $keycol['id']; ?>"><?php echo $keycol['id']; ?></td>
+                    <tr<?php echo ($i & 1) ? ' class="odd"' : ''; ?> data-pid=<?php echo $keycol['id']; ?>>
+                        <td id="id:<?php echo $keycol['id']; ?>"><span class='delete-icon' onclick="event.stopPropagation(); deletePID('<?php echo $keycol['id']; ?>')">&times;</span><?php echo $keycol['id']; ?></td>
                         <td id="description:<?php echo $keycol['id']; ?>" contenteditable="true"><?php echo $keycol['description']; ?></td>
                         <td id="units:<?php echo $keycol['id']; ?>" contenteditable="true"><?php echo $keycol['units']; ?></td>
                         <td><input type="checkbox" id="populated:<?php echo $keycol['id']; ?>"<?php if ($keycol['populated']) echo " checked"; ?>></td>
