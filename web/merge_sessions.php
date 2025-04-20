@@ -13,11 +13,11 @@ $sessionids = [];
 $i = 1;
 $mergesess1 = "";
 foreach ($_GET as $key => $value) {
-    if ($key != "mergesession" && $key != "page") {
+    if (!in_array($key, ["mergesession", "page", "csrf_token"])) {
         ${'mergesess' . $i} = $key;
         array_push($sessionids, $key);
         $i++;
-    } else {
+    } elseif (in_array($key, ["mergesession", "page"])) {
         array_push($sessionids, $value);
     }
 }

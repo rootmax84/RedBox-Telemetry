@@ -90,42 +90,24 @@ for ($f = 0; $f < count($files); $f++) {
  } //Stop on duplicate
 
  //Alter table if removed pid by user
- $alter = "ALTER TABLE $db_table ADD IF NOT EXISTS(k21fa float NOT NULL default 0,
-  kff1202 float NOT NULL default 0,
-  k5 float NOT NULL default 0,
-  k5c float NOT NULL default 0,
-  kf float NOT NULL default 0,
-  kb4 float NOT NULL default 0,
-  kc float NOT NULL default 0,
-  kb float NOT NULL default 0,
-  k1f float NOT NULL default 0,
-  k2118 float NOT NULL default 0,
-  k2120 float NOT NULL default 0,
-  k2122 float NOT NULL default 0,
-  k2125 float NOT NULL default 0,
-  kff1238 float NOT NULL default 0,
-  k46 float NOT NULL default 0,
-  k2101 float NOT NULL default 0,
-  kd float NOT NULL default 0,
-  k10 float NOT NULL default 0,
-  k11 float NOT NULL default 0,
-  ke float NOT NULL default 0,
-  k2112 float NOT NULL default 0,
-  k2100 float NOT NULL default 0,
-  k2113 float NOT NULL default 0,
-  k21cc float NOT NULL default 0,
-  kff1214 float NOT NULL default 0,
-  kff1218 float NOT NULL default 0,
-  k78 float NOT NULL default 0,
-  k2111 float NOT NULL default 0,
-  k2119 float NOT NULL default 0,
-  k2124 float NOT NULL default 0,
-  k21e1 float NOT NULL default 0,
-  k21e2 float NOT NULL default 0,
-  k2126 float NOT NULL default 0,
-  kff120c float NOT NULL default 0,
-  kff1001 float NOT NULL default 0)";
- $db->query($alter);
+ $columns_to_add = [
+    'k21fa', 'kff1202', 'k5', 'k5c', 'kf', 'kb4', 'kc', 'kb', 
+    'k1f', 'k2118', 'k2120', 'k2122', 'k2125', 'kff1238', 'k46', 
+    'k2101', 'kd', 'k10', 'k11', 'ke', 'k2112', 'k2100', 'k2113', 
+    'k21cc', 'kff1214', 'kff1218', 'k78', 'k2111', 'k2119', 'k2124', 
+    'k21e1', 'k21e2', 'k2126', 'kff120c', 'kff1001'
+ ];
+
+ foreach ($columns_to_add as $column) {
+    if (!column_exists($db, $db_table, $column)) {
+        try {
+            $sql = "ALTER TABLE $db_table ADD COLUMN `$column` FLOAT NOT NULL DEFAULT 0";
+            $db->query($sql);
+        } catch (Exception $e) {
+            error_log("Error adding column $column: " . $e->getMessage());
+        }
+    }
+ }
 
  //insert missed pids
  $alter = "INSERT IGNORE INTO $db_pids_table (id, description, units, populated, stream) VALUES

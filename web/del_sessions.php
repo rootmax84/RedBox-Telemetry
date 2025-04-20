@@ -12,7 +12,9 @@ $page = $_GET["page"] ?? 1;
 $sessionids = [];
 
 foreach ($_GET as $key => $value) {
+    if (!in_array($key, ["delsession", "page", "csrf_token"])) {
         array_push($sessionids, $key);
+    }
 }
 
 if (isset($delsession)) {

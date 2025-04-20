@@ -95,4 +95,20 @@ function cache_flush($token = null) {
         }
     }
 }
+
+function column_exists($db, $table, $column) {
+    $table = $db->real_escape_string($table);
+    $column = $db->real_escape_string($column);
+    $query = "SHOW COLUMNS FROM `$table` LIKE '$column'";
+    $result = $db->query($query);
+    return $result && $result->num_rows > 0;
+}
+
+function index_exists($db, $table, $index) {
+    $table = $db->real_escape_string($table);
+    $index = $db->real_escape_string($index);
+    $query = "SHOW INDEX FROM `$table` WHERE Key_name = '$index'";
+    $result = $db->query($query);
+    return $result && $result->num_rows > 0;
+}
 ?>

@@ -186,22 +186,6 @@ function create_users_table()
  }
 }
 
-function column_exists($db, $table, $column) {
-    $table = $db->real_escape_string($table);
-    $column = $db->real_escape_string($column);
-    $query = "SHOW COLUMNS FROM `$table` LIKE '$column'";
-    $result = $db->query($query);
-    return $result && $result->num_rows > 0;
-}
-
-function index_exists($db, $table, $index) {
-    $table = $db->real_escape_string($table);
-    $index = $db->real_escape_string($index);
-    $query = "SHOW INDEX FROM `$table` WHERE Key_name = '$index'";
-    $result = $db->query($query);
-    return $result && $result->num_rows > 0;
-}
-
 function perform_migration() {
     $db = get_db_connection();
     global $db_users;
@@ -212,13 +196,13 @@ function perform_migration() {
     }
 
     $migrations = [
-        'stream_lock'     => "ALTER TABLE `$db_users` ADD COLUMN stream_lock TINYINT(1) NOT NULL DEFAULT 0",
-        'sessions_filter' => "ALTER TABLE `$db_users` ADD COLUMN sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
-        'forward_url'     => "ALTER TABLE `$db_users` ADD COLUMN forward_url VARCHAR(2083) NULL",
-        'forward_token'   => "ALTER TABLE `$db_users` ADD COLUMN forward_token VARCHAR(190) NULL",
-        'share_secret'    => "ALTER TABLE `$db_users` ADD COLUMN share_secret CHAR(32)",
-        'login_attempts'  => "ALTER TABLE `$db_users` ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
-        'last_attempt'    => "ALTER TABLE `$db_users` ADD COLUMN last_attempt DATETIME",
+        'stream_lock'     => "ALTER TABLE $db_users ADD COLUMN stream_lock TINYINT(1) NOT NULL DEFAULT 0",
+        'sessions_filter' => "ALTER TABLE $db_users ADD COLUMN sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
+        'forward_url'     => "ALTER TABLE $db_users ADD COLUMN forward_url VARCHAR(2083) NULL",
+        'forward_token'   => "ALTER TABLE $db_users ADD COLUMN forward_token VARCHAR(190) NULL",
+        'share_secret'    => "ALTER TABLE $db_users ADD COLUMN share_secret CHAR(32)",
+        'login_attempts'  => "ALTER TABLE $db_users ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
+        'last_attempt'    => "ALTER TABLE $db_users ADD COLUMN last_attempt DATETIME",
     ];
 
     foreach ($migrations as $migration => $query) {
@@ -234,7 +218,7 @@ function perform_migration() {
     $index_name = 'indexes';
     if (index_exists($db, $db_users, $index_name)) {
         try {
-            $db->query("DROP INDEX `$index_name` ON `$db_users`");
+            $db->query("DROP INDEX `$index_name` ON $db_users");
         } catch (mysqli_sql_exception $e) {
             die("Migration failed while dropping index '$index_name': " . $e->getMessage());
         }

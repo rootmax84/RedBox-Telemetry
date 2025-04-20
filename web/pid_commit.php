@@ -28,22 +28,20 @@ try {
 
         if (in_array($field_name, ['populated', 'stream', 'favorite'])) {
             $val = ($val === 'true') ? 1 : 0;
-            if ($val === 1) {
-                $query = "ALTER TABLE $db_table ADD IF NOT EXISTS " . quote_name($id) . " float NOT NULL DEFAULT '0'";
-                $db->query($query);
-            }
         }
 
         if ($val === "delete") {
             $db->execute_query("DELETE FROM $db_pids_table WHERE id = ?", [$id]);
-            $db->query("ALTER TABLE $db_table DROP IF EXISTS " . quote_name($id));
+            if (column_exists($db, $db_table, $id)) {
+                $db->query("ALTER TABLE $db_table DROP COLUMN " . quote_name($id));
+            }
         } else {
             $db->execute_query("UPDATE $db_pids_table SET " . quote_name($field_name) . " = ? WHERE id = ?", [$val, $id]);
         }
     }
 
     $db->commit();
-    echo  $translations[$_COOKIE['lang']]['dialog.pid.update'];
+    echo $translations[$_COOKIE['lang']]['dialog.pid.update'];
 } catch (Exception $e) {
     $db->rollback();
     echo "Error: " . $e->getMessage();

@@ -221,14 +221,16 @@ if (sizeof($_REQUEST) > 0) {
 
     // If the field doesn't already exist, add it to the database except id key
     if (!in_array($key, $dbfields) && $submitval == 1 && preg_match('/^k[0-9a-fA-F]+$/', $key)) {
-      cache_flush();
-      $dataType = is_numeric($value) ? "float" : "VARCHAR(255)";
+      $dataType = is_numeric($value) ? "FLOAT" : "VARCHAR(255)";
 
-      $sqlalter = "ALTER TABLE $db_table ADD IF NOT EXISTS ".quote_name($key)." $dataType NOT NULL default '0'";
-      $db->query($sqlalter);
+      if (!column_exists($db, $db_table, $key)) {
+        $sqlalter = "ALTER TABLE $db_table ADD COLUMN ".quote_name($key)." $dataType NOT NULL DEFAULT '0'";
+        $db->query($sqlalter);
+      }
 
       $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite) VALUES (?,?,?,?,?)";
       $db->execute_query($sqlalterkey, [$key, $key, '1', '1', '0']);
+      cache_flush();
     }
   }
   // start insert/update incoming data
@@ -244,6 +246,10 @@ if (sizeof($_REQUEST) > 0) {
       } catch (Exception $e) {
         cache_flush();
       }
+    }
+    if (!in_array('timeend', $sesskeys)) {
+        $sesskeys[] = 'timeend';
+        $sessvalues[] = $sesstime ?? round(microtime(true) * 1000);
     }
     $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).") VALUES (".quote_values($sessvalues).") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
     $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
