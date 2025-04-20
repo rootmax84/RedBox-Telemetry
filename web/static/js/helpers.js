@@ -54,7 +54,7 @@ function stopPlotUpdates() {
     animationPlotFrameId = null;
   }
   streamInteractToggle();
-  plot.clearSelection();
+  if (plot !== null) plot.clearSelection();
 }
 
 function startPlotUpdates() {
@@ -68,8 +68,8 @@ function startPlotUpdates() {
 function streamInteractToggle() {
   if (plot && plot.getOptions) {
     plot.getOptions().selection.mode = stream ? null : "x";
-    $(".slider-container").css("display", stream ? "none" : "block");
   }
+  $(".slider-container").css("display", stream ? "none" : "block");
 }
 
 function updatePlot(callback) {
