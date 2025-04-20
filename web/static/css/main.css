@@ -1145,6 +1145,7 @@ input[type="checkbox"]:disabled:checked::after {
   left: 50%;
   transform: translate(-50%, -54%);
   width: fit-content;
+  min-width: 200px;
   text-align: center;
   border: 1px solid #ddd;
   border-bottom: none;
