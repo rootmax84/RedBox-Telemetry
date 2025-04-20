@@ -1,5 +1,5 @@
 *{
-  font-family: 'Lato', sans-serif;
+  font-family: 'Lato', 'Lato C', sans-serif;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -375,6 +375,11 @@ body::-webkit-scrollbar {
 @font-face {
   font-family: 'Open Sans';
   src: url('./opensans.woff2');
+}
+
+@font-face {
+  font-family: 'Lato C';
+  src: url('./lato_c.woff2');
 }
 
 @font-face {
