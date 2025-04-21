@@ -206,7 +206,7 @@ include("head.php");
             <tbody>
                 <?php foreach ($keydata as $i => $keycol) { ?>
                     <tr<?php echo ($i & 1) ? ' class="odd"' : ''; ?> data-pid=<?php echo $keycol['id']; ?>>
-                        <td id="id:<?php echo $keycol['id']; ?>"><span class='delete-icon' onclick="event.stopPropagation(); deletePID('<?php echo $keycol['id']; ?>')">&times;</span><?php echo $keycol['id']; ?></td>
+                        <td style="white-space:nowrap" id="id:<?php echo $keycol['id']; ?>"><span class='delete-icon' onclick="event.stopPropagation(); deletePID('<?php echo $keycol['id']; ?>')">&times;</span><?php echo $keycol['id']; ?></td>
                         <td id="description:<?php echo $keycol['id']; ?>" contenteditable="true"><?php echo $keycol['description']; ?></td>
                         <td id="units:<?php echo $keycol['id']; ?>" contenteditable="true"><?php echo $keycol['units']; ?></td>
                         <td><input type="checkbox" id="populated:<?php echo $keycol['id']; ?>"<?php if ($keycol['populated']) echo " checked"; ?>></td>
