@@ -151,7 +151,11 @@ function adminUserDelete(username) {
                 .then(text => {
                     $("#wait_layout").hide();
                     xhrResponse(text);
-                    document.querySelector(`tr[data-username="${username}"]`)?.remove();
+                    const row = document.querySelector(`tr[data-username="${username}"]`);
+                    if (row) {
+                        row.style.pointerEvents = 'none';
+                        row.style.opacity = '0.5';
+                    }
                 })
                 .catch(error => serverError(error.message));
         }
