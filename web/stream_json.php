@@ -17,8 +17,7 @@
       ],
 */
 
-require_once('token_functions.php');
-require_once('parse_functions.php');
+require_once('helpers.php');
 
 //Allow CORS
 header('Access-Control-Allow-Origin: *');

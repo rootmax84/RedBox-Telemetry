@@ -1,5 +1,5 @@
 <?php
-require_once('parse_functions.php');
+require_once('helpers.php');
 
 if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $_SESSION['torque_logged_in'] = true;

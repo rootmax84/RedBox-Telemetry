@@ -1,5 +1,5 @@
 <?php
-require_once('token_functions.php');
+require_once('helpers.php');
 include('translations.php');
 
 //Allow CORS and JWT
@@ -296,57 +296,7 @@ $db->close();
 echo "OK!";
 
 // Forward request to another URL if specified
-fastcgi_finish_request();
 if (!empty($forward_url)) {
-    $method = $_SERVER['REQUEST_METHOD'];
-    $forward_data = $_REQUEST;
-
-    if (empty($forward_data['eml'])) {
-        $forward_data['eml'] = $username . '@redbox.null';
-    }
-
-    $ch = curl_init();
-
-    if ($method === 'GET') {
-        $query = http_build_query($forward_data);
-        $url_with_query = $forward_url . (strpos($forward_url, '?') === false ? '?' : '&') . $query;
-        curl_setopt($ch, CURLOPT_URL, $url_with_query);
-        curl_setopt($ch, CURLOPT_HTTPGET, true);
-    } else {
-        curl_setopt($ch, CURLOPT_URL, $forward_url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $forward_data);
-    }
-
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-    curl_setopt($ch, CURLOPT_NOSIGNAL, 1);
-
-    // Forward headers
-    $headers = [];
-    if (!empty($forward_token)) {
-        $headers[] = 'Authorization: Bearer ' . $forward_token;
-    } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-        $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
-    }
-    if (!empty($headers)) {
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    }
-
-    // Execute and log
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    // Logging
-    if ($error) {
-        error_log("[Forwarding] Failed to forward {$method} request for user {$username} to {$forward_url}: $error");
-    } elseif ($http_code >= 400) {
-        error_log("[Forwarding] Forwarded {$method} request for user {$username} to {$forward_url}, but got HTTP error: $http_code");
-    } else {
-        error_log("[Forwarding] Successfully forwarded {$method} request for user {$username} to {$forward_url}");
-    }
+    forward_request($username, $forward_url, $forward_token);
 }
 ?>

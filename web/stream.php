@@ -2,7 +2,7 @@
 
 require_once('db.php');
 include('timezone.php');
-require_once('parse_functions.php');
+require_once('helpers.php');
 include_once('translations.php');
 
 if (isset($_SESSION['admin'])) {

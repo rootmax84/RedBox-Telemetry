@@ -1,6 +1,6 @@
 <?php
 require_once ('auth_functions.php');
-require_once ('token_functions.php');
+require_once ('helpers.php');
 if (!isset($_SESSION)) { session_start(); }
 
 $current_script = basename($_SERVER['SCRIPT_FILENAME']);

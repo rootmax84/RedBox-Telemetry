@@ -1,7 +1,7 @@
 <?php
 $_SESSION['torque_logged_in'] = true;
 require_once('db.php');
-require_once('parse_functions.php');
+require_once('helpers.php');
 include_once('translations.php');
 $lang = $_COOKIE['lang'] ?? 'en';
 

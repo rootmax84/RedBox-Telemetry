@@ -1,8 +1,7 @@
 <?php
-require_once ('token_functions.php');
+require_once ('helpers.php');
 require_once ('auth_functions.php');
 require_once ('db.php');
-require_once ('parse_functions.php');
 include_once ('translations.php');
 
 function handleUserSettings($db, $translations, $username, $admin, $db_users) {
@@ -90,7 +89,7 @@ try {
             $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
             cache_flush($token);
 
-            $db->execute_query("UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?", [$_POST['tg_token'], $_POST['tg_chatid'] !== '' ? $_POST['tg_chatid'] : null, $username]);
+            $db->execute_query("UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?", [$_POST['tg_token'] !== '' ? $_POST['tg_token'] : null, $_POST['tg_chatid'] !== '' ? $_POST['tg_chatid'] : null, $username]);
 
             $testMessage = notify("👋", $_POST['tg_token'], $_POST['tg_chatid']);
 
@@ -109,7 +108,10 @@ try {
             else if (isValidExternalHttpUrl($_POST['forward_url']) || empty($_POST['forward_url'])) {
                 $row = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc();
 
-                $db->execute_query("UPDATE $db_users SET forward_url=?, forward_token=? WHERE user=?", [$_POST['forward_url'], $_POST['forward_token'], $username]);
+                $db->execute_query("UPDATE $db_users SET forward_url=?, forward_token=? WHERE user=?",
+                    [$_POST['forward_url'] !== '' ? $_POST['forward_url'] : null,
+                     $_POST['forward_token'] !== '' ? $POST['forward_token'] : null,
+                $username]);
 
                 cache_flush($row["token"]);
                 $response = $translations[$_COOKIE['lang']]['user.url.updated'];

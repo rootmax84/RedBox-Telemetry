@@ -295,4 +295,144 @@ function checkRateLimit($limit = 10, $period = 3600, $success = false) {
         return true; // In case of cache error, don't block access
     }
 }
+
+/**
+ * Generate authentication token
+ */
+function generate_token(string $username): string
+{
+    return hash('sha3-256', random_bytes(32) . $username);
+}
+
+/**
+ * Get Bearer token from request headers
+ */
+function getBearerToken(): ?string
+{
+    $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+    return isset($headers['authorization']) ? 
+        trim(str_replace('Bearer ', '', $headers['authorization'])) : 
+        null;
+}
+
+/**
+ * Send notification to Telegram
+ * @return array|null Returns decoded response or null on failure
+ */
+function notify(?string $text, ?string $tg_token, ?string $tg_chatid): ?array
+{
+    if (empty($tg_token) || empty($tg_chatid)) {
+        return null;
+    }
+
+    $ch = curl_init('https://api.telegram.org/bot' . $tg_token . '/sendMessage');
+    if ($ch === false) {
+        return null;
+    }
+
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_POSTFIELDS => [
+            'chat_id' => $tg_chatid,
+            'text' => $text,
+        ],
+    ]);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    if ($response === false) {
+        return null;
+    }
+
+    return json_decode($response, true);
+}
+
+/**
+ * Generate CSRF token
+ */
+function generate_csrf_token(): string
+{
+    if (!isset($_SESSION['csrf_token']) || 
+        !isset($_SESSION['csrf_token_time']) || 
+        time() - $_SESSION['csrf_token_time'] > 3300
+    ) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        $_SESSION['csrf_token_time'] = time();
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Verify CSRF token
+ */
+function verify_csrf_token(string $token): bool
+{
+    return isset($_SESSION['csrf_token']) &&
+           isset($_SESSION['csrf_token_time']) &&
+           time() - $_SESSION['csrf_token_time'] <= 3600 &&
+           hash_equals($_SESSION['csrf_token'], $token);
+}
+
+/**
+ * Forward upload request
+ */
+function forward_request(string $username, string $forward_url, ?string $forward_token = null): void
+{
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    }
+
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    $forward_data = $_REQUEST;
+
+    if (empty($forward_data['eml'])) {
+        $forward_data['eml'] = $username . '@redbox.null';
+    }
+
+    $ch = curl_init();
+
+    if ($method === 'GET') {
+        $query = http_build_query($forward_data);
+        $url_with_query = $forward_url . (strpos($forward_url, '?') === false ? '?' : '&') . $query;
+        curl_setopt($ch, CURLOPT_URL, $url_with_query);
+        curl_setopt($ch, CURLOPT_HTTPGET, true);
+    } else {
+        curl_setopt($ch, CURLOPT_URL, $forward_url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $forward_data);
+    }
+
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+    curl_setopt($ch, CURLOPT_NOSIGNAL, 1);
+
+    // Headers
+    $headers = [];
+    if (!empty($forward_token)) {
+        $headers[] = 'Authorization: Bearer ' . $forward_token;
+    } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
+    }
+    if (!empty($headers)) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    }
+
+    // Execute and log
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($error) {
+        error_log("[Forwarding] Failed to forward {$method} request for user {$username} to {$forward_url}: $error");
+    } elseif ($http_code >= 400) {
+        error_log("[Forwarding] Forwarded {$method} request for user {$username} to {$forward_url}, but got HTTP error: $http_code");
+    } else {
+        error_log("[Forwarding] Successfully forwarded {$method} request for user {$username} to {$forward_url}");
+    }
+}
 ?>

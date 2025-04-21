@@ -767,15 +767,6 @@ if ($current_page < $total_pages) {
 <div class="row center-block" style="transform:translateY(-30px);text-align:center">
     <p class="copyright"></p>
 </div>
-<script>
-let src = new EventSource("stream.php");
-
-src.onmessage = e => {
-    if (e.data.length) {
-        location.reload();
-    }
-};
-</script>
 <?php } ?>
       </div>
     </div>
