@@ -618,7 +618,7 @@ let initMapLeaflet = () => {
                 if (select) {
                     select.addEventListener('change', function() {
                         const selectedOption = this.options[this.selectedIndex];
-                        this.title = selectedOption.text;
+                        this.title = selectedOption?.text ?? (this.selectedIndex = this.options.length - 1, this.options[this.selectedIndex].text);
                     });
 
                     select.title = select.options[select.selectedIndex].text;
@@ -699,6 +699,7 @@ let initMapLeaflet = () => {
     let lastFlotDataLength = 0;
     setInterval(() => {
         if (heatData && heatData.length !== lastFlotDataLength) {
+            updateMapWithRangePreservingHeatline();
             lastFlotDataLength = heatData.length;
             updateDataSourceSelector();
         }
@@ -1330,6 +1331,8 @@ function updateMapWithRangePreservingHeatline(startIndex, endIndex) {
 
             const changeEvent = new Event('change');
             dataSourceSelect.dispatchEvent(changeEvent);
+
+            if (startIndex === null || endIndex === null) return;
 
             mapUpdRange(startIndex, endIndex);
 
