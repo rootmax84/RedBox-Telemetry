@@ -41,15 +41,35 @@ if (!empty($token)) {
     header('Content-Type: application/json');
     header('Cache-Control: no-cache');
 
-     //Check auth via Bearer token
-    $userqry = $db->execute_query("SELECT user, s, api_gps FROM $db_users WHERE token=?", [$token]);
-    if (!$userqry->num_rows) {
-        $access = 0;
-    } else {
-        $row = $userqry->fetch_assoc();
-        $user = $row["user"];
-        $limit = $row["s"];
-        $gps = $row["api_gps"];
+    $cache_key = "user_api_data_" . $token;
+    $user_data = false;
+
+    if ($memcached_connected) {
+        $user_data = $memcached->get($cache_key);
+    }
+
+    //Check auth via Bearer token
+    if ($user_data === false) {
+        $userqry = $db->execute_query("SELECT user, s, api_gps FROM $db_users WHERE token=?", [$token]);
+        if ($userqry->num_rows) {
+            $access = 1;
+            $user_data = $userqry->fetch_assoc();
+            if ($memcached_connected) {
+                try {
+                    $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
+                } catch (Exception $e) {
+                    error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                }
+            }
+        } else {
+            $access = 0;
+        }
+    }
+
+    if ($user_data) {
+        $user = $user_data["user"];
+        $limit = $user_data["s"];
+        $gps = $user_data["api_gps"];
         $access = 1;
     }
 } else {

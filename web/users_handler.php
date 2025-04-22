@@ -22,7 +22,9 @@ function handleUserSettings($db, $translations, $username, $admin, $db_users) {
     setcookie("timeformat", $_POST['time'] == '1' ? '24' : '12');
     setcookie("gap", $_POST['gap']);
     $_SESSION['sessions_filter'] = $_POST['sessions_filter'];
-    cache_flush();
+
+    $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
+    cache_flush($token);
 
     return $translations[$_COOKIE['lang']]['set.common.updated'];
 }

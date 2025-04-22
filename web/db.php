@@ -74,7 +74,10 @@ function cache_flush($token = null) {
                 "pids_mapping_{$username}"
             ];
             if ($token !== null) {
-                $keys[] = "user_data_{$token}";
+                $keys = [
+                    "user_data_{$token}",
+                    "user_api_data_{$token}"
+                ];
             }
             // Clean users GPS and sessions data cache
             $allKeys = $memcached->getAllKeys();
