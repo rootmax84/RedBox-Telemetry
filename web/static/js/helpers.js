@@ -34,6 +34,13 @@ $(document).ready(function(){
         $('.live').css('display','none');
     }
   }, 5000);
+
+  //new session notify
+  setInterval(()=>{
+    if ($.cookie('newsess') !== undefined) {
+        $('.new-session').css('display','block');
+    }
+  }, 1000);
 });
 
 let lastPlotUpdateTime = 0;

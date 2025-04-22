@@ -284,6 +284,7 @@ if (sizeof($_REQUEST) > 0) {
             } else {
                 $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['get.sess.profile']}: {$spv['profileName']}";
             }
+            touch(sys_get_temp_dir().'/'.$username); // Create empty file in tmp to get new session notify on frontend
             notify($message, $tg_token, $tg_chatid); // Notify to user telegram bot at session start
         }
     }

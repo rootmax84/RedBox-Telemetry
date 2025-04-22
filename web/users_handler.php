@@ -25,6 +25,7 @@ function handleUserSettings($db, $translations, $username, $admin, $db_users) {
 
     $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
     cache_flush($token);
+    cache_flush();
 
     return $translations[$_COOKIE['lang']]['set.common.updated'];
 }

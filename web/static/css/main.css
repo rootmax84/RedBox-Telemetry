@@ -1220,3 +1220,33 @@ input[type="checkbox"]:disabled:checked::after {
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
 }
+
+.new-session {
+  color: #5d5d5d;
+  width: fit-content;
+  position: absolute;
+  right: 5px;
+  margin: 50px auto;
+  background: #e6e6e6e3;
+  padding: 5px;
+  border-radius: 5px;
+  display: none;
+  font-size: 14px;
+  box-shadow: 1px 1px 4px 1px rgb(2, 2, 2, 0.3);
+  animation: newsessPulse 2s infinite ease-in-out;
+}
+
+@keyframes newsessPulse {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

@@ -84,6 +84,7 @@ html {
   box-shadow: none !important;
 }
 
-.live {
+.live, .new-session {
   filter: hue-rotate(180deg);
+  box-shadow: none;
 }

@@ -282,6 +282,7 @@ if (isset($sids[0])) {
 
 <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
   <div class="fetch-data"></div>
+  <div class="new-session"><a href='.' l10n='sess.new'></a></div>
   <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
     <div class="storage-usage-img" onclick></div>
     <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
@@ -357,7 +358,7 @@ if (isset($sids[0])) {
     <form method="post" class="form-horizontal" action="url.php" id="sessionForm">
       <select id="seshidtag" name="seshidtag" class="form-control">
         <?php foreach ($seshdates as $dateid => $datestr) { ?>
-          <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} ?><?php if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr']; ?></option>
+          <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} {echo $sesactive[$dateid];} ?><?php if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr']; ?></option>
         <?php } ?>
             </select>
         <?php   if ( $filterprofile <> "" ) { ?>
