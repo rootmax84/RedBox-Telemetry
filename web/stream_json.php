@@ -3,7 +3,7 @@
 /*
     USAGE EXAMPLE:
     curl https://your_site/stream_json.php -H "Authorization: Bearer $username_token"
-    returns the latest user log entry checked in the PID menu as Stream without GPS data
+    returns the latest user log entry checked in the PID menu as Stream
 
       [
         {
@@ -42,13 +42,14 @@ if (!empty($token)) {
     header('Cache-Control: no-cache');
 
      //Check auth via Bearer token
-    $userqry = $db->execute_query("SELECT user, s FROM $db_users WHERE token=?", [$token]);
+    $userqry = $db->execute_query("SELECT user, s, api_gps FROM $db_users WHERE token=?", [$token]);
     if (!$userqry->num_rows) {
         $access = 0;
     } else {
         $row = $userqry->fetch_assoc();
         $user = $row["user"];
         $limit = $row["s"];
+        $gps = $row["api_gps"];
         $access = 1;
     }
 } else {
@@ -99,7 +100,9 @@ if (!$r->num_rows) {
     exit;
 }
 
-$d = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1");
+// Fetch data with or without GPS data
+$d = getPidsQuery($db, $db_pids_table, $gps);
+
 $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
 
 $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$user])->fetch_row();

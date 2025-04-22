@@ -249,7 +249,8 @@ $translations = [
         'share.dialog.text' => 'Copy session link to clipboard?',
         'share.sec.title' => 'Secret for shared sessions',
         'share.sec.label' => 'After updating the secret, old links will stop working',
-        'share.sec.update' => 'Secret updated'
+        'share.sec.update' => 'Secret updated',
+        'api.gps' => 'Allow send GPS data through API'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -499,7 +500,8 @@ $translations = [
         'share.dialog.text' => 'Скопировать ссылку на сессию в буфер обмена?',
         'share.sec.title' => 'Секрет для расшаренных сессий',
         'share.sec.label' => 'После обновления секрета старые ссылки перестанут работать',
-        'share.sec.update' => 'Секрет обновлен'
+        'share.sec.update' => 'Секрет обновлен',
+        'api.gps' => 'Разрешить отправку данных GPS через API'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -749,7 +751,8 @@ $translations = [
         'share.dialog.text' => '¿Copiar enlace de la sesión al portapapeles?',
         'share.sec.title' => 'Secreto para sesiones compartidas',
         'share.sec.label' => 'Después de actualizar el secreto, los enlaces antiguos dejarán de funcionar',
-        'share.sec.update' => 'Secreto actualizado'
+        'share.sec.update' => 'Secreto actualizado',
+        'api.gps' => 'Permitir enviar datos GPS a través de la API'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -999,7 +1002,8 @@ $translations = [
         'share.dialog.text' => 'Link zur Sitzung in die Zwischenablage kopieren?',
         'share.sec.title' => 'Geheimnis für geteilte Sitzungen',
         'share.sec.label' => 'Nach dem Aktualisieren des Geheimnisses funktionieren alte Links nicht mehr',
-        'share.sec.update' => 'Geheimnis aktualisiert'
+        'share.sec.update' => 'Geheimnis aktualisiert',
+        'api.gps' => 'Senden von GPS-Daten über die API erlauben'
     ],
 ];
 

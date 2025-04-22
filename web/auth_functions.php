@@ -171,6 +171,7 @@ function create_users_table()
 	gap enum('5000','10000','20000','30000','60000') NOT NULL DEFAULT '5000',
 	stream_lock tinyint(1) NOT NULL DEFAULT 0,
 	sessions_filter tinyint(1) NOT NULL DEFAULT 1,
+	api_gps tinyint(1) NOT NULL DEFAULT 0,
 	login_attempts tinyint UNSIGNED DEFAULT 0,
 	last_attempt DATETIME,
 	PRIMARY KEY (id),
@@ -203,6 +204,7 @@ function perform_migration() {
         'share_secret'    => "ALTER TABLE $db_users ADD COLUMN share_secret CHAR(32)",
         'login_attempts'  => "ALTER TABLE $db_users ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
         'last_attempt'    => "ALTER TABLE $db_users ADD COLUMN last_attempt DATETIME",
+        'api_gps'         => "ALTER TABLE $db_users ADD COLUMN api_gps TINYINT(1) NOT NULL DEFAULT 0",
     ];
 
     foreach ($migrations as $migration => $query) {

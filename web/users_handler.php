@@ -7,17 +7,17 @@ include_once ('translations.php');
 function handleUserSettings($db, $translations, $username, $admin, $db_users) {
     if (!isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], 
           $_POST['time'], $_POST['gap'], $_POST['stream_lock'], 
-          $_POST['sessions_filter']) || $username == $admin) {
+          $_POST['sessions_filter'], $_POST['api_gps']) || $username == $admin) {
         return false;
     }
 
     $params = [
         $_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], 
         $_POST['time'], $_POST['gap'], $_POST['stream_lock'], 
-        $_POST['sessions_filter'], $username
+        $_POST['sessions_filter'], $_POST['api_gps'], $username
     ];
 
-    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=?, sessions_filter=? WHERE user=?", $params);
+    $db->execute_query("UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=?, sessions_filter=?, api_gps=? WHERE user=?", $params);
 
     setcookie("timeformat", $_POST['time'] == '1' ? '24' : '12');
     setcookie("gap", $_POST['gap']);
