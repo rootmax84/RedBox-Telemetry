@@ -60,6 +60,13 @@ $unitMappings = [
 if ($r->num_rows) {
     $row = $r->fetch_assoc();
 
+    if (!empty($row['time'])) {
+        $seconds = intval($row['time'] / 1000);
+        if (time() - $seconds < 10) {
+            setcookie("plot", true, time() + 10, "/");
+        }
+    }
+
     for ($i = 0; $i < count($pid); $i++) {
         $currentPid = $pid[$i];
         $currentDes = $des[$i];
@@ -144,10 +151,11 @@ function outputLastRecordDate($time, $rate) {
     } else {
         $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>" . $translations[$_COOKIE['lang']]['nodata'] . "</span></td></tr>";
     }
+
     echo "data: {$data}\n";
+
     if (isset($seconds) && time() - $seconds < 10) {
         echo "retry: {$rate}\n\n";
-        setcookie("plot", true, time() + 10, "/");
     } else {
         echo "retry: 5000\n\n";
     }
