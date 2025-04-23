@@ -6,6 +6,7 @@ if (isset($_GET['c'])) {
         'maintenance' => 423,
         'noshare' => 404,
         'block', 'toomanyattempts' => 429,
+        'error' => 500,
         default => 200,
     };
     http_response_code($http_code);
@@ -54,6 +55,11 @@ include("head.php");
         else if ($_GET['c'] == "block") { ?>
             <script>setTimeout(()=>{location.href='.'}, 10000);</script>
             <h4 style="line-height:1.5" l10n='catch.block'></h4>
+        <?php
+        }
+        else if ($_GET['c'] == "error") { ?>
+            <script>setTimeout(()=>{location.href='.?logout=true'}, 2000);</script>
+            <h4 style="line-height:1.5" l10n='catch.error'></h4>
         <?php
         }
     ?>
