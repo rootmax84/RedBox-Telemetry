@@ -29,7 +29,6 @@ $(document).ready(function(){
   setInterval(()=>{
     if ($.cookie('plot') !== undefined) {
         $('.live').css('display','block');
-        updateSessionDuration();
     } else {
         $('.live').css('display','none');
     }
@@ -51,6 +50,7 @@ let nogps = null;
 function schedulePlotUpdate(timestamp) {
   if (timestamp - lastPlotUpdateTime >= 10000) {
     if ($.cookie('plot') !== undefined) updatePlot();
+    updateSessionDuration();
     lastPlotUpdateTime = timestamp;
   }
   animationPlotFrameId = requestAnimationFrame(schedulePlotUpdate);
