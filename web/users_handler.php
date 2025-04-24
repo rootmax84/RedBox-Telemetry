@@ -113,7 +113,7 @@ try {
 
                 $db->execute_query("UPDATE $db_users SET forward_url=?, forward_token=? WHERE user=?",
                     [$_POST['forward_url'] !== '' ? $_POST['forward_url'] : null,
-                     $_POST['forward_token'] !== '' ? $POST['forward_token'] : null,
+                     $_POST['forward_token'] !== '' ? $_POST['forward_token'] : null,
                 $username]);
 
                 cache_flush($row["token"]);

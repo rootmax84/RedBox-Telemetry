@@ -3,13 +3,8 @@
     require_once('db_limits.php');
 
     //Conversion and gap settings etc
-    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,api_gps,forward_url,forward_token FROM $db_users WHERE user=?", [$username])->fetch_row();
-    [$speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter, $api_gps, $forward_url, $forward_token] = $setqry;
-
-    //Telegram token/chatid
-    $row = $db->execute_query("SELECT tg_token, tg_chatid FROM $db_users WHERE user=?", [$username])->fetch_assoc();
-    $token = $row["tg_token"];
-    $chatid = $row["tg_chatid"];
+    $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,api_gps,forward_url,forward_token FROM $db_users WHERE user=?", [$username])->fetch_row();
+    [$token, $chatid, $speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter, $api_gps, $forward_url, $forward_token] = $setqry;
 
     $db->close();
 
