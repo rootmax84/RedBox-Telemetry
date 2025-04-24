@@ -77,7 +77,9 @@ function cache_flush($token = null) {
                 "table_structure_{$db_table}",
                 "user_status_{$username}",
                 "columns_data_{$db_pids_table}",
-                "pids_mapping_{$username}"
+                "pids_mapping_{$username}",
+                "share_data_{$_SESSION['uid']}",
+                "share_plot_{$_SESSION['uid']}"
             ];
             if ($token !== null) {
                 $keys = [

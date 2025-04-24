@@ -14,10 +14,37 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
         exit;
     }
 
-    $user_data = $db->execute_query("SELECT user, sessions_filter, share_secret FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
-    $username = $user_data['user'];
-    $share_secret = $user_data['share_secret'];
-    $_SESSION['sessions_filter'] = $user_data['sessions_filter'];
+    $cache_key = "share_plot_" . $uid;
+    $user_data = false;
+
+    if ($memcached_connected) {
+        $user_data = $memcached->get($cache_key);
+    }
+
+    if ($user_data === false) {
+        $userqry = $db->execute_query("SELECT user, sessions_filter, share_secret FROM $db_users WHERE id=?", [$uid]);
+        if ($userqry->num_rows) {
+            $user_data = $userqry->fetch_assoc();
+            if ($memcached_connected) {
+                try {
+                    $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
+                } catch (Exception $e) {
+                    error_log(sprintf("Memcached error on share plot: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                }
+            }
+        } else {
+            header('Location: catch.php?c=noshare');
+            exit;
+        }
+    }
+
+    if ($user_data) {
+        $username = $user_data['user'];
+        $share_secret = $user_data['share_secret'];
+        $user_filter = $user_data['session_filter'];
+    }
+
+    $_SESSION['sessions_filter'] = $user_filter;
 
     $payload = "uid={$uid}&id={$sid}";
     $expected_sig = hash_hmac('sha256', $payload, $share_secret);

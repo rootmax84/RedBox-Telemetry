@@ -17,14 +17,42 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $session_id = $_GET['id'];
     $sig = $_GET['sig'];
 
-    $user_data = $db->execute_query("SELECT user, sessions_filter, time, gap, share_secret FROM $db_users WHERE id=?", [$uid])->fetch_assoc();
-    $username = $user_data['user'];
-    $share_secret = $user_data['share_secret'];
-    $_SESSION['sessions_filter'] = $user_data['sessions_filter'];
-    setcookie('gap', $user_data['gap']);
+    $cache_key = "share_data_" . $uid;
+    $user_data = false;
 
-    setcookie('timeformat', $user_data['time']);
-    $_COOKIE['timeformat'] = $user_data['time'];
+    if ($memcached_connected) {
+        $user_data = $memcached->get($cache_key);
+    }
+
+    if ($user_data === false) {
+        $userqry = $db->execute_query("SELECT user, sessions_filter, time, gap, share_secret FROM $db_users WHERE id=?", [$uid]);
+        if ($userqry->num_rows) {
+            $user_data = $userqry->fetch_assoc();
+            if ($memcached_connected) {
+                try {
+                    $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
+                } catch (Exception $e) {
+                    error_log(sprintf("Memcached error on share: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                }
+            }
+        } else {
+            header('Location: catch.php?c=noshare');
+            exit;
+        }
+    }
+
+    if ($user_data) {
+        $username = $user_data['user'];
+        $share_secret = $user_data['share_secret'];
+        $user_time = $user_data['time'];
+        $user_filter = $user_data['sessions_filter'];
+        $gap = $user_data['gap'];
+    }
+
+    $_SESSION['sessions_filter'] = $user_filter;
+    setcookie('gap', $gap);
+    setcookie('timeformat', $user_time);
+    $_COOKIE['timeformat'] = $user_time;
 
     $payload = "uid={$uid}&id={$session_id}";
     $expected_sig = hash_hmac('sha256', $payload, $share_secret);
