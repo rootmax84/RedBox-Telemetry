@@ -97,7 +97,7 @@ while ($row = $sessionqry->fetch_assoc()) {
     $seshsizes[$sid] = " ({$translations[$lang]['get.sess.length']} $session_duration_str)";
     $seshprofile[$sid] = " ({$translations[$lang]['get.sess.profile']} $session_profileName)";
     $seship[$sid] = " ({$translations[$lang]['get.sess.ip']} $session_ip)";
-    if ($row["timeend"] > (time() * 1000) - 60000) $sesactive[$sid] = " {$translations[$lang]['get.sess.active']}";
+    $sesactive[$sid] = ($row["timeend"] > (time() * 1000) - 60000) ? " {$translations[$lang]['get.sess.active']}" : null;
 }
 
 function getTranslatedMonth($month, $lang) {
