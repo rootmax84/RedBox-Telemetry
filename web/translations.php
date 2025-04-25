@@ -257,7 +257,8 @@ $translations = [
         'fav.btn' => 'Favorites',
         'fav.url' => 'Link',
         'fav.sess' => 'Session',
-        'fav.empty' => 'Empty'
+        'fav.empty' => 'Empty',
+        'fav.open' => 'Open'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -515,7 +516,8 @@ $translations = [
         'fav.btn' => 'Избранное',
         'fav.url' => 'Ссылка',
         'fav.sess' => 'Сессия',
-        'fav.empty' => 'Пусто'
+        'fav.empty' => 'Пусто',
+        'fav.open' => 'Открыть'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -773,7 +775,8 @@ $translations = [
         'fav.btn' => 'Favoritos',
         'fav.url' => 'Enlace',
         'fav.sess' => 'Sesión',
-        'fav.empty' => 'Vacío'
+        'fav.empty' => 'Vacío',
+        'fav.open' => 'Abrir'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -1031,7 +1034,8 @@ $translations = [
         'fav.btn' => 'Favoriten',
         'fav.url' => 'Link',
         'fav.sess' => 'Sitzung',
-        'fav.empty' => 'Leer'
+        'fav.empty' => 'Leer',
+        'fav.open' => 'Öffnen'
     ],
 ];
 

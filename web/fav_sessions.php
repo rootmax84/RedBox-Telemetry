@@ -88,7 +88,7 @@ include("head.php");
                             ?>
                         </td>
                         <td><?php echo $keycol['profileName']; ?></td>
-                        <td><a href=<?php echo '.?id='.$keycol['session']; ?>>>>></a></td>
+                        <td><a href=<?php echo '.?id='.$keycol['session']; ?> l10n='fav.open'></a></td>
                     </tr>
                 <?php } ?>
             </tbody>
