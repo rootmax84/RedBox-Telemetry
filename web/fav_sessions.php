@@ -1,0 +1,103 @@
+<?php
+
+require_once('db.php');
+require_once('auth_user.php');
+require_once('creds.php');
+require_once('db_limits.php');
+
+$query = "SELECT session, profileName, time, timeend
+          FROM $db_sessions_table 
+          WHERE favorite = 1 
+          ORDER BY session DESC";
+
+$keydata = $db->query($query)->fetch_all(MYSQLI_ASSOC);
+$row_count = count($keydata);
+
+$db->close();
+include("head.php");
+?>
+    <body>
+    <script>
+        function removeFavorite(id) {
+            $(".fetch-data").css("display", "block");
+            fetch('favorite.php', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network error');
+                return response.json();
+            })
+            .then(data => {
+                document.querySelector(`tr[data-sid="${id}"]`)?.remove();
+                if ($('#fav-table tbody tr').length === 0) {
+                    $('<h3 style="text-align:center"></h3>').text(localization.key['fav.empty']).insertAfter('#fav-table');
+                }
+            })
+            .catch(err => {
+                serverError(err);
+            })
+            .finally(() => {
+                $(".fetch-data").css("display", "none");
+            });
+        }
+    </script>
+    <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+        <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
+            <div class="new-session"><a href='.' l10n='sess.new'></a></div>
+            <div class="storage-usage-img" onclick></div>
+            <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
+        <?php } ?>
+        <div class="container">
+            <div id="theme-switch"></div>
+            <div class="navbar-header">
+                <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+                <span title="logout" class="navbar-brand logout" onClick="logout()"></span>
+            </div>
+        </div>
+    </div>
+        <div style="padding:30px; display:flex; justify-content:center;"></div>
+        <table class="table table-del-merge-pid" id="fav-table">
+            <thead>
+                <tr>
+                    <th l10n="fav.sess"></th>
+                    <th l10n="s.table.duration"></th>
+                    <th l10n="sel.profile"></th>
+                    <th l10n="fav.url"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($keydata as $i => $keycol) { ?>
+                    <tr<?php echo ($i & 1) ? ' class="odd"' : ''; ?> data-sid=<?php echo $keycol['session']; ?>>
+                        <td style="white-space:nowrap" id="id:<?php echo $keycol['session']; ?>">
+                            <span class='delete-icon' onclick="event.stopPropagation(); removeFavorite('<?php echo $keycol['session']; ?>')">&times;</span>
+                            <?php 
+                                $start_timestamp = intval(substr($keycol['session'], 0, -3));
+                                $month_num = date('n', $start_timestamp);
+                                $month_key = 'month.' . strtolower(date('M', $start_timestamp));
+                                $translated_month = $translations[$lang][$month_key];
+                                $date = date($_COOKIE['timeformat'] == "12" ? "d, Y h:ia" : "d, Y H:i", $start_timestamp);
+                                echo $translated_month . ' ' . $date;
+                            ?>
+                        </td>
+                        <td>
+                            <?php 
+                                $duration = intval(($keycol['timeend'] - $keycol['time']) / 1000);
+                                echo gmdate("H:i:s", $duration);
+                            ?>
+                        </td>
+                        <td><?php echo $keycol['profileName']; ?></td>
+                        <td><a href=<?php echo '.?id='.$keycol['session']; ?>>>>></a></td>
+                    </tr>
+                <?php } ?>
+            </tbody>
+        </table>
+    <?php
+        if (!$row_count) {
+    ?>
+        <h3 style='text-align:center' l10n="fav.empty"></h3>
+    <?php } ?>
+    <br>
+</body>
+</html>

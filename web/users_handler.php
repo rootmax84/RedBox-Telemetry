@@ -244,8 +244,10 @@ try {
                 session bigint(20) unsigned NOT NULL,
                 time bigint(20) unsigned NOT NULL,
                 timeend bigint(20) unsigned NOT NULL,
+                favorite tinyint(1) unsigned NOT NULL DEFAULT 0,
                 UNIQUE KEY session_key (session),
-                KEY timeend_index (timeend)) ENGINE=".$db_engine;
+                KEY timeend_index (timeend),
+                KEY favorite_index (favorite)) ENGINE=".$db_engine;
 
             // Create pids table
             $pids_table = "CREATE TABLE ".$login.$db_pids_prefix." (
@@ -522,4 +524,3 @@ try {
 } catch (Exception $e) {
     die($e->getMessage());
 }
-?>

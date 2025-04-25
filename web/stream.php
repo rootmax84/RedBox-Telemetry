@@ -160,4 +160,3 @@ function outputLastRecordDate($time, $rate) {
         echo "retry: 5000\n\n";
     }
 }
-?>

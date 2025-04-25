@@ -36,4 +36,3 @@ $session_id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT)
             ?? null;
 
 $coldataempty = [];
-?>

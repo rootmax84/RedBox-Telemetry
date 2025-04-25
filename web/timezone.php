@@ -8,4 +8,3 @@
     $timezone = $_COOKIE['timezone'];
     date_default_timezone_set($timezone);
 }
-?>

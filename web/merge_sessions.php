@@ -23,10 +23,11 @@ foreach ($_GET as $key => $value) {
 }
 
 if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empty($mergesess1)) {
-    // get profileName from merged session
-    $profileQuery = "SELECT profileName FROM $db_sessions_table WHERE session = ?";
+    // get profileName,favorite from merged session
+    $profileQuery = "SELECT profileName, favorite FROM $db_sessions_table WHERE session = ?";
     $profileResult = $db->execute_query($profileQuery, [$mergesession])->fetch_assoc();
     $profileName = $profileResult['profileName'];
+    $profileFavorite = $profileResult['favorite'];
 
     $qrystr = "SELECT MIN(time) as time, MAX(timeend) as timeend, MIN(session) as session, SUM(sessionsize) as sessionsize FROM $db_sessions_table WHERE session = ?";
     $i = 1;
@@ -43,8 +44,8 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
 
     foreach ($sessionids as $value) {
         if ($value == $newsession) {
-            $updatequery = "UPDATE $db_sessions_table SET time=$newtimestart, timeend=$newtimeend, sessionsize=$newsessionsize, profileName=? where session = ?";
-            $db->execute_query($updatequery, [$profileName, $newsession]);
+            $updatequery = "UPDATE $db_sessions_table SET time=$newtimestart, timeend=$newtimeend, sessionsize=$newsessionsize, profileName=?, favorite=? where session = ?";
+            $db->execute_query($updatequery, [$profileName, $profileFavorite, $newsession]);
         } else {
             $delquery = "DELETE FROM $db_sessions_table WHERE session = ?";
             $db->execute_query($delquery, [$value]);
@@ -252,4 +253,3 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
     header('Location: .');
 }
 $db->close();
-?>

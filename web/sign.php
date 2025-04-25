@@ -31,4 +31,3 @@ if (empty($_SESSION['share_secret'])) {
 $signature = hash_hmac('sha256', $payload, $secret);
 
 echo json_encode(['signature' => $signature]);
-?>

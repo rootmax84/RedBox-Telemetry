@@ -21,7 +21,7 @@ $params = [];
 $types = ""; // Types for bind_param (example, 's' for strings)
 
 // Build SQL-query with prepared expressions
-$query = "SELECT time, timeend, session, profileName, sessionsize, ip
+$query = "SELECT time, timeend, session, profileName, sessionsize, ip, favorite
           FROM $db_sessions_table
           WHERE 1=1";
 
@@ -57,21 +57,16 @@ if (isset($_GET['id'])) {
 $query .= " GROUP BY session, profileName, time, timeend, sessionsize ORDER BY session DESC";
 
 // Do stuff in database
-try {
-    $stmt = $db->prepare($query);
-    if (!empty($params)) {
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $sessionqry = $stmt->get_result();
-
-} catch (Exception $e) {
-    logout_user();
+$stmt = $db->prepare($query);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
 }
+$stmt->execute();
+$sessionqry = $stmt->get_result();
 
 // If nothing found pull last 20 sessions
 if ($sessionqry->num_rows == 0) {
-    $query = "SELECT time, timeend, session, profileName, sessionsize, ip
+    $query = "SELECT time, timeend, session, profileName, sessionsize, ip, favorite
               FROM $db_sessions_table
               GROUP BY session, profileName, time, timeend, sessionsize
               ORDER BY session DESC
@@ -85,6 +80,7 @@ $seshsizes = [];
 $seshprofile = [];
 $seship = [];
 $sesactive = [];
+$sesfavorite = [];
 
 while ($row = $sessionqry->fetch_assoc()) {
     $row["timeend"] = !$row["timeend"] ? $row["time"] : $row["timeend"];
@@ -98,6 +94,7 @@ while ($row = $sessionqry->fetch_assoc()) {
     $seshprofile[$sid] = " ({$translations[$lang]['get.sess.profile']} $session_profileName)";
     $seship[$sid] = " ({$translations[$lang]['get.sess.ip']} $session_ip)";
     $sesactive[$sid] = ($row["timeend"] > (time() * 1000) - 60000) ? " {$translations[$lang]['get.sess.active']}" : null;
+    $sesfavorite[$sid] = $row["favorite"];
 }
 
 function getTranslatedMonth($month, $lang) {
@@ -111,4 +108,3 @@ foreach ($seshdates as $sid => $date) {
     $translated_month = getTranslatedMonth($month_name, $lang);
     $seshdates[$sid] = str_replace($month_name, $translated_month, $date);
 }
-?>

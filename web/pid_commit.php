@@ -49,4 +49,3 @@ try {
 }
 cache_flush();
 $db->close();
-?>

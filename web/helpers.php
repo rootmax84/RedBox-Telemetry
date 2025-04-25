@@ -444,4 +444,3 @@ function getPidsQuery($db, $table, $includeGps = false)
     $where = $includeGps ? "stream = 1 OR id IN ('kff1005', 'kff1006')" : "stream = 1";
     return $db->query("SELECT id, description, units FROM $table WHERE $where ORDER BY description ASC");
 }
-?>

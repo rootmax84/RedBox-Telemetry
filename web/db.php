@@ -5,6 +5,7 @@ if (version_compare(PHP_VERSION, '8.2.0', '<')) {
 
 set_exception_handler(function($exception) {
     error_log("Uncaught Exception: " . $exception->getMessage());
+    session_destroy();
     header('Location: catch.php?c=error');
     die();
 });
@@ -122,4 +123,3 @@ function index_exists($db, $table, $index) {
     $result = $db->query($query);
     return $result && $result->num_rows > 0;
 }
-?>

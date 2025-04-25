@@ -306,4 +306,3 @@ if (isset($json)) {
 	}
 	if (sizeof($json)) print_r(json_encode($json/*,JSON_PRETTY_PRINT/**/));
 }
-?>

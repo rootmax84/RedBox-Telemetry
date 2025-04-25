@@ -23,6 +23,7 @@ if(isset($_POST) && !empty($_POST)){
             exit;
         }
         if (auth_user()) {
+            perform_user_migration();
             $logged_in = true;
         } else {
             header('Location: catch.php?c=loginfailed');
@@ -111,4 +112,3 @@ if (!$logged_in) {
     <?php
     exit;
 }
-?>

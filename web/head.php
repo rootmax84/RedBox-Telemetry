@@ -185,4 +185,4 @@ if (username.trim() !== "") {
  </div>
 </div>
 </head>
-<?php } ?>
+<?php }

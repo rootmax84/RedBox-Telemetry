@@ -264,4 +264,3 @@ function bulkInsert($db, $table, $columns, $rows) {
     $sql = "INSERT INTO $table ($columns) VALUES " . implode(',', $placeholders);
     $db->execute_query($sql, $values);
 }
-?>

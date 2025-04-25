@@ -1,7 +1,7 @@
 <?php
 
 function get_db_connection() {
-    global $db_users, $live_data_rate, $db_engine, $admin, $salt;
+    global $db_users, $live_data_rate, $db_engine, $admin, $salt, $username, $db_sessions_table;
     include('creds.php');
 
     if (!isset($db)) {
@@ -113,9 +113,7 @@ function auth_user()
         exit;
     }
 
-    try {
-        $userqry = $db->execute_query("SELECT id, user, pass, s, time, gap, sessions_filter, share_secret FROM $db_users WHERE user=?", [$user]);
-    } catch(Exception $e) { return false; }
+    $userqry = $db->execute_query("SELECT id, user, pass, s, time, gap, sessions_filter, share_secret FROM $db_users WHERE user=?", [$user]);
 
     if (!$userqry->num_rows) {
         update_login_attempts($user, false);
@@ -147,8 +145,6 @@ function create_users_table()
 {
  $db = get_db_connection();
  global $db_users, $db_engine, $admin, $salt;
-
- try {
 
   $is_empty = "SELECT * FROM $db_users LIMIT 1";
 
@@ -182,9 +178,6 @@ function create_users_table()
   $db->query($table);
   if (!$db->query($is_empty)->num_rows) $db->execute_query("INSERT INTO $db_users (s, user, pass) VALUES (?,?,?)", [0, $admin, password_hash('admin', PASSWORD_DEFAULT, $salt)]);
   $db->close();
- } catch(Exception $e) {
-  die($e);
- }
 }
 
 function perform_migration() {
@@ -209,21 +202,37 @@ function perform_migration() {
 
     foreach ($migrations as $migration => $query) {
         if (!column_exists($db, $db_users, $migration)) {
-            try {
-                $db->query($query);
-            } catch (mysqli_sql_exception $e) {
-                die("Migration failed while adding column '$column': " . $e->getMessage());
-            }
+            $db->query($query);
         }
     }
 
     $index_name = 'indexes';
     if (index_exists($db, $db_users, $index_name)) {
-        try {
-            $db->query("DROP INDEX `$index_name` ON $db_users");
-        } catch (mysqli_sql_exception $e) {
-            die("Migration failed while dropping index '$index_name': " . $e->getMessage());
+        $db->query("DROP INDEX `$index_name` ON $db_users");
+    }
+}
+
+function perform_user_migration() {
+    $db = get_db_connection();
+    global $username, $admin, $db_sessions_table;
+
+    if ($username == $admin) {
+        return;
+    }
+
+    $migrations = [
+        'favorite'     => "ALTER TABLE $db_sessions_table ADD COLUMN favorite TINYINT(1) NOT NULL DEFAULT 0",
+    ];
+
+    foreach ($migrations as $migration => $query) {
+        if (!column_exists($db, $db_sessions_table, $migration)) {
+            $db->query($query);
         }
+    }
+
+    $index_name = 'favorite_index';
+    if (!index_exists($db, $db_sessions_table, $index_name)) {
+        $db->query("ALTER TABLE $db_sessions_table ADD INDEX `$index_name` (`favorite`)");
     }
 }
 
@@ -242,5 +251,3 @@ function logout_user()
     header("Location: .");
     die;
 }
-
-?>

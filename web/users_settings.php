@@ -183,16 +183,25 @@ function submitForm(el) {
       setTimeout(() => {
         submitBtn.disabled = false;
       }, 1000);
+    })
+    .finally(() => {
+        createChoices();
     });
+
 
   return false;
 }
 
-$(document).ready(function() {
-    $("#lang").val(lang) || "en";
+function createChoices() {
+    document.querySelectorAll('select').forEach(select => {
+        if (select._choices) {
+            select._choices.destroy();
+            select._choices = null;
+        }
+    });
 
     document.querySelectorAll('select').forEach(select => {
-        new Choices(select, {
+        select._choices = new Choices(select, {
             itemSelectText: null,
             shouldSort: false,
             searchEnabled: false,
@@ -201,6 +210,11 @@ $(document).ready(function() {
             },
         });
     });
+}
+
+$(document).ready(function() {
+    $("#lang").val(lang) || "en";
+    createChoices();
 });
 </script>
  </body>

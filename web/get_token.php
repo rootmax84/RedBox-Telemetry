@@ -85,4 +85,3 @@ update_login_attempts($user, true);
 echo $row['token'];
 
 $db->close();
-?>

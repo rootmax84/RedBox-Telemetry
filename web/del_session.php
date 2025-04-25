@@ -46,4 +46,3 @@ if ($deletesession !== '' && $deletesession !== false && $deletesession !== null
         header("Location: .");
     }
 }
-?>

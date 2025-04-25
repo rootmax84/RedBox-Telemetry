@@ -44,4 +44,3 @@ $merge_max = 50000; //Merged session datapoints count limit
 if (file_exists('maintenance') && !isset($_SESSION['admin'])){
     header("Refresh:0; url=maintenance.php");
 }
-?>

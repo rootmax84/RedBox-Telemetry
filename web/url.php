@@ -43,4 +43,3 @@ if ($year) {
 }
 
 header("Location: " . $outurl);
-?>

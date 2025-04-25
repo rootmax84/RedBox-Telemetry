@@ -110,7 +110,7 @@ if (isset($delsession)) {
     <?php
         if (!$number_of_result) {
     ?>
-        <h3 style='text-align:center' l10n="no.sess"></h>
+        <h3 style='text-align:center' l10n="no.sess"></h3>
         <script>
             document.getElementById('del-btn').disabled = true;
             document.querySelector('input[type="checkbox"]').disabled = true;
@@ -207,4 +207,3 @@ if ($current_page < $total_pages) {
 <?php
 }
 $db->close();
-?>

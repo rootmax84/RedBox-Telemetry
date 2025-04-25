@@ -44,4 +44,3 @@ include("head.php");
 else {
 	header("Refresh:0; url=.");
  }
-?>

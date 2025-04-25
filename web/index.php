@@ -289,7 +289,8 @@ if (isset($sids[0])) {
   <?php } if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
   <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
   <div class="chart-fill-toggle" onClick="chartToggle()" style="right:<?php echo ($limit < 0) ? '70px' : '100px'; ?>"></div>
-  <div class="live" style="right:<?php echo ($limit < 0) ? '100px' : '130px'; ?>"></div>
+  <div class="favorite" onClick="addToFavorite()" style="right:<?php echo ($limit < 0) ? '100px' : '130px'; ?>"></div>
+  <div class="live" style="right:<?php echo ($limit < 0) ? '130px' : '160px'; ?>"></div>
   <?php } ?>
   <div class="container">
     <div id="theme-switch"></div>
@@ -359,6 +360,9 @@ if (isset($sids[0])) {
       <select id="seshidtag" name="seshidtag" class="form-control">
         <?php foreach ($seshdates as $dateid => $datestr) { ?>
           <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} {echo $sesactive[$dateid];} ?><?php if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr']; ?></option>
+            <?php if ($dateid == $session_id && $sesfavorite[$dateid] == 1) { ?>
+                <script>$('.favorite').addClass('favorite-en')</script>
+            <?php } ?>
         <?php } ?>
             </select>
         <?php   if ( $filterprofile <> "" ) { ?>
@@ -458,7 +462,10 @@ initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 </p>
 
 <div id="func" style="display:none">
-<div class="btn-group btn-group-justified">
+<div class="btn-group btn-group-justified func-btn">
+    <a class="btn btn-default func-btn" onclick="favoriteSessions()" l10n="fav.btn"></a>
+   </div>
+<div class="btn-group btn-group-justified func-btn">
     <a class="btn btn-default func-btn" onclick="delSession()" l10n="func.del"></a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
@@ -1030,6 +1037,10 @@ function exportSession(type) {
   redDialog.make(dialogOpt);
 }
 
+function favoriteSessions() {
+    location.href = "./fav_sessions.php";
+}
+
 function delSessions() {
     location.href = "./del_sessions.php";
 }
@@ -1117,6 +1128,41 @@ function shareSession() {
   .catch(err => {
     $(".fetch-data").css("display", "none");
     serverError(err);
+  });
+}
+
+function addToFavorite() {
+  const id = "<?php echo $session_id; ?>";
+  const isFavorite = $('.favorite').hasClass('favorite-en');
+  const method = isFavorite ? 'DELETE' : 'POST';
+
+  $(".fetch-data").css("display", "block");
+  $(".favorite").css("pointer-events", "none");
+
+  fetch('favorite.php', {
+    method: method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: id })
+  })
+  .then(response => {
+    if (!response.ok) throw new Error('Network error');
+    return response.json();
+  })
+  .then(result => {
+    if (result.status === 'success') {
+      if (result.action === 'added') {
+        $('.favorite').addClass('favorite-en');
+      } else if (result.action === 'deleted') {
+        $('.favorite').removeClass('favorite-en');
+      }
+    }
+  })
+  .catch(err => {
+    serverError(err);
+  })
+  .finally(() => {
+    $(".fetch-data").css("display", "none");
+    $(".favorite").css("pointer-events", "auto");
   });
 }
 

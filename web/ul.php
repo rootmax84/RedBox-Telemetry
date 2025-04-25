@@ -300,4 +300,3 @@ echo "OK!";
 if (!empty($forward_url)) {
     forward_request($username, $forward_url, $forward_token);
 }
-?>

@@ -58,7 +58,7 @@ include("head.php");
         <?php
         }
         else if ($_GET['c'] == "error") { ?>
-            <script>setTimeout(()=>{location.href='.?logout=true'}, 2000);</script>
+            <script>setTimeout(()=>{location.href='.'}, 2000);</script>
             <h4 style="line-height:1.5" l10n='catch.error'></h4>
         <?php
         }

@@ -216,5 +216,3 @@ function formatUnit($pid, $des, $spd_unit, $trip_unit, $temp_unit, $press_unit, 
         },
     };
 }
-
-?>

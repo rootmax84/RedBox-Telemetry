@@ -18,5 +18,3 @@ if (isset($_GET["update-csrf-token"])) {
     ]);
     exit;
 }
-
-?>

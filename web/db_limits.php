@@ -59,4 +59,3 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
         die;
     }
 }
-?>

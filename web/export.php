@@ -182,5 +182,3 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 else header('Location: .');
 
 $db->close();
-
-?>
