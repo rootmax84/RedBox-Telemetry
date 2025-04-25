@@ -5,9 +5,9 @@ require_once('auth_user.php');
 require_once('creds.php');
 require_once('db_limits.php');
 
-$query = "SELECT session, profileName, time, timeend
-          FROM $db_sessions_table 
-          WHERE favorite = 1 
+$query = "SELECT session, profileName, description, time, timeend
+          FROM $db_sessions_table
+          WHERE favorite = 1
           ORDER BY session DESC";
 
 $keydata = $db->query($query)->fetch_all(MYSQLI_ASSOC);
@@ -42,6 +42,74 @@ include("head.php");
                 $(".fetch-data").css("display", "none");
             });
         }
+
+        function updateDescriptions() {
+            $(".fetch-data").css("display", "block");
+            const updates = [];
+
+            document.querySelectorAll('td[contenteditable="true"][data-sid]').forEach(td => {
+                const sessionId = td.getAttribute('data-sid');
+                const newDescription = td.textContent.trim();
+                updates.push({
+                    id: sessionId,
+                    description: newDescription
+                });
+            });
+
+            if (updates.length === 0) {
+                $(".fetch-data").css("display", "none");
+                return;
+            }
+
+            fetch('favorite.php', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ updates: updates })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network error');
+                return response.json();
+            })
+            .then(data => {
+                xhrResponse(localization.key['fav.desc.update']);
+            })
+            .catch(err => {
+                serverError(err);
+            })
+            .finally(() => {
+                $(".fetch-data").css("display", "none");
+            });
+        }
+
+        // Initialize editable fields
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('update_desc').addEventListener('click', updateDescriptions);
+
+            // Make description cells editable
+            document.querySelectorAll('#fav-table tbody td:nth-child(4)').forEach(td => {
+                td.setAttribute('contenteditable', 'true');
+                td.setAttribute('data-sid', td.closest('tr').getAttribute('data-sid'));
+            });
+        });
+
+        $(document).on('keydown paste', '[contenteditable="true"]', function(e) {
+            let max = 64; // Maximum length for description
+            let currentText = $(this).text();
+
+            if (e.type === 'paste') {
+                setTimeout(() => {
+                    if ($(this).text().length > max) {
+                        $(this).text(currentText.substring(0, max));
+                    }
+                }, 0);
+                return true;
+            }
+
+            if (currentText.length >= max &&
+                ![8, 46, 37, 38, 39, 40].includes(e.keyCode)) {
+                return false;
+            }
+        });
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
@@ -57,13 +125,16 @@ include("head.php");
             </div>
         </div>
     </div>
-        <div style="padding:30px; display:flex; justify-content:center;"></div>
+        <div style="padding:60px 0 10px; display:flex; justify-content:center;">
+            <button class="btn btn-info btn-sm" id="update_desc" l10n="btn.apply"></button>
+        </div>
         <table class="table table-del-merge-pid" id="fav-table">
             <thead>
                 <tr>
                     <th l10n="fav.sess"></th>
                     <th l10n="s.table.duration"></th>
                     <th l10n="sel.profile"></th>
+                    <th l10n="p.table.desc"></th>
                     <th l10n="fav.url"></th>
                 </tr>
             </thead>
@@ -72,7 +143,7 @@ include("head.php");
                     <tr<?php echo ($i & 1) ? ' class="odd"' : ''; ?> data-sid=<?php echo $keycol['session']; ?>>
                         <td style="white-space:nowrap" id="id:<?php echo $keycol['session']; ?>">
                             <span class='delete-icon' onclick="event.stopPropagation(); removeFavorite('<?php echo $keycol['session']; ?>')">&times;</span>
-                            <?php 
+                            <?php
                                 $start_timestamp = intval(substr($keycol['session'], 0, -3));
                                 $month_num = date('n', $start_timestamp);
                                 $month_key = 'month.' . strtolower(date('M', $start_timestamp));
@@ -82,12 +153,13 @@ include("head.php");
                             ?>
                         </td>
                         <td>
-                            <?php 
+                            <?php
                                 $duration = intval(($keycol['timeend'] - $keycol['time']) / 1000);
                                 echo gmdate("H:i:s", $duration);
                             ?>
                         </td>
                         <td><?php echo $keycol['profileName']; ?></td>
+                        <td data-sid="<?php echo $keycol['session']; ?>"><?php echo $keycol['description']; ?></td>
                         <td><a href=<?php echo '.?id='.$keycol['session']; ?> l10n='fav.open'></a></td>
                     </tr>
                 <?php } ?>

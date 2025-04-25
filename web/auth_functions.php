@@ -222,6 +222,7 @@ function perform_user_migration() {
 
     $migrations = [
         'favorite'     => "ALTER TABLE $db_sessions_table ADD COLUMN favorite TINYINT(1) NOT NULL DEFAULT 0",
+        'description'  => "ALTER TABLE $db_sessions_table ADD COLUMN description VARCHAR(128) NOT NULL DEFAULT '-' AFTER profileName",
     ];
 
     foreach ($migrations as $migration => $query) {

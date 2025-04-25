@@ -191,7 +191,7 @@ include("head.php");
     </div>
     <form style="padding:50px 0 0;" method="POST" action="pid_commit.php" onsubmit="return submitForm(this);">
         <div style="padding:10px; display:flex; justify-content:center;">
-            <button class="btn btn-info btn-sm" type="submit" type="submit" l10n="btn.apply"></button>
+            <button class="btn btn-info btn-sm" type="submit" l10n="btn.apply"></button>
         </div>
         <table class="table table-del-merge-pid">
             <thead>
