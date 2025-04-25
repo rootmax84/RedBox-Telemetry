@@ -33,6 +33,7 @@ include("head.php");
                 document.querySelector(`tr[data-sid="${id}"]`)?.remove();
                 if ($('#fav-table tbody tr').length === 0) {
                     $('<h3 style="text-align:center"></h3>').text(localization.key['fav.empty']).insertAfter('#fav-table');
+                    document.getElementById('update_desc').disabled = true;
                 }
             })
             .catch(err => {
@@ -169,6 +170,10 @@ include("head.php");
         if (!$row_count) {
     ?>
         <h3 style='text-align:center' l10n="fav.empty"></h3>
+        <script>
+            document.getElementById('update_desc').disabled = true;
+        </script>
+
     <?php } ?>
     <br>
 </body>
