@@ -171,6 +171,7 @@ try {
 
             $username = $login;
             cache_flush($row['token']);
+            cache_flush();
         }
 
         // User creation
