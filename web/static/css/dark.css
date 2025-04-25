@@ -88,3 +88,7 @@ html {
   filter: hue-rotate(180deg);
   box-shadow: none;
 }
+
+.ui-state-default {
+  box-shadow: none !important;
+}
