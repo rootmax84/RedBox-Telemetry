@@ -165,6 +165,7 @@ function create_users_table()
 	boost enum('No conversion','Psi to Bar','Bar to Psi') NOT NULL DEFAULT 'No conversion',
 	time enum('24','12') NOT NULL DEFAULT '24',
 	gap enum('5000','10000','20000','30000','60000') NOT NULL DEFAULT '5000',
+	lang enum('en','ru','es','de') NOT NULL DEFAULT 'en',
 	stream_lock tinyint(1) NOT NULL DEFAULT 0,
 	sessions_filter tinyint(1) NOT NULL DEFAULT 1,
 	api_gps tinyint(1) NOT NULL DEFAULT 0,
@@ -198,6 +199,7 @@ function perform_migration() {
         'login_attempts'  => "ALTER TABLE $db_users ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
         'last_attempt'    => "ALTER TABLE $db_users ADD COLUMN last_attempt DATETIME",
         'api_gps'         => "ALTER TABLE $db_users ADD COLUMN api_gps TINYINT(1) NOT NULL DEFAULT 0",
+        'lang'            => "ALTER TABLE $db_users ADD COLUMN lang enum('en','ru','es','de') NOT NULL DEFAULT 'en' AFTER gap",
     ];
 
     foreach ($migrations as $migration => $query) {

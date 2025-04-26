@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { //Respond to preflights
 $token = getBearerToken();
 if (!empty($token)) {
 
- $lang = $_POST['lang'] ?? 'en';
+ $lang = $_POST['lang'];
 
  //Maintenance mode
  if (file_exists('maintenance')){
@@ -50,7 +50,7 @@ if (!empty($token)) {
 
  //Check auth via Bearer token
  if ($user_data === false) {
-    $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid, forward_url, forward_token FROM $db_users WHERE token=?", [$token]);
+    $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid, forward_url, forward_token, lang FROM $db_users WHERE token=?", [$token]);
     if ($userqry->num_rows) {
         $access = 1;
         $user_data = $userqry->fetch_assoc();
@@ -75,6 +75,7 @@ if (!empty($token)) {
     $tg_chatid = $user_data['tg_chatid'];
     $forward_url = $user_data['forward_url'] ?? null;
     $forward_token = $user_data['forward_token'] ?? null;
+    $lang = $lang ?? $user_data['lang'];
  }
 } else $access = 0;
 
