@@ -142,7 +142,7 @@ include("head.php");
             <tbody>
                 <?php foreach ($keydata as $i => $keycol) { ?>
                     <tr<?php echo ($i & 1) ? ' class="odd"' : ''; ?> data-sid=<?php echo $keycol['session']; ?>>
-                        <td style="white-space:nowrap" id="id:<?php echo $keycol['session']; ?>">
+                        <td id="id:<?php echo $keycol['session']; ?>">
                             <span class='delete-icon' onclick="event.stopPropagation(); removeFavorite('<?php echo $keycol['session']; ?>')">&times;</span>
                             <?php
                                 $start_timestamp = intval(substr($keycol['session'], 0, -3));
