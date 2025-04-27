@@ -13,11 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Docker Compose
+      - name: Install Docker Compose v2
         run: |
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version  # Проверка установки
+          docker-compose --version
 
       - name: Validate docker-compose.yml
         run: docker-compose config
@@ -28,9 +28,8 @@ jobs:
       - name: Start services and check status
         run: |
           docker-compose up -d
-          timeout 60s docker-compose wait --condition=healthy
-          docker-compose ps | grep -v "Exit 0"
-          if docker-compose ps | grep -q "Exit"; then
+          timeout 60s bash -c 'until docker-compose ps ratel_mariadb | grep -q "(healthy)"; do sleep 2; done'
+          if docker-compose ps | grep -v "Exit 0" | grep -q "Exit"; then
             echo "Some containers failed!"
             docker-compose logs
             exit 1
