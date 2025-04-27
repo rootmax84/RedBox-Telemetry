@@ -1,0 +1,38 @@
+name: Docker Compose CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-compose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        run: docker-compose config
+
+      - name: Build services (no cache)
+        run: docker-compose build --no-cache --pull
+
+      - name: Start services and check status
+        run: |
+          docker-compose up -d
+          timeout 60s docker-compose wait --condition=healthy
+          docker-compose ps | grep -v "Exit 0"
+          if docker-compose ps | grep -q "Exit"; then
+            echo "Some containers failed!"
+            docker-compose logs
+            exit 1
+          fi
+          echo "All containers are running!"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker-compose down --remove-orphans
+          docker system prune -f
