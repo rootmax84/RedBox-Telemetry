@@ -206,7 +206,7 @@ include("head.php");
             </thead>
             <tbody>
                 <?php foreach ($keydata as $i => $keycol) { ?>
-                    <tr<?php echo ($i & 1) ? ' class="odd"' : ''; ?> data-pid=<?php echo $keycol['id']; ?>>
+                    <tr data-pid=<?php echo $keycol['id']; ?>>
                         <td style="white-space:nowrap" id="id:<?php echo $keycol['id']; ?>"><span class='delete-icon' onclick="event.stopPropagation(); deletePID('<?php echo $keycol['id']; ?>')">&times;</span><?php echo $keycol['id']; ?></td>
                         <td id="description:<?php echo $keycol['id']; ?>" contenteditable="true"><?php echo $keycol['description']; ?></td>
                         <td id="units:<?php echo $keycol['id']; ?>" contenteditable="true"><?php echo $keycol['units']; ?></td>

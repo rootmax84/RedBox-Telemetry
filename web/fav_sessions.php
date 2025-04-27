@@ -29,7 +29,7 @@ if ($fav_data === false) {
         }
     }
 }
-$row_count = count($fav_data);
+$row_count = $fav_data ? count($fav_data) : 0;
 
 $db->close();
 include("head.php");
@@ -129,6 +129,59 @@ include("head.php");
                 return false;
             }
         });
+
+        function sortFavorites() {
+            if ($("head style.table-sort-indicators").length === 0) {
+                $("<style>")
+                .prop("type", "text/css")
+                .html(`
+                    th.sortable { cursor: pointer; }
+                    th.sorted-asc::after { content: " ▲"; }
+                    th.sorted-desc::after { content: " ▼"; }
+                `)
+                .appendTo("head");
+            }
+
+            $("#fav-table thead th").not(":first, :last").addClass("sortable");
+
+            $("#fav-table thead th.sortable").click(function() {
+                const table = $(this).closest("table");
+                const columnIndex = $(this).index();
+                const rows = table.find("tbody tr").get();
+
+                const isAscending = !$(this).hasClass("sorted-asc");
+                table.find("th").removeClass("sorted-asc sorted-desc");
+                $(this).addClass(isAscending ? "sorted-asc" : "sorted-desc");
+
+                rows.sort((a, b) => {
+                    const valueA = getFavCellValue(a, columnIndex);
+                    const valueB = getFavCellValue(b, columnIndex);
+
+                    if (columnIndex === 1) {
+                        const timeA = valueA.split(':').reduce((acc, time) => (60 * acc) + +time, 0);
+                        const timeB = valueB.split(':').reduce((acc, time) => (60 * acc) + +time, 0);
+                        return timeA - timeB;
+                    }
+                    else if (columnIndex === 2 || columnIndex === 3) {
+                        return valueA.localeCompare(valueB);
+                    }
+
+                    return 0;
+                });
+
+                if (!isAscending) rows.reverse();
+                table.find("tbody").empty().append(rows);
+            });
+
+            function getFavCellValue(row, index) {
+                const cell = $(row).children("td").eq(index);
+                return cell.text().trim();
+            }
+        }
+
+        $(function() {
+            sortFavorites();
+        });
     </script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
@@ -159,7 +212,7 @@ include("head.php");
             </thead>
             <tbody>
                 <?php foreach ($fav_data as $i => $keycol) { ?>
-                    <tr<?php echo ($i & 1) ? ' class="odd"' : ''; ?> data-sid=<?php echo $keycol['session']; ?>>
+                    <tr data-sid=<?php echo $keycol['session']; ?>>
                         <td id="id:<?php echo $keycol['session']; ?>">
                             <span class='delete-icon' onclick="event.stopPropagation(); removeFavorite('<?php echo $keycol['session']; ?>')">&times;</span>
                             <?php
