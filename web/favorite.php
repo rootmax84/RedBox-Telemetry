@@ -3,6 +3,8 @@ require_once('db.php');
 
 header('Content-Type: application/json');
 
+cache_flush(null, "fav_data_{$username}");
+
 try {
     $data = json_decode(file_get_contents('php://input'), true);
 
@@ -64,4 +66,3 @@ try {
     ]);
 }
 
-cache_flush(null, "fav_data_{$username}");
