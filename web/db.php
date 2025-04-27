@@ -67,14 +67,27 @@ function quote_values($values) {
 
 function cache_flush($token = null, $keyname = null) {
     global $memcached, $memcached_connected, $username, $db_table, $db_pids_table;
-    if ($memcached_connected) {
-        try {
-            if ($keyname !== null) {
-                $memcached->delete($keyname);
-                return;
-            }
 
-            $keys = [
+    if (!$memcached_connected) {
+        return;
+    }
+
+    try {
+        if ($keyname !== null) {
+            $allKeys = $memcached->getAllKeys();
+            if ($allKeys !== false) {
+                foreach ($allKeys as $key) {
+                    if (strpos($key, $keyname) === 0) {
+                        $memcached->delete($key);
+                    }
+                }
+            }
+            return;
+        }
+
+        $keys = $token !== null
+            ? ["user_data_{$token}", "user_api_data_{$token}"]
+            : [
                 "profiles_list_{$username}",
                 "years_list_{$username}",
                 "stream_lock_{$username}",
@@ -88,29 +101,37 @@ function cache_flush($token = null, $keyname = null) {
                 "share_plot_{$_SESSION['uid']}",
                 "fav_data_{$username}"
             ];
-            if ($token !== null) {
-                $keys = [
-                    "user_data_{$token}",
-                    "user_api_data_{$token}"
-                ];
-            }
-            // Clean users GPS and sessions data cache
+
+        if ($token === null) {
+            $patterns = [
+                "gps_data_{$username}_",
+                "session_data_{$username}_",
+                "sessions_list_{$username}_"
+            ];
+
             $allKeys = $memcached->getAllKeys();
             if ($allKeys !== false) {
-                foreach ($allKeys as $key) {
-                    if (strpos($key, "gps_data_{$username}_") === 0 || 
-                        strpos($key, "session_data_{$username}_") === 0) {
-                        $keys[] = $key;
+                foreach ($patterns as $pattern) {
+                    foreach ($allKeys as $key) {
+                        if (strpos($key, $pattern) === 0) {
+                            $keys[] = $key;
+                        }
                     }
                 }
             }
-            foreach ($keys as $key) {
-                $memcached->delete($key);
-            }
-        } catch (Exception $e) {
-            $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
-            error_log($errorMessage);
         }
+
+        foreach (array_unique($keys) as $key) {
+            $memcached->delete($key);
+        }
+
+    } catch (Exception $e) {
+        error_log(sprintf(
+            "Memcached error for user %s: %s (Code: %d)",
+            $username,
+            $e->getMessage(),
+            $e->getCode()
+        ));
     }
 }
 
