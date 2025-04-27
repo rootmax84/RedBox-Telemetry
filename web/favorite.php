@@ -63,3 +63,5 @@ try {
         'message' => $e->getMessage()
     ]);
 }
+
+cache_flush(null, "fav_data_{$username}");

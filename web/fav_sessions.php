@@ -5,13 +5,31 @@ require_once('auth_user.php');
 require_once('creds.php');
 require_once('db_limits.php');
 
-$query = "SELECT session, profileName, description, time, timeend
+$cache_key = "fav_data_" . $username;
+$fav_data = false;
+
+if ($memcached_connected) {
+    $fav_data = $memcached->get($cache_key);
+}
+
+if ($fav_data === false) {
+    $query = "SELECT session, profileName, description, time, timeend
           FROM $db_sessions_table
           WHERE favorite = 1
           ORDER BY session DESC";
-
-$keydata = $db->query($query)->fetch_all(MYSQLI_ASSOC);
-$row_count = count($keydata);
+    $keydata = $db->query($query);
+    if ($keydata->num_rows) {
+        $fav_data = $keydata->fetch_all(MYSQLI_ASSOC);
+        if ($memcached_connected) {
+            try {
+                $memcached->set($cache_key, $fav_data, $db_memcached_ttl ?? 3600);
+            } catch (Exception $e) {
+                error_log(sprintf("Memcached error on favorite: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+            }
+        }
+    }
+}
+$row_count = count($fav_data);
 
 $db->close();
 include("head.php");
@@ -140,7 +158,7 @@ include("head.php");
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($keydata as $i => $keycol) { ?>
+                <?php foreach ($fav_data as $i => $keycol) { ?>
                     <tr<?php echo ($i & 1) ? ' class="odd"' : ''; ?> data-sid=<?php echo $keycol['session']; ?>>
                         <td id="id:<?php echo $keycol['session']; ?>">
                             <span class='delete-icon' onclick="event.stopPropagation(); removeFavorite('<?php echo $keycol['session']; ?>')">&times;</span>

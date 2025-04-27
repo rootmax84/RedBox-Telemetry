@@ -65,10 +65,15 @@ function quote_values($values) {
     return implode(", ", array_map('quote_value', $values));
 }
 
-function cache_flush($token = null) {
+function cache_flush($token = null, $keyname = null) {
     global $memcached, $memcached_connected, $username, $db_table, $db_pids_table;
     if ($memcached_connected) {
         try {
+            if ($keyname !== null) {
+                $memcached->delete($keyname);
+                return;
+            }
+
             $keys = [
                 "profiles_list_{$username}",
                 "years_list_{$username}",
@@ -80,7 +85,8 @@ function cache_flush($token = null) {
                 "columns_data_{$db_pids_table}",
                 "pids_mapping_{$username}",
                 "share_data_{$_SESSION['uid']}",
-                "share_plot_{$_SESSION['uid']}"
+                "share_plot_{$_SESSION['uid']}",
+                "fav_data_{$username}"
             ];
             if ($token !== null) {
                 $keys = [
