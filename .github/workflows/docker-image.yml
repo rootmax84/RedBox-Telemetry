@@ -28,18 +28,31 @@ jobs:
       - name: Start services and check status
         run: |
           docker-compose up -d
-
-          timeout 60s bash -c 'until docker-compose ps mariadb | grep -q "(healthy)"; do sleep 2; echo "Waiting for mariadb..."; done'
           
-          if docker-compose ps | grep -v "Exit 0" | grep -q "Exit"; then
-            echo "Some containers failed!"
-            docker-compose logs
+          echo "Waiting for mariadb to become healthy..."
+          timeout 60s bash -c 'until [ "$(docker inspect -f {{.State.Health.Status}} ratel_mariadb)" = "healthy" ]; do sleep 2; echo -n "."; done'
+          echo ""
+          
+          if [ "$(docker inspect -f {{.State.Health.Status}} ratel_mariadb)" != "healthy" ]; then
+            echo "mariadb did not become healthy in time"
+            docker-compose logs mariadb
             exit 1
           fi
           
-          timeout 10s bash -c 'until docker-compose ps web | grep -q "(healthy)"; do sleep 1; echo "Waiting for web..."; done'
+          echo "Waiting for web to become healthy..."
+          timeout 120s bash -c 'until [ "$(docker inspect -f {{.State.Health.Status}} ratel_web)" = "healthy" ]; do sleep 5; echo -n "."; done'
+          echo ""
           
-          echo "All containers are running!"
+          if [ "$(docker inspect -f {{.State.Health.Status}} ratel_web)" != "healthy" ]; then
+            echo "web did not become healthy in time"
+            docker-compose logs web
+            exit 1
+          fi
+          
+          echo "Service status:"
+          docker-compose ps
+          
+          echo "All services are up and healthy"
 
       - name: Cleanup
         if: always()
