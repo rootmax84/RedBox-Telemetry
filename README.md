@@ -2,7 +2,7 @@
 <img width="10%" src="https://github.com/user-attachments/assets/b1d4299d-5d49-4f42-b2ea-83508b31928f">
 </p>
 
-![CI History](https://img.shields.io/github/actions/workflow/status/rootmax84/RedBox-Telemetry/.github/workflows/docker-image.yml?branch=main&label=build%20history&style=flat-square)
+![CI History](https://img.shields.io/github/actions/workflow/status/rootmax84/RedBox-Telemetry/.github/workflows/docker-image.yml?branch=main&label=build%20history&style=flat-round)
 
 # RedBox Telemetry
 Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive devices. Can be used with Torque PRO and generic OBD devices too.
