@@ -28,12 +28,17 @@ jobs:
       - name: Start services and check status
         run: |
           docker-compose up -d
-          timeout 60s bash -c 'until docker-compose ps ratel_mariadb | grep -q "(healthy)"; do sleep 2; done'
+
+          timeout 60s bash -c 'until docker-compose ps mariadb | grep -q "(healthy)"; do sleep 2; echo "Waiting for mariadb..."; done'
+          
           if docker-compose ps | grep -v "Exit 0" | grep -q "Exit"; then
             echo "Some containers failed!"
             docker-compose logs
             exit 1
           fi
+          
+          timeout 10s bash -c 'until docker-compose ps web | grep -q "(healthy)"; do sleep 1; echo "Waiting for web..."; done'
+          
           echo "All containers are running!"
 
       - name: Cleanup
