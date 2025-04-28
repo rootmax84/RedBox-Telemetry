@@ -23,12 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { //Respond to preflights
 $token = getBearerToken();
 if (!empty($token)) {
 
- $lang = $_POST['lang'];
+ $lang = $_POST['lang'] ?? $_GET['lang'];
 
  //Maintenance mode
  if (file_exists('maintenance')){
   http_response_code(423);
-  die($translations[$lang]['maintenance']);
+  die($translations[$lang ?? 'en']['maintenance']);
  }
 
  $_SESSION['torque_logged_in'] = true;
@@ -38,7 +38,7 @@ if (!empty($token)) {
  $load = sys_getloadavg(); //Fetch CPU load avg
  if ($max_load_avg > 0 && $load[1] > $max_load_avg){
   http_response_code(503);
-  die($translations[$lang]['overload']);
+  die($translations[$lang ?? 'en']['overload']);
  }
 
  $cache_key = "user_data_" . $token;
@@ -81,7 +81,7 @@ if (!empty($token)) {
 
 if ($access != 1 || $limit == 0){
      http_response_code(403);
-     die($translations[$lang]['denied']);
+     die($translations[$lang ?? 'en']['denied']);
 }
 
 $db_table = $username.$db_log_prefix;
