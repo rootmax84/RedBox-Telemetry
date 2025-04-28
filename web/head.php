@@ -43,7 +43,7 @@ function version_url($url) {
 <link rel="stylesheet" href="<?php echo version_url('static/css/choices.min.css'); ?>">
 <link rel="stylesheet" href="<?php echo version_url('static/css/main.css'); ?>">
 <link rel="stylesheet" href="<?php echo version_url('static/css/Control.FullScreen.css'); ?>">
-<?php if (isset($_SESSION['torque_user'])) {?>
+<?php if (isset($_SESSION['torque_user']) || isset($_SESSION['share'])) {?>
 <script>let darkCssUrl = "<?php echo version_url('static/css/dark.css'); ?>";</script>
 <script src="<?php echo version_url('static/js/theme.js'); ?>"></script>
 <?php } if (isset($_SESSION['admin'])) {?>

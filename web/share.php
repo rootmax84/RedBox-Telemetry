@@ -74,6 +74,7 @@ if ($username) {
         exit;
     } else {
         checkRateLimit(5, 3600, true);
+        $_SESSION['share'] = true;
     }
 
     // GPS data
@@ -246,8 +247,9 @@ include("head.php");
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <div class="fetch-data"></div>
         <div class="container">
-                <div class="chart-fill-toggle" onClick="chartToggle()" style="right:40px"></div>
-                <div class="login-lang" id="lang-switch" style="position:absolute;top:10px;right:10px">
+                <div id="theme-switch"></div>
+                <div class="chart-fill-toggle" onClick="chartToggle()" style="right:70px"></div>
+                <div class="login-lang" id="lang-switch" style="position:absolute;top:10px;right:40px">
                     <div class="selected-lang" id="selected-lang" style="width:24px;height:24px;color:#5d5d5d"></div>
                       <ul class="lang-options" id="lang-options" style="background:#fff">
                         <li data-value="en">English</li>
