@@ -133,6 +133,12 @@ function auth_user()
             $_SESSION['share_secret'] = $row["share_secret"];
             update_login_attempts($user, true);
             $db->close();
+
+            $usr_new_sess = sys_get_temp_dir().'/'.$user;
+            if (file_exists($usr_new_sess)) {
+                unlink($usr_new_sess);
+            }
+
             return true;
         } else {
             update_login_attempts($user, false);
