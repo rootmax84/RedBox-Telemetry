@@ -24,6 +24,10 @@ $cached_data = false;
 if ($memcached_connected) {
     $cached_data = $memcached->get($cache_key);
 
+    if (!empty($cached_data['sesactive']) && array_filter($cached_data['sesactive'], 'strlen')) {
+        cache_flush(null, "sessions_list_{$username}_");
+    }
+
     if ($cached_data !== false && is_array($cached_data)) {
         $seshdates = $cached_data['seshdates'] ?? [];
         $seshsizes = $cached_data['seshsizes'] ?? [];
