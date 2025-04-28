@@ -99,7 +99,9 @@ function cache_flush($token = null, $keyname = null) {
                 "pids_mapping_{$username}",
                 "share_data_{$_SESSION['uid']}",
                 "share_plot_{$_SESSION['uid']}",
-                "fav_data_{$username}"
+                "fav_data_{$username}",
+                "stream_conv_{$username}",
+                "api_conv_{$username}"
             ];
 
         if ($token === null) {

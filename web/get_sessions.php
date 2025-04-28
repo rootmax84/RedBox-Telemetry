@@ -25,7 +25,7 @@ if ($memcached_connected) {
     $cached_data = $memcached->get($cache_key);
 
     if (!empty($cached_data['sesactive']) && array_filter($cached_data['sesactive'], 'strlen')) {
-        cache_flush(null, "sessions_list_{$username}_");
+        $cached_data = false;
     }
 
     if ($cached_data !== false && is_array($cached_data)) {
@@ -90,8 +90,6 @@ if (empty($sids)) {
                   LIMIT 20";
         $sessionqry = $db->query($query);
     }
-
-    $seshdates = $seshsizes = $seshprofile = $seship = $sesactive = $sesfavorite = $sids = [];
 
     while ($row = $sessionqry->fetch_assoc()) {
         $row["timeend"] = !$row["timeend"] ? $row["time"] : $row["timeend"];

@@ -35,8 +35,29 @@ $d = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 
 if ($session_id) {
     $id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
 } else  $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
-$setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username])->fetch_row();
-[$speed, $temp, $pressure, $boost] = $setqry;
+
+$cache_key_api_conv = "stream_conv_" . $username;
+$user_settings = false;
+
+if ($memcached_connected) {
+    $user_settings = $memcached->get($cache_key_api_conv);
+}
+
+if ($user_settings === false) {
+    $setqry = $db->execute_query("SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?", [$username]);
+    if ($setqry->num_rows) {
+        $user_settings = $setqry->fetch_row();
+        if ($memcached_connected) {
+            try {
+                $memcached->set($cache_key_api_conv, $user_settings, $db_memcached_ttl ?? 3600);
+            } catch (Exception $e) {
+                error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+            }
+        }
+    }
+}
+
+[$speed, $temp, $pressure, $boost] = $user_settings;
 
 if (!$s->num_rows || !$d->num_rows) {
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>" . $translations[$_COOKIE['lang']]['stream.empty'] . "</span></td></tr>\n\nretry: 5000\n\n";
