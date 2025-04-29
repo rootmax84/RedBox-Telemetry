@@ -121,7 +121,29 @@ if (!$r->num_rows) {
 }
 
 // Fetch data with or without GPS data
-$d = getPidsQuery($db, $db_pids_table, $gps);
+$cache_key_api_pids = "api_pids_" . $user;
+$pids = false;
+
+if ($memcached_connected) {
+    $pids = $memcached->get($cache_key_api_pids);
+}
+
+if ($pids === false) {
+    $result = getPidsQuery($db, $db_pids_table, $gps);
+    if ($result->num_rows) {
+        $pids = [];
+        while ($row = $result->fetch_array()) {
+            $pids[] = $row;
+        }
+        if ($memcached_connected) {
+            try {
+                $memcached->set($cache_key_api_pids, $pids, $db_memcached_ttl ?? 3600);
+            } catch (Exception $e) {
+                error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+            }
+        }
+    }
+}
 
 $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
 
@@ -148,13 +170,13 @@ if ($user_settings === false) {
 
 [$speed, $temp, $pressure, $boost] = $user_settings;
 
-if (!$d->num_rows) {
+if (!is_array($pids) && empty($pids)) {
     echo json_encode(['error' => 'Select PIDs to show in Functions']);
     exit;
 }
 
 $pid = $des = $unit = [];
-while ($key = $d->fetch_array()) {
+foreach ($pids as $key) {
     $pid[] = $key['id'];
     $des[] = $key['description'];
     $unit[] = $key['units'];

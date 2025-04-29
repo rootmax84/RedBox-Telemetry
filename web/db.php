@@ -102,7 +102,10 @@ function cache_flush($token = null, $keyname = null) {
                 "share_plot_{$_SESSION['uid']}",
                 "fav_data_{$username}",
                 "stream_conv_{$username}",
-                "api_conv_{$username}"
+                "stream_pids_s_{$username}",
+                "stream_pids_d_{$username}",
+                "api_conv_{$username}",
+                "api_pids_{$username}"
             ];
 
         if ($token === null) {

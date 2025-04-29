@@ -29,12 +29,59 @@ if (!$r->num_rows) {
     die;
 }
 
-$s = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 OR id IN ('kff1005', 'kff1006') ORDER by description ASC");
-$d = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1");
+$cache_key_s = "stream_pids_s_" . $username;
+$s_data = false;
+
+if ($memcached_connected) {
+    $s_data = $memcached->get($cache_key_s);
+}
+
+if ($s_data === false) {
+    $s_result = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 OR id IN ('kff1005', 'kff1006') ORDER by description ASC");
+    if ($s_result->num_rows) {
+        $s_data = [];
+        while ($row = $s_result->fetch_array()) {
+            $s_data[] = $row;
+        }
+        if ($memcached_connected) {
+            try {
+                $memcached->set($cache_key_s, $s_data, $db_memcached_ttl ?? 3600);
+            } catch (Exception $e) {
+                error_log(sprintf("Memcached error on stream (s): %s (Code: %d)", $e->getMessage(), $e->getCode()));
+            }
+        }
+    }
+}
+
+$cache_key_d = "stream_pids_d_" . $username;
+$d_data = false;
+
+if ($memcached_connected) {
+    $d_data = $memcached->get($cache_key_d);
+}
+
+if ($d_data === false) {
+    $d_result = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1");
+    if ($d_result->num_rows) {
+        $d_data = [];
+        while ($row = $d_result->fetch_array()) {
+            $d_data[] = $row;
+        }
+        if ($memcached_connected) {
+            try {
+                $memcached->set($cache_key_d, $d_data, $db_memcached_ttl ?? 3600);
+            } catch (Exception $e) {
+                error_log(sprintf("Memcached error on stream (d): %s (Code: %d)", $e->getMessage(), $e->getCode()));
+            }
+        }
+    }
+}
 
 if ($session_id) {
     $id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
-} else  $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
+} else {
+    $id = $db->query("SELECT id FROM $db_sessions_table ORDER BY timeend DESC LIMIT 1")->fetch_row()[0];
+}
 
 $cache_key_api_conv = "stream_conv_" . $username;
 $user_settings = false;
@@ -59,13 +106,13 @@ if ($user_settings === false) {
 
 [$speed, $temp, $pressure, $boost] = $user_settings;
 
-if (!$s->num_rows || !$d->num_rows) {
+if (empty($s_data) || empty($d_data)) {
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>" . $translations[$_COOKIE['lang']]['stream.empty'] . "</span></td></tr>\n\nretry: 5000\n\n";
     die;
 }
 
 $pid = $des = $unit = [];
-while ($key = $s->fetch_array()) {
+foreach ($s_data as $key) {
     $pid[] = $key['id'];
     $des[] = $key['description'];
     $unit[] = $key['units'];
