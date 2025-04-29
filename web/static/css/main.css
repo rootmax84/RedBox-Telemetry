@@ -697,8 +697,7 @@ img {
   font-family: "Open Sans", "Open Sans C", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-.table-sum td:nth-child(2),
-.table-sum td:nth-child(3) {
+.table-sum td:nth-child(n+2):nth-child(-n+4) {
   font-family: monospace;
 }
 
