@@ -462,7 +462,7 @@ let updCharts = (last = false)=>{
             $('#Summary-Container').empty();
             $('#Summary-Container').append($('<div>',{class:'table-responsive'}).append($('<table>',{class:'table table-sum'}).append($('<thead>').append($('<tr>'))).append('<tbody>')));
             // Create table headers
-            const headers = [localization.key['datasum.name'], localization.key['datasum.mm'], localization.key['datasum.mean'], localization.key['datasum.sparkline']];
+            const headers = [localization.key['datasum.name'], localization.key['datasum.min'], localization.key['datasum.max'], localization.key['datasum.mean'], localization.key['datasum.sparkline']];
             const thead = document.querySelector('#Summary-Container>div>table>thead>tr');
             const headerFragment = document.createDocumentFragment();
             headers.forEach(v => {
@@ -474,9 +474,9 @@ let updCharts = (last = false)=>{
 
             // Create string pattern for table
             const trTemplate = document.createElement('tr');
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < 5; i++) {
                 const td = document.createElement('td');
-                if (i === 3) {
+                if (i === 4) {
                     const span = document.createElement('span');
                     span.className = 'line';
                     td.appendChild(span);
@@ -492,9 +492,10 @@ let updCharts = (last = false)=>{
                 const tr = trTemplate.cloneNode(true);
                 const tds = tr.children;
                 tds[0].textContent = v[1];
-                tds[1].textContent = v[5] + '/' + v[4];
-                tds[2].textContent = v[6];
-                tds[3].querySelector('.line').textContent = v[3];
+                tds[1].textContent = v[5];
+                tds[2].textContent = v[4];
+                tds[3].textContent = v[6];
+                tds[4].querySelector('.line').textContent = v[3];
                 rowFragment.appendChild(tr);
             });
 
