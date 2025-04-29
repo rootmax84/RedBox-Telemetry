@@ -55,7 +55,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
         }
     }
 
-    invalidateCache();
+    cache_flush();
 
     //Show merged session
     header('Location: .?id=' . $newsession);

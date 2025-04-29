@@ -37,14 +37,6 @@ if ($memcached_available) {
         $memcached->addServer($db_memcached, 11211);
         $memcached_connected = !empty($memcached->getStats());
 
-        $invalidate = false;
-        if ($memcached_connected) {
-            $invalidate = $memcached->get('invalidate_' . $username);
-            if ($invalidate !== false) {
-                cache_flush();
-            }
-        }
-
     } catch (Exception $e) {
         $memcached_connected = false;
     }

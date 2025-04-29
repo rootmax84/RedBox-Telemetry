@@ -4,7 +4,6 @@ require_once('db.php');
 header('Content-Type: application/json');
 
 cache_flush(null, "fav_data_{$username}");
-cache_flush(null, "sessions_list_{$username}_");
 
 try {
     $data = json_decode(file_get_contents('php://input'), true);
