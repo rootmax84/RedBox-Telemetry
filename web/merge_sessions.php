@@ -55,10 +55,11 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
         }
     }
 
-    cache_flush();
+    invalidateCache();
 
     //Show merged session
     header('Location: .?id=' . $newsession);
+    exit;
 } elseif (isset($mergesession) && !empty($mergesession)) {
     include("head.php");
 ?>

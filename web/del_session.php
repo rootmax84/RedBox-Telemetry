@@ -36,13 +36,15 @@ if ($deletesession !== '' && $deletesession !== false && $deletesession !== null
             [$new_size, $new_start, $new_end, $deletesession]
         );
 
-        cache_flush();
+        invalidateCache();
         header("Location: .?id=" . $deletesession);
+        exit;
     } else {
         // Delete the entire session
         $db->execute_query("DELETE FROM $db_table WHERE session=?", [$deletesession]);
         $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$deletesession]);
-        cache_flush();
+        invalidateCache();
         header("Location: .");
+        exit;
     }
 }

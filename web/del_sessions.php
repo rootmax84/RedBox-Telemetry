@@ -24,10 +24,11 @@ if (isset($delsession)) {
 	    $db->execute_query("DELETE FROM $db_sessions_table WHERE session = ?", [$value]);
 	}
     }
+    invalidateCache();
     if (!empty($_SESSION["page"])) header('Location: del_sessions.php?page='.$_SESSION["page"]);
     else {
-        cache_flush();
         header('Location: del_sessions.php');
+        exit;
     }
 } else {
     include("head.php");

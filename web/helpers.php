@@ -444,3 +444,20 @@ function getPidsQuery($db, $table, $includeGps = false)
     $where = $includeGps ? "stream = 1 OR id IN ('kff1005', 'kff1006')" : "stream = 1";
     return $db->query("SELECT id, description, units FROM $table WHERE $where ORDER BY description ASC");
 }
+
+/**
+ * Invalidate cache after merge/delete
+ */
+function invalidateCache(): void {
+    global $memcached_connected, $memcached, $username;
+
+    if (!$memcached_connected || !isset($memcached)) {
+        return;
+    }
+
+    try {
+        $memcached->set('invalidate_' . $username, true, 5);
+    } catch (Exception $e) {
+        error_log(sprintf("Memcached invalidation error: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+    }
+}
