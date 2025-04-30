@@ -415,7 +415,7 @@ if (isset($sids[0])) {
 
 <!-- slider -->
 <script>
-jsTimeMap = [<?php echo $itime; ?>].reverse(); //Session time array, reversed for silder
+let jsTimeMap = [<?php echo $itime; ?>].reverse(); //Session time array, reversed for silder
 initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 </script>
 <div class="slider-container">
