@@ -12,6 +12,9 @@ let sid = null;
 let uid = null;
 let sig = null;
 
+let mapIndexStart = null;
+let mapIndexEnd = null;
+
 //Global select
 let plotDataChoices = null;
 let seshidtagChoices = null;
@@ -360,8 +363,8 @@ function doPlot(position) {
         $("#slider-range11").slider('values', 1, b);
         $("#slider-time").val((new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
 
-        const mapIndexStart = jsTimeMap.length - b - 1;
-        const mapIndexEnd = jsTimeMap.length - a - 1;
+        mapIndexStart = jsTimeMap.length - b - 1;
+        mapIndexEnd = jsTimeMap.length - a - 1;
 
         if($("#map").length) {
             updateMapWithRangePreservingHeatline(mapIndexStart, mapIndexEnd);
@@ -707,7 +710,7 @@ let initMapLeaflet = () => {
     let lastFlotDataLength = 0;
     setInterval(() => {
         if (heatData && heatData.length !== lastFlotDataLength) {
-            updateMapWithRangePreservingHeatline();
+            updateMapWithRangePreservingHeatline(mapIndexStart, mapIndexEnd);
             lastFlotDataLength = heatData.length;
             updateDataSourceSelector();
         }
@@ -1339,8 +1342,6 @@ function updateMapWithRangePreservingHeatline(startIndex, endIndex) {
 
             const changeEvent = new Event('change');
             dataSourceSelect.dispatchEvent(changeEvent);
-
-            if (startIndex === null || endIndex === null) return;
 
             mapUpdRange(startIndex, endIndex);
 
