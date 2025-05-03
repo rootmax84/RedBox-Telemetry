@@ -1332,6 +1332,8 @@ let initSlider = (jsTimeMap,start,end)=>{
 //End slider js code
 
 function updateMapWithRangePreservingHeatline(startIndex, endIndex) {
+    if (startIndex === null || endIndex === null) return;
+
     const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
 
     if (dataSourceSelect) {
