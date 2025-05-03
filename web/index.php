@@ -193,7 +193,7 @@ if (isset($sids[0])) {
     <script src="<?php echo version_url('static/js/jquery.flot.multihighlight-delta.js'); ?>"></script>
     <script src="<?php echo version_url('static/js/jquery.flot.selection.js'); ?>"></script>
     <script src="<?php echo version_url('static/js/jquery.flot.time.js'); ?>"></script>
-    <script src="<?php echo version_url('static/js/jquery.flot.resize.min.js'); ?>"></script>
+    <script src="<?php echo version_url('static/js/jquery.flot.resize.js'); ?>"></script>
     <script src="<?php echo version_url('static/js/Control.FullScreen.js'); ?>"></script>
     <!-- Configure Jquery Flot graph and plot code -->
     <script>
