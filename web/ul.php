@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { //Respond to preflights
 $token = getBearerToken();
 if (!empty($token)) {
 
- $lang = $_POST['lang'] ?? $_GET['lang'];
+ $lang = $_POST['lang'] ?? $_GET['lang'] ?? null;
 
  //Maintenance mode
  if (file_exists('maintenance')){
