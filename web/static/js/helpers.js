@@ -539,6 +539,7 @@ let updCharts = (last = false)=>{
 
 //Start of Leaflet Map Providers js code
 let map = null;
+let polyline = null;
 let initMapLeaflet = () => {
     let osm = new L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -1191,7 +1192,7 @@ let initMapLeaflet = () => {
     endcir.unbindTooltip().bindTooltip(localization.key['travel.end'] ?? 'End', {className: 'travel-tooltip'});
 
     // travel line
-    let polyline = L.polyline(path, {
+    polyline = L.polyline(path, {
         color: '#000000',
         dashArray: '5, 5',
         weight: 3,
@@ -1200,7 +1201,7 @@ let initMapLeaflet = () => {
     }).addTo(map);
 
     // zoom the map to the polyline
-    map.fitBounds(polyline.getBounds(), {maxZoom: 15});
+    map.fitBounds(polyline.getBounds());
 
     mapUpdRange = (a,b) => {
         path = window.MapData.path.slice(a,b).filter(([a,b])=>(a>0||a<0||b>0||b<0));
@@ -1331,7 +1332,7 @@ let initSlider = (jsTimeMap,start,end)=>{
 }
 //End slider js code
 
-function updateMapWithRangePreservingHeatline(startIndex, endIndex) {
+function updateMapWithRangePreservingHeatline(startIndex = null, endIndex = null) {
     if (startIndex === null || endIndex === null) return;
 
     const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
@@ -1515,7 +1516,10 @@ const mapResize = (() => {
     let timer = null;
     return () => {
         if (timer) clearTimeout(timer);
-        timer = setTimeout(() => map.invalidateSize(), 100);
+        timer = setTimeout(() => {
+            map.invalidateSize();
+            map.fitBounds(polyline.getBounds());
+        }, 100);
     };
 })();
 
