@@ -25,8 +25,9 @@ let chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
 
 $(document).ready(function(){
   // Reset flot zoom
-  $("#Chart-Container").on("dblclick", ()=>{initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
-  longTap("#Chart-Container", () => {initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1))});
+  const handleSliderInit = () => !stream && initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
+  $("#Chart-Container").on("dblclick", handleSliderInit);
+  longTap("#Chart-Container", handleSliderInit);
   nogps = document.querySelector('#nogps');
 
   setInterval(()=>{
