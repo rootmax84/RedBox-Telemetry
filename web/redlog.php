@@ -81,7 +81,8 @@ for ($f = 0; $f < count($files); $f++) {
   $time_end = $data[ array_key_last($data) - 37 ];
  }
  try {
-  $db->execute_query("INSERT INTO $db_sessions_table (id, session, time, profileName, timeend, sessionsize) VALUES (?,?,?,?,?,?)", ['RedManage', $session, $time, 'RedManage-Log', $time_end, $size]);
+  $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+  $db->execute_query("INSERT INTO $db_sessions_table (id, session, time, profileName, timeend, sessionsize, ip) VALUES (?,?,?,?,?,?,?)", ['RedManage', $session, $time, 'RedManage-Log', $time_end, $size, $ip]);
  } catch (Exception $e) {
   if (file_exists($target_file[$f])) unlink($target_file[$f]);
   http_response_code(406);
