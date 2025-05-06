@@ -326,7 +326,7 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid): ?array
     }
 
     // Validate parameters
-    if (!preg_match('/^[0-9]+:[a-zA-Z0-9_-]+$/', $tg_token) || 
+    if (!preg_match('/^\d+:[a-zA-Z0-9_-]+$/', $tg_token) ||
         !preg_match('/^-?\d+$/', $tg_chatid)) {
         return null;
     }
