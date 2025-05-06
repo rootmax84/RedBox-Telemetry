@@ -97,7 +97,7 @@ try {
             $tg_chatid = $_POST['tg_chatid'] !== '' ? trim($_POST['tg_chatid']) : null;
 
             // Additional validation
-            if ($tg_token !== null && !preg_match('/^[0-9]+:[a-zA-Z0-9_-]+$/', $tg_token)) {
+            if ($tg_token !== null && !preg_match('/^\d+:[a-zA-Z0-9_-]+$/', $tg_token)) {
                 // Invalid token format
                 $tg_token = null;
             }
