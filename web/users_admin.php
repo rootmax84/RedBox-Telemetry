@@ -32,9 +32,9 @@ if ($_GET['action'] == "edit") {
     $limit = isset($_GET['limit']) ? $_GET['limit'] : null;
 ?>
 	    <h4 l10n="admin.edit.title"></h4>
-		<input class="form-control" type="text" name="e_login" value="<?php echo $user; ?>" maxlength="32" l10n-placeholder="login.login" required autofocus <?php if(isset($user)){?> readonly <?php }?>></br>
+		<input class="form-control" type="text" name="e_login" value="<?php echo htmlspecialchars($user); ?>" maxlength="32" l10n-placeholder="login.login" required autofocus <?php if(isset($user)){?> readonly <?php }?>></br>
 		<input class="form-control" type="password" name="e_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password"></br>
-		<input class="form-control" type="number" min="-1" max="100000" name="e_limit" l10n-placeholder="input.limits" value="<?php if($user != $admin) echo $limit; ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
+		<input class="form-control" type="number" min="-1" max="100000" name="e_limit" l10n-placeholder="input.limits" value="<?php if($user != $admin) echo htmlspecialchars($limit); ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.edit.btn"></button>
 <?php
 }

@@ -151,9 +151,9 @@ include("head.php");
     <script>
         let streamBtn_svg = null
         let stream = false;
-        sid = `<?php echo $session_id; ?>`;
-        uid = `<?php echo $uid; ?>`;
-        sig = `<?php echo $sig; ?>`;
+        sid = '<?php echo htmlspecialchars($session_id); ?>';
+        uid = '<?php echo htmlspecialchars($uid); ?>';
+        sig = '<?php echo htmlspecialchars($sig); ?>';
         
         $(document).ready(function(){
             if (!document.getElementById('plot_data')) return;

@@ -325,7 +325,13 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid): ?array
         return null;
     }
 
-    $ch = curl_init('https://api.telegram.org/bot' . $tg_token . '/sendMessage');
+    // Validate parameters
+    if (!preg_match('/^[0-9]+:[a-zA-Z0-9_-]+$/', $tg_token) || 
+        !preg_match('/^-?\d+$/', $tg_chatid)) {
+        return null;
+    }
+
+    $ch = curl_init('https://api.telegram.org/bot' . urlencode($tg_token) . '/sendMessage');
     if ($ch === false) {
         return null;
     }
@@ -389,7 +395,7 @@ function forward_request(string $username, string $forward_url, ?string $forward
     $forward_data = $_REQUEST;
 
     if (empty($forward_data['eml'])) {
-        $forward_data['eml'] = $username . '@redbox.null';
+        $forward_data = array_merge(['eml' => $username . '@redbox.null'], $forward_data);
     }
 
     $ch = curl_init();
@@ -413,10 +419,20 @@ function forward_request(string $username, string $forward_url, ?string $forward
     // Headers
     $headers = [];
     if (!empty($forward_token)) {
-        $headers[] = 'Authorization: Bearer ' . $forward_token;
+        // Validate forward_token if it comes from your application
+        if (preg_match('/^[a-zA-Z0-9-_.]+$/', $forward_token)) {
+            $headers[] = 'Authorization: Bearer ' . $forward_token;
+        }
     } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-        $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
+        // Sanitize and validate the Authorization header
+        $auth_header = trim($_SERVER['HTTP_AUTHORIZATION']);
+
+        // Basic validation for common auth schemes
+        if (preg_match('/^(Bearer|Basic) [a-zA-Z0-9-_.]+$/', $auth_header)) {
+            $headers[] = 'Authorization: ' . $auth_header;
+        }
     }
+
     if (!empty($headers)) {
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     }

@@ -92,9 +92,27 @@ try {
             $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
             cache_flush($token);
 
-            $db->execute_query("UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?", [$_POST['tg_token'] !== '' ? $_POST['tg_token'] : null, $_POST['tg_chatid'] !== '' ? $_POST['tg_chatid'] : null, $username]);
+            // Validate and sanitize Telegram token and chat ID
+            $tg_token = $_POST['tg_token'] !== '' ? trim($_POST['tg_token']) : null;
+            $tg_chatid = $_POST['tg_chatid'] !== '' ? trim($_POST['tg_chatid']) : null;
 
-            $testMessage = notify("👋", $_POST['tg_token'], $_POST['tg_chatid']);
+            // Additional validation
+            if ($tg_token !== null && !preg_match('/^[0-9]+:[a-zA-Z0-9_-]+$/', $tg_token)) {
+                // Invalid token format
+                $tg_token = null;
+            }
+
+            if ($tg_chatid !== null && !preg_match('/^-?\d+$/', $tg_chatid)) {
+                // Invalid chat ID format
+                $tg_chatid = null;
+            }
+
+            $db->execute_query(
+                "UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?",
+                [$tg_token, $tg_chatid, $username]
+            );
+
+            $testMessage = notify("👋", $tg_token, $tg_chatid);
 
             $response = $testMessage === null 
                 ? $translations[$_COOKIE['lang']]['set.nothing']
