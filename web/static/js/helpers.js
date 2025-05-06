@@ -1543,6 +1543,23 @@ function resizeSplitter() {
     return getComputedStyle(container).flexDirection === 'row';
   }
 
+  let wasHorizontal = isHorizontal();
+
+  function handleResize() {
+    const isNowHorizontal = isHorizontal();
+    if (isNowHorizontal !== wasHorizontal) {
+        restoreSplitterPosition()
+        mapResize();
+        wasHorizontal = isNowHorizontal;
+    }
+  }
+
+  const resizeObserver = new ResizeObserver(() => {
+    handleResize();
+  });
+
+  resizeObserver.observe(container);
+
   function startResize() {
     if (!isHorizontal()) return;
     isResizing = true;
