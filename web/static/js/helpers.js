@@ -39,11 +39,18 @@ $(document).ready(function(){
   }, 5000);
 
   //new session notify
-  setInterval(()=>{
+  function checkNewSession() {
     if ($.cookie('newsess') !== undefined) {
         $('.new-session').css('display','block');
     }
-  }, 1000);
+  }
+  setInterval(checkNewSession, 1000);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        checkNewSession();
+    }
+  });
 });
 
 let lastPlotUpdateTime = 0;

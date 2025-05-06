@@ -5,6 +5,7 @@ require_once('plot.php');
 require_once('timezone.php');
 include_once('translations.php');
 $lang = $_COOKIE['lang'];
+setcookie("newsess", "");
 
 // Capture the session ID if one has been chosen already
 $session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT) ?: null;
