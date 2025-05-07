@@ -278,6 +278,7 @@ if (isset($sids[0])) {
         updCharts();
         if (window.history.replaceState) window.history.replaceState(null, null, window.location.href);
         resizeSplitter();
+        markActiveSess();
       });
     </script>
 

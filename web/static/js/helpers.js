@@ -1837,6 +1837,10 @@ function updateSessionDuration() {
   const minutes = Math.floor((durationSec % 3600) / 60);
   const seconds = durationSec % 60;
 
+  if (hours >= 24) {
+    return;
+  }
+
   const durationStr = [
     hours.toString().padStart(2, '0'),
     minutes.toString().padStart(2, '0'),
@@ -1852,6 +1856,20 @@ function updateSessionDuration() {
       `(${durationText} ${durationStr})`
     )
   );
+
+  markActiveSess();
+}
+
+function markActiveSess() {
+    const items = document.querySelectorAll('.choices__item');
+    items.forEach(item => {
+        if (item.textContent.includes(localization.key['get.sess.active'])) {
+            item.innerHTML = item.innerHTML.replace(
+                localization.key['get.sess.active'],
+                `<span style="color: #961911;">${localization.key['get.sess.active']}</span>`
+            );
+        }
+    });
 }
 
 let redDialog = {
