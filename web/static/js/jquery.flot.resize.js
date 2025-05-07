@@ -1,9 +1,9 @@
 (function ($) {
   // Plugin options placeholder (not used in this case)
-  var options = {};
+  let options = {};
 
   // Store ResizeObservers for each plot instance using WeakMap
-  var observers = new WeakMap();
+  let observers = new WeakMap();
 
   function init(plot) {
     /**
