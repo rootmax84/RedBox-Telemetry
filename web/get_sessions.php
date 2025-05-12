@@ -84,7 +84,7 @@ $sesfavorite = [];
 
 while ($row = $sessionqry->fetch_assoc()) {
     $row["timeend"] = !$row["timeend"] ? $row["time"] : $row["timeend"];
-    $session_duration_str = gmdate("H:i:s", intval(($row["timeend"] - $row["time"]) / 1000));
+    $session_duration_str = formatDuration((int)$row["time"], (int)$row["timeend"], $lang);
     $sid = $row["session"];
     $session_profileName = $row["profileName"] === 'Not Specified' ? $translations[$lang]['profile.ns'] : $row["profileName"];
     $session_ip = $row["ip"];

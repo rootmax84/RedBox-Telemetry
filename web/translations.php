@@ -260,7 +260,8 @@ $translations = [
         'fav.sess' => 'Session',
         'fav.empty' => 'Empty',
         'fav.open' => 'Open',
-        'fav.desc.update' => 'Description updated'
+        'fav.desc.update' => 'Description updated',
+        'days' => 'd'
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -521,7 +522,8 @@ $translations = [
         'fav.sess' => 'Сессия',
         'fav.empty' => 'Пусто',
         'fav.open' => 'Открыть',
-        'fav.desc.update' => 'Описание обновлено'
+        'fav.desc.update' => 'Описание обновлено',
+        'days' => 'д'
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -782,7 +784,8 @@ $translations = [
         'fav.sess' => 'Sesión',
         'fav.empty' => 'Vacío',
         'fav.open' => 'Abrir',
-        'fav.desc.update' => 'Descripción actualizada'
+        'fav.desc.update' => 'Descripción actualizada',
+        'days' => 'días'
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -1043,7 +1046,8 @@ $translations = [
         'fav.sess' => 'Sitzung',
         'fav.empty' => 'Leer',
         'fav.open' => 'Öffnen',
-        'fav.desc.update' => 'Beschreibung aktualisiert'
+        'fav.desc.update' => 'Beschreibung aktualisiert',
+        'days' => 'tage'
     ],
 ];
 

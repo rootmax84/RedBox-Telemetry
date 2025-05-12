@@ -460,3 +460,31 @@ function getPidsQuery($db, $table, $includeGps = false)
     $where = $includeGps ? "stream = 1 OR id IN ('kff1005', 'kff1006')" : "stream = 1";
     return $db->query("SELECT id, description, units FROM $table WHERE $where ORDER BY description ASC");
 }
+
+/**
+ * return fomatted data
+ */
+function formatDuration(int $start, int $end, string $lang, bool $isMilliseconds = true): string {
+    global $translations;
+
+    if ($isMilliseconds) {
+        $start = intdiv($start, 1000);
+        $end = intdiv($end, 1000);
+    }
+
+    $duration = $end - $start;
+    if ($duration < 0) {
+        return "00:00:00";
+    }
+
+    $days = intdiv($duration, 86400);
+    $hours = intdiv($duration % 86400, 3600);
+    $minutes = intdiv($duration % 3600, 60);
+    $seconds = $duration % 60;
+
+    if ($days > 0) {
+        return sprintf('%d'.$translations[$lang]['days'].' %02d:%02d:%02d', $days, $hours, $minutes, $seconds);
+    }
+
+    return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+}

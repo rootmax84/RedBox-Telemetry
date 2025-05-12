@@ -127,8 +127,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
                             </td>
                             <td id="length:<?php echo $x['session']; ?>">
                                 <?php
-                                $duration = intval(($x["timeend"] - $x["time"]) / 1000);
-                                echo gmdate("H:i:s", $duration);
+                                echo formatDuration((int)$x["time"], (int)$x["timeend"], $lang);
                                 ?>
                             </td>
                             <td id="size:<?php echo $x['session']; ?>" class="datapoints"><?php echo $x["sessionsize"]; ?></td>

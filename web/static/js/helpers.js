@@ -1833,15 +1833,18 @@ function updateSessionDuration() {
   }
 
   const durationSec = Math.floor((endTime - startTime) / 1000);
-  const hours = Math.floor(durationSec / 3600);
+  const days = Math.floor(durationSec / 86400);
+  const hours = Math.floor((durationSec % 86400) / 3600);
   const minutes = Math.floor((durationSec % 3600) / 60);
   const seconds = durationSec % 60;
 
-  if (hours >= 24) {
-    return;
+  let durationStr = '';
+
+  if (days > 0) {
+    durationStr += `${days}${localization.key['days']} `;
   }
 
-  const durationStr = [
+  durationStr += [
     hours.toString().padStart(2, '0'),
     minutes.toString().padStart(2, '0'),
     seconds.toString().padStart(2, '0')
@@ -1850,9 +1853,9 @@ function updateSessionDuration() {
   const durationText = localization?.key?.['get.sess.length'];
   const currSessionText = localization?.key?.['get.sess.curr'];
 
-  $(`.choices__item:contains("${currSessionText}")`).text((i, oldText) => 
+  $(`.choices__item:contains("${currSessionText}")`).text((i, oldText) =>
     oldText.replace(
-      new RegExp(`\\(${durationText}[^)]+\\)`),
+      /\((?:[^\s()]+ )?\d{2}:\d{2}:\d{2}\)/,
       `(${durationText} ${durationStr})`
     )
   );

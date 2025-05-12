@@ -226,8 +226,7 @@ include("head.php");
                         </td>
                         <td>
                             <?php
-                                $duration = intval(($keycol['timeend'] - $keycol['time']) / 1000);
-                                echo gmdate("H:i:s", $duration);
+                                echo formatDuration((int)$keycol['time'], (int)$keycol['timeend'], $lang);
                             ?>
                         </td>
                         <td><?php echo $keycol['profileName']; ?></td>

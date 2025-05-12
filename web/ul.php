@@ -288,17 +288,7 @@ if (sizeof($_REQUEST) > 0) {
 
             $delay = time() - intval($sessuploadid / 1000);
             if ($delay > 10) {
-                $days = floor($delay / 86400);
-                $hours = floor(($delay % 86400) / 3600);
-                $minutes = floor(($delay % 3600) / 60);
-                $seconds = $delay % 60;
-
-                $formattedDelay = '';
-                if ($days > 0) {
-                    $formattedDelay .= $days . 'd ';
-                }
-                $formattedDelay .= sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
-
+                $formattedDelay = formatDuration((int)$sessuploadid, time() * 1000, $lang);
                 $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['get.sess.profile']}: {$spv['profileName']} ({$translations[$lang]['upload.delayed']} {$formattedDelay})";
             } else {
                 $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['get.sess.profile']}: {$spv['profileName']}";
