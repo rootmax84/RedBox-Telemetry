@@ -1,8 +1,8 @@
 <?php
 $_SESSION['torque_logged_in'] = true;
-require_once('db.php');
-require_once('helpers.php');
-include_once('translations.php');
+require_once 'db.php';
+require_once 'helpers.php';
+include_once 'translations.php';
 $lang = $_COOKIE['lang'] ?? 'en';
 
 if (!checkRateLimit(5)) {
@@ -133,7 +133,7 @@ if ($username) {
     exit;
 }
 
-include("head.php");
+include 'head.php';
 ?>
 
 <body>

@@ -1,7 +1,7 @@
 <?php
-require_once ('creds.php');
-require_once ('auth_functions.php');
-require_once ('db.php');
+require_once 'creds.php';
+require_once 'auth_functions.php';
+require_once 'db.php';
 
 if (!isset($_SESSION['admin'])) {
     http_response_code(403);
@@ -13,7 +13,7 @@ if (!isset($_GET['action'])) {
  header("Location: .");
  die;
 }
-include("head.php");
+include 'head.php';
 ?>
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse" style="position: relative">
@@ -38,7 +38,7 @@ if ($_GET['action'] == "edit") {
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.edit.btn"></button>
 <?php
 }
-else if ($_GET['action'] == "reg") {
+elseif ($_GET['action'] == "reg") {
 ?>
 	    <h4 l10n="admin.reg.title"></h4>
 		<input class="form-control" type="text" name="reg_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus><br>
@@ -47,14 +47,14 @@ else if ($_GET['action'] == "reg") {
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.reg.btn"></button>
 <?php
 }
-else if ($_GET['action'] == "del") {
+elseif ($_GET['action'] == "del") {
 ?>
 	    <h4 l10n="admin.del.title"></h4>
 		<input class="form-control" type="text" name="del_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus><br>
 		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.del.btn"></button>
 <?php
 }
-else if ($_GET['action'] == "trunc") {
+elseif ($_GET['action'] == "trunc") {
 ?>
 	    <h4 l10n="admin.trunc.title"></h4>
 		<input class="form-control" type="text" name="trunc_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus></br>

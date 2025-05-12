@@ -1,5 +1,5 @@
 <?php
-require('db.php');
+require 'db.php';
 
 // Get current session ID
 $current_seshid = $_GET["seshid"] ?? $_POST["seshidtag"] ?? $_GET["id"] ?? null;

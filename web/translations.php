@@ -1054,6 +1054,6 @@ $translations = [
 if (isset($_GET['l10n'])) {
     header('Content-Type: application/json');
     echo json_encode($translations);
-} else if (isset($_GET['lang'])) {
+} elseif (isset($_GET['lang'])) {
     setcookie("lang", $_GET['lang']);
 }

@@ -1,9 +1,9 @@
 <?php
 
-require_once('db.php');
-require_once('auth_user.php');
-require_once('creds.php');
-require_once('db_limits.php');
+require_once 'db.php';
+require_once 'auth_user.php';
+require_once 'creds.php';
+require_once 'db_limits.php';
 
 $cache_key = "fav_data_" . $username;
 $fav_data = false;
@@ -32,7 +32,7 @@ if ($fav_data === false) {
 $row_count = $fav_data ? count($fav_data) : 0;
 
 $db->close();
-include("head.php");
+include 'head.php';
 ?>
     <body>
     <script>

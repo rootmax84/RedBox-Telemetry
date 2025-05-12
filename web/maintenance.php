@@ -1,6 +1,6 @@
 <?php
-require_once('creds.php');
-include_once('translations.php');
+require_once 'creds.php';
+include_once 'translations.php';
 
 if (isset($_SESSION['admin'])) {
     $maintenanceFile = 'maintenance';
@@ -21,7 +21,7 @@ if (isset($_SESSION['admin'])) {
 if (file_exists('maintenance') && $username !== $admin) {
     http_response_code(423);
     header("Refresh:30; url=maintenance.php");
-include("head.php");
+include 'head.php';
 ?>
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse" style="position:relative">

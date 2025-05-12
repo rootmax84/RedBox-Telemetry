@@ -1,5 +1,5 @@
 <?php
-require_once('auth_user.php');
+require_once 'auth_user.php';
 global $username, $limit;
 
 if (isset($_SESSION['torque_user'])) {

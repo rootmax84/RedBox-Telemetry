@@ -3,9 +3,9 @@ try {
 if (!$_COOKIE['stream']) {
  http_response_code(401);
 }
-require_once('db.php');
-include ("timezone.php");
-include_once('translations.php');
+require_once 'db.php';
+include 'timezone.php';
+include_once 'translations.php';
 
 if (isset($_SESSION['admin'])) header("Refresh:0; url=.");
 
@@ -63,7 +63,7 @@ for ($f = 0; $f < count($files); $f++) {
   http_response_code(406);
   die($translations[$_COOKIE['lang']]['redlog.nospace']); //No space left. Stops
  }
- else if (!$data || !$data_size || strpos($data, "TIME ECT EOT IAT ATF AAT EXT SPD RPM MAP MAF TPS IGN INJ INJD IAC AFR O2S O2S2 EGT EOP FP ERT MHS BSTD FAN GEAR BS1 BS2 PG0 PG1 VLT RLC GLAT GLON GSPD ODO\n") !== 0) {
+ elseif (!$data || !$data_size || strpos($data, "TIME ECT EOT IAT ATF AAT EXT SPD RPM MAP MAF TPS IGN INJ INJD IAC AFR O2S O2S2 EGT EOP FP ERT MHS BSTD FAN GEAR BS1 BS2 PG0 PG1 VLT RLC GLAT GLON GSPD ODO\n") !== 0) {
   if (file_exists($target_file[$f])) unlink($target_file[$f]);
   http_response_code(406);
   echo htmlspecialchars($files[$f]['name']) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];

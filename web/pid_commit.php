@@ -1,7 +1,7 @@
 <?php
-require_once('db.php');
-require_once('auth_user.php');
-require_once('translations.php');
+require_once 'db.php';
+require_once 'auth_user.php';
+require_once 'translations.php';
 
 if (empty($_POST)) {
     die("Invalid Requests");

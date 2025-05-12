@@ -1,9 +1,9 @@
 <?php
-require_once('helpers.php');
+require_once 'helpers.php';
 
 if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $_SESSION['torque_logged_in'] = true;
-    require_once('db.php');
+    require_once 'db.php';
 
     $uid = $_GET['uid'];
     $sid = $_GET['id'];
@@ -59,7 +59,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $db_sessions_table = $username.$db_sessions_prefix;
     $db_pids_table = $username.$db_pids_prefix;
 } else {
-    require_once('db.php');
+    require_once 'db.php';
 }
 
 $json = [];

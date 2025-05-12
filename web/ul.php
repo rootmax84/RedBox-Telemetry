@@ -1,6 +1,6 @@
 <?php
-require_once('helpers.php');
-include('translations.php');
+require_once 'helpers.php';
+include 'translations.php';
 
 //Allow CORS and JWT
 header('Access-Control-Allow-Origin: *');
@@ -32,7 +32,7 @@ if (!empty($token)) {
  }
 
  $_SESSION['torque_logged_in'] = true;
- require_once('db.php');
+ require_once 'db.php';
 
  //Server overload check
  $load = sys_getloadavg(); //Fetch CPU load avg
@@ -205,7 +205,7 @@ if (sizeof($_REQUEST) > 0) {
         $sessvalues[] = $value;
      }
       $submitval = 1;
-    } else if (preg_match("/^k/", $key)) {
+    } elseif (preg_match("/^k/", $key)) {
       // Keep columns starting with k
       $keys[] = $key;
       // My Torque app tries to pass "Infinity" in for some values...catch that error, set to -1
@@ -215,11 +215,11 @@ if (sizeof($_REQUEST) > 0) {
         $values[] = $value;
       }
       $submitval = 1;
-    } else if (in_array($key, ["notice", "noticeClass"])) {
+    } elseif (in_array($key, ["notice", "noticeClass"])) {
       $keys[] = $key;
       $values[] = $value;
       $submitval = 3; //do nothing with this yet
-    } else if (preg_match("/^profile/", $key)) {
+    } elseif (preg_match("/^profile/", $key)) {
         if (in_array($key, $allowedProfileFields)) {
             $spv[$key] = $value;
             $submitval = 2;

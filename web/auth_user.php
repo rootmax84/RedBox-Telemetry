@@ -1,6 +1,6 @@
 <?php
-require_once ('auth_functions.php');
-require_once ('helpers.php');
+require_once 'auth_functions.php';
+require_once 'helpers.php';
 if (!isset($_SESSION)) { session_start(); }
 
 $current_script = basename($_SERVER['SCRIPT_FILENAME']);
@@ -36,7 +36,7 @@ $_SESSION['torque_logged_in'] = $logged_in;
 
 if (!$logged_in) {
     setcookie("stream", "");
-    include("head.php");
+    include 'head.php';
     ?>
     <body style="display:flex; justify-content:center; align-items:center; height:100vh">
     <div class="login login-form" id="login-form">

@@ -17,7 +17,7 @@
       ],
 */
 
-require_once('helpers.php');
+require_once 'helpers.php';
 
 //Allow CORS
 header('Access-Control-Allow-Origin: *');
@@ -36,7 +36,7 @@ $token = getBearerToken();
 if (!empty($token)) {
 
     $_SESSION['torque_logged_in'] = true;
-    require_once('db.php');
+    require_once 'db.php';
 
     header('Content-Type: application/json');
     header('Cache-Control: no-cache');

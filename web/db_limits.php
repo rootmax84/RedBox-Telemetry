@@ -1,9 +1,9 @@
 <?php
 if (!isset($_SESSION['admin'])) { //admin not need db tables
-    require_once('auth_user.php');
-    require_once('del_session.php');
-    require_once('get_sessions.php');
-    require_once('get_columns.php');
+    require_once 'auth_user.php';
+    require_once 'del_session.php';
+    require_once 'get_sessions.php';
+    require_once 'get_columns.php';
 
     // Cache keys
     $db_limit_cache_key = "db_limit_{$db_table}";

@@ -1,6 +1,6 @@
 <?php
-include("timezone.php");
-include_once("translations.php");
+include 'timezone.php';
+include_once 'translations.php';
 $lang = $_COOKIE['lang'];
 
 function getFilterValue($postKey, $getKey, $default) {

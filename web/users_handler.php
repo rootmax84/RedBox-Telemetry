@@ -1,8 +1,8 @@
 <?php
-require_once ('helpers.php');
-require_once ('auth_functions.php');
-require_once ('db.php');
-include_once ('translations.php');
+require_once 'helpers.php';
+require_once 'auth_functions.php';
+require_once 'db.php';
+include_once 'translations.php';
 
 function handleUserSettings($db, $translations, $username, $admin, $db_users) {
     if (!isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], 
@@ -126,7 +126,7 @@ try {
             if (strlen($_POST['forward_token']) > 128) {
                 $response = $translations[$_COOKIE['lang']]['user.url.token.err'];
             }
-            else if (isValidExternalHttpUrl($_POST['forward_url']) || empty($_POST['forward_url'])) {
+            elseif (isValidExternalHttpUrl($_POST['forward_url']) || empty($_POST['forward_url'])) {
                 $row = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc();
 
                 $db->execute_query("UPDATE $db_users SET forward_url=?, forward_token=? WHERE user=?",
@@ -178,7 +178,7 @@ try {
                 $db->execute_query("UPDATE $db_users SET s=? WHERE id=?", [$e_limit, $row['id']]);
                 $response = $translations[$_COOKIE['lang']]['admin.limit.changed'].$login;
             }
-            else if (mb_strlen($password) && !strlen($e_limit)) {
+            elseif (mb_strlen($password) && !strlen($e_limit)) {
                 $db->execute_query("UPDATE $db_users SET pass=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $row['id']]);
                 $response = $translations[$_COOKIE['lang']]['admin.pwd.changed'].$login;
             }
@@ -193,7 +193,7 @@ try {
         }
 
         // User creation
-        else if (isset($_POST['reg_login'], $_POST['reg_pass'])) {
+        elseif (isset($_POST['reg_login'], $_POST['reg_pass'])) {
             $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['reg_login']);
             $password = $_POST['reg_pass'];
 
@@ -472,7 +472,7 @@ try {
         }
 
         // User deletion
-        else if (isset($_POST['del_login'])) {
+        elseif (isset($_POST['del_login'])) {
             $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['del_login']);
 
             $userqry = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login]);
@@ -501,7 +501,7 @@ try {
         }
 
         // User data truncation
-        else if (isset($_POST['trunc_login'])) {
+        elseif (isset($_POST['trunc_login'])) {
             $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['trunc_login']);
 
             $userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);

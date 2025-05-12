@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<?php require_once('helpers.php');
+<?php require_once 'helpers.php';
 
 function version_url($url) {
     // If file exists use it modify time

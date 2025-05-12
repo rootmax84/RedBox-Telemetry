@@ -12,7 +12,7 @@ if (isset($_GET['c'])) {
     http_response_code($http_code);
 }
 
-include("head.php");
+include 'head.php';
 ?>
 <body style="display:flex; justify-content:center; align-items:center; height:100vh">
     <div class="login login-form" id="login-form" style="width:fit-content; text-align:center">
@@ -22,42 +22,42 @@ include("head.php");
             <h4 l10n='catch.disabled'></h4>
         <?php
         }
-        else if ($_GET['c'] == "loginfailed") { ?>
+        elseif ($_GET['c'] == "loginfailed") { ?>
             <script>setTimeout(()=>{location.href='.'}, 2000);</script>
             <h4 l10n='catch.loginfailed'></h4>
         <?php
         }
-        else if ($_GET['c'] == "csrffailed") { ?>
+        elseif ($_GET['c'] == "csrffailed") { ?>
             <script>setTimeout(()=>{location.href='.'}, 2000);</script>
             <h4 l10n='catch.csrf'></h4>
         <?php
         }
-        else if ($_GET['c'] == "toomanyattempts") { ?>
+        elseif ($_GET['c'] == "toomanyattempts") { ?>
             <script>setTimeout(()=>{location.href='.'}, 5000);</script>
             <h4 style="line-height:1.5" l10n='catch.banned'></h4>
         <?php
         }
-        else if ($_GET['c'] == "dberror") { ?>
+        elseif ($_GET['c'] == "dberror") { ?>
             <script>setTimeout(()=>{location.href='.'}, 10000);</script>
             <h4 l10n='catch.dberror'></h4>
         <?php
         }
-        else if ($_GET['c'] == "maintenance") { ?>
+        elseif ($_GET['c'] == "maintenance") { ?>
             <script>setTimeout(()=>{location.href='.'}, 10000);</script>
             <h4 style="line-height:1.5" l10n='catch.maintenance'></h4>
         <?php
         }
-        else if ($_GET['c'] == "noshare") { ?>
+        elseif ($_GET['c'] == "noshare") { ?>
             <script>setTimeout(()=>{location.href='.'}, 5000);</script>
             <h4 l10n='catch.noshare'></h4>
         <?php
         }
-        else if ($_GET['c'] == "block") { ?>
+        elseif ($_GET['c'] == "block") { ?>
             <script>setTimeout(()=>{location.href='.'}, 10000);</script>
             <h4 style="line-height:1.5" l10n='catch.block'></h4>
         <?php
         }
-        else if ($_GET['c'] == "error") { ?>
+        elseif ($_GET['c'] == "error") { ?>
             <script>setTimeout(()=>{location.href='.'}, 2000);</script>
             <h4 style="line-height:1.5" l10n='catch.error'></h4>
         <?php

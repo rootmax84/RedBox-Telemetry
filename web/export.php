@@ -1,8 +1,8 @@
 <?php
-require_once('db.php');
-require_once('creds.php');
-require_once('auth_functions.php');
-require_once('auth_user.php');
+require_once 'db.php';
+require_once 'creds.php';
+require_once 'auth_functions.php';
+require_once 'auth_user.php';
 
 if(!isset($username) || $username == $admin){
     header("Location: .");
@@ -74,7 +74,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		exit;
 	}
 
-	else if ($_GET["filetype"] == "csv") {
+	elseif ($_GET["filetype"] == "csv") {
 		$query = "SELECT * FROM $db_table WHERE session=?";
 
 		$params = [$session_id];
@@ -111,7 +111,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		exit;
 	}
 
-	else if ($_GET["filetype"] == "rbx") { //RedManage session export
+	elseif ($_GET["filetype"] == "rbx") { //RedManage session export
 		try {
 		    $query = "SELECT $db_table.time,k5,k5c,kf,kb4,k46,k2101,kd,kc,kb,k10,k11,ke,k2112,k2100,k2113,k21cc,kff1214,kff1218,k78,k2111,k2119,k1f,k2118,k2120,k2122,k2124,k21e1,k21e2,k2125,k2126,kff1238,k21fa,kff1006,kff1005,kff1001,kff120c 
 		     FROM $db_table 
@@ -149,7 +149,7 @@ if (isset($_GET["sid"]) && $_GET["sid"]) {
 		exit;
 	}
 
-	else if ($_GET["filetype"] == "json") {
+	elseif ($_GET["filetype"] == "json") {
 		$query = "SELECT * FROM $db_table WHERE session=?";
 
 		$params = [$session_id];

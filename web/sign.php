@@ -1,5 +1,5 @@
 <?php
-require_once('db.php');
+require_once 'db.php';
 
 header('Content-Type: application/json');
 $data = json_decode(file_get_contents('php://input'), true);

@@ -1,9 +1,9 @@
 <?php
-require_once('db.php');
-require_once('db_limits.php');
-require_once('plot.php');
-require_once('timezone.php');
-include_once('translations.php');
+require_once 'db.php';
+require_once 'db_limits.php';
+require_once 'plot.php';
+require_once 'timezone.php';
+include_once 'translations.php';
 $lang = $_COOKIE['lang'];
 setcookie("newsess", "");
 
@@ -184,7 +184,7 @@ if (isset($sids[0])) {
 
     $db->close();
 }
- include("head.php");
+ include 'head.php';
 ?>
     <body>
     <!-- Flot Local Javascript files -->
@@ -669,7 +669,7 @@ if ($r->num_rows > 0) {
         $usernameStyle = "";
         if ($isAdmin) {
             $usernameDisplay .= " (admin)";
-        } else if ($isDisabled) {
+        } elseif ($isDisabled) {
             $usernameStyle = "text-decoration:line-through";
         }
         
@@ -747,7 +747,7 @@ if ($current_page < $total_pages) {
 </div>
     </div>
 <script>initTableSorting(".users-list")</script>
-<?php } else if (isset($session_id) && !empty($session_id)) { ?>
+<?php } elseif (isset($session_id) && !empty($session_id)) { ?>
     <p class="copyright"></p>
 </div>
 <?php } else { ?>

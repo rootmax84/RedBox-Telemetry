@@ -98,7 +98,7 @@ function getFilteredGpsQuery($db_table, $filterRate) {
     if ($filterRate === 1) {
         // 100% of data (without filtering)
         return "SELECT kff1006, kff1005, time FROM $db_table WHERE session=? ORDER BY time DESC";
-    } else if ($filterRate === 2) {
+    } elseif ($filterRate === 2) {
         // 75%
         return "SELECT * FROM (
             SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
@@ -107,7 +107,7 @@ function getFilteredGpsQuery($db_table, $filterRate) {
         ) as filtered_data
         WHERE row_num % 4 < 3
         ORDER BY time DESC";
-    } else if ($filterRate === 3) {
+    } elseif ($filterRate === 3) {
         // 50%
         return "SELECT * FROM (
             SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
@@ -116,7 +116,7 @@ function getFilteredGpsQuery($db_table, $filterRate) {
         ) as filtered_data
         WHERE row_num % 2 = 0
         ORDER BY time DESC";
-    } else if ($filterRate === 4) {
+    } elseif ($filterRate === 4) {
         // 33%
         return "SELECT * FROM (
             SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
@@ -146,7 +146,7 @@ function getFilteredQuery($selectstring, $db_table, $streamLimit, $filterRate) {
     if ($filterRate === 1) {
         // 100% of data (without filtering)
         return "SELECT $selectstring FROM $db_table WHERE session=? ORDER BY time DESC $streamLimit";
-    } else if ($filterRate === 2) {
+    } elseif ($filterRate === 2) {
         // 75%
         return "SELECT * FROM (
             SELECT $selectstring, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
@@ -155,7 +155,7 @@ function getFilteredQuery($selectstring, $db_table, $streamLimit, $filterRate) {
         ) as filtered_data
         WHERE row_num % 4 < 3
         ORDER BY time DESC $streamLimit";
-    } else if ($filterRate === 3) {
+    } elseif ($filterRate === 3) {
         // 50%
         return "SELECT * FROM (
             SELECT $selectstring, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
@@ -164,7 +164,7 @@ function getFilteredQuery($selectstring, $db_table, $streamLimit, $filterRate) {
         ) as filtered_data
         WHERE row_num % 2 = 0
         ORDER BY time DESC $streamLimit";
-    } else if ($filterRate === 4) {
+    } elseif ($filterRate === 4) {
         // 33%
         return "SELECT * FROM (
             SELECT $selectstring, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num

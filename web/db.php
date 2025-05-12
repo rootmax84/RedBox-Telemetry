@@ -17,7 +17,7 @@ foreach ($required_extensions as $ext) {
     }
 }
 
-require_once('creds.php');
+require_once 'creds.php';
 
 if (isset($_GET['logout'])) {
     logout_user();

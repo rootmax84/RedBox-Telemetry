@@ -2,7 +2,7 @@
 
 function get_db_connection() {
     global $db_users, $live_data_rate, $db_engine, $admin, $salt, $username, $db_sessions_table;
-    include('creds.php');
+    include 'creds.php';
 
     if (!isset($db)) {
         try {

@@ -1,7 +1,13 @@
 <?php
-if (empty($_COOKIE['stream'])) http_response_code(401);
-require_once('creds.php');
-if (file_exists('maintenance')) http_response_code(307);
+if (empty($_COOKIE['stream'])) {
+    http_response_code(401);
+}
+
+require_once 'creds.php';
+
+if (file_exists('maintenance')) {
+    http_response_code(307);
+}
 
 if (file_exists(sys_get_temp_dir().'/'.$username)) {
     setcookie("newsess", true);

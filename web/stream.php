@@ -1,9 +1,9 @@
 <?php
 
-require_once('db.php');
-include('timezone.php');
-require_once('helpers.php');
-include_once('translations.php');
+require_once 'db.php';
+include 'timezone.php';
+require_once 'helpers.php';
+include_once 'translations.php';
 
 if (isset($_SESSION['admin'])) {
     header("Refresh:0; url=.");
