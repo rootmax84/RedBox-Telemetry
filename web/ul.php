@@ -86,6 +86,14 @@ if ($access != 1 || $limit == 0){
 
 $db_table = $username.$db_log_prefix;
 
+//Validate RedManage time if necessary
+if (isset($_REQUEST['servertime'])) {
+  $dt = new DateTime('now', new DateTimeZone('UTC'));
+  $timestamp = (int)($dt->format('Uu') / 1000);
+  echo $timestamp;
+  exit;
+}
+
 $db_limit_cache_key = "db_limit_" . $db_table;
 $db_limit = false;
 
@@ -280,7 +288,17 @@ if (sizeof($_REQUEST) > 0) {
 
             $delay = time() - intval($sessuploadid / 1000);
             if ($delay > 10) {
-                $formattedDelay = gmdate("H:i:s", $delay);
+                $days = floor($delay / 86400);
+                $hours = floor(($delay % 86400) / 3600);
+                $minutes = floor(($delay % 3600) / 60);
+                $seconds = $delay % 60;
+
+                $formattedDelay = '';
+                if ($days > 0) {
+                    $formattedDelay .= $days . 'd ';
+                }
+                $formattedDelay .= sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+
                 $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['get.sess.profile']}: {$spv['profileName']} ({$translations[$lang]['upload.delayed']} {$formattedDelay})";
             } else {
                 $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['get.sess.profile']}: {$spv['profileName']}";
