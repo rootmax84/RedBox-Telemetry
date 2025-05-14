@@ -182,7 +182,7 @@ function formatValue($pid, $value, $des, $speed, $temp, $pressure, $boost, $id) 
         'k1f' => "<td><samp>" . sprintf("%02d:%02d:%02d", (int)$value/3600, ((int)$value/60)%60, $value%60) . "</samp></td>",
         'k2118' => "<td><samp>" . intval($value) . "</samp></td>",
         'k2124' => $value == 255 ? "<td><samp>N/A</samp></td>" : "<td><samp>{$value}</samp></td>",
-        'k21fa' => "<td><samp id='rollback'" . ($value != 0 ? " style='color:red;font-weight:bold'" : "") . ">" . ($value == 0 ? "OK" : $value) . "</samp></td>",
+        'k21fa' => "<td><samp id='rollback' onclick='xhrResponse(calculate({$value}))'" . ($value != 0 ? " style='color:red;font-weight:bold'" : "") . ">" . ($value == 0 ? "OK" : $value) . "</samp></td>",
         'kff1238', 'ke', 'kff1214', 'kff1218', 'k21cc', 'k2111' => "<td><samp>" . sprintf("%.2f", $value) . "</samp></td>",
         'kff1204', 'kff120c' => "<td><samp>" . speed_conv($value, $speed, $id) . "</samp></td>",
         'kc' => "<td><samp>" . sprintf("%.2f", $value/100) . "</samp></td>",

@@ -1875,6 +1875,30 @@ function markActiveSess() {
     });
 }
 
+//RedMange rollback decode
+function calculate(number) {
+  const events = ["knk","egt","eop","flp","eot","ect","ovb","afr","iat","map","fan","atf","aat","ext","vlt","rpm"];
+  const getCode = (b, bitNumber) => (b >> bitNumber) & 0x01;
+  const intNumber = parseInt(number);
+
+  let msg = "";
+
+  if (intNumber === 0) {
+    msg = "OK";
+  } else if (!intNumber || intNumber > 65535) {
+    msg = "?";
+  } else {
+    events.forEach((event, index) => {
+      const isError = getCode(intNumber, index) === 1;
+      if (isError) {
+        msg += `${event.toUpperCase()} `;
+      }
+    });
+  }
+
+  return msg;
+}
+
 let redDialog = {
     options: {
         zIndex: 10000,

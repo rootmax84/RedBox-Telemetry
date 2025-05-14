@@ -1293,3 +1293,7 @@ input[type="checkbox"]:disabled:checked::after {
     opacity: 0;
   }
 }
+
+#rollback {
+  cursor: pointer;
+}
