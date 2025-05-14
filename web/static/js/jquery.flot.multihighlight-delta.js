@@ -6,27 +6,6 @@
  *
  */
 
-let rlbc = null;
-//RedManage rollback events list
-const events = ["KNK","EGT","EOP","FLP","EOT","ECT","OVB","AFR","IAT","MAP","FAN","ATF","AAT","EXT","VLT","RPM"];
-
-//RedManage rollback events decode
-function calculate(number) {
-  const getCode = (b, bitNumber) => (b >> bitNumber) & 0x01;
-  let msg = "";
-
-  if (number === 0) {
-    msg = "OK";
-  } else {
-    events.forEach((event, index) => {
-      if (getCode(number, index) === 1) {
-        msg += `${event} `;
-      }
-    });
-  }
-  return msg;
-}
-
 //Time conversion processing
 function convertToRealTime(processedTime) {
   if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) {

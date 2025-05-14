@@ -1875,27 +1875,24 @@ function markActiveSess() {
     });
 }
 
-//RedMange rollback decode
-function calculate(number) {
-  const events = ["knk","egt","eop","flp","eot","ect","ovb","afr","iat","map","fan","atf","aat","ext","vlt","rpm"];
-  const getCode = (b, bitNumber) => (b >> bitNumber) & 0x01;
-  const intNumber = parseInt(number);
+let rlbc = null;
+//RedManage rollback events list
+const events = ["KNK","EGT","EOP","FLP","EOT","ECT","OVB","AFR","IAT","MAP","FAN","ATF","AAT","EXT","VLT","RPM"];
 
+//RedManage rollback events decode
+function calculate(number) {
+  const getCode = (b, bitNumber) => (b >> bitNumber) & 0x01;
   let msg = "";
 
-  if (intNumber === 0) {
+  if (number === 0) {
     msg = "OK";
-  } else if (!intNumber || intNumber > 65535) {
-    msg = "?";
   } else {
     events.forEach((event, index) => {
-      const isError = getCode(intNumber, index) === 1;
-      if (isError) {
-        msg += `${event.toUpperCase()} `;
+      if (getCode(number, index) === 1) {
+        msg += `${event} `;
       }
     });
   }
-
   return msg;
 }
 
