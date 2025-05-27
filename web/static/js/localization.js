@@ -2,7 +2,10 @@ let localization, lang;
 
 class Localization {
     constructor() {
-        this.currentLang = localStorage.getItem('language') || 'en';
+        this.supportedLanguages = ['en', 'ru', 'es', 'de'];
+        const browserLang = navigator.language.substring(0, 2).toLowerCase();
+        const defaultLang = this.supportedLanguages.includes(browserLang) ? browserLang : 'en';
+        this.currentLang = localStorage.getItem('language') || defaultLang;
         this.translations = {};
         this.cacheKey = 'translations-cache';
         this.loadTranslations();
@@ -67,8 +70,8 @@ class Localization {
     }
 
     async setLang(lang) {
-        if (lang !== 'en' && lang !== 'ru' && lang !== 'es' && lang !== 'de') {
-            console.error('Unsupported language');
+        if (!this.supportedLanguages.includes(lang)) {
+            console.error('Unsupported language:', lang);
             return;
         }
 
