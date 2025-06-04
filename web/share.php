@@ -10,7 +10,7 @@ if (!checkRateLimit(5)) {
     exit;
 }
 
-require_once('timezone.php');
+require_once 'timezone.php';
 
 if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $uid = $_GET['uid'];
@@ -124,8 +124,8 @@ if ($username) {
     }
     $imapdata = implode(",", $mapdata);
 
-    require_once('get_columns.php');
-    require_once('plot.php');
+    require_once 'get_columns.php';
+    require_once 'plot.php';
 
     $db->close();
 } else {
@@ -330,8 +330,28 @@ include 'head.php';
             } else {
                 window.MapData = {path};
                 initMap = initMapLeaflet;
-                jsCBinitMap = ()=>$(document).ready(initMap);
-                jsCBinitMap();
+
+                const checkTranslationsCache = () => {
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key.startsWith('translations-cache-')) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
+                const initMapLogic = () => {
+                    jsCBinitMap = () => $(document).ready(initMap);
+                    jsCBinitMap();
+                };
+
+                const intervalId = setInterval(() => {
+                    if (checkTranslationsCache()) {
+                        clearInterval(intervalId);
+                        initMapLogic();
+                    }
+                }, 100);
             }
         </script>
     <?php } ?>
