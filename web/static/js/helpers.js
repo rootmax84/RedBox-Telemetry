@@ -1937,7 +1937,7 @@ let redDialog = {
             z-index: ${options.zIndex};`;
 
         dialogDiv.innerHTML = `
-            <div id="redDialog_title" style="min-height: 26px;border-bottom:1px dashed #777;color:${options.titleColor};">${options.title}</div>
+            <div id="redDialog_title" style="min-height: 26px;border-bottom:1px dashed #777;color:${options.titleColor};cursor:pointer;">${options.title}</div>
             <p id="dialogText" style="text-align: left;padding: 16px 5px 0px 10px;width: 100%;margin: 0;font-size: 13px;max-width:280px">${options.message}</p>
         `;
 
@@ -1987,6 +1987,11 @@ let redDialog = {
         overlayDiv.style = `position:fixed;top:0;left:0;width:100%;height:100%;z-index:${options.zIndex - 1};background:${options.overlayBackground};`;
         overlayDiv.appendChild(dialogDiv);
         document.body.appendChild(overlayDiv);
+
+        const titleElement = document.getElementById("redDialog_title");
+        titleElement.addEventListener("click", () => {
+            this.doReset(options);
+        });
 
         // Save active element and focus on Yes button
         this.activeElement = document.activeElement;

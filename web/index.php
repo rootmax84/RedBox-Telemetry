@@ -989,6 +989,7 @@ function showToken() {
             };
             redDialog.make(dialogOpt);
             $("#dialogText").css({"letter-spacing": ".6px", "font-family": "monospace"});
+            $("#redDialog_title").css({"background-image": "none"});
         })
         .catch(error => {
             console.error('Error:', error);

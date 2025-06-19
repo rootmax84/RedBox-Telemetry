@@ -307,7 +307,7 @@ input[type=text]:disabled {
   width: 100%;
   height: 100%;
   background-color: rgba(0,0,0,.7);
-  backdrop-filter: blur(1px);
+  backdrop-filter: blur(2px);
 }
 
 #redhead {
@@ -761,7 +761,7 @@ a {
 
 #redDialogOverLay {
   z-index: 99999 !important;
-  backdrop-filter: blur(1px);
+  backdrop-filter: blur(2px);
 }
 
 .login-background {
@@ -1296,4 +1296,10 @@ input[type="checkbox"]:disabled:checked::after {
 
 #rollback {
   cursor: pointer;
+}
+
+#redDialog_title {
+  background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjNzc3IiBkPSJNMTguMyA1LjcxYS45OTYuOTk2IDAgMCAwLTEuNDEgMEwxMiAxMC41OUw3LjExIDUuN0EuOTk2Ljk5NiAwIDEgMCA1LjcgNy4xMUwxMC41OSAxMkw1LjcgMTYuODlhLjk5Ni45OTYgMCAxIDAgMS40MSAxLjQxTDEyIDEzLjQxbDQuODkgNC44OWEuOTk2Ljk5NiAwIDEgMCAxLjQxLTEuNDFMMTMuNDEgMTJsNC44OS00Ljg5Yy4zOC0uMzguMzgtMS4wMiAwLTEuNCIvPjwvc3ZnPg==);
+  background-repeat: no-repeat;
+  background-position-x: right;
 }
