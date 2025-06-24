@@ -1006,7 +1006,7 @@ input[type="checkbox"]:disabled:checked::after {
   width: 100%;
   overflow: hidden;
   flex-direction: row;
-  gap: 6px;
+  gap: 4px;
   box-sizing: border-box;
 }
 
@@ -1030,7 +1030,7 @@ input[type="checkbox"]:disabled:checked::after {
   cursor: col-resize;
   position: relative;
   align-self: center;
-  margin-left: -5px;
+  margin-left: -4px;
   transition: height .25s ease, background .25s ease;
   transform: translateY(-20px);
 }
