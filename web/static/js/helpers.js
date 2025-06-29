@@ -25,7 +25,14 @@ let chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
 
 $(document).ready(function(){
   // Reset flot zoom
-  const handleSliderInit = () => !stream && initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
+  const handleSliderInit = () => {
+    if (!stream) {
+        // Reset map indexes
+        mapIndexStart = 0;
+        mapIndexEnd = jsTimeMap.length - 1;
+        initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
+    }
+  };
   $("#Chart-Container").on("dblclick", handleSliderInit);
   longTap("#Chart-Container", handleSliderInit);
   nogps = document.querySelector('#nogps');
@@ -240,6 +247,10 @@ function findNearestRealTime(processedTime) {
 }
 
 function doPlot(position) {
+    // Reset map indexes
+    mapIndexStart = 0;
+    mapIndexEnd = jsTimeMap.length - 1;
+
     //Remove plot presence
     if (plot) {
         $("#placeholder").unbind("plothover plottouchmove plotselected");
@@ -389,6 +400,10 @@ let updCharts = (last = false)=>{
     const seshidtagValue = seshidtagChoices?.getValue(true) ?? sid;
 
     if (plotDataSelected.length === 0) {
+        // Reset map indexes
+        mapIndexStart = 0;
+        mapIndexEnd = jsTimeMap.length - 1;
+
         const noChart = $('<div>',{align:'center',style:'display:flex; justify-content:center;'}).append($('<h5>').append($('<span>',{class:'label label-warning'}).html(localization.key['novar'] ?? 'No Variables Selected to Plot')));
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
@@ -1341,7 +1356,10 @@ let initSlider = (jsTimeMap,start,end)=>{
 //End slider js code
 
 function updateMapWithRangePreservingHeatline(startIndex = null, endIndex = null) {
-    if (startIndex === null || endIndex === null) return;
+    if (startIndex === null || endIndex === null) {
+        mapIndexStart = 0;
+        mapIndexEnd = jsTimeMap.length - 1;
+    }
 
     const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
 
