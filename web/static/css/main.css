@@ -767,7 +767,7 @@ a {
 .login-background {
   height: 100%;
   width: 100%;
-  background: url(../img/bkg.webp) no-repeat center center;
+  background: url(../img/bkg.avif) no-repeat center center;
   background-size: cover;
   position: fixed;
   top: 0;
