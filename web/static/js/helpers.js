@@ -846,7 +846,7 @@ let initMapLeaflet = () => {
             }
         }
 
-        return minDist < 100 ? closestPoint : null;
+        return minDist < 1000 ? closestPoint : null;
     }
 
     let tooltipHideTimer = null;
