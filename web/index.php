@@ -15,6 +15,10 @@ $filteryear = $_GET["year"] ?? "";
 $filtermonth = $_GET["month"] ?? "";
 $filterprofile = $_GET["profile"] ?? "";
 
+if ($filterprofile == "Not Specified") {
+    $filterprofile = $translations[$lang]['profile.ns'];
+}
+
 $var1 = "";
 
 // From the output of the get_sessions.php file, populate the page with info from

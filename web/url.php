@@ -1,5 +1,6 @@
 <?php
 require 'db.php';
+include_once 'translations.php';
 
 // Get current session ID
 $current_seshid = $_GET["seshid"] ?? $_POST["seshidtag"] ?? $_GET["id"] ?? null;
@@ -34,6 +35,7 @@ if (!empty($month)) {
 // Add other parameters
 $profile = $_POST["selprofile"] ?? $_GET["profile"] ?? null;
 if ($profile) {
+    $profile = ($profile == $translations[$_COOKIE['lang']]['profile.ns']) ? 'Not Specified' : $profile;
     $outurl .= (strpos($outurl, '?') === false ? "?" : "&") . "profile=" . $profile;
 }
 
