@@ -229,7 +229,7 @@ include 'head.php';
                                 echo formatDuration((int)$keycol['time'], (int)$keycol['timeend'], $lang);
                             ?>
                         </td>
-                        <td><?php echo $keycol['profileName']; ?></td>
+                        <td><?php if ($keycol['profileName'] == 'Not Specified') echo $translations[$lang]['profile.ns']; else echo $keycol['profileName']; ?></td>
                         <td data-sid="<?php echo $keycol['session']; ?>"><?php echo $keycol['description']; ?></td>
                         <td><a href=<?php echo '.?id='.$keycol['session']; ?> l10n='fav.open'></a></td>
                     </tr>
