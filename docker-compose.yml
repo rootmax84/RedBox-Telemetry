@@ -5,7 +5,7 @@ services:
             resources:
                 limits:
                     cpus: '2'
-                    memory: 1024M
+                    memory: 2G
         build: docker/mariadb
         container_name: ratel_mariadb
         command: --innodb-buffer-pool-size=64M --skip-log-bin --transaction-isolation=READ-COMMITTED --binlog-format=ROW
@@ -52,7 +52,7 @@ services:
               - CMD
               - /bin/sh
               - -c
-              - 'curl -f http://localhost/ping'
+              - 'curl -f http://localhost/ping && pgrep php-fpm8.4 > /dev/null'
             interval: 10s
             timeout: 5s
             retries: 3
@@ -65,5 +65,5 @@ services:
         command:
           - --conn-limit=1024
           - --memory-limit=64
-          - --threads=4
+          - --threads=2
         restart: always
