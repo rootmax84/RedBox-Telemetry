@@ -100,7 +100,7 @@ if (isset($delsession)) {
         ?>
     </td>
     <td id="size:<?php echo $x['session']; ?>"><?php echo $x["sessionsize"]; ?></td>
-    <td id="profile:<?php echo $x['session']; ?>"><?php if ($x["profileName"] == 'Not Specified') echo $translations[$lang]['profile.ns']; else echo $x["profileName"]; ?></td>
+    <td id="profile:<?php echo $x['session']; ?>"><?php if ($x["profileName"] == 'Not Specified') { echo $translations[$lang]['profile.ns']; } else { echo $x["profileName"]; } ?></td>
 </tr>
 <?php
     }
