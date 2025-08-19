@@ -1935,9 +1935,20 @@ let redDialog = {
     activeElement: null,
     activeButton: null,
 
+    disableScroll() {
+        document.documentElement.style.overflow = 'hidden';
+    },
+
+    enableScroll() {
+        document.documentElement.style.overflow = '';
+    },
+
     make(customOptions = {}) {
         const options = {...this.options, ...customOptions};
         this.doReset(options);
+
+        // Disable scroll when dialog opens
+        this.disableScroll();
 
         // Create dialog elements
         const dialogDiv = document.createElement('div');
@@ -2040,6 +2051,9 @@ let redDialog = {
     doReset(options) {
         const overlay = document.querySelector('#redDialogOverLay');
         if (overlay) overlay.remove();
+
+        // Enable scroll when dialog closes
+        this.enableScroll();
 
         this.confirmPromiseVal = null;
 
