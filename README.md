@@ -1,5 +1,5 @@
 <p align="center" width="100%">
-<img width="10%" src="https://github.com/user-attachments/assets/b1d4299d-5d49-4f42-b2ea-83508b31928f">
+<img width="10%" src="https://github.com/user-attachments/assets/11a7b832-e514-478a-8b6b-fade59f4ac06">
 </p>
 
 ![CI History](https://img.shields.io/github/actions/workflow/status/rootmax84/RedBox-Telemetry/.github/workflows/docker-image.yml?branch=main&label=build%20history&style=flat-round) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rootmax84_RedBox-Telemetry&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rootmax84_RedBox-Telemetry) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=rootmax84_RedBox-Telemetry&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=rootmax84_RedBox-Telemetry)
