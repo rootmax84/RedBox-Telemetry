@@ -13,6 +13,7 @@
         }
     ],
     "background_color": "black",
+    "id": "/",
     "start_url": "/",
     "display": "standalone"
 }
