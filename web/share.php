@@ -161,11 +161,15 @@ include 'head.php';
             let plotData = $('#plot_data');
             let lastValue = plotData.val() || [];
 
+            let debounceTimer;
             function handleChange() {
-                const newValue = plotData.val() || [];
+                const newValue = plotDataChoices.getValue(true) || [];
                 if (JSON.stringify(newValue) !== JSON.stringify(lastValue)) {
                     lastValue = newValue;
-                    updCharts();
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        updCharts();
+                    }, 1000);
                 }
             }
 

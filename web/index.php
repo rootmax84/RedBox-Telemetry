@@ -212,11 +212,15 @@ if (isset($sids[0])) {
         let plotData = $('#plot_data');
         let lastValue = plotData.val() || [];
 
+        let debounceTimer;
         function handleChange() {
             const newValue = plotDataChoices.getValue(true) || [];
             if (JSON.stringify(newValue) !== JSON.stringify(lastValue)) {
                 lastValue = newValue;
-                updCharts();
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    updCharts();
+                }, 1000);
             }
         }
 
