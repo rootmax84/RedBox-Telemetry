@@ -220,7 +220,7 @@ if (isset($sids[0])) {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(() => {
                     updCharts();
-                }, 1000);
+                }, 1500);
             }
         }
 

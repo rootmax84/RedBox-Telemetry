@@ -169,7 +169,7 @@ include 'head.php';
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(() => {
                         updCharts();
-                    }, 1000);
+                    }, 1500);
                 }
             }
 
