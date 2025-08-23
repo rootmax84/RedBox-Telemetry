@@ -10,3 +10,4 @@ rocksdb_default_cf_options=compression=kZSTD;bottommost_compression=kZSTD
 #rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kLZ4Compression
 #Recommended
 #rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kZSTD
+rocksdb_max_row_locks = 10000000
