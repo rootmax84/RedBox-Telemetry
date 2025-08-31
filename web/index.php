@@ -4,6 +4,8 @@ require_once 'db_limits.php';
 require_once 'plot.php';
 require_once 'timezone.php';
 include_once 'translations.php';
+include_once 'helpers.php';
+
 $lang = $_COOKIE['lang'];
 setcookie("newsess", "");
 
@@ -11,10 +13,15 @@ setcookie("newsess", "");
 $session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT) ?: null;
 
 $page = $_GET["page"] ?? 1;
-$filteryear = $_GET["year"] ?? "";
-$filtermonth = $_GET["month"] ?? "";
-$filterprofile = $_GET["profile"] ?? "";
-
+$raw_year = $_GET["year"] ?? "";
+if ($raw_year) {
+    $filteryear = sanitizeInput($raw_year, 'year_or_all');
+    if ($year) {
+        $filteryear = $year;
+    }
+}
+$filtermonth = sanitizeInput($_GET["month"] ?? "", 'month');
+$filterprofile = sanitizeInput($_GET["profile"] ?? "");
 if ($filterprofile == "Not Specified") {
     $filterprofile = $translations[$lang]['profile.ns'];
 }

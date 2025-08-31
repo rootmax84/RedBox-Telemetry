@@ -488,3 +488,49 @@ function formatDuration(int $start, int $end, string $lang, bool $isMilliseconds
 
     return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
 }
+
+$valid_months = [
+    'ALL', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+function sanitizeInput($input, string $type = 'string') {
+    if ($input === null) {
+        return null;
+    }
+
+    $input = is_scalar($input) ? strval($input) : '';
+
+    switch ($type) {
+        case 'int':
+            $result = filter_var($input, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 0]
+            ]);
+            return $result !== false ? $result : null;
+
+        case 'alphanum':
+            return preg_match('/^[a-zA-Z0-9]+$/', $input) ? $input : null;
+
+        case 'month':
+            global $valid_months;
+            return in_array($input, $valid_months, true) ? $input : null;
+
+        case 'year':
+            $year = filter_var($input, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 2000, 'max_range' => 2100]
+            ]);
+            return $year !== false ? strval($year) : null;
+
+        case 'year_or_all':
+            if (strtoupper($input) === 'ALL') {
+                return 'ALL';
+            }
+            $year = filter_var($input, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 2000, 'max_range' => 2100]
+            ]);
+            return $year !== false ? strval($year) : null;
+
+        default:
+            return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+    }
+}

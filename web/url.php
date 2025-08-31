@@ -1,42 +1,7 @@
 <?php
 require 'db.php';
 include_once 'translations.php';
-
-$valid_months = [
-    'ALL', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-];
-
-function sanitizeInput($input, $type = 'string') {
-    if ($input === null) {
-        return null;
-    }
-
-    $input = strval($input);
-
-    switch ($type) {
-        case 'int':
-            return filter_var($input, FILTER_VALIDATE_INT, [
-                'options' => ['min_range' => 0]
-            ]) ? intval($input) : null;
-
-        case 'alphanum':
-            return preg_match('/^[a-zA-Z0-9]+$/', $input) ? $input : null;
-
-        case 'month':
-            global $valid_months;
-            return in_array($input, $valid_months, true) ? $input : null;
-
-        case 'year':
-            $year = filter_var($input, FILTER_VALIDATE_INT, [
-                'options' => ['min_range' => 2000, 'max_range' => 2100]
-            ]);
-            return $year !== false ? strval($year) : null;
-
-        default:
-            return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
-    }
-}
+include_once 'helpers.php';
 
 // session ID sanitize
 $current_seshid = sanitizeInput(
@@ -88,7 +53,7 @@ if ($raw_profile) {
 // Add year with validation
 $raw_year = $_POST["selyear"] ?? $_GET["year"] ?? null;
 if ($raw_year) {
-    $year = sanitizeInput($raw_year, 'year');
+    $year = sanitizeInput($raw_year, 'year_or_all');
     if ($year) {
         $params['year'] = $year;
     }
