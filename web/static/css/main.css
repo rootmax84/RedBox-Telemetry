@@ -1303,3 +1303,7 @@ input[type="checkbox"]:disabled:checked::after {
   background-repeat: no-repeat;
   background-position-x: right;
 }
+
+.no-data-url-list li:hover {
+  color: #961911;
+}
