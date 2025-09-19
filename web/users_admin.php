@@ -34,7 +34,7 @@ if ($_GET['action'] == "edit") {
 	    <h4 l10n="admin.edit.title"></h4>
 		<input class="form-control" type="text" name="e_login" value="<?php echo htmlspecialchars($user); ?>" maxlength="32" l10n-placeholder="login.login" required autofocus <?php if(isset($user)){?> readonly <?php }?>></br>
 		<div class="password-toggle">
-		    <input class="form-control" type="password" name="e_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password">
+		    <input class="form-control password-input" type="password" name="e_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password">
 		    <button type="button" class="password-toggle__btn">
 			<span class="password-toggle__icon"></span>
 		    </button>
@@ -48,7 +48,7 @@ elseif ($_GET['action'] == "reg") {
 	    <h4 l10n="admin.reg.title"></h4>
 		<input class="form-control" type="text" name="reg_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus><br>
 		<div class="password-toggle">
-		    <input class="form-control" type="password" name="reg_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password" required>
+		    <input class="form-control password-input" type="password" name="reg_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password" required>
 		    <button type="button" class="password-toggle__btn">
 			<span class="password-toggle__icon"></span>
 		    </button>

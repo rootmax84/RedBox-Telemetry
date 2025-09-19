@@ -54,7 +54,7 @@ if (!$logged_in) {
         <form method="post" class="form-group" action=".">
             <input class="form-control" type="text" name="user" value="" maxlength="32" l10n-placeholder="login.login" autocomplete="off" required autofocus><br>
             <div class="password-toggle">
-                <input class="form-control" type="password" name="pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="off" required="">
+                <input class="form-control password-input" type="password" name="pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="off" required="">
                 <button type="button" class="password-toggle__btn">
                     <span class="password-toggle__icon"></span>
                 </button>

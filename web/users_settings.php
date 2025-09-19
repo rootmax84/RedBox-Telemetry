@@ -30,7 +30,12 @@
              <h6 style="color:#777" l10n="user.tg.label"></h6>
 		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
 		<div class="settings--cell">
-		 <input class="form-control" type="text" name="tg_token"  l10n-placeholder="user.tg.token" maxlength="64" autocomplete="new-password" value="<?php echo $token; ?>"><br>
+		    <div class="password-toggle">
+			<input class="form-control password-input" type="password" name="tg_token" l10n-placeholder="user.tg.token" maxlength="64" autocomplete="new-password" value="<?php echo $token; ?>">
+			<button type="button" class="password-toggle__btn">
+			    <span class="password-toggle__icon"></span>
+			</button>
+		    </div><br><br>
 		 <input class="form-control" type="number" name="tg_chatid" l10n-placeholder="user.tg.id" autocomplete="new-password" value="<?php echo $chatid; ?>">
 		</div>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.save"></button></div>
@@ -144,19 +149,19 @@
 		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
 		<div class="settings--cell">
 		    <div class="password-toggle">
-			<input class="form-control" type="password" name="old_p"  l10n-placeholder="user.pwd.curr" maxlength="64" autocomplete="new-password" required>
+			<input class="form-control password-input" type="password" name="old_p"  l10n-placeholder="user.pwd.curr" maxlength="64" autocomplete="new-password" required>
 			<button type="button" class="password-toggle__btn">
 			    <span class="password-toggle__icon"></span>
 			</button>
 		    </div><br><br>
 		    <div class="password-toggle">
-			<input class="form-control" type="password" name="new_p1" l10n-placeholder="user.pwd.new" maxlength="64" autocomplete="new-password" required>
+			<input class="form-control password-input" type="password" name="new_p1" l10n-placeholder="user.pwd.new" maxlength="64" autocomplete="new-password" required>
 			<button type="button" class="password-toggle__btn">
 			    <span class="password-toggle__icon"></span>
 			</button>
 		    </div><br><br>
 		    <div class="password-toggle">
-			<input class="form-control" type="password" name="new_p2" l10n-placeholder="user.pwd.repeat" maxlength="64" autocomplete="new-password" required>
+			<input class="form-control password-input" type="password" name="new_p2" l10n-placeholder="user.pwd.repeat" maxlength="64" autocomplete="new-password" required>
 			<button type="button" class="password-toggle__btn">
 			    <span class="password-toggle__icon"></span>
 			</button>
