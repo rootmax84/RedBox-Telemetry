@@ -53,7 +53,12 @@ if (!$logged_in) {
         <h6 style="text-align:center; margin-bottom:20px" l10n="login.label"></h6>
         <form method="post" class="form-group" action=".">
             <input class="form-control" type="text" name="user" value="" maxlength="32" l10n-placeholder="login.login" autocomplete="off" required autofocus><br>
-            <input class="form-control" type="password" name="pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="off" required><br>
+            <div class="password-toggle">
+                <input class="form-control" type="password" name="pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="off" required="">
+                <button type="button" class="password-toggle__btn">
+                    <span class="password-toggle__icon"></span>
+                </button>
+            </div><br><br>
             <button id="login-btn" class="btn btn-info btn-sm" type="submit" name="Login" style="width:100%; height:35px" l10n="login.signin"></button>
             <div style="text-align:center; margin:15px 0 -20px; font-size:12px; opacity:.6"><a href="https://github.com/rootmax84/RedBox-Telemetry" target="_blank" l10n="login.github"></a></div>
         </form>

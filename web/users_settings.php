@@ -143,9 +143,24 @@
              <h6 style="color:#777" l10n="user.pwd.label"></h6>
 		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
 		<div class="settings--cell">
-		 <input class="form-control" type="password" name="old_p"  l10n-placeholder="user.pwd.curr" maxlength="64" autocomplete="new-password" required><br>
-		 <input class="form-control" type="password" name="new_p1" l10n-placeholder="user.pwd.new" maxlength="64" autocomplete="new-password" required><br>
-		 <input class="form-control" type="password" name="new_p2" l10n-placeholder="user.pwd.repeat" maxlength="64" autocomplete="new-password" required>
+		    <div class="password-toggle">
+			<input class="form-control" type="password" name="old_p"  l10n-placeholder="user.pwd.curr" maxlength="64" autocomplete="new-password" required>
+			<button type="button" class="password-toggle__btn">
+			    <span class="password-toggle__icon"></span>
+			</button>
+		    </div><br><br>
+		    <div class="password-toggle">
+			<input class="form-control" type="password" name="new_p1" l10n-placeholder="user.pwd.new" maxlength="64" autocomplete="new-password" required>
+			<button type="button" class="password-toggle__btn">
+			    <span class="password-toggle__icon"></span>
+			</button>
+		    </div><br><br>
+		    <div class="password-toggle">
+			<input class="form-control" type="password" name="new_p2" l10n-placeholder="user.pwd.repeat" maxlength="64" autocomplete="new-password" required>
+			<button type="button" class="password-toggle__btn">
+			    <span class="password-toggle__icon"></span>
+			</button>
+		    </div>
 		</div>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.save"></button></div>
 		</form>
