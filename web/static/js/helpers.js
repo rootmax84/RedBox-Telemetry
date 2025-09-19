@@ -59,9 +59,7 @@ $(document).ready(function(){
     }
   });
 
-  document.querySelectorAll('.password-toggle').forEach(container => {
-    new PasswordToggle(container);
-  });
+  PasswordToggle.initAll();
 });
 
 let lastPlotUpdateTime = 0;
@@ -1920,26 +1918,23 @@ function calculate(number) {
 
 //passwords inputs visibility toggle
 class PasswordToggle {
-    constructor(container) {
-        this.container = container;
-        this.input = container.querySelector('input[type="password"], input[type="text"]');
-        this.button = container.querySelector('.password-toggle__btn');
-        this.init();
+    static initAll() {
+        document.querySelectorAll('.password-toggle').forEach(container => {
+            PasswordToggle.init(container);
+        });
     }
 
-    init() {
-        this.button.addEventListener('click', () => this.toggle());
-        this.updateAria();
-    }
+    static init(container) {
+        const input = container.querySelector('input[type="password"], input[type="text"]');
+        const button = container.querySelector('.password-toggle__btn');
 
-    toggle() {
-        const isPassword = this.input.type === 'password';
-        this.input.type = isPassword ? 'text' : 'password';
-        this.button.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-    }
-
-    updateAria() {
-        this.button.setAttribute('aria-pressed', 'false');
+        if (input && button) {
+            button.addEventListener('click', () => {
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                button.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+            });
+        }
     }
 }
 
