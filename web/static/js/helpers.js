@@ -1895,6 +1895,18 @@ function markActiveSess() {
     });
 }
 
+function markCurrSess() {
+    const items = document.querySelectorAll('.choices__item');
+    items.forEach(item => {
+        if (item.textContent.includes(localization.key['get.sess.curr'])) {
+            item.innerHTML = item.innerHTML.replace(
+                localization.key['get.sess.curr'],
+                `<svg style="float:right; transform:rotate(-45deg); margin-top:2px;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 14 14"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M12.753 4.67L1.83 1.106a.564.564 0 0 0-.704.732l4.04 10.932a.35.35 0 0 0 .663-.015l1.53-4.81a1 1 0 0 1 .575-.623l4.845-1.982a.358.358 0 0 0-.025-.672"/></svg>`
+            );
+        }
+    });
+}
+
 let rlbc = null;
 //RedManage rollback events list
 const events = ["KNK","EGT","EOP","FLP","EOT","ECT","OVB","AFR","IAT","MAP","FAN","ATF","AAT","EXT","VLT","RPM"];
