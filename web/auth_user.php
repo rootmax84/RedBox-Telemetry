@@ -49,7 +49,7 @@ if (!$logged_in) {
             <li data-value="de">Deutsch</li>
           </ul>
         </div>
-        <div style="font-weight:bold; color:#961911; text-align:center; width:100%; font-size:16px; letter-spacing:1.5px; text-shadow: none">RedB<img src="static/img/logo.svg" alt style="height:10px; width:10px; margin-right:1px">x Telemetry</div>
+        <div style="font-weight:bold; color:#961911; text-align:center; width:100%; font-size:20px; letter-spacing:1.5px; text-shadow: none">RedB<img src="static/img/logo.svg" alt style="height:12px; width:12px; margin-right:1px">x Telemetry</div>
         <h6 style="text-align:center; margin-bottom:20px" l10n="login.label"></h6>
         <form method="post" class="form-group" action=".">
             <input class="form-control" type="text" name="user" value="" maxlength="32" l10n-placeholder="login.login" autocomplete="off" required autofocus><br>
