@@ -1355,4 +1355,8 @@ input[type="checkbox"]:disabled:checked::after {
     .login-form {
         min-width: 90%;
     }
+    .login-background {
+        background: url(../img/bkg.avif) no-repeat;
+        background-size: cover;
+    }
 }
