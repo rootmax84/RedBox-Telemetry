@@ -1350,3 +1350,9 @@ input[type="checkbox"]:disabled:checked::after {
 .password-input {
   padding-right: 45px;
 }
+
+@media screen and (max-width: 720px) {
+    .login-form {
+        min-width: 90%;
+    }
+}
