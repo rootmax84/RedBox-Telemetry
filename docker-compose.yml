@@ -5,7 +5,7 @@ services:
             resources:
                 limits:
                     cpus: '2'
-                    memory: 2G
+                    memory: 3G
         build: docker/mariadb
         container_name: ratel_mariadb
         command: --innodb-buffer-pool-size=64M --skip-log-bin --transaction-isolation=READ-COMMITTED --binlog-format=ROW
