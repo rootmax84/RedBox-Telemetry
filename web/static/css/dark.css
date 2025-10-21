@@ -17,7 +17,7 @@ html {
 
 .wait_in {
   filter: invert(1);
-  backdrop-filter: invert(1) blur(1px);
+  backdrop-filter: invert(1) blur(2px);
 }
 
 #redDialogWrap {
@@ -26,7 +26,7 @@ html {
 
 #redDialogOverLay {
   filter: invert(1);
-  backdrop-filter: invert(1) blur(1px);
+  backdrop-filter: invert(1) blur(2px);
 }
 
 #conn_lost {
