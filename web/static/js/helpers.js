@@ -1999,7 +1999,8 @@ let redDialog = {
             transform: translate(50%, -50%);
             background: white;
             border-radius: 5px;
-            z-index: ${options.zIndex};`;
+            z-index: ${options.zIndex};
+            transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;`;
 
         dialogDiv.innerHTML = `
             <div id="redDialog_title" style="min-height: 26px;border-bottom:1px dashed #777;color:${options.titleColor};cursor:pointer;">${options.title}</div>
@@ -2057,6 +2058,14 @@ let redDialog = {
         titleElement.addEventListener("click", () => {
             this.doReset(options);
         });
+
+        setTimeout(() => {
+            dialogDiv.style.opacity = "1";
+            dialogDiv.style.transform = "translate(50%, -50%) scale(1.05)";
+            setTimeout(() => {
+                dialogDiv.style.transform = "translate(50%, -50%) scale(1)";
+            }, 180);
+        }, 20);
 
         // Save active element and focus on Yes button
         this.activeElement = document.activeElement;
