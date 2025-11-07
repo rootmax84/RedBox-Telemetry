@@ -184,7 +184,7 @@ function drawGapLines(plot, ctx) {
 
     ctx.save();
     ctx.translate(plotOffset.left, plotOffset.top);
-    ctx.lineWidth = 1;
+    ctx.lineWidth = chart_lineWidth;
     ctx.strokeStyle = 'rgba(255, 0, 0, .2)';
     ctx.setLineDash([5, 3]);
 
@@ -326,7 +326,7 @@ function doPlot(position) {
     let placeholder = $("#placeholder");
     let verticalLine = $('<div>').css({
         position: 'absolute',
-        borderLeft: '1px dotted rgba(0,0,0,0.5)',
+        borderLeft: `${chart_lineWidth}px dashed rgba(0,0,0,.4)`,
         pointerEvents: 'none',
         display: 'none'
     }).appendTo(placeholder);
