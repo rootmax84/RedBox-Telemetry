@@ -29,6 +29,12 @@ $user = $_POST['user'] ?? '';
 $pass = $_POST['pass'] ?? '';
 $lang = $_POST['lang'] ?? 'en';
 
+if (file_exists('maintenance')){
+    http_response_code(423);
+    echo $translations[$lang]['maintenance'];
+    exit;
+}
+
 if (empty($user) || empty($pass)) {
     http_response_code(400);
     echo $translations[$lang]['required'];
