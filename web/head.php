@@ -152,6 +152,9 @@ function auth() {
         switch(resp.status) {
             case 200:
             $("#offline_layout").hide();
+            if (!$('#redDialogOverLay').length) {
+                document.documentElement.style.overflow = '';
+            }
             break;
             case 401:
             location.href='.?logout=true';
@@ -160,7 +163,11 @@ function auth() {
             location.href='maintenance.php';
             break;
         }
-    }).catch(err => {$("#offline_layout").show()});
+    }).catch(err => {
+                        $("#offline_layout").show()
+                        document.documentElement.style.overflow = 'hidden';
+                    }
+            );
 }
 
 const username = "<?php if (isset($username) && $username != $admin) echo $username; ?>";
