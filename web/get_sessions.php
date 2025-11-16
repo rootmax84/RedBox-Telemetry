@@ -91,7 +91,7 @@ while ($row = $sessionqry->fetch_assoc()) {
     $sids[] = preg_replace('/\D/', '', $sid);
     $seshdates[$sid] = date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", substr($sid, 0, -3));
     $seshsizes[$sid] = " ({$translations[$lang]['get.sess.length']} $session_duration_str)";
-    $seshprofile[$sid] = " ({$translations[$lang]['get.sess.profile']} $session_profileName)";
+    $seshprofile[$sid] = " ({$translations[$lang]['sel.profile']} $session_profileName)";
     $seship[$sid] = " ({$translations[$lang]['get.sess.ip']} $session_ip)";
     $sesactive[$sid] = ($row["timeend"] > (time() * 1000) - 60000) ? " {$translations[$lang]['get.sess.active']}" : null;
     $sesfavorite[$sid] = $row["favorite"];

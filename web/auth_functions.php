@@ -175,6 +175,7 @@ function create_users_table()
 	stream_lock tinyint(1) NOT NULL DEFAULT 0,
 	sessions_filter tinyint(1) NOT NULL DEFAULT 1,
 	api_gps tinyint(1) NOT NULL DEFAULT 0,
+	mcu_data varchar(2048) NULL,
 	login_attempts tinyint UNSIGNED DEFAULT 0,
 	last_attempt DATETIME,
 	PRIMARY KEY (id),
@@ -206,6 +207,7 @@ function perform_migration() {
         'last_attempt'    => "ALTER TABLE $db_users ADD COLUMN last_attempt DATETIME",
         'api_gps'         => "ALTER TABLE $db_users ADD COLUMN api_gps TINYINT(1) NOT NULL DEFAULT 0",
         'lang'            => "ALTER TABLE $db_users ADD COLUMN lang enum('en','ru','es','de') NOT NULL DEFAULT 'en' AFTER gap",
+        'mcu_data'        => "ALTER TABLE $db_users ADD COLUMN mcu_data VARCHAR(2048) NULL AFTER sessions_filter",
     ];
 
     foreach ($migrations as $migration => $query) {

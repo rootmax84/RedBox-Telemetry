@@ -40,6 +40,7 @@ if (isset($delsession)) {
      <div class="storage-usage-img" onclick></div>
      <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
 <?php } ?>
+     <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></a>
       <div class="container">
        <div id="theme-switch"></div>
         <div class="navbar-header">
@@ -58,7 +59,7 @@ if (isset($delsession)) {
           <th l10n="s.table.end"></th>
           <th l10n="s.table.duration"></th>
           <th l10n="s.table.datapoints"></th>
-          <th l10n="s.table.profile"></th>
+          <th l10n="sel.profile"></th>
           </tr>
         </thead>
         <tbody>

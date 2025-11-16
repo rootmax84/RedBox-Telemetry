@@ -1,0 +1,392 @@
+.container-remote {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 65px 20px 20px;
+}
+
+.tabs {
+    display: flex;
+    background-color: #fff;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+    border: 1px solid #aaa9;
+    border-bottom: none;
+}
+
+.tab {
+    padding: 15px 20px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    border: none;
+    outline: none;
+    flex: 1;
+    text-align: center;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+}
+
+.tab:hover {
+    background-color: #e0e0e0;
+}
+
+.tab.active {
+    background-color: #fff;
+    border-bottom: 3px solid #961911cc;
+    color: #961911cc;
+}
+
+.tab-content {
+    display: none;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 0 0 8px 8px;
+    border: 1px solid #aaa9;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.card-remote {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #aaa9;
+    border-left: 4px solid #961911cc;
+}
+
+.card-remote h1 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.remote-table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    empty-cells: show;
+    border: 1px solid #cbcbcb;
+    width: 100%;
+    font-size: 14px;
+    background-color: #fff;
+}
+
+.remote-table td,
+.remote-table th {
+    border-left: 1px solid #cbcbcb;
+    border-width: 0 0 0 1px;
+    font-size: inherit;
+    margin: 0;
+    overflow: visible;
+    padding: 0.5em 1em;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.remote-table td:first-child,
+.remote-table th:first-child {
+    border-left-width: 0;
+}
+
+.remote-table thead {
+    background-color: #e0e0e0;
+    color: #000;
+    text-align: left;
+    vertical-align: bottom;
+}
+
+.remote-table th {
+    font-weight: 600;
+    border-bottom: 1px solid #cbcbcb;
+}
+
+.remote-table td {
+    border-bottom: 1px solid #cbcbcb;
+    background-color: transparent;
+}
+
+.remote-table tbody > tr:nth-child(odd) > td {
+    background-color: #f8f8f8;
+}
+
+.remote-table tbody > tr:hover > td {
+    background-color: #f0f7ff;
+}
+
+.remote-table-horizontal td,
+.remote-table-horizontal th {
+    border-width: 0 0 1px 0;
+    border-bottom: 1px solid #cbcbcb;
+}
+
+.remote-table-horizontal tbody > tr:last-child > td {
+    border-bottom-width: 0;
+}
+
+.remote-table-compact td,
+.remote-table-compact th {
+    padding: 0.3em 0.6em;
+}
+
+.remote-table-striped tr:nth-child(2n-1) td {
+    background-color: #f2f2f2;
+}
+
+.remote-table-bordered {
+    border: 1px solid #cbcbcb;
+}
+
+.remote-table-bordered td,
+.remote-table-bordered th {
+    border: 1px solid #cbcbcb;
+}
+
+.remote-table-bordered tbody > tr:last-child > td {
+    border-bottom-width: 1px;
+}
+
+.remote-table.logic-table th,
+.remote-table.logic-table td {
+    padding: 8px 10px;
+}
+
+.remote-table.logic-table th {
+    background-color: #f5f5f5;
+}
+
+.card-remote .remote-table {
+    border: none;
+    margin: 10px 0;
+}
+
+.card-remote .remote-table th {
+    background-color: #f9f9f9;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.card-remote .remote-table td {
+    border-bottom: 1px solid #eee;
+}
+
+.card-remote .remote-table tr:last-child td {
+    border-bottom: none;
+}
+
+.inc-dec {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.value-button {
+    width: 30px;
+    height: 30px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.value-button:hover {
+    background-color: #e0e0e0;
+}
+
+.value-button.decrease {
+    border-radius: 20px;
+    background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xOCAxMi45OThINmExIDEgMCAwIDEgMC0yaDEyYTEgMSAwIDAgMSAwIDJ6Ii8+PC9zdmc+") no-repeat 4px;
+    background-color: rgba(230,230,230);
+    background-position-x: center;
+    width: 50px;
+}
+
+.value-button.increase {
+    border-radius: 20px;
+    background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xOCAxMi45OThoLTV2NWExIDEgMCAwIDEtMiAwdi01SDZhMSAxIDAgMCAxIDAtMmg1di01YTEgMSAwIDAgMSAyIDB2NWg1YTEgMSAwIDAgMSAwIDJ6Ii8+PC9zdmc+") no-repeat 4px;
+    background-color: rgba(230,230,230);
+    background-position-x: center;
+    width: 50px;
+}
+
+.inc-dec input {
+    width: 100px;
+    text-align: center;
+    outline: none;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #961911;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.remote-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.remote-button:hover {
+    background-color: #e0e0e0;
+}
+
+.button-primary {
+    background-color: #4a6ee0;
+    color: white;
+    border: 1px solid #3a5ec0;
+}
+
+.button-primary:hover {
+    background-color: #3a5ec0;
+}
+ 
+.cntr {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.popup-target {
+    position: relative;
+}
+
+.popup {
+    position: absolute;
+    background-color: #333;
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    width: 200px;
+    z-index: 10;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.popup-target:hover .popup {
+    opacity: 1;
+}
+
+.popup:after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.logic-table th, .logic-table td {
+    padding: 8px 10px;
+}
+
+.geo-copy-paste {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.geo-copy-paste svg {
+    cursor: pointer;
+}
+
+#ds0-color, #ds1-color, #ds2-color, #ds3-color, #ds4-color {
+    padding: 5px 10px;
+    border-radius: 4px;
+    background-color: #f0f0f0;
+    text-align: center;
+}
+
+.timestamp {
+    width: fit-content;
+    opacity: .5;
+    position: absolute;
+    right: 70px;
+    margin: 14px auto;
+    font-family: monospace;
+}
+
+.collision {
+    border: 1px solid red !important;
+}
+
+@media screen and (max-width: 768px) {
+    .tabs {
+        flex-direction: column;
+    }
+
+    .tab {
+        padding: 12px 15px;
+    }
+
+    .card-remote {
+        padding: 15px;
+    }
+
+    table th, table td {
+        padding: 8px 10px;
+    }
+
+    .remote-table td,
+    .remote-table th {
+        padding: 0.3em 0.5em;
+    }
+
+    .remote-table-horizontal {
+        display: block;
+        overflow-x: auto;
+    }
+}
