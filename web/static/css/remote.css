@@ -376,10 +376,6 @@ input:checked + .slider:before {
         padding: 15px;
     }
 
-    table th, table td {
-        padding: 8px 10px;
-    }
-
     .remote-table td,
     .remote-table th {
         padding: 0.3em 0.5em;
