@@ -1,6 +1,6 @@
 <?php
-include 'helpers.php';
-include 'translations.php';
+include_once 'helpers.php';
+include_once 'translations.php';
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With, Authorization, Content-Type');
