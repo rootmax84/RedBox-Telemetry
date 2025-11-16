@@ -162,7 +162,7 @@ async function fetchData() {
             },
             body: new URLSearchParams({
                 data: 'fetch',
-                lang: 'js'
+                lang: lang
             })
         });
 
@@ -222,10 +222,13 @@ async function fetchData() {
             }
             
             return newData;
+        } else if (response.status === 204) {
+            location.reload();
         } else {
             return null;
         }
     } catch (error) {
+        xhrResponse(`Fetch error: ' ${error}`);
         console.error('Fetch error:', error);
         return null;
     }
