@@ -48,7 +48,15 @@ if (!empty($token)) {
 
     if ($data === 'fetch') {
         // SELECT запрос
-        echo $db->execute_query("SELECT mcu_data FROM $db_users WHERE token=?", [$token])->fetch_assoc()['mcu_data'] ?? '';
+        $mcu_data = $db->execute_query("SELECT mcu_data FROM $db_users WHERE token=?", [$token])->fetch_assoc()['mcu_data'] ?? '';
+
+        // Проверяем длину данных
+        if (strlen($mcu_data) < 900) {
+            http_response_code(204); // No Content
+            exit;
+        } else {
+            echo $mcu_data;
+        }
     } else {
         // UPDATE запрос с проверкой длины
         if (!empty($data) && strlen($data) <= 2048) {
