@@ -92,3 +92,15 @@ html {
 .ui-state-default {
   box-shadow: none !important;
 }
+
+.card-remote {
+  border-color: #8e8e8e;
+}
+
+input:checked + .slider {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.tab.active {
+  border-color: #8e8e8e;
+}
