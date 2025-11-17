@@ -17,30 +17,25 @@ $errors = [];
 
 if (count($array) !== 406) {
     $isValid = false;
-    $errors[] = "Длина массива: " . count($array) . " (ожидается: 406)";
 }
 
 $secondLast = $array[count($array) - 2] ?? null;
 if ($secondLast !== '~') {
     $isValid = false;
-    $errors[] = "Предпоследний элемент: '$secondLast' (ожидается: '~')";
 }
 
 $lastElement = $array[count($array) - 1] ?? null;
 $lastElement = (int)$lastElement / 1000;
 if (!is_numeric($lastElement) || $lastElement <= 0) {
     $isValid = false;
-    $errors[] = "Последний элемент: '$lastElement' (не является валидным timestamp)";
 } else {
     $timestamp = (int)$lastElement;
     $currentTime = time();
     if ($timestamp > $currentTime + 3600) {
         $isValid = false;
-        $errors[] = "Timestamp $timestamp кажется слишком большим (в будущем)";
     }
     if ($timestamp < 1609459200) {
         $isValid = false;
-        $errors[] = "Timestamp $timestamp кажется слишком маленьким";
     }
 }
 
