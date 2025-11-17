@@ -65,13 +65,27 @@ $js_data = implode(",", $dataArray);
 <?php if ($isValid) { ?>
     <div class="container-remote">
         <div class="tabs">
-            <button class="tab active" data-tab="boost" l10n="rem.boost"></button>
-            <button class="tab" data-tab="protection" l10n="rem.protection"></button>
-            <button class="tab" data-tab="fan" l10n="rem.fan"></button>
-            <button class="tab" data-tab="logic" l10n="rem.logic"></button>
-            <button class="tab" data-tab="inputs" l10n="rem.inputs"></button>
-            <button class="tab" data-tab="calibration" l10n="rem.calibration"></button>
-            <button class="tab" data-tab="other" l10n="rem.other"></button>
+            <button class="tab active" data-tab="boost" l10n="rem.boost">
+                <span class="tab-text"></span>
+            </button>
+            <button class="tab" data-tab="protection" l10n="rem.protection">
+                <span class="tab-text"></span>
+            </button>
+            <button class="tab" data-tab="fan" l10n="rem.fan">
+                <span class="tab-text"></span>
+            </button>
+            <button class="tab" data-tab="logic" l10n="rem.logic">
+                <span class="tab-text"></span>
+            </button>
+            <button class="tab" data-tab="inputs" l10n="rem.inputs">
+                <span class="tab-text"></span>
+            </button>
+            <button class="tab" data-tab="calibration" l10n="rem.calibration">
+                <span class="tab-text"></span>
+            </button>
+            <button class="tab" data-tab="other" l10n="rem.other">
+                <span class="tab-text"></span>
+            </button>
         </div>
 
         <div id="boost" class="tab-content active">
