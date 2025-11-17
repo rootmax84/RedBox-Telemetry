@@ -463,7 +463,7 @@ $translations = [
         'ds.fake' => 'FAKE',
         'ds.ok' => 'OK',
         'remote.empty.label' => 'Enable control on the device',
-        'remote.mcu.update.dialog' => 'Data updated from MCU',
+        'remote.mcu.update.dialog' => 'Data updated',
         'select.off' => 'OFF',
     ],
     'ru' => [
@@ -928,7 +928,7 @@ $translations = [
         'ds.fake' => 'ФЕЙК',
         'ds.ok' => 'ОК',
         'remote.empty.label' => 'Включите управление на устройстве',
-        'remote.mcu.update.dialog' => 'Данные обновлены с MCU',
+        'remote.mcu.update.dialog' => 'Данные обновлены',
         'select.off' => 'Выкл',
     ],
     'es' => [
@@ -1393,7 +1393,7 @@ $translations = [
         'ds.fake' => 'FALSO',
         'ds.ok' => 'OK',
         'remote.empty.label' => 'Activa el control en el dispositivo',
-        'remote.mcu.update.dialog' => 'Datos actualizados desde la MCU',
+        'remote.mcu.update.dialog' => 'Datos actualizados',
         'select.off' => 'OFF',
     ],
     'de' => [
@@ -1858,7 +1858,7 @@ $translations = [
         'ds.fake' => 'FÄLSCHUNG',
         'ds.ok' => 'OK',
         'remote.empty.label' => 'Aktiviere die Steuerung am Gerät',
-        'remote.mcu.update.dialog' => 'Daten vom MCU aktualisiert',
+        'remote.mcu.update.dialog' => 'Daten aktualisiert',
         'select.off' => 'Aus',
     ],
 ];

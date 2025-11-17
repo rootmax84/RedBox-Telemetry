@@ -14,7 +14,7 @@
 }
 
 .tab {
-    padding: 15px 20px;
+    padding: 10px 10px;
     cursor: pointer;
     background-color: #f0f0f0;
     border: none;
@@ -195,11 +195,6 @@
 
 .remote-table-bordered tbody > tr:last-child > td {
     border-bottom-width: 1px;
-}
-
-.remote-table.logic-table th,
-.remote-table.logic-table td {
-    padding: 8px 10px;
 }
 
 .remote-table.logic-table th {
@@ -436,7 +431,13 @@ input:checked + .slider:before {
     }
 
     .remote-table-horizontal {
-        display: block;
         overflow-x: auto;
+    }
+}
+
+
+@media screen and (max-width: 560px) {
+    .remote-table-horizontal {
+        display: block;
     }
 }

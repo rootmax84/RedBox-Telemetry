@@ -95,7 +95,7 @@ $js_data = implode(",", $dataArray);
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <td l10n="boost.main.enable"></td>
+                                <td l10n="dialog.maintenance.en"></td>
                                 <td><label class="switch"><input type="checkbox" id="boost-status"><span class="slider round"></span></label></td>
                             </tr>
                             <tr>
@@ -275,7 +275,7 @@ $js_data = implode(",", $dataArray);
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <td l10n="boost.main.enable"></td>
+                                <td l10n="dialog.maintenance.en"></td>
                                 <td colspan="2" class="popup-target">
                                     <label class="switch"><input type="checkbox" id="boost-gear-status" onClick="checkInputs()"><span class="slider round"></span></label>
                                     <div class="popup popup-hidden" l10n="boost.popup.gear.note"></div>
@@ -662,10 +662,10 @@ $js_data = implode(",", $dataArray);
             <!-- Контейнер 1 -->
             <div class="card-remote" style="opacity: 1;">
                     <h1 l10n="logic.pg0.title"></h1>
-                    <table class="remote-table remote-table-horizontal logic-table">
+                    <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <td l10n="boost.main.enable"></td>
+                                <td l10n="dialog.maintenance.en"></td>
                                 <td colspan="3"><label class="switch"><input type="checkbox" id="pg0-status"><span class="slider round"></span></label></td>
                             </tr>
                             <tr>
@@ -825,10 +825,10 @@ $js_data = implode(",", $dataArray);
             <!-- Контейнер 2 -->
             <div class="card-remote" style="opacity: 1;">
                     <h1 l10n="logic.pg1.title"></h1>
-                    <table class="remote-table remote-table-horizontal logic-table">
+                    <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <td l10n="boost.main.enable"></td>
+                                <td l10n="dialog.maintenance.en"></td>
                                 <td colspan="3"><label class="switch"><input type="checkbox" id="pg1-status"><span class="slider round"></span></label></td>
                             </tr>
                             <tr>
@@ -988,7 +988,7 @@ $js_data = implode(",", $dataArray);
             <!-- logic.vars -->
             <div class="card-remote">
                 <h1 l10n="logic.variables.title"></h1>
-                <table class="remote-table remote-table-horizontal logic-table" style="line-height:.5em;white-space:nowrap">
+                <table class="remote-table remote-table-horizontal">
                     <tbody>
                         <tr>
                             <td class="bld">ECT</td>
@@ -1825,7 +1825,7 @@ $js_data = implode(",", $dataArray);
                     document.getElementById(tabId).classList.add('active');
                 });
             });
-});
+        });
     </script>
 <?php } else { ?>
 <div id="right-container" class="col-md-auto col-xs-12">
