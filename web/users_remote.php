@@ -90,7 +90,7 @@ $js_data = implode(",", $dataArray);
 
         <div id="boost" class="tab-content active">
             <!-- Контейнер 1 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 onmousedown="return false" l10n="boost.main.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -208,7 +208,7 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 2 -->
-            <div class="card-remote" style="min-width: 300px; opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="boost.pid.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -270,7 +270,7 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 3 -->
-            <div class="card-remote" style="margin-top: 1em; min-width: 300px; opacity: 1;">
+            <div class="card-remote">
                     <h1 onmousedown="return false" l10n="boost.gear.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -364,12 +364,12 @@ $js_data = implode(",", $dataArray);
 
         <div id="protection" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="protection.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <td class="popup-target" l10n="protection.max-ect.label"><div class="popup popup-hidden" style="bottom:90%" l10n="protection.max.description"></div></td>
+                                <td class="popup-target" l10n="protection.max-ect.label"><div class="popup popup-hidden" l10n="protection.max.description"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('max-ect',1,1)"></div>
@@ -510,7 +510,7 @@ $js_data = implode(",", $dataArray);
 
         <div id="fan" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="fan.activation.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -569,7 +569,7 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 2 -->
-            <div class="card-remote" style="min-width: 300px; opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="fan.pwm.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -626,7 +626,7 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 3 -->
-            <div class="card-remote" style="margin-top: 1em; min-width: 300px; opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="fan.sw.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -660,7 +660,7 @@ $js_data = implode(",", $dataArray);
 
         <div id="logic" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="logic.pg0.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -669,7 +669,7 @@ $js_data = implode(",", $dataArray);
                                 <td colspan="3"><label class="switch"><input type="checkbox" id="pg0-status"><span class="slider round"></span></label></td>
                             </tr>
                             <tr>
-                                <td class="popup-target"><span l10n="logic.engine-run.label"></span><div class="popup popup-hidden" style="width:200px" l10n="logic.engine-run.description"></div></td>
+                                <td class="popup-target"><span l10n="logic.engine-run.label"></span><div class="popup popup-hidden" l10n="logic.engine-run.description"></div></td>
                                 <td colspan="3"><label class="switch"><input type="checkbox" id="pg0-engine-run"><span class="slider round"></span></label></td>
                             </tr>
                             <tr>
@@ -802,7 +802,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target"><span l10n="logic.on-limit.label"></span><div class="popup popup-hidden" style="width:200px" l10n="logic.on-limit.description"></div></td>
+                                <td class="popup-target"><span l10n="logic.on-limit.label"></span><div class="popup popup-hidden" l10n="logic.on-limit.description"></div></td>
                                 <td colspan="3">
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('pg0-on-limit',1,1)"></div>
@@ -812,7 +812,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target"><span l10n="logic.loop.label"></span><div class="popup popup-hidden" style="width:200px" l10n="logic.loop.description"></div></td>
+                                <td class="popup-target"><span l10n="logic.loop.label"></span><div class="popup popup-hidden" l10n="logic.loop.description"></div></td>
                                 <td colspan="3"><label class="switch"><input type="checkbox" id="pg0-loop"><span class="slider round"></span></label></td>
                             </tr>
                         </tbody>
@@ -823,7 +823,7 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 2 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="logic.pg1.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -832,7 +832,7 @@ $js_data = implode(",", $dataArray);
                                 <td colspan="3"><label class="switch"><input type="checkbox" id="pg1-status"><span class="slider round"></span></label></td>
                             </tr>
                             <tr>
-                                <td class="popup-target"><span l10n="logic.engine-run.label"></span><div class="popup popup-hidden" style="width:200px" l10n="logic.engine-run.description"></div></td>
+                                <td class="popup-target"><span l10n="logic.engine-run.label"></span><div class="popup popup-hidden" l10n="logic.engine-run.description"></div></td>
                                 <td colspan="3"><label class="switch"><input type="checkbox" id="pg1-engine-run"><span class="slider round"></span></label></td>
                             </tr>
                             <tr>
@@ -965,7 +965,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target"><span l10n="logic.on-limit.label"></span><div class="popup popup-hidden" style="width:200px" l10n="logic.on-limit.description"></div></td>
+                                <td class="popup-target"><span l10n="logic.on-limit.label"></span><div class="popup popup-hidden" l10n="logic.on-limit.description"></div></td>
                                 <td colspan="3">
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('pg1-on-limit',1,1)"></div>
@@ -975,7 +975,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target"><span l10n="logic.loop.label"></span><div class="popup popup-hidden" style="width:200px" l10n="logic.loop.description"></div></td>
+                                <td class="popup-target"><span l10n="logic.loop.label"></span><div class="popup popup-hidden" l10n="logic.loop.description"></div></td>
                                 <td colspan="3"><label class="switch"><input type="checkbox" id="pg1-loop"><span class="slider round"></span></label></td>
                             </tr>
                         </tbody>
@@ -1085,7 +1085,7 @@ $js_data = implode(",", $dataArray);
 
         <div id="inputs" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="inputs.aux.inputs.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -1208,14 +1208,14 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 2 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="inputs.dsx.input.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
                                 <th l10n="inputs.dsx.sensor"></th>
                                 <th l10n="inputs.dsx.bind"></th>
-                                <th ondblclick="copy()" style="cursor:pointer" l10n="inputs.dsx.status"></th>
+                                <th l10n="inputs.dsx.status"></th>
                             </tr>
                             <tr>
                                 <td>DS0</td>
@@ -1325,7 +1325,7 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 3 -->
-            <div class="card-remote" style="margin-top: 1em; opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="inputs.bsx.inputs.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -1362,12 +1362,12 @@ $js_data = implode(",", $dataArray);
 
 
             <!-- Контейнер 4 -->
-            <div class="card-remote" style="margin-top: 1em; opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="inputs.vfd.input.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <td><span class="popup-target" l10n="inputs.vfd.mode"><div class="popup popup-hidden" style="width:200px" l10n="inputs.vfd.description"></div></span></td>
+                                <td><span class="popup-target" l10n="inputs.vfd.mode"><div class="popup popup-hidden" l10n="inputs.vfd.description"></div></span></td>
                                 <td>
                                     <select id="vfd-mode" class="remote-button">
                                         <option value="" disabled="" selected="">...</option>
@@ -1390,12 +1390,12 @@ $js_data = implode(",", $dataArray);
 
         <div id="calibration" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="calibration.ntc.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <th colspan="2" style="text-align:left;font-weight:normal" class="popup-target"><span l10n="calibration.ntc.input.label"></span><div class="popup popup-hidden"><span l10n="calibration.ntc.input.description"></span></div></th>
+                                <th colspan="2" class="popup-target"><span l10n="calibration.ntc.input.label"></span><div class="popup popup-hidden"><span l10n="calibration.ntc.input.description"></span></div></th>
                                 <td>
                                     <select id="aux-in" class="remote-button" onchange="select_aux(); step();">
                                         <option value="" disabled="">...</option>
@@ -1590,7 +1590,7 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 2 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="calibration.pressure.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -1622,7 +1622,7 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 3 -->
-            <div class="card-remote" style="margin-top: 1em; opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="calibration.afr.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -1664,7 +1664,7 @@ $js_data = implode(",", $dataArray);
             </div>
 
             <!-- Контейнер 4 -->
-            <div class="card-remote" style="margin-top: 1em; opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="calibration.custom-map.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -1717,7 +1717,7 @@ $js_data = implode(",", $dataArray);
 
         <div id="other" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote" style="opacity: 1;">
+            <div class="card-remote">
                     <h1 l10n="other.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -1732,7 +1732,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="other.rpm.multiplier"><div class="popup popup-hidden" style="min-width:10.5em" l10n="other.rpm.multiplier.description"></div></td>
+                                <td class="popup-target" l10n="other.rpm.multiplier"><div class="popup popup-hidden" l10n="other.rpm.multiplier.description"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('rpm-mult',0,0.01)"></div>
@@ -1742,7 +1742,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="other.speed.multiplier"><div class="popup popup-hidden" style="min-width:10.2em" l10n="other.speed.multiplier.description"></div></td>
+                                <td class="popup-target" l10n="other.speed.multiplier"><div class="popup popup-hidden" l10n="other.speed.multiplier.description"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('spd-mult',0,0.01)"></div>
@@ -1795,7 +1795,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="other.motorhours.history"><div class="popup popup-hidden" style="min-width:9.5em" l10n="other.motorhours.history.description"></div></td>
+                                <td class="popup-target" l10n="other.motorhours.history"><div class="popup popup-hidden" l10n="other.motorhours.history.description"></div></td>
                                 <td><span id="mr-hist">1092h</span></td>
                             </tr>
                         </tbody>

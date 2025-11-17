@@ -440,4 +440,7 @@ input:checked + .slider:before {
     .remote-table-horizontal {
         display: block;
     }
+    .popup {
+        left: 100%;
+    }
 }
