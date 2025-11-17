@@ -1514,11 +1514,11 @@ function mapSetBtn() {
 function otherSetBtn() {
     if (eInputs('misc-set-btn')) return;
     // vlt-corr stored as data[263] = val * 100
-    setDataValue(data, 263, Math.round(parseFloat($("#vlt-corr").val()||0) * 100), 'uint16');
+    setDataValue(data, 263, Math.round(parseFloat($("#vlt-corr").val()||0) * 100), 'uint8');
 
     // speed / rpm multipliers stored as percentages (data[325], data[326]) and were displayed as /100
-    setDataValue(data, 325, Math.round(parseFloat($("#spd-mult").val()||1) * 100), 'uint16');
-    setDataValue(data, 326, Math.round(parseFloat($("#rpm-mult").val()||1) * 100), 'uint16');
+    setDataValue(data, 325, Math.round(parseFloat($("#spd-mult").val()||1) * 100), 'uint8');
+    setDataValue(data, 326, Math.round(parseFloat($("#rpm-mult").val()||1) * 100), 'uint8');
 
     // PIM mode/data
     setDataValue(data, 262, parseInt($("#pim-mode").val()||0,10), 'uint8');
@@ -1638,18 +1638,23 @@ const CALIB_TEMP = {
   4: [140,141,142,143,144,145,146,147,148,149]
 };
 
+function f32(x) {
+    return Math.fround(x);
+}
+
 function rConv(a) {
-    let tmp =  ((5 / (4700 + parseInt(a))) * parseInt(a) * 100.0);
-    return Math.round(tmp);
+    const a_f = f32(parseInt(a, 10));
+    return Math.floor(f32((f32(5.0) / f32(4700 + a_f)) * a_f * f32(100.0)) + 0.5);
 }
 
 function volt_calc_pos(pos) {
-  const adc = 0.0048828125;
-  return Math.round(1024 - (pos / adc) / 100 + 0.5);
+    const adc = f32(0.0048828125); // float32
+    return Math.floor(f32(1024 - f32(f32(pos) / adc / 100)) + 0.5);
 }
 
 function calibSetBtn() {
   if (eInputs('cal-aux-set-btn')) return;
+
   const aux = parseInt($("#aux-in").value, 10);
   const isPullup =
       (aux === 0 && a0_pullup == 1) ||
@@ -1674,7 +1679,7 @@ function calibSetBtn() {
       console.error("Temperature out of range:", t);
       return;
     }
-    setDataValue(data, idxT[i], t, 'uint8');
+    setDataValue(data, idxT[i], t & 0xFF, 'uint8'); // uint8
 
     // ===== VOLTAGE =====
     let sensor_voltage = 0;
@@ -1687,11 +1692,10 @@ function calibSetBtn() {
         xhrResponse(`${localization.key['dialog.token.err']}: ${volts}V`);
         return;
       }
-      const pos = Math.round(volts * 100.01);
+      const pos = Math.floor(f32(volts * 100.01));
       sensor_voltage = volt_calc_pos(pos);
     } else {
       // -------- R-mode ----------
-      // convert resistance -> pos -> sensor_voltage
       const ohm = volt[i];
       if (ohm < 1 || ohm > 99000) {
         xhrResponse(`${localization.key['dialog.token.err']}: ${ohm}ohm`);
@@ -1702,12 +1706,12 @@ function calibSetBtn() {
       sensor_voltage = volt_calc_pos(pos_from_ohm);
     }
 
-    if (sensor_voltage < 0 || sensor_voltage > 1022) {
+    if (sensor_voltage < 0 || sensor_voltage > 1023) {
       console.error("MCU sensor_voltage out of range:", sensor_voltage);
       return;
     }
 
-    setDataValue(data, idxV[i], sensor_voltage, 'uint16');
+    setDataValue(data, idxV[i], sensor_voltage & 0xFFFF, 'uint16');
   }
 
   saveData();
