@@ -90,8 +90,9 @@ $js_data = implode(",", $dataArray);
 
         <div id="boost" class="tab-content active">
             <!-- Контейнер 1 -->
-            <div class="card-remote">
-                    <h1 onmousedown="return false" l10n="boost.main.title"></h1>
+            <form>
+                <div class="card-remote">
+                    <h1 l10n="boost.main.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
@@ -99,7 +100,7 @@ $js_data = implode(",", $dataArray);
                                 <td><label class="switch"><input type="checkbox" id="boost-status"><span class="slider round"></span></label></td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="boost.main.target"><div class="popup pg popup-hidden" l10n="boost.popup.boost.pressure"></div></td>
+                                <td class="popup-target" l10n="boost.main.target"><div class="popup popup-hidden" l10n="boost.popup.boost.pressure"></div></td>
                                 <td>
                                     <div class="inc-dec" id="target-off" style="pointer-events: auto;">
                                         <div class="value-button decrease" onclick="dv('boost-target',1,1)"></div>
@@ -149,7 +150,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="boost.main.rpm.end"><div class="popup pg popup-hidden" l10n="boost.popup.rpm.end"></div></td>
+                                <td class="popup-target" l10n="boost.main.rpm.end"><div class="popup popup-hidden" l10n="boost.popup.rpm.end"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('boost-rpm-end',1,50)"></div>
@@ -203,17 +204,19 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="boost-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="boost-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
             </div>
+        </form>
 
             <!-- Контейнер 2 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="boost.pid.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <td class="popup-target" l10n="boost.pid.kp"><div class="popup pg popup-hidden" l10n="boost.popup.kp"></div></td>
+                                <td class="popup-target" l10n="boost.pid.kp"><div class="popup popup-hidden" l10n="boost.popup.kp"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('pid-kp',0,0.01)"></div>
@@ -223,7 +226,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="boost.pid.ki"><div class="popup pg popup-hidden" l10n="boost.popup.ki"></div></td>
+                                <td class="popup-target" l10n="boost.pid.ki"><div class="popup popup-hidden" l10n="boost.popup.ki"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('pid-ki',0,0.01)"></div>
@@ -233,7 +236,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="boost.pid.kd"><div class="popup pg popup-hidden" l10n="boost.popup.kd"></div></td>
+                                <td class="popup-target" l10n="boost.pid.kd"><div class="popup popup-hidden" l10n="boost.popup.kd"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('pid-kd',0,0.01)"></div>
@@ -265,25 +268,27 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="pid-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="pid-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
 
             <!-- Контейнер 3 -->
-            <div class="card-remote">
-                    <h1 onmousedown="return false" l10n="boost.gear.title"></h1>
+            <form>
+                <div class="card-remote">
+                    <h1 l10n="boost.gear.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <td l10n="dialog.maintenance.en"></td>
-                                <td colspan="2" class="popup-target">
+                                <td colspan="2" l10n="dialog.maintenance.en"></td>
+                                <td class="popup-target">
                                     <label class="switch"><input type="checkbox" id="boost-gear-status" onClick="checkInputs()"><span class="slider round"></span></label>
                                     <div class="popup popup-hidden" l10n="boost.popup.gear.note"></div>
                                 </td>
                             </tr>
                             <tr>
                                 <th l10n="boost.gear.gear"></th>
-                                <th class="popup-target" l10n="boost.gear.target"><div class="popup pg popup-hidden" l10n="boost.popup.boost.pressure"></div></th>
+                                <th class="popup-target" l10n="boost.gear.target"><div class="popup popup-hidden" l10n="boost.popup.boost.pressure"></div></th>
                                 <th l10n="boost.gear.duty"></th>
                             </tr>
                             <tr>
@@ -357,14 +362,16 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="boost-gear-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="boost-gear-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
         </div>
 
         <div id="protection" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="protection.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -469,7 +476,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="protection.boost-limit.label"><div class="popup pg popup-hidden" l10n="protection.boost-limit.description"></div></td>
+                                <td class="popup-target" l10n="protection.boost-limit.label"><div class="popup popup-hidden" l10n="protection.boost-limit.description"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('boost-limit',1,1)"></div>
@@ -503,19 +510,21 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="p-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="p-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
         </div>
 
         <div id="fan" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="fan.activation.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
-                                <td class="popup-target" l10n="fan.mode.label"><div class="popup pg popup-hidden" l10n="fan.mode.description"></div></td>
+                                <td class="popup-target" l10n="fan.mode.label"><div class="popup popup-hidden" l10n="fan.mode.description"></div></td>
                                 <td>
                                     <select id="fan-mode-sel" class="remote-button" onchange="limits_protection();">
                                         <option value="" disabled="" selected="">...</option>
@@ -540,7 +549,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="fan.target.label"><div class="popup pg popup-hidden" l10n="fan.target.description"></div></td>
+                                <td class="popup-target" l10n="fan.target.label"><div class="popup popup-hidden" l10n="fan.target.description"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('fan-target',1,1)"></div>
@@ -564,12 +573,14 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="fan-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="fan-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
 
             <!-- Контейнер 2 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="fan.pwm.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -578,7 +589,7 @@ $js_data = implode(",", $dataArray);
                                 <td><label class="switch"><input type="checkbox" id="pwm-invert"><span class="slider round"></span></label></td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="fan.pwm.spd.label"><div class="popup pg popup-hidden" l10n="fan.pwm.spd.description"></div></td>
+                                <td class="popup-target" l10n="fan.pwm.spd.label"><div class="popup popup-hidden" l10n="fan.pwm.spd.description"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('pwm-spd',1,1)"></div>
@@ -588,7 +599,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="fan.pwm.width.label"><div class="popup pg popup-hidden" l10n="fan.pwm.width.description"></div></td>
+                                <td class="popup-target" l10n="fan.pwm.width.label"><div class="popup popup-hidden" l10n="fan.pwm.width.description"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('pwm-width',1,1)"></div>
@@ -608,7 +619,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="fan.pwm.freq.label"><div class="popup pg popup-hidden" l10n="fan.pwm.freq.description"></div></td>
+                                <td class="popup-target" l10n="fan.pwm.freq.label"><div class="popup popup-hidden" l10n="fan.pwm.freq.description"></div></td>
                                 <td>
                                     <select id="pwm-freq" class="remote-button">
                                         <option value="" disabled="" selected="">...</option>
@@ -621,12 +632,14 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="pwm-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="pwm-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
 
             <!-- Контейнер 3 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="fan.sw.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -641,7 +654,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="fan.sw.off-delay.label"><div class="popup pg popup-hidden" l10n="fan.sw.off-delay.description"></div></td>
+                                <td class="popup-target" l10n="fan.sw.off-delay.label"><div class="popup popup-hidden" l10n="fan.sw.off-delay.description"></div></td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('sw-off-delay',1,1)"></div>
@@ -653,14 +666,16 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="sw-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="sw-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
         </div>
 
         <div id="logic" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="logic.pg0.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -717,10 +732,8 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td>
                                     <div class="inc-dec popup-target">
-                                        <div class="value-button decrease" onclick="dv('pg0-a-value',step_pg0a(),step_pg0a())"></div>
                                         <input type="number" class="form-control" required="" id="pg0-a-value" min="0" max="65535" placeholder="..." onkeydown="return nolet(event);" onchange="limits_logic();" onkeyup="limits_logic();" step="1">
-                                        <div class="popup pg popup-hidden" id="pg0-a-label" hidden=""></div>
-                                        <div class="value-button increase" onclick="iv('pg0-a-value',step_pg0a(),step_pg0a());limits_logic()"></div>
+                                        <div class="popup popup-hidden" id="pg0-a-label" hidden=""></div>
                                     </div>
                                 </td>
                             </tr>
@@ -763,10 +776,8 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td>
                                     <div class="inc-dec popup-target">
-                                        <div class="value-button decrease" onclick="dv('pg0-b-value',step_pg0b(),step_pg0b())"></div>
                                         <input type="number" class="form-control" required="" id="pg0-b-value" min="0" max="65535" placeholder="..." onkeydown="return nolet(event);" onchange="limits_logic();" onkeyup="limits_logic();" step="1">
-                                        <div class="popup pg popup-hidden" id="pg0-b-label" hidden=""></div>
-                                        <div class="value-button increase" onclick="iv('pg0-b-value',step_pg0b(),step_pg0b());limits_logic()"></div>
+                                        <div class="popup popup-hidden" id="pg0-b-label" hidden=""></div>
                                     </div>
                                 </td>
                             </tr>
@@ -818,12 +829,14 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="pg0-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="pg0-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
 
             <!-- Контейнер 2 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="logic.pg1.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -879,11 +892,9 @@ $js_data = implode(",", $dataArray);
                                     </select>
                                 </td>
                                 <td>
-                                    <div class="inc-dec popup-target">
-                                        <div class="value-button decrease" onclick="dv('pg1-a-value',step_pg1a(),step_pg1a())"></div>
+                                    <div class="inc-dec">
                                         <input type="number" class="form-control" required="" id="pg1-a-value" min="0" max="65535" placeholder="..." onkeydown="return nolet(event);" onchange="limits_logic();" onkeyup="limits_logic();" step="1">
-                                        <div class="popup pg popup-hidden" id="pg1-a-label" hidden=""></div>
-                                        <div class="value-button increase" onclick="iv('pg1-a-value',step_pg1a(),step_pg1a());limits_logic()"></div>
+                                        <div class="popup popup-hidden" id="pg1-a-label" hidden=""></div>
                                     </div>
                                 </td>
                             </tr>
@@ -926,10 +937,8 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td>
                                     <div class="inc-dec popup-target">
-                                        <div class="value-button decrease" onclick="dv('pg1-b-value',step_pg1b(),step_pg1b())"></div>
                                         <input type="number" class="form-control" required="" id="pg1-b-value" min="0" max="65535" placeholder="..." onkeydown="return nolet(event);" onchange="limits_logic();" onkeyup="limits_logic();" step="1">
-                                        <div class="popup pg popup-hidden" id="pg1-b-label" hidden=""></div>
-                                        <div class="value-button increase" onclick="iv('pg1-b-value',step_pg1b(),step_pg1b());limits_logic()"></div>
+                                        <div class="popup popup-hidden" id="pg1-b-label" hidden=""></div>
                                     </div>
                                 </td>
                             </tr>
@@ -981,9 +990,10 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="pg1-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="pg1-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
 
             <!-- logic.vars -->
             <div class="card-remote">
@@ -1109,7 +1119,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td class="popup-target">
                                     <label class="switch"><input type="checkbox" id="a0-pullup"><span class="slider round"></span></label>
-                                    <div class="popup ds pg popup-hidden" l10n="inputs.aux.pullup.description"></div>
+                                    <div class="popup popup-hidden" l10n="inputs.aux.pullup.description"></div>
                                 </td>
                                 <td l10n="inputs.aux.pullup"></td>
                             </tr>
@@ -1133,7 +1143,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td class="popup-target">
                                     <label class="switch"><input type="checkbox" id="a1-pullup"><span class="slider round"></span></label>
-                                    <div class="popup ds pg popup-hidden" l10n="inputs.aux.pullup.description"></div>
+                                    <div class="popup popup-hidden" l10n="inputs.aux.pullup.description"></div>
                                 </td>
                                 <td l10n="inputs.aux.pullup"></td>
                             </tr>
@@ -1233,7 +1243,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td class="popup-target">
                                     <div id="ds0-color"><span id="ds0-stat"></span></div>
-                                    <div class="popup pg ds popup-hidden"><span id="ds0-addr"></span></div>
+                                    <div class="popup popup-hidden"><span id="ds0-addr"></span></div>
                                 </td>
                             </tr>
                             <tr>
@@ -1252,7 +1262,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td class="popup-target">
                                     <div id="ds1-color"><span id="ds1-stat"></span></div>
-                                    <div class="popup pg ds popup-hidden"><span id="ds1-addr"></span></div>
+                                    <div class="popup popup-hidden"><span id="ds1-addr"></span></div>
                                 </td>
                             </tr>
                             <tr>
@@ -1271,7 +1281,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td class="popup-target">
                                     <div id="ds2-color"><span id="ds2-stat"></span></div>
-                                    <div class="popup pg ds popup-hidden"><span id="ds2-addr"></span></div>
+                                    <div class="popup popup-hidden"><span id="ds2-addr"></span></div>
                                 </td>
                             </tr>
                             <tr>
@@ -1290,7 +1300,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td class="popup-target">
                                     <div id="ds3-color"><span id="ds3-stat"></span></div>
-                                    <div class="popup pg ds popup-hidden"><span id="ds3-addr"></span></div>
+                                    <div class="popup popup-hidden"><span id="ds3-addr"></span></div>
                                 </td>
                             </tr>
                             <tr>
@@ -1309,7 +1319,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                                 <td class="popup-target">
                                     <div id="ds4-color"><span id="ds4-stat"></span></div>
-                                    <div class="popup pg ds popup-hidden"><span id="ds4-addr"></span></div>
+                                    <div class="popup popup-hidden"><span id="ds4-addr"></span></div>
                                 </td>
                             </tr>
                             <tr>
@@ -1343,14 +1353,14 @@ $js_data = implode(",", $dataArray);
                                 <td l10n="inputs.bsx.bs1.pullup"></td>
                                 <td class="popup-target">
                                     <label class="switch"><input type="checkbox" id="bs1-pullup"><span class="slider round"></span></label>
-                                    <div class="popup ds pg popup-hidden" l10n="inputs.bsx.pullup.description"></div>
+                                    <div class="popup popup-hidden" l10n="inputs.bsx.pullup.description"></div>
                                 </td>
                             </tr>
                             <tr>
                                 <td l10n="inputs.bsx.bs2.pullup"></td>
                                 <td class="popup-target">
                                     <label class="switch"><input type="checkbox" id="bs2-pullup"><span class="slider round"></span></label>
-                                    <div class="popup ds pg popup-hidden" l10n="inputs.bsx.pullup.description"></div>
+                                    <div class="popup popup-hidden" l10n="inputs.bsx.pullup.description"></div>
                                 </td>
                             </tr>
                         </tbody>
@@ -1359,7 +1369,6 @@ $js_data = implode(",", $dataArray);
                         <button id="bsx-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
                     </div>
             </div>
-
 
             <!-- Контейнер 4 -->
             <div class="card-remote">
@@ -1390,7 +1399,8 @@ $js_data = implode(",", $dataArray);
 
         <div id="calibration" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="calibration.ntc.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -1585,9 +1595,10 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="cal-aux-set-btn" class="btn btn-info btn-sm"><span l10n="btn.apply"></span></button>
+                        <button id="cal-aux-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
 
             <!-- Контейнер 2 -->
             <div class="card-remote">
@@ -1617,12 +1628,13 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="ps-set-btn" class="btn btn-info btn-sm"><span l10n="btn.apply"></span></button>
+                        <button id="ps-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
                     </div>
             </div>
 
             <!-- Контейнер 3 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="calibration.afr.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -1659,19 +1671,21 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="afr-set-btn" class="btn btn-info btn-sm"><span l10n="btn.apply"></span></button>
+                        <button id="afr-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
 
             <!-- Контейнер 4 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="calibration.custom-map.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
                             <tr>
                                 <th></th>
-                                <th l10n="calibration.custom-map.min"></th>
-                                <th l10n="calibration.custom-map.max"></th>
+                                <th l10n="datasum.min"></th>
+                                <th l10n="datasum.max"></th>
                             </tr>
                             <tr>
                                 <td>Volt</td>
@@ -1691,7 +1705,7 @@ $js_data = implode(",", $dataArray);
                                 </td>
                             </tr>
                             <tr>
-                                <td class="popup-target" l10n="calibration.custom-map.kpa"><div class="popup pg popup-hidden"><span l10n="calibration.custom-map.kpa.description"></span></div></td>
+                                <td class="popup-target"><div class="popup popup-hidden"><span l10n="calibration.custom-map.kpa.description"></span></div>kPa</td>
                                 <td>
                                     <div class="inc-dec">
                                         <div class="value-button decrease" onclick="dv('map-0p',1,1)"></div>
@@ -1710,14 +1724,16 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="map-set-btn" class="btn btn-info btn-sm"><span l10n="btn.apply"></span></button>
+                        <button id="map-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
         </div>
 
         <div id="other" class="tab-content">
             <!-- Контейнер 1 -->
-            <div class="card-remote">
+            <form>
+                <div class="card-remote">
                     <h1 l10n="other.title"></h1>
                     <table class="remote-table remote-table-horizontal">
                         <tbody>
@@ -1801,9 +1817,10 @@ $js_data = implode(",", $dataArray);
                         </tbody>
                     </table>
                     <div class="cntr">
-                        <button id="misc-set-btn" class="btn btn-info btn-sm" l10n="btn.apply"></button>
+                        <button id="misc-set-btn" class="btn btn-info btn-sm" l10n="btn.apply" type="button"></button>
                     </div>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 

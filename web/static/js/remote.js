@@ -1253,6 +1253,7 @@ function boolToMcuByte(checked) {
 
 // --- BOOST (main) ---
 function boostSetBtn() {
+    if (eInputs('boost-set-btn')) return;
     // boost enable: data[225] (server index)
     setDataValue(data, 225, $("#boost-status").checked ? 0 : 1, 'uint8');
 
@@ -1287,6 +1288,7 @@ function boostSetBtn() {
 
 // --- BOOST PID ---
 function pidSetBtn() {
+    if (eInputs('pid-set-btn')) return;
     // pid mode: data[211] (0/1)
     setDataValue(data, 211, parseInt($("#pid-mode").val()||0,10), 'uint8');
 
@@ -1307,6 +1309,7 @@ function pidSetBtn() {
 
 // --- BOOST gear (targets + duties) ---
 function boostGearSetBtn() {
+    if (eInputs('boost-gear-set-btn')) return;
     // gear enable: data[232]
     setDataValue(data, 232, boolToMcuByte($("#boost-gear-status").prop("checked")), 'uint8');
 
@@ -1327,6 +1330,7 @@ function boostGearSetBtn() {
 
 // --- PROTECTION (p-set-btn) ---
 function protectionSetBtn() {
+    if (eInputs('p-set-btn')) return;
     // max/min temps: many displayed as data[index] - 40, so stored = val +40
     setDataValue(data, 249, parseInt($("#max-ect").val()||0,10) + 40, 'uint8'); // max-ect
     setDataValue(data, 247, parseInt($("#max-eot").val()||0,10) + 40, 'uint8'); // max-eot
@@ -1358,6 +1362,7 @@ function protectionSetBtn() {
 
 // --- FAN (Activation block) ---
 function fanActSetBtn() {
+    if (eInputs('fan-set-btn')) return;
     // fan mode: data[155] (0=SW,1=PWM)
     setDataValue(data, 155, parseInt($("#fan-mode-sel").val()||0,10), 'uint8');
 
@@ -1377,6 +1382,7 @@ function fanActSetBtn() {
 
 // --- FAN (PWM block) ---
 function fanPwmSetBtn() {
+    if (eInputs('pwm-set-btn')) return;
     // pwm invert: data[205]
     setDataValue(data, 205, $("#pwm-invert").prop("checked") ? 1 : 0, 'uint8');
 
@@ -1398,6 +1404,7 @@ function fanPwmSetBtn() {
 
 // --- FAN (SW block) ---
 function fanSwSetBtn() {
+    if (eInputs('sw-set-btn')) return;
     // hyst -> data[210]
     setDataValue(data, 210, parseInt($("#hyst").val()||0,10), 'uint8');
 
@@ -1473,6 +1480,7 @@ function psSetBtn() {
 
 // --- AFR calibration (afr-set-btn) ---
 function afrSetBtn() {
+    if (eInputs('afr-set-btn')) return;
     // afr 0v/5v are uint16 stored at low indexes 257 (0v low) and 259? From fillData: getInt(data[258],data[257])
     // low index for 0V is 257 (uint16 little-endian)
     setDataValue(data, 257, Math.round(parseFloat($("#afr-0v").val()||0) * 100), 'uint16');
@@ -1486,6 +1494,7 @@ function afrSetBtn() {
 
 // --- Custom MAP (map-set-btn) ---
 function mapSetBtn() {
+    if (eInputs('map-set-btn')) return;
     // Custom MAP voltages: map-0v low index 300 (uint16 ADC counts)
     const v0 = parseFloat($("#map-0v").val() || 0);
     const v1 = parseFloat($("#map-1v").val() || 0);
@@ -1503,6 +1512,7 @@ function mapSetBtn() {
 
 // --- OTHER (vlt-corr, multipliers, PIM) ---
 function otherSetBtn() {
+    if (eInputs('misc-set-btn')) return;
     // vlt-corr stored as data[263] = val * 100
     setDataValue(data, 263, Math.round(parseFloat($("#vlt-corr").val()||0) * 100), 'uint16');
 
@@ -1531,6 +1541,7 @@ const calcVal = (pgVar, selector) => {
 
 // PG0 setter
 function pg0SetBtn() {
+    if (eInputs('pg0-set-btn')) return;
     let pg0_a_var = $("#pg0-a-var").val();
     let pg0_b_var = $("#pg0-b-var").val();
     let pg0_a_value = calcVal(pg0_a_var, "#pg0-a-value");
@@ -1571,6 +1582,7 @@ function pg0SetBtn() {
 
 // PG1 setter
 function pg1SetBtn() {
+    if (eInputs('pg1-set-btn')) return;
     let pg1_a_var = $("#pg1-a-var").val();
     let pg1_b_var = $("#pg1-b-var").val();
     let pg1_a_value = calcVal(pg1_a_var, "#pg1-a-value");
@@ -1637,6 +1649,7 @@ function volt_calc_pos(pos) {
 }
 
 function calibSetBtn() {
+  if (eInputs('cal-aux-set-btn')) return;
   const aux = parseInt($("#aux-in").value, 10);
   const isPullup =
       (aux === 0 && a0_pullup == 1) ||
@@ -1711,7 +1724,6 @@ $(document).ready(function() {
     // === BINDINGS
     //boost
     $("#pim-mode").on("change", checkPIM);
-    $("#boost-set-btn").on("click", boostSetBtn);
     $("#boost-set-btn").on("click", boostSetBtn);
     $("#pid-set-btn").on("click", pidSetBtn);
     $("#boost-gear-set-btn").on("click", boostGearSetBtn);

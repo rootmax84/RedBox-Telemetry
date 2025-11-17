@@ -1,5 +1,6 @@
 .container-remote {
     max-width: 1200px;
+    min-width: 450px;
     margin: 0 auto;
     padding: 65px 20px 20px;
 }
@@ -246,7 +247,7 @@
     background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xOCAxMi45OThINmExIDEgMCAwIDEgMC0yaDEyYTEgMSAwIDAgMSAwIDJ6Ii8+PC9zdmc+") no-repeat 4px;
     background-color: rgba(230,230,230);
     background-position-x: center;
-    width: 50px;
+    width: 30px;
 }
 
 .value-button.increase {
@@ -254,11 +255,11 @@
     background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xOCAxMi45OThoLTV2NWExIDEgMCAwIDEtMiAwdi01SDZhMSAxIDAgMCAxIDAtMmg1di01YTEgMSAwIDAgMSAyIDB2NWg1YTEgMSAwIDAgMSAwIDJ6Ii8+PC9zdmc+") no-repeat 4px;
     background-color: rgba(230,230,230);
     background-position-x: center;
-    width: 50px;
+    width: 30px;
 }
 
 .inc-dec input {
-    width: 100px;
+    width: 75px;
     text-align: center;
     outline: none;
 }
@@ -268,6 +269,7 @@
     display: inline-block;
     width: 50px;
     height: 24px;
+    margin-top: 6px;
 }
 
 .switch input {
@@ -350,7 +352,7 @@ input:checked + .slider:before {
     width: 200px;
     z-index: 10;
     bottom: 100%;
-    left: 50%;
+    left: 75%;
     transform: translateX(-50%);
     opacity: 0;
     pointer-events: none;
@@ -429,18 +431,36 @@ input:checked + .slider:before {
     .remote-table th {
         padding: 0.3em 0.5em;
     }
-
-    .remote-table-horizontal {
-        overflow-x: auto;
-    }
 }
 
-
 @media screen and (max-width: 560px) {
-    .remote-table-horizontal {
-        display: block;
+    .popup-target {
+        position: static;
     }
+
     .popup {
-        left: 100%;
+        position: fixed !important;
+        bottom: auto;
+        top: 60px;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: auto;
+        max-width: 90vw;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .popup-target:hover .popup {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .popup:after {
+        display: none;
+    }
+
+    .hide {
+        display: none;
     }
 }
