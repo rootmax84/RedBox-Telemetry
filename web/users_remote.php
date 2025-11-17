@@ -5,7 +5,6 @@ require_once 'db_limits.php';
 $qry = $db->execute_query("SELECT token, mcu_data FROM $db_users WHERE user=?", [$username])->fetch_row();
 [$token, $mcu_data] = $qry;
 
-
 $db->close();
 
 include 'head.php';
@@ -13,7 +12,6 @@ include 'head.php';
 $array = explode(',', $mcu_data);
 
 $isValid = true;
-$errors = [];
 
 if (count($array) !== 406) {
     $isValid = false;
@@ -39,9 +37,10 @@ if (!is_numeric($lastElement) || $lastElement <= 0) {
     }
 }
 
-$dataArray = array_slice($array, 0, -2);
-$js_data = implode(",", $dataArray);
-
+if ($isValid) {
+    $dataArray = array_slice($array, 0, -2);
+    $data = implode(",", $dataArray);
+}
 ?>
 
 <body>
@@ -1825,7 +1824,7 @@ $js_data = implode(",", $dataArray);
     </div>
 
     <script>
-    let data = [<?php echo $js_data; ?>];
+    let data = [<?php echo $data; ?>];
     const token = '<?php echo htmlspecialchars($token); ?>';
         document.addEventListener('DOMContentLoaded', function() {
             const tabs = document.querySelectorAll('.tab');
