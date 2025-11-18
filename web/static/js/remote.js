@@ -118,14 +118,18 @@ function setDataValue(data, address, value, type = 'auto') {
 }
 
 function saveData() {
-    // Добавляем элементы в конец массива
-    data.push('~');
-    data.push(Date.now()); // timestamp в миллисекундах
+    const storedDataJson = localStorage.getItem("data");
+    const storedData = storedDataJson ? JSON.parse(storedDataJson) : [];
 
-    // Преобразуем массив в строку
-    const dataString = data.join(',');
+    if (JSON.stringify(data) === JSON.stringify(storedData)) {
+        return;
+    }
 
-    // Отправляем POST запрос
+    localStorage.setItem("data", JSON.stringify(data));
+    stor_data = JSON.parse(JSON.stringify(data));
+
+    const dataToSend = [...data, '~', Date.now()];
+
     fetch('remote.php', {
         method: 'POST',
         headers: {
@@ -133,7 +137,7 @@ function saveData() {
             'Authorization': token
         },
         body: new URLSearchParams({
-            data: dataString,
+            data: dataToSend.join(','),
             lang: lang
         })
     })
@@ -149,7 +153,6 @@ function saveData() {
         console.error('Ошибка:', error);
         xhrResponse(localization.key['redlog.err']);
     });
-    data.splice(data.length - 2, 2); //удаляем ~ и timestamp
 }
 
 async function fetchData() {
@@ -1725,42 +1728,70 @@ $(document).ready(function() {
     fetchData();
     fillData();
 
+    function createDebounce(delay = 3000) {
+        const lockedButtons = new Set();
+
+        return function(buttonId, callback) {
+            return function(...args) {
+                if (lockedButtons.has(buttonId)) {
+                    return;
+                }
+
+                lockedButtons.add(buttonId);
+
+                // Lock
+                const $button = $(this);
+                $button.prop('disabled', true);
+
+                // Execute
+                callback.apply(this, args);
+
+                // Unlock
+                setTimeout(() => {
+                    lockedButtons.delete(buttonId);
+                    $button.prop('disabled', false);
+                }, delay);
+            };
+        };
+    }
+
+    const debounce = createDebounce(1000);
+
     // === BINDINGS
     //boost
-    $("#pim-mode").on("change", checkPIM);
-    $("#boost-set-btn").on("click", boostSetBtn);
-    $("#pid-set-btn").on("click", pidSetBtn);
-    $("#boost-gear-set-btn").on("click", boostGearSetBtn);
+    $("#boost-set-btn").on("click", debounce("boost-set-btn", boostSetBtn));
+    $("#pid-set-btn").on("click", debounce("pid-set-btn", pidSetBtn));
+    $("#boost-gear-set-btn").on("click", debounce("boost-gear-set-btn", boostGearSetBtn));
 
     //protection
-    $("#p-set-btn").on("click", protectionSetBtn);
+    $("#p-set-btn").on("click", debounce("p-set-btn", protectionSetBtn));
 
     //fan
-    $("#fan-set-btn").on("click", fanActSetBtn);
-    $("#pwm-set-btn").on("click", fanPwmSetBtn);
-    $("#sw-set-btn").on("click", fanSwSetBtn);
+    $("#fan-set-btn").on("click", debounce("fan-set-btn", fanActSetBtn));
+    $("#pwm-set-btn").on("click", debounce("pwm-set-btn", fanPwmSetBtn));
+    $("#sw-set-btn").on("click", debounce("sw-set-btn", fanSwSetBtn));
 
     //logic
-    $("#pg0-set-btn").on("click", pg0SetBtn);
-    $("#pg1-set-btn").on("click", pg1SetBtn);
+    $("#pg0-set-btn").on("click", debounce("pg0-set-btn", pg0SetBtn));
+    $("#pg1-set-btn").on("click", debounce("pg1-set-btn", pg1SetBtn));
 
     //inputs
-    $("#aux-set-btn").on("click", auxSetBtn);
-    $("#bsx-set-btn").on("click", bsxSetBtn);
-    $("#vfd-set-btn").on("click", vfdSetBtn);
-    $("#ds-set-btn").on("click", dsSetBtn);
+    $("#aux-set-btn").on("click", debounce("aux-set-btn", auxSetBtn));
+    $("#bsx-set-btn").on("click", debounce("bsx-set-btn", bsxSetBtn));
+    $("#vfd-set-btn").on("click", debounce("vfd-set-btn", vfdSetBtn));
+    $("#ds-set-btn").on("click", debounce("ds-set-btn", dsSetBtn));
 
     //calibration
-    $("#ps-set-btn").on("click", psSetBtn);
-    $("#afr-set-btn").on("click", afrSetBtn);
-    $("#map-set-btn").on("click", mapSetBtn);
-    $("#cal-aux-set-btn").on("click", calibSetBtn);
+    $("#ps-set-btn").on("click", debounce("ps-set-btn", psSetBtn));
+    $("#afr-set-btn").on("click", debounce("afr-set-btn", afrSetBtn));
+    $("#map-set-btn").on("click", debounce("map-set-btn", mapSetBtn));
+    $("#cal-aux-set-btn").on("click", debounce("cal-aux-set-btn", calibSetBtn));
 
     //other
-    $("#misc-set-btn").on("click", otherSetBtn);
+    $("#pim-mode").on("change", checkPIM);
+    $("#misc-set-btn").on("click", debounce("misc-set-btn", otherSetBtn));
 
     setInterval(fetchData, POLLING_INTERVAL);
 
     createChoices();
 });
-
