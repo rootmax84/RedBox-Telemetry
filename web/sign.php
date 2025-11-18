@@ -4,20 +4,19 @@ require_once 'db.php';
 header('Content-Type: application/json');
 $data = json_decode(file_get_contents('php://input'), true);
 
-if (!isset($data['uid'], $data['id'])) {
+if (!isset($data['uid']) || !isset($data['uid']) && (!isset($data['id']))) {
     http_response_code(400);
     echo json_encode(['error' => 'Missing parameters']);
     exit;
 }
 
 $uid = $data['uid'];
-$id = $data['id'];
-$payload = "uid={$uid}&id={$id}";
 
-if ((int)$uid !== $_SESSION['uid']) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
+if (isset($data['id'])) {
+    $id = $data['id'];
+    $payload = "uid={$uid}&id={$id}";
+} else {
+    $payload = "uid={$uid}";
 }
 
 if (empty($_SESSION['share_secret'])) {

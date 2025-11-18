@@ -4,6 +4,7 @@ const POLLING_INTERVAL = 10000;
 let eop_sensor = null;
 let fp_sensor = null;
 let map_limit = null;
+let cfg_data = [];
 
 function createChoices() {
     document.querySelectorAll('select').forEach(select => {
@@ -22,6 +23,46 @@ function createChoices() {
                 containerInner: ['choices__inner', 'choices__settings__text'],
             },
         });
+    });
+}
+
+function initChoicesSystem() {
+    const MAX_WAIT_TIME = 10000;
+    let timeoutId;
+
+    function cleanup() {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+    }
+
+    function executeCreateChoices() {
+        cleanup();
+        createChoices();
+    }
+
+    if (localStorage.getItem('translations-cache-ru')) {
+        executeCreateChoices();
+        return;
+    }
+
+    timeoutId = setTimeout(() => {
+        console.warn('translations-cache-ru not found in localStorage after timeout');
+        cleanup();
+    }, MAX_WAIT_TIME);
+
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = function(key, value) {
+        originalSetItem.apply(this, arguments);
+        if (key === 'translations-cache-ru') {
+            executeCreateChoices();
+        }
+    };
+
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'translations-cache-ru' && e.newValue) {
+            executeCreateChoices();
+        }
     });
 }
 
@@ -63,6 +104,76 @@ Object.defineProperty($.fn, 'style', {
         };
     }
 });
+
+function checkCfg() {
+    const fileInput = document.getElementById('cfgFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const decodedString = atob(e.target.result);
+            const elements = decodedString.split(',');
+            if (elements.length !== 405 || elements[404] !== '~') {
+                serverError(localization.key['import.broken.el']);
+                $("#cfgFile").value = '';
+                return;
+            }
+
+            cfg_data = elements.slice(0, -1).map(Number);
+
+        } catch (error) {
+            serverError(error.message);
+            $("#cfgFile").value = '';
+        }
+    };
+
+    reader.onerror = function() {
+        serverError();
+        $("#cfgFile").value = '';
+    };
+
+    reader.readAsText(file);
+}
+
+function cfgUpload() {
+    if (!cfg_data.length) return;
+    $("#cfgFile").value = '';
+    data = cfg_data;
+    cfg_data = [];
+    fillData();
+    createChoices();
+    saveData();
+}
+
+function cfgDownload() {
+    const dataToDownload = [...data, '~'];
+
+    for (let i = 394; i < 404; i++) { //Zeroing
+        dataToDownload[i] = 0;
+    }
+
+    if (dataToDownload.length !== 405 || dataToDownload[404] !== "~") {
+        serverError();
+        return;
+    }
+
+    const dataString = btoa(dataToDownload.join(','));
+    const fileName = `rbx_cfg_server_${Date.now()}.b64`;
+    const blob = new Blob([dataString], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 
 function numberToBytesTyped(number, type = 'auto') {
     const types = {
@@ -130,12 +241,17 @@ function saveData() {
 
     const dataToSend = [...data, '~', Date.now()];
 
+    const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    };
+
+    if (typeof token !== 'undefined') {
+        headers['Authorization'] = token;
+    }
+
     fetch('remote.php', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': token
-        },
+        headers: headers,
         body: new URLSearchParams({
             data: dataToSend.join(','),
             lang: lang
@@ -157,12 +273,17 @@ function saveData() {
 
 async function fetchData() {
     try {
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        };
+
+        if (typeof token !== 'undefined') {
+            headers['Authorization'] = token;
+        }
+
         const response = await fetch('remote.php', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization': token
-            },
+            headers: headers,
             body: new URLSearchParams({
                 data: 'fetch',
                 lang: lang
@@ -1791,7 +1912,10 @@ $(document).ready(function() {
     $("#pim-mode").on("change", checkPIM);
     $("#misc-set-btn").on("click", debounce("misc-set-btn", otherSetBtn));
 
-    setInterval(fetchData, POLLING_INTERVAL);
+    //config
+    $("#config-upload-btn").on("click", debounce("config-upload-btn", cfgUpload));
+    $("#config-download-btn").on("click", debounce("config-download-btn", cfgDownload));
 
-    createChoices();
+    initChoicesSystem();
+    setInterval(fetchData, POLLING_INTERVAL);
 });

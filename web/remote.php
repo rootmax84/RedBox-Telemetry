@@ -35,7 +35,8 @@ if (empty($_POST) || empty($data)) {
     exit;
 }
 
-$token = getBearerToken();
+session_start();
+$token = getBearerToken() ?? $_SESSION['remote_token'];
 if (empty($token)) {
     http_response_code(403);
     echo $translations[$lang]['denied'];
