@@ -1825,6 +1825,12 @@ if ($isValid) {
 
     <script>
     let data = [<?php echo $data; ?>];
+    let stor_data = JSON.parse(localStorage.getItem("data") || "[]");
+
+    if (JSON.stringify(data) !== JSON.stringify(stor_data)) {
+        localStorage.setItem("data", JSON.stringify(data));
+        stor_data = JSON.parse(JSON.stringify(data));
+    }
     const token = '<?php echo htmlspecialchars($token); ?>';
         document.addEventListener('DOMContentLoaded', function() {
             const tabs = document.querySelectorAll('.tab');
@@ -1844,12 +1850,12 @@ if ($isValid) {
         });
     </script>
 <?php } else { ?>
-<div id="right-container" class="col-md-auto col-xs-12">
-    <div class="login" style="text-align:center; width:fit-content; margin: 50px auto">
-        <h4 l10n="nodata.show"></h4>
-        <h6 l10n="remote.empty.label"></h6>
-    </div>
-</div>
+        <div id="right-container" class="col-md-auto col-xs-12">
+            <div class="login" style="text-align:center; width:fit-content; margin: 50px auto">
+                <h4 l10n="nodata.show"></h4>
+                <h6 l10n="remote.empty.label"></h6>
+            </div>
+        </div>
 <?php } ?>
 </body>
 </html>
