@@ -105,6 +105,34 @@ Object.defineProperty($.fn, 'style', {
     }
 });
 
+// Check url sig
+async function checkSig() {
+    const urlToCheck = window.location.href;
+    const url = new URL(urlToCheck);
+    const searchParams = url.searchParams;
+
+    //Authorized? go further ...
+    if (!searchParams.has('uid') || !searchParams.has('sig')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(urlToCheck, {
+            method: 'HEAD',
+            cache: 'no-cache'
+        });
+
+        if (response.status === 404) {
+            window.location.href = 'catch.php?c=noshare';
+            throw new Error('Signature invalid');
+        }
+    } catch (error) {
+        console.error('Sig check error:', error);
+        window.location.href = 'catch.php?c=noshare';
+        throw error;
+    }
+}
+
 function checkCfg() {
     const fileInput = document.getElementById('cfgFile');
     const file = fileInput.files[0];
@@ -1853,25 +1881,28 @@ $(document).ready(function() {
         const lockedButtons = new Set();
 
         return function(buttonId, callback) {
-            return function(...args) {
+            return async function(...args) {
                 if (lockedButtons.has(buttonId)) {
                     return;
                 }
 
-                lockedButtons.add(buttonId);
-
                 // Lock
+                lockedButtons.add(buttonId);
                 const $button = $(this);
                 $button.prop('disabled', true);
 
-                // Execute
-                callback.apply(this, args);
+                try {
+                    await checkSig();
+                    // Execute
+                    await callback.apply(this, args);
 
-                // Unlock
-                setTimeout(() => {
-                    lockedButtons.delete(buttonId);
-                    $button.prop('disabled', false);
-                }, delay);
+                } finally {
+                    // Unlock
+                    setTimeout(() => {
+                        lockedButtons.delete(buttonId);
+                        $button.prop('disabled', false);
+                    }, delay);
+                }
             };
         };
     }
