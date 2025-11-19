@@ -310,7 +310,7 @@ if (isset($sids[0])) {
   <div class="favorite" onClick="addToFavorite()" style="right:<?php echo ($limit < 0) ? '100px' : '130px'; ?>"></div>
   <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '130px' : '160px'; ?>"></a>
   <div class="live" style="right:<?php echo ($limit < 0) ? '160px' : '190px'; ?>"></div>
-  <?php } else { ?>
+  <?php } elseif (!isset($_SESSION['admin'])) { ?>
   <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></a>
   <?php } ?>
   <div class="container">
