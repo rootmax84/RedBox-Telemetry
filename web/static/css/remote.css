@@ -102,9 +102,16 @@
     display: none;
     background-color: #fff;
     margin-top: 20px;
+    transition-behavior: allow-discrete;
+    transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out, display .25s;
+    opacity: 0;
+    transform: translateY(-10px);
+    display: none;
 }
 
 .tab-content.active {
+    opacity: 1;
+    transform: translateY(0);
     display: block;
 }
 
@@ -491,5 +498,12 @@ input:checked + .slider:before {
 
     .container-remote {
         padding: 55px 10px 20px;
+    }
+}
+
+@starting-style {
+    .tab-content.active {
+        opacity: 0;
+        transform: translateY(-10px);
     }
 }
