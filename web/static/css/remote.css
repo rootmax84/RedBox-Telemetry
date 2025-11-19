@@ -3,16 +3,15 @@
     min-width: 450px;
     margin: 0 auto;
     padding: 65px 20px 20px;
-    filter: drop-shadow(1px 1px 2px #0000004D);
 }
 
 .tabs {
     display: flex;
     background-color: #fff;
-    border-radius: 8px 8px 0 0;
+    border-radius: 10px;
     overflow: hidden;
     border: 1px solid #aaa9;
-    border-bottom: none;
+    box-shadow: 1px 1px 4px 1px rgba(2,2,2,.1);
 }
 
 .tab {
@@ -55,6 +54,14 @@
     flex-shrink: 0;
 }
 
+.tab.active:first-child {
+    border-radius: 10px 0 0 10px;
+}
+
+.tab.active:last-child {
+    border-radius: 0 10px 10px 0;
+}
+
 .tab[data-tab="boost"]::before {
     mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0Ij48ZyBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik03IDEzYTQgNCAwIDEgMCA4IDBhNCA0IDAgMSAwLTggMCIvPjxwYXRoIGQ9Ik0xOC44NiAxMWMuMDg4LjY2LjE0IDEuNTEyLjE0IDJhOCA4IDAgMSAxLTgtOGg2Ii8+PHBhdGggZD0iTTExIDljMi40ODkuMTA4IDQuNDg5LjEwOCA2IDBtMC01YTEgMSAwIDAgMSAxLTFoMmExIDEgMCAwIDEgMSAxdjZhMSAxIDAgMCAxLTEgMWgtMmExIDEgMCAwIDEtMS0xem0tNiA5bC0zLjUtMS41TTExIDEzbDIuNSAzbS01IDBsMi41LTNtMCAwbDMuNS0xLjVNMTEgOXY0Ii8+PC9nPjwvc3ZnPg==");
 }
@@ -94,9 +101,7 @@
 .tab-content {
     display: none;
     background-color: #fff;
-    padding: 20px;
-    border-radius: 0 0 8px 8px;
-    border: 1px solid #aaa9;
+    margin-top: 20px;
 }
 
 .tab-content.active {
@@ -105,7 +110,7 @@
 
 .card-remote {
     background-color: #fff;
-    border-radius: 20px;
+    border-radius: 10px;
     padding: 5px 15px 0;
     margin-bottom: 20px;
     border: 1px dashed #a9a9a9;
@@ -363,6 +368,7 @@ input:checked + .slider:before {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
+    font-weight: normal;
 }
 
 .popup-target:hover .popup {
@@ -425,12 +431,25 @@ input:checked + .slider:before {
         border-bottom: 1px solid #ababab;
     }
 
+    .tab:last-child {
+        border-bottom: 1px solid transparent;
+    }
+
     .tab.active {
-        border-bottom: 1px dashed #961911cc;
+        border-bottom: 1px solid #961911cc;
+        border-radius: 0;
+    }
+
+    .tab.active:last-child {
+        border-bottom: 1px solid transparent;
     }
 
     .tab::before {
         margin-left: 5px;
+    }
+
+    .tab.active:first-child {
+        border-radius: 0;
     }
 
     .remote-table td,

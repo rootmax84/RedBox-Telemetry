@@ -380,7 +380,6 @@ async function fetchData() {
             return null;
         }
     } catch (error) {
-        xhrResponse(`Fetch error: ' ${error}`);
         console.error('Fetch error:', error);
         return null;
     }

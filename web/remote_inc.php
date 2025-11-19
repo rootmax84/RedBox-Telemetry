@@ -1380,7 +1380,7 @@
                         <tbody>
                             <tr>
                                 <th colspan="2" class="popup-target"><span l10n="calibration.ntc.input.label"></span><div class="popup popup-hidden"><span l10n="calibration.ntc.input.description"></span></div></th>
-                                <td>
+                                <th style="font-weight:normal">
                                     <select id="aux-in" class="remote-button" onchange="select_aux(); step();">
                                         <option value="" disabled="">...</option>
                                         <option value="0" selected="">AUX0</option>
@@ -1389,7 +1389,7 @@
                                         <option value="3">AUX3</option>
                                         <option value="4">AUX4</option>
                                     </select>
-                                </td>
+                                </th>
                             </tr>
                             <tr>
                                 <th></th>
