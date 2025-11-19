@@ -25,7 +25,6 @@ if (isset($_GET['uid'], $_GET['sig'])) {
 
     if ($user_data) {
         $share_secret = $user_data['share_secret'];
-        $gap = $user_data['gap'];
         $mcu_data = $user_data['mcu_data'];
         $user_time = $user_data['time'];
         $token = $user_data['token'];
