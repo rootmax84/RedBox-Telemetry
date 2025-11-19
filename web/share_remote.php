@@ -15,7 +15,7 @@ require_once 'timezone.php';
 if (isset($_GET['uid'], $_GET['sig'])) {
     $uid = $_GET['uid'];
     $sig = $_GET['sig'];
-    $userqry = $db->execute_query("SELECT token, mcu_data, time, share_secret FROM $db_users WHERE id=?", [$uid]);
+    $userqry = $db->execute_query("SELECT token, mcu_data, time, share_secret, s FROM $db_users WHERE id=?", [$uid]);
     if ($userqry->num_rows) {
         $user_data = $userqry->fetch_assoc();
     } else {
@@ -29,6 +29,7 @@ if (isset($_GET['uid'], $_GET['sig'])) {
         $mcu_data = $user_data['mcu_data'];
         $user_time = $user_data['time'];
         $token = $user_data['token'];
+        $blocked = $user_data['s'];
     }
 
     setcookie('timeformat', $user_time);

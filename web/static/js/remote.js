@@ -107,6 +107,7 @@ Object.defineProperty($.fn, 'style', {
 
 // Check url sig
 async function checkSig() {
+    if (blocked) return;
     const urlToCheck = window.location.href;
     const url = new URL(urlToCheck);
     const searchParams = url.searchParams;
@@ -257,6 +258,7 @@ function setDataValue(data, address, value, type = 'auto') {
 }
 
 function saveData() {
+    if (blocked) return;
     const storedDataJson = localStorage.getItem("data");
     const storedData = storedDataJson ? JSON.parse(storedDataJson) : [];
 
@@ -301,6 +303,7 @@ function saveData() {
 
 async function fetchData() {
     try {
+        if (blocked) return;
         const headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         };
