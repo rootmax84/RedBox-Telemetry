@@ -99,7 +99,6 @@
 }
 
 .tab-content {
-    display: none;
     background-color: #fff;
     margin-top: 20px;
     transition-behavior: allow-discrete;
