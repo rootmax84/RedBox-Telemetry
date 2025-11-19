@@ -1818,7 +1818,7 @@
     <script>
     let data = [<?php echo $data; ?>];
     let stor_data = JSON.parse(localStorage.getItem("data") || "[]");
-    const blocked = <?php echo $blocked; ?> === 0 ? true : false;
+    const blocked = <?php echo ($blocked ?? -1) === 0 ? 'true' : 'false'; ?>;
 
     if (JSON.stringify(data) !== JSON.stringify(stor_data)) {
         localStorage.setItem("data", JSON.stringify(data));
