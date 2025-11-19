@@ -29,9 +29,7 @@ html,body {
 }
 
 #right-container {
-  padding-top: 70px;
-  padding-right: 25px;
-  padding-left: 25px;
+  padding: 65px 20px 20px;
 }
 
 .row.right-row {
