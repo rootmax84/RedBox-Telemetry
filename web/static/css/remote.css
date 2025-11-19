@@ -467,4 +467,8 @@ input:checked + .slider:before {
     .hide {
         display: none;
     }
+
+    .container-remote {
+        padding: 55px 10px 20px;
+    }
 }
