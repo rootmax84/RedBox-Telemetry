@@ -8,12 +8,12 @@
     <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
         <div class="new-session"><a href='.' l10n='sess.new'></a></div>
     <?php } ?>
-    <?php if (!$uid) { ?>
+    <?php if (!isset($uid)) { ?>
         <div class="share-img" onClick="shareRemote()" style="right:40px"></div>
     <?php } ?>
             <div class="container">
               <div id="theme-switch"></div>
-    <?php if ($uid) { ?>
+    <?php if (isset($uid)) { ?>
                 <div class="login-lang" id="lang-switch" style="position:absolute;top:10px;right:40px">
                     <div class="selected-lang" id="selected-lang" style="width:24px;height:24px;color:#5d5d5d"></div>
                       <ul class="lang-options" id="lang-options" style="background:#fff">
@@ -25,7 +25,7 @@
                 </div>
     <?php } ?>
                 <div class="navbar-header">
-    <?php if (!$uid) { ?>
+    <?php if (!isset($uid)) { ?>
                  <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
     <?php } else { ?>
                  <a class="navbar-brand" href="#" style="cursor:default"><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
@@ -51,7 +51,7 @@
             <button class="tab" data-tab="inputs" l10n="rem.inputs">...
                 <span class="tab-text"></span>
             </button>
-            <button class="tab" data-tab="calibration" l10n="rem.calibration">....
+            <button class="tab" data-tab="calibration" l10n="rem.calibration">...
                 <span class="tab-text"></span>
             </button>
             <button class="tab" data-tab="other" l10n="rem.other">...
@@ -1840,7 +1840,7 @@
                 document.getElementById(tabId).classList.add('active');
             });
         });
-    <?php if ($uid) { ?>
+    <?php if (isset($uid)) { ?>
         const langSwitch = document.getElementById('lang-switch');
         const selectedLang = document.getElementById('selected-lang');
         const langOptions = document.getElementById('lang-options');
@@ -1867,7 +1867,6 @@
               fetch(`translations.php?lang=${selectedValue}`)
                 .then(() => {
                     localization.setLang(selectedValue);
-                    location.reload();
                 })
                 .catch(error => {
                   console.error('Error:', error);
@@ -1907,7 +1906,7 @@
         }
     });
 
-    <?php if (!$uid) { ?>
+    <?php if (!isset($uid)) { ?>
     function shareRemote() {
       const uid = "<?php echo $_SESSION['uid']; ?>";
       $(".fetch-data").css("display", "block");
