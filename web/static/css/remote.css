@@ -3,6 +3,7 @@
     min-width: 450px;
     margin: 0 auto;
     padding: 65px 20px 20px;
+    filter: drop-shadow(1px 1px 2px #0000004D);
 }
 
 .tabs {
@@ -107,6 +108,7 @@
     border-radius: 20px;
     padding: 5px 15px 0;
     margin-bottom: 20px;
+    border: 1px dashed #a9a9a9;
     border-left: 3px solid #961911cc;
 }
 
@@ -339,7 +341,7 @@ input:checked + .slider:before {
  
 .cntr {
     text-align: center;
-    margin-top: 20px;
+    padding: 20px;
 }
 
 .popup-target {

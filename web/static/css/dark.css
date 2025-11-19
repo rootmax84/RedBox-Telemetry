@@ -101,3 +101,7 @@ html {
 input:checked + .slider {
   filter: invert(1) hue-rotate(180deg);
 }
+
+.container-remote {
+  filter: drop-shadow(0 0 #0000);
+}
