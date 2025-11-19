@@ -48,7 +48,7 @@ include 'head.php';
         <?php
         }
         elseif ($_GET['c'] == "noshare") { ?>
-            <script>setTimeout(()=>{location.href='.'}, 5000);</script>
+            <script>setTimeout(()=>{location.href='.?logout=true'}, 5000);</script>
             <h4 l10n='catch.noshare'></h4>
         <?php
         }

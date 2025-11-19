@@ -17,7 +17,7 @@
          <div class="storage-usage-img" onclick></div>
          <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
     <?php } ?>
-         <div class="remote-img" onClick="location.href='users_remote.php'"  style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></div>
+         <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></a>
             <div class="container">
               <div id="theme-switch"></div>
                 <div class="navbar-header">
