@@ -74,7 +74,7 @@ if (isset($_GET['uid'], $_GET['sig'])) {
     exit;
 
 } if ($uid) {
-    if (!hash_equals($expected_sig, $sig)) {
+    if (!hash_equals($expected_sig, $sig) || $blocked === 0) {
         header('Location: catch.php?c=noshare');
         exit;
     } else {
