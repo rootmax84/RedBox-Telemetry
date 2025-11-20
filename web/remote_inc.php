@@ -1,14 +1,14 @@
 <body>
+        <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
     <?php if ($isValid) { ?>
         <script src="<?php echo version_url('static/js/remote.js'); ?>"></script>
-    <?php } ?>
-        <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <div class="fetch-data" style="display:block"></div>
         <div class="timestamp" id="timestamp">...</div>
+    <?php } ?>
     <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
         <div class="new-session"><a href='.' l10n='sess.new'></a></div>
     <?php } ?>
-    <?php if (!isset($uid)) { ?>
+    <?php if (!isset($uid) && $isValid) { ?>
         <div class="share-img" onClick="shareRemote()" style="right:40px"></div>
     <?php } ?>
             <div class="container">
