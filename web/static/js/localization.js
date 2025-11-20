@@ -1,4 +1,5 @@
 let localization, lang;
+let l10n_loaded = false;
 
 class Localization {
     constructor() {
@@ -122,6 +123,7 @@ class Localization {
                 element.placeholder = translation;
             }
         });
+        l10n_loaded = true;
     }
 
     clearCache() {

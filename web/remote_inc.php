@@ -3,7 +3,7 @@
         <script src="<?php echo version_url('static/js/remote.js'); ?>"></script>
     <?php } ?>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
-        <div class="fetch-data"></div>
+        <div class="fetch-data" style="display:block"></div>
         <div class="timestamp" id="timestamp">...</div>
     <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
         <div class="new-session"><a href='.' l10n='sess.new'></a></div>
@@ -1826,6 +1826,13 @@
     }
     const token = '<?php echo htmlspecialchars($token); ?>';
     document.addEventListener('DOMContentLoaded', function() {
+        const interval = setInterval(() => {
+            if (l10n_loaded) {
+                $('.container-remote').css('display', 'block');
+                $('.fetch-data').css('display', 'none');
+                clearInterval(interval);
+            }
+        }, 100);
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
 
