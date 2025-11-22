@@ -43,12 +43,13 @@ if (empty($user) || empty($pass)) {
 
 $_SESSION['torque_logged_in'] = true;
 require_once 'auth_functions.php';
+require_once 'db.php';
 
 $db = get_db_connection();
 global $db_users;
 
 // Check user presence
-$userqry = $db->execute_query("SELECT user, pass, token, s FROM $db_users WHERE user=?", [$user]);
+$userqry = $db->execute_query("SELECT user, pass, s FROM $db_users WHERE user=?", [$user]);
 if ($userqry->num_rows === 0) {
     http_response_code(401);
     echo $translations[$lang]['catch.loginfailed'];
@@ -79,15 +80,19 @@ if (!password_verify($pass, $row['pass'])) {
     exit;
 }
 
-// Token presence
-if ($row['token'] === NULL) {
-    http_response_code(406);
-    echo $translations[$lang]['gen_token'];
+// Generate new token
+$token = generate_token($user);
+try {
+    $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [$token, $user]);
+    cache_flush($token);
+} catch(Exception $e) {
+    http_response_code(500);
+    echo $translations[$lang]['dialog.token.err.msg'];
     exit;
 }
 
 // Success
 update_login_attempts($user, true);
-echo $row['token'];
+echo $token;
 
 $db->close();
