@@ -414,12 +414,13 @@ input:checked + .slider:before {
 }
 
 .timestamp {
-    width: fit-content;
+    width: 140px;
     opacity: .5;
     position: absolute;
     right: 70px;
-    margin: 14px auto;
+    margin: 4px auto;
     font-family: monospace;
+    text-align: center;
 }
 
 .collision {

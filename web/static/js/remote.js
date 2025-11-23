@@ -181,10 +181,6 @@ function cfgUpload() {
 function cfgDownload() {
     const dataToDownload = [...data, '~'];
 
-    for (let i = 394; i < 404; i++) { //Zeroing
-        dataToDownload[i] = 0;
-    }
-
     if (dataToDownload.length !== 405 || dataToDownload[404] !== "~") {
         serverError();
         return;
@@ -362,7 +358,7 @@ async function fetchData() {
                 hour12: $.cookie('timeformat') == '12'
             });
             date_res = date_res.replace(/-/g, '.').replace(', ', ' ');
-            $("#timestamp").html(date_res);
+            $("#timestamp").html(`${localization.key['remote.last.change']} ${date_res}`);
             
             data.splice(data.length - 2, 2); //удаляем ~ и timestamp
             
