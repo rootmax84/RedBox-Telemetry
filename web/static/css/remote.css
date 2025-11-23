@@ -367,10 +367,9 @@ input:checked + .slider:before {
     padding: 10px;
     border-radius: 4px;
     font-size: 12px;
-    width: 200px;
     z-index: 10;
     bottom: 100%;
-    left: 75%;
+    left: 50%;
     transform: translateX(-50%);
     opacity: 0;
     pointer-events: none;
