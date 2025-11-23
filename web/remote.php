@@ -64,7 +64,7 @@ if ($s === 0) {
 }
 
 if ($data === 'fetch') {
-    if (strlen($mcu_data) < 900) {
+    if (strlen($mcu_data) < 824) {
         http_response_code(204);
         exit;
     }
