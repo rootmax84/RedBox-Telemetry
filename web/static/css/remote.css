@@ -466,32 +466,6 @@ input:checked + .slider:before {
 }
 
 @media screen and (max-width: 560px) {
-    .popup-target {
-        position: static;
-    }
-
-    .popup {
-        position: fixed !important;
-        bottom: auto;
-        top: 60px;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: auto;
-        max-width: 90vw;
-        z-index: 9999;
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    .popup-target:hover .popup {
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-    .popup:after {
-        display: none;
-    }
-
     .hide {
         display: none;
     }
