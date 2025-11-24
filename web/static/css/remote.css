@@ -414,7 +414,7 @@ input:checked + .slider:before {
 }
 
 .timestamp {
-    width: 140px;
+    width: 150px;
     opacity: .5;
     position: absolute;
     right: 70px;
