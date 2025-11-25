@@ -242,7 +242,8 @@ for ($f = 0; $f < count($files); $f++) {
 
 cache_flush();
 
-echo $ok . " " . $translations[$_COOKIE['lang']]['redlog.upload.ok'];
+echo ($_COOKIE['lang'] === 'ru') ? $ok . " " . getPluralForm($ok, $translations[$_COOKIE['lang']]['redlog.upload.ok']) : $ok . " " . $translations[$_COOKIE['lang']]['redlog.upload.ok'];
+
 $db->close();
 
 } catch (TypeError $e) {

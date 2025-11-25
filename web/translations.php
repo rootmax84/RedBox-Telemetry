@@ -635,10 +635,14 @@ $translations = [
         'redlog.warn.count' => 'Принимается до 10 файлов за одно время!',
         'redlog.err' => 'Ошибка сервера!',
         'redlog.warn.size' => 'слишком большой!',
-        'redlog.nospace' => 'Недостаточно места или файл(ы) слишком большой!',
+        'redlog.nospace' => 'Недостаточно места или файлы слишком большие!',
         'redlog.broken' => 'поврежден или пустой!',
         'redlog.dup' => 'является дубликатом!',
-        'redlog.upload.ok' => 'файл(ы) успешно загружены',
+        'redlog.upload.ok' => [
+            'one' => 'файл успешно загружен',
+            'few' => 'файла успешно загружены',
+            'many' => 'файлов успешно загружено',
+        ],
         'layer.map' => 'Карта',
         'layer.sat' => 'Спутник',
         'set.common.updated' => 'Настройки обновлены',
@@ -1886,6 +1890,21 @@ $translations = [
         'btn.download' => 'Herunterladen',
     ],
 ];
+
+function getPluralForm($number, $forms) {
+    if (!is_array($forms)) {
+        return $forms;
+    }
+
+    $n = abs($number) % 100;
+    $n1 = $n % 10;
+
+    if ($n > 10 && $n < 20) return $forms['many'];
+    if ($n1 > 1 && $n1 < 5) return $forms['few'];
+    if ($n1 == 1) return $forms['one'];
+
+    return $forms['many'];
+}
 
 if (isset($_GET['l10n'])) {
     header('Content-Type: application/json');
