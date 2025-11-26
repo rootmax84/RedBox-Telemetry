@@ -256,35 +256,42 @@ if (sizeof($_REQUEST) > 0) {
         cache_flush();
       }
     }
+
     $sesskeys[] = 'timeend';
     $sessvalues[] = $sesstime;
     $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).") VALUES (".quote_values($sessvalues).") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
-    $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
 
-    if ($submitval == 2) { //Profile info
-        $updateFields = [];
-        $params = [];
+    if ($submitval == 2) { // Profile info
+        $db->begin_transaction();
+        try {
+            $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
 
-        foreach ($spv as $field => $value) {
-            if ($value !== '') {
-                $updateFields[] = "$field = ?";
-                $params[] = $value;
+            $updateFields = [];
+            $params = [];
+
+            foreach ($spv as $field => $value) {
+                if ($value !== '') {
+                    $updateFields[] = "$field = ?";
+                    $params[] = $value;
+                }
             }
-        }
 
-        if (!empty($updateFields)) {
-            $updateFields[] = "ip = ?";
-            $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
-            $params[] = $ip;
+            if (!empty($updateFields)) {
+                $updateFields[] = "ip = ?";
+                $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+                $params[] = $ip;
 
-            $updateFields[] = "timeend = ?";
-            $timeend = round(microtime(true) * 1000);
-            $params[] = $timeend;
+                $updateFields[] = "timeend = ?";
+                $timeend = round(microtime(true) * 1000);
+                $params[] = $timeend;
 
-            $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
-            $params[] = $sessuploadid;
+                $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
+                $params[] = $sessuploadid;
 
-            $db->execute_query($sql, $params);
+                $db->execute_query($sql, $params);
+            }
+
+            $db->commit();
 
             $delay = time() - intval($sessuploadid / 1000);
             if ($delay > 10) {
@@ -298,7 +305,13 @@ if (sizeof($_REQUEST) > 0) {
             }
             touch(sys_get_temp_dir().'/'.$username); // Create empty file in tmp to get new session notify on frontend
             notify($message, $tg_token, $tg_chatid); // Notify to user telegram bot at session start
+
+        } catch (Exception $e) {
+            $db->rollback();
+            error_log("Profile transaction error: " . $e->getMessage());
         }
+    } else { //Update session info
+        $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
     }
   }
 }
