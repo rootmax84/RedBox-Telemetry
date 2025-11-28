@@ -1871,12 +1871,11 @@ function updateSessionDuration() {
   ].join(':');
 
   const durationText = localization?.key?.['get.sess.length'];
-  const currSessionText = localization?.key?.['get.sess.curr'];
 
-  $(`.choices__item:contains("${currSessionText}")`).text((i, oldText) =>
-    oldText.replace(
-      /\((?:[^\s()]+ )?\d{2}:\d{2}:\d{2}\)/,
-      `(${durationText} ${durationStr})`
+  $(`.choices__item:has(svg)`).html((i, oldHtml) =>
+    oldHtml.replace(
+        /\((?:[^\s()]+ )?\d{2}:\d{2}:\d{2}\)/,
+        `(${durationText} ${durationStr})`
     )
   );
 
