@@ -34,7 +34,6 @@ services:
         volumes:
             - ./web:/var/www/html
             - ./docker/web/99-ratel.conf:/etc/nginx/custom.d/99-ratel.conf:ro
-            - /etc/timezone:/etc/timezone:ro
             - /etc/localtime:/etc/localtime:ro
         ports:
             - 8080:80
