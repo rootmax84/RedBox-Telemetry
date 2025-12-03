@@ -1825,13 +1825,7 @@
     }
     const token = '<?php echo htmlspecialchars($token); ?>';
     document.addEventListener('DOMContentLoaded', function() {
-        const interval = setInterval(() => {
-            if (l10n_loaded) {
-                $('.container-remote').css('display', 'block');
-                $('.fetch-data').css('display', 'none');
-                clearInterval(interval);
-            }
-        }, 100);
+        $('.fetch-data').css('display', 'none');
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
 

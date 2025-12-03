@@ -1,5 +1,4 @@
 let localization, lang;
-let l10n_loaded = false;
 
 class Localization {
     constructor() {
@@ -9,6 +8,7 @@ class Localization {
         this.currentLang = localStorage.getItem('language') || defaultLang;
         this.translations = {};
         this.cacheKey = 'translations-cache';
+        this.showSkeletonLoaders();
         this.loadTranslations();
         lang = this.currentLang;
         document.documentElement.lang = lang;
@@ -33,6 +33,7 @@ class Localization {
             }
         } catch (error) {
             console.error('Error loading translations:', error);
+            this.hideSkeletonLoaders();
         }
     }
 
@@ -67,6 +68,7 @@ class Localization {
             this.updateContent();
         } catch (error) {
             console.error('Error fetching and caching translations:', error);
+            this.hideSkeletonLoaders();
         }
     }
 
@@ -77,6 +79,8 @@ class Localization {
         }
 
         document.documentElement.lang = lang;
+        this.showSkeletonLoaders();
+
         const keysToRemove = Object.keys(localStorage).filter(key => key.startsWith('translations-'));
         keysToRemove.forEach(key => localStorage.removeItem(key));
 
@@ -93,7 +97,94 @@ class Localization {
         return this.translations[key];
     }
 
+    showSkeletonLoaders() {
+        const elements = document.querySelectorAll('[l10n]');
+        elements.forEach(element => {
+            const key = element.getAttribute('l10n');
+
+            const originalContent = element.innerHTML;
+            if (!element.hasAttribute('data-original-content')) {
+                element.setAttribute('data-original-content', originalContent);
+            }
+
+            const skeleton = document.createElement('span');
+            skeleton.className = 'l10n-skeleton';
+            skeleton.style.cssText = `
+                min-width: ${Math.min(100, key.length * 10)}px;
+                height: 1em;
+            `;
+
+            skeleton.textContent = ' '.repeat(Math.max(3, key.length));
+
+            element.innerHTML = '';
+            element.appendChild(skeleton);
+        });
+
+        const placeholderElements = document.querySelectorAll('[l10n-placeholder]');
+        placeholderElements.forEach(element => {
+            const key = element.getAttribute('l10n-placeholder');
+
+            if (!element.hasAttribute('data-original-placeholder')) {
+                const originalPlaceholder = element.placeholder || '';
+                element.setAttribute('data-original-placeholder', originalPlaceholder);
+            }
+
+            element.placeholder = ' '.repeat(Math.max(3, key.length));
+
+            element.classList.add('l10n-placeholder-skeleton');
+        });
+
+        this.addSkeletonStyles();
+    }
+
+    addSkeletonStyles() {
+        if (!document.getElementById('l10n-skeleton-styles')) {
+            const style = document.createElement('style');
+            style.id = 'l10n-skeleton-styles';
+            style.textContent = `
+                :root {
+                    --skeleton-back: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%) !important;
+                }
+
+                .l10n-skeleton {
+                    display: flex !important;
+                    background: var(--skeleton-back);
+                    border-radius: 3px !important;
+                }
+
+                .l10n-placeholder-skeleton::placeholder {
+                    background: var(--skeleton-back);
+                    border-radius: 3px !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    hideSkeletonLoaders() {
+        const skeletonElements = document.querySelectorAll('.l10n-skeleton');
+        skeletonElements.forEach(skeleton => {
+            skeleton.remove();
+        });
+
+        const elements = document.querySelectorAll('[l10n][data-original-content]');
+        elements.forEach(element => {
+            const originalContent = element.getAttribute('data-original-content');
+            element.innerHTML = originalContent;
+            element.removeAttribute('data-original-content');
+        });
+
+        const placeholderElements = document.querySelectorAll('[l10n-placeholder].l10n-placeholder-skeleton');
+        placeholderElements.forEach(element => {
+            const originalPlaceholder = element.getAttribute('data-original-placeholder');
+            element.placeholder = originalPlaceholder || '';
+            element.classList.remove('l10n-placeholder-skeleton');
+            element.removeAttribute('data-original-placeholder');
+        });
+    }
+
     updateContent() {
+        this.hideSkeletonLoaders();
         const elements = document.querySelectorAll('[l10n]');
         elements.forEach(element => {
             const key = element.getAttribute('l10n');
@@ -123,7 +214,6 @@ class Localization {
                 element.placeholder = translation;
             }
         });
-        l10n_loaded = true;
     }
 
     clearCache() {
