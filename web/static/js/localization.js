@@ -170,7 +170,7 @@ class Localization {
         const elements = document.querySelectorAll('[l10n][data-original-content]');
         elements.forEach(element => {
             const originalContent = element.getAttribute('data-original-content');
-            element.textContent = originalContent;
+            element.innerHTML = originalContent;
             element.removeAttribute('data-original-content');
         });
 
