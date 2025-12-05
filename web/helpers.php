@@ -495,6 +495,8 @@ $valid_months = [
 ];
 
 function sanitizeInput($input, string $type = 'string') {
+    global $year;
+
     if ($input === null) {
         return null;
     }
