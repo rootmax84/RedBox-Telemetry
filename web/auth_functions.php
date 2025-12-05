@@ -63,7 +63,7 @@ function check_login_attempts($user) {
         return true;
     }
 
-    $result = $db->execute_query("SELECT login_attempts, last_attempt FROM $db_users WHERE user=?", [$user]);
+    $result = $db->execute_query("SELECT login_attempts, UNIX_TIMESTAMP(last_attempt) as last_attempt FROM $db_users WHERE user=?", [$user]);
 
     if (!$result || !$result->num_rows) {
         return true;
@@ -72,7 +72,7 @@ function check_login_attempts($user) {
     $row = $result->fetch_assoc();
 
     if (isset($row['login_attempts']) && isset($row['last_attempt'])) {
-        if ($row['login_attempts'] >= 5 && (time() - strtotime($row['last_attempt'])) < 300) {
+        if ($row['login_attempts'] >= 5 && (time() - $row['last_attempt']) < 300) {
             return false; // Blocked
         }
     }
