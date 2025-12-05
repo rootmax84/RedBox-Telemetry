@@ -238,6 +238,7 @@ canvas *{
   min-width: 300px;
   max-width: fit-content;
   background-color: #fff;
+  background-color: #ffffffde;
   position: relative;
   z-index: 1;
 }
@@ -248,6 +249,10 @@ canvas *{
   zoom: 1.1;
   transition: .5s;
   opacity: 0;
+}
+
+.login-form-main {
+  border-radius: .5em 2em;
 }
 
 input[type=text]:disabled {
@@ -1378,6 +1383,8 @@ input[type="checkbox"]:disabled:checked::after {
 @media screen and (max-width: 720px) {
     .login-form {
         min-width: 90%;
+        box-shadow: none;
+        background: transparent;
     }
     .login-background {
         background: url(../img/bkg.avif) no-repeat;

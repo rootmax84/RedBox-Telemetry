@@ -39,7 +39,7 @@ if (!$logged_in) {
     include 'head.php';
     ?>
     <body style="display:flex; justify-content:center; align-items:center; height:100vh">
-    <div class="login login-form" id="login-form">
+    <div class="login login-form login-form-main" id="login-form">
         <div class="login-lang" id="lang-switch">
           <div class="selected-lang" id="selected-lang"></div>
           <ul class="lang-options" id="lang-options">
