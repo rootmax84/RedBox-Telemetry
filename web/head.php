@@ -35,7 +35,6 @@ function version_url($url) {
 <meta name="csrf-token-expiry" content="<?php echo $_SESSION['csrf_token_time'] + 3300; ?>">
 <meta name="theme-color" content="#1a1a1a">
 <meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=0.8">
 <title>RedBox Telemetry</title>
 <meta name="description" content="RedBox Telemetry">
