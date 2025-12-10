@@ -178,6 +178,15 @@ $allowedProfileFields = [
     'profileName'
 ];
 
+// bulk insert config
+$bulk_config = [
+    'enabled' => $memcached_connected, // if memcached available
+    'buffer_size' => 10,
+    'buffer_ttl' => 5,
+    'table' => $db_table,
+    'username' => $username
+];
+
 // Iterate over all the k* _GET arguments to check that a field exists
 if (sizeof($_REQUEST) > 0) {
   $keys = [];
@@ -249,12 +258,19 @@ if (sizeof($_REQUEST) > 0) {
   if ((sizeof($rawkeys) === sizeof($rawvalues)) && sizeof($rawkeys) > 0 && (sizeof($sesskeys) === sizeof($sessvalues)) && sizeof($sesskeys) > 0) {
     // Now insert the data for all the fields into the raw logs table
     if ($submitval == 1) {
-      $sql = "INSERT IGNORE INTO $db_table (".quote_names($rawkeys).") VALUES (".quote_values($rawvalues).")";
-      try {
-        $db->query($sql);
-      } catch (Exception $e) {
-        cache_flush();
-      }
+        // if bulk insert enabled, use buffer
+        if ($bulk_config['enabled']) {
+            $bulk_inserted = handle_bulk_insert($bulk_config, $rawkeys, $rawvalues, $db, $memcached);
+
+            // if buffer overflow and flush
+            if (!$bulk_inserted) {
+                // single insert
+                insert_single_record($db, $db_table, $rawkeys, $rawvalues);
+            }
+        } else {
+            // standart insert if memcached unavailable
+            insert_single_record($db, $db_table, $rawkeys, $rawvalues);
+        }
     }
 
     $sesskeys[] = 'timeend';

@@ -536,3 +536,99 @@ function sanitizeInput($input, string $type = 'string') {
             return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
     }
 }
+
+/**
+ * bulk insert raw data with memcached buffer
+ */
+function handle_bulk_insert(array $config, array $keys, array $values, mysqli $db, Memcached $memcached) {
+    $cache_key = "bulk_buffer_" . $config['username'] . "_" . $config['table'];
+
+    // get buffer
+    $buffer = $memcached->get($cache_key);
+    if ($buffer === false) {
+        $buffer = [
+            'keys' => $keys,
+            'records' => [],
+            'count' => 0,
+            'created_at' => time()
+        ];
+    }
+
+    // insert record into buffer
+    $buffer['records'][] = $values;
+    $buffer['count']++;
+
+    // if buffer outdated or full - insert it
+    if ($buffer['count'] >= $config['buffer_size'] || (time() - $buffer['created_at']) >= $config['buffer_ttl']) {
+        return flush_bulk_buffer($buffer, $config, $db, $memcached, $cache_key);
+    } else {
+        // save updated buffer
+        $memcached->set($cache_key, $buffer, $config['buffer_ttl']);
+        return true; // record added into buffer
+    }
+}
+
+/**
+ * flush buffer into database
+ */
+function flush_bulk_buffer(array $buffer, array $config, mysqli $db, Memcached $memcached, string $cache_key) {
+    if (empty($buffer['records'])) {
+        $memcached->delete($cache_key);
+        return false;
+    }
+
+    try {
+        // Forming bulk insert query
+        $placeholders = [];
+        $all_values = [];
+
+        foreach ($buffer['records'] as $record_values) {
+            $placeholders[] = '(' . quote_values($record_values) . ')';
+            $all_values = array_merge($all_values, $record_values);
+        }
+
+        $sql = "INSERT IGNORE INTO " . $config['table'] . " (" . quote_names($buffer['keys']) . ") VALUES " . implode(', ', $placeholders);
+
+        // do bulk insert
+        $db->query($sql);
+
+        // clean buffer after success insert
+        $memcached->delete($cache_key);
+
+        // make some success logging of bulk insert
+        //error_log(sprintf("Bulk insert completed for %s: %d records inserted", $config['table'], $buffer['count']));
+
+        return true;
+
+    } catch (Exception $e) {
+        // clean buffer, log it
+        $memcached->delete($cache_key);
+        error_log(sprintf("Bulk insert failed for %s: %s", $config['table'], $e->getMessage()));
+
+        // Fallback: try to insert one by one
+        foreach ($buffer['records'] as $record_values) {
+            try {
+                $sql = "INSERT IGNORE INTO " . $config['table'] . " (" . quote_names($buffer['keys']) . ") VALUES (" . quote_values($record_values) . ")";
+                $db->query($sql);
+            } catch (Exception $single_error) {
+                // single insert error log
+                error_log("Single insert also failed: " . $single_error->getMessage());
+                cache_flush();
+            }
+        }
+
+        return false;
+    }
+}
+
+/**
+ * single insert of raw data
+ */
+function insert_single_record(mysqli $db, string $db_table, array $rawkeys, array $rawvalues) {
+    $sql = "INSERT IGNORE INTO $db_table (".quote_names($rawkeys).") VALUES (".quote_values($rawvalues).")";
+    try {
+        $db->query($sql);
+    } catch (Exception $e) {
+        cache_flush();
+    }
+}
