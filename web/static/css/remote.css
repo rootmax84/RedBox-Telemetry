@@ -245,7 +245,7 @@
 }
 
 .value-button {
-    width: 30px;
+    width: 40px;
     height: 30px;
     background-color: #f0f0f0;
     border: 1px solid #ddd;
@@ -261,19 +261,21 @@
 }
 
 .value-button.decrease {
-    border-radius: 20px;
+    border-radius: 20px 0 0 20px;
     background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xOCAxMi45OThINmExIDEgMCAwIDEgMC0yaDEyYTEgMSAwIDAgMSAwIDJ6Ii8+PC9zdmc+") no-repeat 4px;
     background-color: rgba(230,230,230);
     background-position-x: center;
-    width: 30px;
+    margin-right: -6px;
+    border-right: none;
 }
 
 .value-button.increase {
-    border-radius: 20px;
+    border-radius: 0 20px 20px 0;
     background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xOCAxMi45OThoLTV2NWExIDEgMCAwIDEtMiAwdi01SDZhMSAxIDAgMCAxIDAtMmg1di01YTEgMSAwIDAgMSAyIDB2NWg1YTEgMSAwIDAgMSAwIDJ6Ii8+PC9zdmc+") no-repeat 4px;
     background-color: rgba(230,230,230);
     background-position-x: center;
-    width: 30px;
+    margin-left: -6px;
+    border-left: none;
 }
 
 .inc-dec input {
