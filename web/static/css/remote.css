@@ -473,6 +473,11 @@ input:checked + .slider:before {
     .container-remote {
         padding: 55px 10px 20px;
     }
+
+    .timestamp {
+        letter-spacing: -1px;
+        width: 130px;
+    }
 }
 
 @starting-style {
