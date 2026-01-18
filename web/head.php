@@ -51,7 +51,7 @@ function version_url($url) {
 <script src="<?php echo version_url('static/js/admin.js'); ?>"></script>
 <?php } ?>
 <script src="<?php echo version_url('static/js/jquery.min.js'); ?>"></script>
-<script src="<?php echo version_url('static/js/jquery.cookie.min.js'); ?>"></script>
+<script src="<?php echo version_url('static/js/js.cookie.min.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/jquery-ui.min.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/jquery-ui.touch-punch.min.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/jquery.peity.min.js'); ?>"></script>

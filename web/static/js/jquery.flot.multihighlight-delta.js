@@ -222,7 +222,7 @@ function convertToRealTime(processedTime) {
 		  childrenTexts.push(text);
 		  // Convert time and format it
 		  var realTimestamp = convertToRealTime(dataPoint[0]);
-		  var xDateFormat = $.cookie('timeformat') == '12' ? "%d/%m/%Y  %I:%M:%S%p" : "%d/%m/%Y  %H:%M:%S";
+		  var xDateFormat = Cookies.get('timeformat') == '12' ? "%d/%m/%Y  %I:%M:%S%p" : "%d/%m/%Y  %H:%M:%S";
                   timeArray[0] = $.plot.formatDate(realTimestamp, xDateFormat);
         }
 

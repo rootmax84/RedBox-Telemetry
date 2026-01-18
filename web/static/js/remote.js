@@ -348,14 +348,14 @@ async function fetchData() {
             
             // Обновляем timestamp
             const date = new Date(data.at(-1));
-            let date_res = date.toLocaleString($.cookie('timeformat') == '12' ? 'en-US' : 'sv-SE', {
+            let date_res = date.toLocaleString(Cookies.get('timeformat') == '12' ? 'en-US' : 'sv-SE', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
-                hour12: $.cookie('timeformat') == '12'
+                hour12: Cookies.get('timeformat') == '12'
             });
             date_res = date_res.replace(/-/g, '.').replace(', ', ' ');
             $("#timestamp").html(`${localization.key['remote.last.change']} ${date_res}`);

@@ -1762,7 +1762,7 @@ Licensed under the MIT license.
                 };
             }
 
-            if ($.isFunction(opts.tickFormatter))
+            if (typeof opts.tickFormatter === 'function')
                 axis.tickFormatter = function (v, axis) { return "" + opts.tickFormatter(v, axis); };
 
             if (opts.alignTicksWithAxis != null) {

@@ -895,7 +895,7 @@ function checkLog() {
             logDate = new Date(parseInt(f.target.result.split("\n")[1].split(" ")[0]));
             if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
             dateDMY = `${logDate.getFullYear()}-${(logDate.getMonth() + 1)}-${logDate.getDate()}`;
-            dateTime = $.cookie('timeformat') === '12'
+            dateTime = Cookies.get('timeformat') === '12'
               ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
               : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
             dateStr = `${localization.key['import.date']} ${dateDMY} ${dateTime})`;
@@ -939,7 +939,7 @@ function delSession() {
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
     // Check if timeformat cookie is set to 12-hour format
-    if ($.cookie('timeformat') == '12') {
+    if (Cookies.get('timeformat') == '12') {
       return date.toLocaleTimeString('en-US'); // 12-hour format with AM/PM
     } else {
       return date.toLocaleTimeString('ru-RU'); // 24-hour format
@@ -1026,7 +1026,7 @@ function exportSession(type) {
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
     // Check if timeformat cookie is set to 12-hour format
-    if ($.cookie('timeformat') === '12') {
+    if (Cookies.get('timeformat') === '12') {
       return date.toLocaleTimeString('en-US'); // 12-hour format with AM/PM
     } else {
       return date.toLocaleTimeString('ru-RU'); // 24-hour format

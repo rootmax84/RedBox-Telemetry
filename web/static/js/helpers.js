@@ -38,7 +38,7 @@ $(document).ready(function(){
   nogps = document.querySelector('#nogps');
 
   setInterval(()=>{
-    if ($.cookie('plot') !== undefined) {
+    if (Cookies.get('plot') !== undefined) {
         $('.live').css('display','block');
     } else {
         $('.live').css('display','none');
@@ -47,7 +47,7 @@ $(document).ready(function(){
 
   //new session notify
   function checkNewSession() {
-    if ($.cookie('newsess') !== undefined) {
+    if (Cookies.get('newsess') !== undefined) {
         $('.new-session').css('display','block');
     }
   }
@@ -69,7 +69,7 @@ let nogps = null;
 //Fetch plot data every 10 sec
 function schedulePlotUpdate(timestamp) {
   if (timestamp - lastPlotUpdateTime >= 10000) {
-    if ($.cookie('plot') !== undefined) updatePlot();
+    if (Cookies.get('plot') !== undefined) updatePlot();
     updateSessionDuration();
     lastPlotUpdateTime = timestamp;
   }
@@ -116,7 +116,7 @@ let heatData = [];
 let chartUpdRange = null;
 let mapUpdRange = null;
 
-function processData(data, maxGap = $.cookie('gap') !== undefined ? $.cookie('gap') : 5000) {
+function processData(data, maxGap = Cookies.get('gap') !== undefined ? Cookies.get('gap') : 5000) {
     // Set for unique timestamps
     const timestampSet = new Set();
     data.forEach(series => series.data.forEach(point => timestampSet.add(point[0])));
@@ -281,7 +281,7 @@ function doPlot(position) {
                 );
                 const realTime = window.realTimeInfo.timeMapping[nearestProcessedTime];
                 let date = new Date(realTime);
-                return date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU', {
+                return date.toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU', {
                   hour: '2-digit',
                   minute: '2-digit',
                 });
@@ -382,7 +382,7 @@ function doPlot(position) {
         // Set slider values
         $("#slider-range11").slider('values', 0, a);
         $("#slider-range11").slider('values', 1, b);
-        $("#slider-time").val((new Date(jsTimeMap[a])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU'));
+        $("#slider-time").val((new Date(jsTimeMap[a])).toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU') + " - " + (new Date(jsTimeMap[b])).toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU'));
 
         mapIndexStart = jsTimeMap.length - b - 1;
         mapIndexEnd = jsTimeMap.length - a - 1;
@@ -867,7 +867,7 @@ let initMapLeaflet = () => {
             const realTimeValue = findNearestRealTime(point.time);
             const realTime = new Date(realTimeValue);
 
-            const use12HourFormat = $.cookie('timeformat') === '12';
+            const use12HourFormat = Cookies.get('timeformat') === '12';
 
             if (use12HourFormat) {
                 timeDisplay = realTime.toLocaleTimeString('en-US', {
@@ -1096,7 +1096,7 @@ let initMapLeaflet = () => {
     };
 
     //Dynamic tracking marker when stream is open
-    const rate = Number($.cookie('tracking-rate')) || 1000;
+    const rate = Number(Cookies.get('tracking-rate')) || 1000;
     setInterval(()=>{
         let marker = null;
         let lat = stream ? parseFloat($('#lat').html()) : null;
@@ -1112,7 +1112,7 @@ let initMapLeaflet = () => {
             map.setView(marker.getLatLng(), map.getZoom());
 
             //update travel line/end point
-            if ($.cookie('plot') !== undefined) {
+            if (Cookies.get('plot') !== undefined) {
                 path.unshift([lat,lon]);
                 endcir.setLatLng(path.at(0));
 
@@ -1323,7 +1323,7 @@ let initSlider = (jsTimeMap,start,end)=>{
             return '';
         }
 
-        return  date.toLocaleTimeString($.cookie('timeformat') == '12' ? 'en-US' : 'ru-RU');
+        return  date.toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU');
     }
 
     let sv = $(function() {//jquery range slider
@@ -1349,7 +1349,7 @@ let initSlider = (jsTimeMap,start,end)=>{
             }
 
             if ($("#map").length) {
-                if ($.cookie('plot') === undefined) updateMapWithRangePreservingHeatline(a, b);
+                if (Cookies.get('plot') === undefined) updateMapWithRangePreservingHeatline(a, b);
             }
             if ($(".demo-container").length) chartUpdRange(a,b);
         });
