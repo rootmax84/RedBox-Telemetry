@@ -764,7 +764,7 @@ $translations = [
         'boost.main.frequency' => 'Частота',
         'boost.popup.frequency' => 'Частота сигнала соленоида (по умолчанию 30Hz). Перезагрузите после изменения',
         'boost.main.digital.filter' => 'Цифр. фильтр',
-        'boost.popup.digital.filter' => 'Используйте, если сигнал MAP нестабилен. Большое значение = медленнее отклик',
+        'boost.popup.digital.filter' => 'Используйте, если сигнал MAP нестабилен. Большее значение = медленнее отклик',
         'boost.pid.title' => 'ПИД',
         'boost.pid.kp' => 'кП',
         'boost.pid.ki' => 'кИ',
