@@ -2950,14 +2950,22 @@ Licensed under the MIT license.
         // trigger click or hover event (they send the same parameters
         // so we share their code)
         function triggerClickHoverEvent(eventname, event, seriesFilter) {
-            let touch = undefined;
-            let posX = undefined;
-            let posY = undefined;
+            let touch = null;
+            let posX = null;
+            let posY = null;
 
             if(event.originalEvent.touches) {
                 touch = event.originalEvent.touches[0];
             }
-            posX = event.pageX || touch.pageX;
+
+            if (event && typeof event.pageX === 'number') {
+                posX = event.pageX;
+            } else if (touch && typeof touch.pageX === 'number') {
+                posX = touch.pageX;
+            } else {
+                return;
+            }
+
             posY = event.pageY || touch.pageY;
 
             var offset = eventHolder.offset(),
