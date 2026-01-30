@@ -81,10 +81,11 @@ if (!password_verify($pass, $row['pass'])) {
 }
 
 // Generate new token
-$token = generate_token($user);
 try {
-    $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [$token, $user]);
+    $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$user])->fetch_assoc()["token"];
     cache_flush($token);
+    $token = generate_token($user);
+    $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [$token, $user]);
 } catch(Exception $e) {
     http_response_code(500);
     echo $translations[$lang]['dialog.token.err.msg'];

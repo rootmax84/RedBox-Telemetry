@@ -39,7 +39,10 @@ function handleTokenRequests($db, $translations, $username, $admin, $db_users) {
     }
 
     if (isset($_GET['renew_token'])) {
-        $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [generate_token($username), $username]);
+        $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
+        cache_flush($token);
+        $token = generate_token($username);
+        $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [$token, $username]);
         return $translations[$_COOKIE['lang']]['set.token.updated'];
     }
 
