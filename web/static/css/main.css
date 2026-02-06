@@ -1170,6 +1170,7 @@ input[type="checkbox"]:disabled:checked::after {
 
 .choices__inner {
   border-radius: 5px;
+  min-height: 34px !important;
 }
 
 .choices__list--dropdown,.choices__list[aria-expanded] {

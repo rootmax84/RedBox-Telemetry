@@ -1203,6 +1203,7 @@ function addToFavorite() {
 
 function updateSessionList() {
     const currentSessionId = "<?php echo isset($session_id) ? $session_id : ''; ?>";
+    sid = currentSessionId;
     const year = $('#selyear').val() || '';
     const month = $('#selmonth').val() || '';
     const profile = $('#selprofile').val() || '';
@@ -1296,6 +1297,8 @@ function updateSessionList() {
                 });
 
                 window.seshidtagChoices = seshidtagChoices;
+                markActiveSess();
+                markCurrSess();
 
             } else {
                 seshidtagChoices.destroy();
