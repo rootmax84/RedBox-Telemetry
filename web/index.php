@@ -285,17 +285,30 @@ if (isset($sids[0])) {
 
         plotData.on('change', handleChange);
 
-        $('#seshidtag, #selprofile, #selyear, #selmonth').on('change', function() {
-          $('#wait_layout').show();
-          this.form.submit();
-        }).not('#plot_data');
+        // Sessions filters
+        $('#selprofile, #selyear, #selmonth').on('change', function() {
+            updateSessionList()
+        });
+
+        // Session select
+        $('#seshidtag').on('change', function() {
+            $('#wait_layout').show();
+            $('#sessionForm').submit();
+        });
 
         updCharts();
         if (window.history.replaceState) window.history.replaceState(null, null, window.location.href);
         resizeSplitter();
         markActiveSess();
         markCurrSess();
-      });
+
+        // Filters init
+        window.lastFilters = {
+            profile: $('#selprofile').val(),
+            year: $('#selyear').val(),
+            month: $('#selmonth').val()
+        };
+    });
     </script>
 
 <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
@@ -387,13 +400,13 @@ if (isset($sids[0])) {
         <?php } ?>
             </select>
         <?php   if ( $filterprofile <> "" ) { ?>
-            <input type="hidden" name="selprofile" value="<?php echo $filterprofile; ?>">
+            <input type="hidden" name="selprofile" id="hiddenProfile" value="<?php echo htmlspecialchars($filterprofile); ?>">
         <?php   } ?>
         <?php   if ( $filteryear <> "" ) { ?>
-            <input type="hidden" name="selyear" value="<?php echo $filteryear; ?>">
+            <input type="hidden" name="selyear" id="hiddenYear" value="<?php echo htmlspecialchars($filteryear); ?>">
         <?php   } ?>
         <?php   if ( $filtermonth <> "" ) { ?>
-            <input type="hidden" name="selmonth" value="<?php echo $filtermonth; ?>">
+            <input type="hidden" name="selmonth" id="hiddenMonth" value="<?php echo htmlspecialchars($filtermonth); ?>">
         <?php   } ?>
       </select>
     </form>
@@ -1186,6 +1199,135 @@ function addToFavorite() {
     $(".fetch-data").css("display", "none");
     $(".favorite").css("pointer-events", "auto");
   });
+}
+
+function updateSessionList() {
+    const currentSessionId = "<?php echo isset($session_id) ? $session_id : ''; ?>";
+    const year = $('#selyear').val() || '';
+    const month = $('#selmonth').val() || '';
+    const profile = $('#selprofile').val() || '';
+
+    $('.fetch-data').css('display', 'block');
+
+    $('#hiddenProfile').val(profile);
+    $('#hiddenYear').val(year);
+    $('#hiddenMonth').val(month);
+
+    let url = `get_filtered_sessions.php?current_id=${encodeURIComponent(currentSessionId)}`;
+
+    if (year && year !== 'ALL' && year !== '') {
+        url += `&year=${encodeURIComponent(year)}`;
+    }
+    if (month && month !== 'ALL' && month !== '') {
+        url += `&month=${encodeURIComponent(month)}`;
+    }
+    if (profile && profile !== 'ALL' && profile !== '') {
+        url += `&profile=${encodeURIComponent(profile)}`;
+    }
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error(`Network error: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            const allOptions = [];
+            const sessionCount = data.sessions ? data.sessions.length : 0;
+
+            let placeholderText;
+            const translate = localization.key['filter.found'];
+            placeholderText = sessionCount ? `${translate}: ${sessionCount}` : `${translate}: 0`;
+
+            if (data.sessions && data.sessions.length > 0) {
+                data.sessions.forEach(session => {
+                    let optionText = session.date;
+
+                    if (session.profile) {
+                        optionText += ` (${localization.key['sel.profile'] || 'Profile'}: ${session.profile})`;
+                    }
+
+                    const showSessionLength = <?php echo isset($show_session_length) ? ($show_session_length ? 'true' : 'false') : 'true'; ?>;
+                    if (showSessionLength && session.duration) {
+                        optionText += ` (${localization.key['get.sess.length'] || 'Length'}: ${session.duration})`;
+                    }
+
+                    if (session.ip) {
+                        optionText += ` (${localization.key['get.sess.ip'] || 'IP'}: ${session.ip})`;
+                    }
+
+                    if (session.active) {
+                        optionText += ` ${session.active}`;
+                    }
+
+                    if (session.selected) {
+                        optionText += ` ${localization.key['get.sess.curr'] || '(current)'}`;
+                    }
+
+                    allOptions.push({
+                        value: session.id,
+                        label: optionText,
+                        selected: session.selected,
+                    });
+                });
+
+                seshidtagChoices.destroy();
+
+                const selectElement = document.getElementById('seshidtag');
+                if (selectElement) {
+                    selectElement.innerHTML = '';
+
+                    allOptions.forEach(option => {
+                        const opt = document.createElement('option');
+                        opt.value = option.value;
+                        opt.textContent = option.label;
+                        if (option.selected) {
+                            opt.selected = true;
+                        }
+                        selectElement.appendChild(opt);
+                    });
+                }
+
+                seshidtagChoices = new Choices('#seshidtag', {
+                    itemSelectText: null,
+                    shouldSort: false,
+                    noResultsText: localization.key['vars.nores'] || 'No sessions found',
+                    placeholder: true,
+                    placeholderValue: placeholderText,
+                });
+
+                window.seshidtagChoices = seshidtagChoices;
+
+            } else {
+                seshidtagChoices.destroy();
+
+                const selectElement = document.getElementById('seshidtag');
+                if (selectElement) {
+                    selectElement.innerHTML = '';
+
+                    const noSessionOption = document.createElement('option');
+                    noSessionOption.value = '';
+                    noSessionOption.textContent = localization.key['vars.nores'] || 'No sessions found';
+                    noSessionOption.disabled = true;
+                    selectElement.appendChild(noSessionOption);
+                }
+
+                seshidtagChoices = new Choices('#seshidtag', {
+                    itemSelectText: null,
+                    shouldSort: false,
+                    noResultsText: localization.key['vars.nores'] || 'No sessions found',
+                    placeholder: true,
+                    placeholderValue: placeholderText,
+                });
+
+                window.seshidtagChoices = seshidtagChoices;
+            }
+
+            $('.fetch-data').css('display', 'none');
+        })
+        .catch(error => {
+            $('.fetch-data').css('display', 'none');
+            serverError(error);
+        });
 }
 
 </script>

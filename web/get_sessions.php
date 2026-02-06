@@ -1,5 +1,6 @@
 <?php
-include 'timezone.php';
+require_once 'helpers.php';
+require_once 'timezone.php';
 include_once 'translations.php';
 $lang = $_COOKIE['lang'];
 
@@ -95,12 +96,6 @@ while ($row = $sessionqry->fetch_assoc()) {
     $seship[$sid] = " ({$translations[$lang]['get.sess.ip']} $session_ip)";
     $sesactive[$sid] = ($row["timeend"] > (time() * 1000) - 60000) ? " {$translations[$lang]['get.sess.active']}" : null;
     $sesfavorite[$sid] = $row["favorite"];
-}
-
-function getTranslatedMonth($month, $lang) {
-    global $translations;
-    $month_key = 'month.' . strtolower(substr($month, 0, 3));
-    return $translations[$lang][$month_key] ?? $month;
 }
 
 foreach ($seshdates as $sid => $date) {

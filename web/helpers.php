@@ -632,3 +632,12 @@ function insert_single_record(mysqli $db, string $db_table, array $rawkeys, arra
         cache_flush();
     }
 }
+
+/**
+ * Months translator
+ */
+function getTranslatedMonth(string $month, string $lang) {
+    global $translations;
+    $month_key = 'month.' . strtolower(substr($month, 0, 3));
+    return $translations[$lang][$month_key] ?? $month;
+}

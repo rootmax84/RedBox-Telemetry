@@ -471,6 +471,7 @@ $translations = [
         'btn.upload' => 'Upload',
         'btn.upload.confirm' => 'Upload MCU config to the server?',
         'btn.download' => 'Download',
+        'filter.found' => 'Sessions found',
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -946,6 +947,7 @@ $translations = [
         'btn.upload' => 'Загрузить',
         'btn.upload.confirm' => 'Загрузить конфиг MCU на сервер?',
         'btn.download' => 'Скачать',
+        'filter.found' => 'Найдено сессий',
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -1417,6 +1419,7 @@ $translations = [
         'btn.upload' => 'Subir',
         'btn.upload.confirm' => '¿Subir configuración MCU al servidor?',
         'btn.download' => 'Descargar',
+        'filter.found' => 'Sesiones encontradas',
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -1888,6 +1891,7 @@ $translations = [
         'btn.upload' => 'Hochladen',
         'btn.upload.confirm' => 'MCU-Konfiguration auf den Server hochladen?',
         'btn.download' => 'Herunterladen',
+        'filter.found' => 'Sitzungen gefunden',
     ],
 ];
 
