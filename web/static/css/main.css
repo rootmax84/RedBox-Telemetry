@@ -1098,6 +1098,10 @@ input[type="checkbox"]:disabled:checked::after {
     width: 100% !important;
     height: auto;
   }
+
+  .chart-label {
+    height: auto !important;
+  }
 }
 
 .fetch-data {
@@ -1394,8 +1398,9 @@ input[type="checkbox"]:disabled:checked::after {
 }
 
 .chart-label {
-  display:flex;
-  justify-content:center;
+  height: 450px;
+  display: grid;
+  place-items: center;
 }
 
 .label {
