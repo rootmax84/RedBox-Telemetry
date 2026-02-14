@@ -1392,3 +1392,12 @@ input[type="checkbox"]:disabled:checked::after {
         background-size: cover;
     }
 }
+
+.chart-label {
+  display:flex;
+  justify-content:center;
+}
+
+.label {
+  font-size: 14px;
+}

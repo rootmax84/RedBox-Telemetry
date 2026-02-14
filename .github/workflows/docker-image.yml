@@ -15,22 +15,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Docker Compose v2
+      
+      - name: Check Docker versions
         run: |
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
+          docker --version
+          docker compose version
 
       - name: Validate docker-compose.yml
-        run: docker-compose config
+        run: docker compose config
 
       - name: Build services (no cache)
-        run: docker-compose build --no-cache --pull
+        run: docker compose build --no-cache --pull
 
       - name: Start services and check status
         run: |
-          docker-compose up -d
+          docker compose up -d
           
           echo "Waiting for mariadb to become healthy..."
           timeout 60s bash -c 'until [ "$(docker inspect -f {{.State.Health.Status}} ratel_mariadb)" = "healthy" ]; do sleep 2; echo -n "."; done'
@@ -38,7 +37,7 @@ jobs:
           
           if [ "$(docker inspect -f {{.State.Health.Status}} ratel_mariadb)" != "healthy" ]; then
             echo "mariadb did not become healthy in time"
-            docker-compose logs mariadb
+            docker compose logs mariadb
             exit 1
           fi
           
@@ -48,17 +47,17 @@ jobs:
           
           if [ "$(docker inspect -f {{.State.Health.Status}} ratel_web)" != "healthy" ]; then
             echo "web did not become healthy in time"
-            docker-compose logs web
+            docker compose logs web
             exit 1
           fi
           
           echo "Service status:"
-          docker-compose ps
+          docker compose ps
           
           echo "All services are up and healthy"
 
       - name: Cleanup
         if: always()
         run: |
-          docker-compose down --remove-orphans
+          docker compose down --remove-orphans
           docker system prune -f

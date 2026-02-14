@@ -430,8 +430,8 @@ if (isset($sids[0])) {
     <div id="placeholder" class="demo-placeholder"></div>
     </div>
     <?php   } else { ?>
-    <div style="display:flex; justify-content:center;">
-    <h5><span class="label label-warning">. . .</span></h5>
+    <div class="chart-label">
+    <span class="label label-warning">. . .</span>
     </div>
     <?php   } ?>
     </div>
