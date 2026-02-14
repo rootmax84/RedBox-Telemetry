@@ -1401,6 +1401,7 @@ input[type="checkbox"]:disabled:checked::after {
   height: 450px;
   display: grid;
   place-items: center;
+  padding: 4px;
 }
 
 .label {
