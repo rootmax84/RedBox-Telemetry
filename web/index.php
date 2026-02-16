@@ -1206,7 +1206,7 @@ function updateSessionList() {
     sid = currentSessionId;
     const year = $('#selyear').val() || '';
     const month = $('#selmonth').val() || '';
-    const profile = $('#selprofile').val() || '';
+    const profile = $('#selprofile').val() === localization.key['profile.ns'] ? 'Not Specified' : ($('#selprofile').val() || '');
 
     $('.fetch-data').css('display', 'block');
 
