@@ -57,14 +57,7 @@ $sessions = [];
 while ($row = $sessionqry->fetch_assoc()) {
     $row["timeend"] = !$row["timeend"] ? $row["time"] : $row["timeend"];
 
-    if (function_exists('formatDuration')) {
-        $session_duration_str = formatDuration((int)$row["time"], (int)$row["timeend"], $lang);
-    } else {
-        $duration = (int)$row["timeend"] - (int)$row["time"];
-        $hours = floor($duration / 3600000);
-        $minutes = floor(($duration % 3600000) / 60000);
-        $session_duration_str = sprintf("%02d:%02d", $hours, $minutes);
-    }
+    $session_duration_str = formatDuration((int)$row["time"], (int)$row["timeend"], $lang);
 
     $sid = $row["session"];
 
