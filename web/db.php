@@ -111,8 +111,7 @@ function cache_flush($token = null, $keyname = null) {
         if ($token === null) {
             $patterns = [
                 "gps_data_{$username}_",
-                "session_data_{$username}_",
-                "sessions_list_{$username}_"
+                "session_data_{$username}_"
             ];
 
             $allKeys = $memcached->getAllKeys();
