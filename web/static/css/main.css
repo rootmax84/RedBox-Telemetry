@@ -68,10 +68,6 @@ html,body {
  }
 }
 
-canvas *{
-  width:100%;
-}
-
 .clickable{
   cursor: pointer;
 }
@@ -103,12 +99,6 @@ canvas *{
   display: block;
   border: 0;
   background-position: 0 0;
-}
-
-/* support: IE8 - See #6727 */
-.ui-slider.ui-state-disabled .ui-slider-handle,
-.ui-slider.ui-state-disabled .ui-slider-range {
-  filter: inherit;
 }
 
 .ui-slider-horizontal {
@@ -732,11 +722,6 @@ img {
   #Chart-Container {
     padding-bottom: 10px;
   }
-}
-
-.nogps {
-  font-size: 14px;
-  font-family: "Open Sans", "Open Sans C", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 .table-sum td:nth-child(n+2):nth-child(-n+4) {
