@@ -128,8 +128,13 @@
              <h6 style="color:#777" l10n="user.url.label"></h6>
 		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
 		<div class="settings--cell">
-		 <input class="form-control" type="text" name="forward_url"  l10n-placeholder="user.url.placeholder" maxlength="2083" value="<?php echo $forward_url; ?>"><br>
-		 <input class="form-control" type="text" name="forward_token"  l10n-placeholder="user.url.token.placeholder" maxlength="128" value="<?php echo $forward_token; ?>">
+		 <input class="form-control" type="text" name="forward_url"  l10n-placeholder="user.url.placeholder" maxlength="2083" value="<?php echo $forward_url; ?>" autocomplete="new-password"><br>
+		    <div class="password-toggle">
+			<input class="form-control password-input" type="password" name="forward_token"  l10n-placeholder="user.url.token.placeholder" maxlength="128" value="<?php echo $forward_token; ?>" autocomplete="new-password">
+			<button type="button" class="password-toggle__btn">
+			    <span class="password-toggle__icon"></span>
+			</button>
+		    </div>
 		</div>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.save"></button></div>
 		</form>
