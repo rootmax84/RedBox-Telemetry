@@ -294,7 +294,7 @@ input[type=text]:disabled {
   padding-left: 5px;
 }
 
-#log {
+.drop-card {
   padding: 15px;
   border-radius: 10px;
   border: 1px dashed #a9a9a9;

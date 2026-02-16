@@ -527,7 +527,7 @@ initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
  <span class="toggle" id="log_toggle" l10n="expand"></span>
 </p>
 
-<div id="log" style="display:none">
+<div class="drop-card" id="log" style="display:none">
     <div style="display:flex; justify-content:center; margin-bottom:10px;">
 	     <span class="label label-default" id="log-msg-def" l10n="import.label"></span>
 	     <span class="label label-success" id="log-msg-ok"></span>
@@ -791,7 +791,7 @@ if ($current_page < $total_pages) {
     <li><a href="#" onclick="usersSettings()" l10n="nodata.settings"></a></li>
     <li><a href="#" onclick="pidEdit()" l10n="nodata.pid"></a></li>
 </ul>
-<div id="log">
+<div class="drop-card" id="log">
     <div style="display:flex; justify-content:center; margin-bottom:10px;">
 	     <span class="label label-default" id="log-msg-def" l10n="import.label" style="width:320px"></span>
 	     <span class="label label-success" id="log-msg-ok"></span>
