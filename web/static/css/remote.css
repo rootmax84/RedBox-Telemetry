@@ -115,7 +115,7 @@
     display: block;
 }
 
-.card-remote {
+.card-remote, #log {
     background-color: #fff;
     border-radius: 10px;
     padding: 5px 15px 0;
@@ -377,6 +377,7 @@ input:checked + .slider:before {
     pointer-events: none;
     transition: opacity 0.3s ease;
     font-weight: normal;
+    white-space: pre-line;
 }
 
 .popup-target:hover .popup {
