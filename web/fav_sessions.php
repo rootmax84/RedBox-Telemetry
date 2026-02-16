@@ -36,30 +36,40 @@ include 'head.php';
 ?>
     <body>
     <script>
-        function removeFavorite(id) {
-            $(".fetch-data").css("display", "block");
-            fetch('favorite.php', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Network error');
-                return response.json();
-            })
-            .then(data => {
-                document.querySelector(`tr[data-sid="${id}"]`)?.remove();
-                if ($('#fav-table tbody tr').length === 0) {
-                    $('<h3 style="text-align:center"></h3>').text(localization.key['fav.empty']).insertAfter('#fav-table');
-                    document.getElementById('update_desc').disabled = true;
+        function removeFavorite(id, str) {
+            let dialogOpt = {
+                title: localization.key['dialog.confirm'],
+                btnClassSuccessText: localization.key['btn.yes'],
+                btnClassFailText: localization.key['btn.no'],
+                btnClassFail: "btn btn-info btn-sm",
+                message: `${localization.key['func.del']} ${str}?`,
+                onResolve: function() {
+                    $(".fetch-data").css("display", "block");
+                    fetch('favorite.php', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: id })
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network error');
+                        return response.json();
+                    })
+                    .then(data => {
+                        document.querySelector(`tr[data-sid="${id}"]`)?.remove();
+                        if ($('#fav-table tbody tr').length === 0) {
+                            $('<h3 style="text-align:center"></h3>').text(localization.key['fav.empty']).insertAfter('#fav-table');
+                            document.getElementById('update_desc').disabled = true;
+                        }
+                    })
+                    .catch(err => {
+                        serverError(err);
+                    })
+                    .finally(() => {
+                        $(".fetch-data").css("display", "none");
+                    });
                 }
-            })
-            .catch(err => {
-                serverError(err);
-            })
-            .finally(() => {
-                $(".fetch-data").css("display", "none");
-            });
+            };
+            redDialog.make(dialogOpt);
         }
 
         function updateDescriptions() {
@@ -215,14 +225,17 @@ include 'head.php';
                 <?php foreach ($fav_data as $i => $keycol) { ?>
                     <tr data-sid=<?php echo $keycol['session']; ?>>
                         <td id="id:<?php echo $keycol['session']; ?>">
-                            <span class='delete-icon' onclick="event.stopPropagation(); removeFavorite('<?php echo $keycol['session']; ?>')">&times;</span>
                             <?php
                                 $start_timestamp = intval(substr($keycol['session'], 0, -3));
                                 $month_num = date('n', $start_timestamp);
                                 $month_key = 'month.' . strtolower(date('M', $start_timestamp));
                                 $translated_month = $translations[$lang][$month_key];
                                 $date = date($_COOKIE['timeformat'] == "12" ? "d, Y h:ia" : "d, Y H:i", $start_timestamp);
-                                echo $translated_month . ' ' . $date;
+                                $session_id_str = $translated_month . ' ' . $date;
+                            ?>
+                            <span class='delete-icon' onclick="event.stopPropagation(); removeFavorite('<?php echo $keycol['session']; ?>', '<?php echo $session_id_str; ?>')">&times;</span>
+                            <?php
+                                echo $session_id_str;
                             ?>
                         </td>
                         <td>
