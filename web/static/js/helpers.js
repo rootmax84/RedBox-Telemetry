@@ -1390,7 +1390,7 @@ function updateMapWithRangePreservingHeatline(startIndex = null, endIndex = null
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker
-    .register('/static/js/sw.js')
+    .register('static/js/sw.js')
     .then(() => { console.log('Service Worker Registered'); });
 }
 
