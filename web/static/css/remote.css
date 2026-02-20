@@ -282,6 +282,7 @@
     width: 75px;
     text-align: center;
     outline: none;
+    z-index: 0;
 }
 
 .switch {

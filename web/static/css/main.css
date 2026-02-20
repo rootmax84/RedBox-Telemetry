@@ -600,15 +600,18 @@ img {
 }
 
 #func, #exp {
-  width: 410px;
+  min-width: 410px;
+  max-width: 620px;
   position: relative;
   left: 50%;
   transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
 }
 
 .func-btn {
   border-radius: 5px;
-  margin: 5px 0 0;
 }
 
 #log-list {
@@ -1392,4 +1395,15 @@ input[type="checkbox"]:disabled:checked::after {
 
 .label {
   font-size: 14px;
+}
+
+.hint {
+  line-height: normal;
+  padding-inline-start: 25px;
+  margin-bottom: -20px;
+}
+
+.hint li {
+  padding-bottom: 5px;
+  font-size: 13px;
 }

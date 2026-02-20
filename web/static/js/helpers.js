@@ -1949,6 +1949,19 @@ class PasswordToggle {
     }
 }
 
+function showHints() {
+    xhrResponse(`
+    <ul class='hint'>
+        <li>${localization.key['hint.scale']}</li>
+        <li>${localization.key['hint.reset']}</li>
+        <li>${localization.key['hint.export']}</li>
+        <li>${localization.key['hint.delete']}</li>
+        <li>${localization.key['hint.legend']}</li>
+        <li>${localization.key['hint.delbutt']}</li>
+    </ul>`
+    );
+}
+
 let redDialog = {
     options: {
         zIndex: 10000,

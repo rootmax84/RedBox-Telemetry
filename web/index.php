@@ -500,22 +500,25 @@ initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
     <a class="btn btn-default func-btn" onclick="favoriteSessions()" l10n="fav.btn"></a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="delSession()" l10n="func.del"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="delSessions()" l10n="func.multi.del"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="mergeSessions()" l10n="func.merge"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
     <a class="btn btn-default func-btn" onclick="pidEdit()" l10n="func.pid"></a>
+   </div>
+<div class="btn-group btn-group-justified func-btn">
+    <a class="btn btn-default func-btn" onclick="delSession()" l10n="func.del"></a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
     <a class="btn btn-default func-btn" onclick="showToken()" l10n="func.token"></a>
    </div>
 <div class="btn-group btn-group-justified func-btn">
+    <a class="btn btn-default func-btn" onclick="delSessions()" l10n="func.multi.del"></a>
+   </div>
+<div class="btn-group btn-group-justified func-btn">
     <a class="btn btn-default func-btn" onclick="usersSettings()" l10n="func.settings"></a>
+   </div>
+<div class="btn-group btn-group-justified func-btn">
+    <a class="btn btn-default func-btn" onclick="mergeSessions()" l10n="func.merge"></a>
+   </div>
+<div class="btn-group btn-group-justified func-btn">
+    <a class="btn btn-default func-btn" onclick="showHints()" l10n="hint.button"></a>
    </div>
 </div>
 <br>
@@ -551,6 +554,9 @@ initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 </p>
 <div id="exp" style="display:none">
 	  <div class="btn-group btn-group-justified func-btn">
+	    <a class="btn btn-default func-btn" onclick="exportSession('RBX')" <?php if ($id != "RedManage") { ?> disabled <?php } ?>>RBX</a>
+	  </div>
+	  <div class="btn-group btn-group-justified func-btn">
 	    <a class="btn btn-default func-btn" onclick="exportSession('CSV')">CSV</a>
 	  </div>
 	  <div class="btn-group btn-group-justified func-btn">
@@ -559,10 +565,6 @@ initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 	  <div class="btn-group btn-group-justified func-btn">
 	    <a class="btn btn-default func-btn" onclick="exportSession('KML')" <?php if (!$imapdata) { ?> disabled <?php } ?>>KML</a>
 	  </div>
-	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" onclick="exportSession('RBX')" <?php if ($id != "RedManage") { ?> disabled <?php } ?>>RBX</a>
-	  </div>
-
    </div>
 <script>
 function funcToggle() {
