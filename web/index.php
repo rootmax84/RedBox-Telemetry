@@ -315,8 +315,7 @@ if (isset($sids[0])) {
   <div class="fetch-data"></div>
   <div class="new-session"><a href='.' l10n='sess.new'></a></div>
   <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-    <div class="storage-usage-img" onclick></div>
-    <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used;?></span></label>
+    <div class="storage-usage-img"></div>
   <?php } if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
   <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
   <div class="chart-fill-toggle" onClick="chartToggle()" style="right:<?php echo ($limit < 0) ? '70px' : '100px'; ?>"></div>

@@ -60,6 +60,7 @@ $(document).ready(function(){
   });
 
   PasswordToggle.initAll();
+  document.querySelector('.storage-usage-img')?.addEventListener('click', () => xhrResponse(`${localization.key['stor.usage']} ${Cookies.get('storage_usage')}%`));
 });
 
 let lastPlotUpdateTime = 0;

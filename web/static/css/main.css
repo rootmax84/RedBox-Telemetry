@@ -438,16 +438,6 @@ img {
   pointer-events: none;
 }
 
-#storage-usage {
-  color: #5d5d5d;
-  opacity: 0;
-  position: fixed;
-  right: 65px;
-  top: 14px;
-  margin: 0;
-  transition: .25s;
-}
-
 .storage-usage-img {
   width: 24px;
   height: 24px;
@@ -465,19 +455,12 @@ img {
   right: 40px;
   top: 10px;
   transition: .25s;
+  z-index: 1;
+  cursor: pointer;
 }
 
-.storage-usage-img:hover, .storage-usage-img:hover ~ #storage-usage {
+.storage-usage-img:hover {
   opacity: .7;
-}
-
-.storage-usage-img:hover ~ .share-img,
-.storage-usage-img:hover ~ .chart-fill-toggle,
-.storage-usage-img:hover ~ .live,
-.storage-usage-img:hover ~ .favorite,
-.storage-usage-img:hover ~ .favorite-en,
-.storage-usage-img:hover ~ .remote-img {
-  opacity: 0;
 }
 
 .share-img {

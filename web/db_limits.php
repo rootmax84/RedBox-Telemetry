@@ -4,6 +4,7 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
     require_once 'del_session.php';
     require_once 'get_sessions.php';
     require_once 'get_columns.php';
+    require_once 'helpers.php';
 
     // Cache keys
     $db_limit_cache_key = "db_limit_{$db_table}";
@@ -46,12 +47,12 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
 
     $_SESSION['torque_limit'] = $user_status;
 
-    function map($x, $in_min, $in_max, $out_min, $out_max) {
-        return ($x - $in_min) * ($out_max - $out_min) / ($in_max - $in_min) + $out_min;
-    }
-
     //send used space to frontend
-    $db_limit >= $limit ? $db_used = "100%" : $db_used = $limit == -1 ? 0 : round(map($db_limit, 0, $limit, 0, 100))."%";
+    $db_used = $limit == -1 ? 0 : round(map($db_limit, 0, $limit, 0, 100));
+
+    if (!headers_sent()) {
+        setcookie("storage_usage", $db_used, 0, "/");
+    }
 
     if ($user_status == 0) { //Banned
         session_destroy();

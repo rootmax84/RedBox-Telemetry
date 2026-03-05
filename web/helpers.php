@@ -641,3 +641,14 @@ function getTranslatedMonth(string $month, string $lang) {
     $month_key = 'month.' . strtolower(substr($month, 0, 3));
     return $translations[$lang][$month_key] ?? $month;
 }
+
+/**
+ * map with constrain
+ */
+function map(float $x, float $in_min, float $in_max, float $out_min, float $out_max): float {
+    $result = ($x - $in_min) * ($out_max - $out_min) / ($in_max - $in_min) + $out_min;
+
+    return $out_min < $out_max
+        ? max($out_min, min($out_max, $result))
+        : max($out_max, min($out_min, $result));
+}

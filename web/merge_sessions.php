@@ -68,8 +68,7 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
             <?php if (!isset($_SESSION['admin']) && $limit > 0) { ?>
                 <div class="new-session"><a href='.' l10n='sess.new'></a></div>
-                <div class="storage-usage-img" onclick></div>
-                <label id="storage-usage" l10n='stor.usage'><span><?php echo $db_used; ?></span></label>
+                <div class="storage-usage-img"></div>
             <?php } ?>
                 <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></a>
             <div class="container">
