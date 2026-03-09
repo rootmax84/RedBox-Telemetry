@@ -6,7 +6,7 @@ $qry = $db->execute_query("SELECT token, mcu_data FROM $db_users WHERE user=?", 
 
 $db->close();
 
-$array = explode(',', $mcu_data);
+$array = explode(',', $mcu_data ?? '');
 
 $isValid = true;
 
