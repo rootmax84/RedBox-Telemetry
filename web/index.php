@@ -536,7 +536,7 @@ initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 	     <span class="label label-danger" id="log-msg-err"></span>
     </div>
     <div style="display:flex; justify-content:center;">
-	    <form method="POST" action="redlog.php" onsubmit="return submitLog(this);" style="display:contents">
+	    <form method="POST" action="redlog.php" onsubmit="return submitLog(this);" style="display:contents" enctype="multipart/form-data">
 	     <input class="btn btn-default" style="border-radius:5px" type="file" multiple name="file[]" id="logFile" onchange="checkLog();" accept=".txt">
 	     <input class="btn btn-default upload-log-btn" id="log-upload-btn" value="" type="submit">
 	    </form>
@@ -799,7 +799,7 @@ if ($current_page < $total_pages) {
 	     <span class="label label-danger" id="log-msg-err"></span>
     </div>
     <div style="display:flex; justify-content:center;">
-	    <form method="POST" action="redlog.php" onsubmit="return submitLog(this);" style="display:contents">
+	    <form method="POST" action="redlog.php" onsubmit="return submitLog(this);" style="display:contents" enctype="multipart/form-data">
 	     <input class="btn btn-default" style="border-radius:5px;width:100%" type="file" multiple name="file[]" id="logFile" onchange="checkLog();" accept=".txt">
 	     <input class="btn btn-default upload-log-btn" id="log-upload-btn" value="" type="submit">
 	    </form>
@@ -839,108 +839,158 @@ const up_btn = $('#log-upload-btn');
 const log_list = document.getElementById('log-list');
 const logInput = document.getElementById('logFile');
 
-function submitLog(el) {
-  up_btn.hide();
-  msg_err.innerHTML = "";
-  msg_def.innerHTML = "";
-
-  let xhr = new XMLHttpRequest();
-  xhr.onload = function() {
-     msg_ok.innerHTML = xhr.responseText;
-     if (xhr.status == 406) {
-      msg_ok.innerHTML = "";
-      msg_err.innerHTML = xhr.responseText;
-    }
-    logFile.removeAttribute("disabled");
-  }
-  xhr.upload.onprogress = p => { msg_ok.innerHTML = `${localization.key['import.upload']} ${Math.round((p.loaded / p.total) * 100)}%` }
-  xhr.upload.onloadend = () => { msg_ok.innerHTML = localization.key['import.end'] }
-  xhr.open(el.method, el.getAttribute("action"));
-  xhr.send(new FormData(el));
-  logFile.setAttribute("disabled", "");
-  return false;
-}
-
 function checkLog() {
- msg_def.innerHTML = "";
- msg_err.innerHTML = "";
- msg_ok.innerHTML = "";
- log_list.innerHTML = "";
- const log_data = document.getElementById('logFile');
- let size = 0;
- let filesProcessed = 0;
-
- if (!log_data.files.length) {
-    $("#log-list").css({"display":"none"});
-    msg_def.innerHTML = localization.key['import.label'];
-    up_btn.hide();
-    return;
- } else {
-    $("#log-list").css({"display":"grid"});
- }
-
- msg_def.innerHTML = localization.key['import.read'];
-
- for (let i = 0; i < log_data.files.length; i++) {
-    size += log_data.files[i].size;
- }
-
- if (log_data.files.length > 10) {
     msg_def.innerHTML = "";
-    msg_err.innerHTML = localization.key['import.warn.count'];
-    up_btn.hide();
-    return;
- }
+    msg_err.innerHTML = "";
+    msg_ok.innerHTML = "";
+    log_list.innerHTML = "";
+    const log_data = document.getElementById('logFile');
+    let size = 0;
+    let filesProcessed = 0;
+    window.processedFiles = []; // массив для обработанных файлов
 
- if (size > 52428800) {
-    msg_def.innerHTML = "";
-    msg_err.innerHTML = localization.key['import.warn.size'];
-    up_btn.hide();
-    return;
- }
+    if (!log_data.files.length) {
+        $("#log-list").css({"display":"none"});
+        msg_def.innerHTML = localization.key['import.label'];
+        up_btn.hide();
+        return;
+    } else {
+        $("#log-list").css({"display":"grid"});
+    }
 
- for (let i = 0; i < log_data.files.length; i++) {
-    let reader = new FileReader();
-    reader.readAsText(log_data.files[i], "UTF-8");
+    msg_def.innerHTML = localization.key['import.read'];
 
-    reader.onload = (f) => {
-        let logDate, dateDMY, dateTime, dateStr;
-        try {
-            logDate = new Date(parseInt(f.target.result.split("\n")[1].split(" ")[0]));
-            if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
-            dateDMY = `${logDate.getFullYear()}-${(logDate.getMonth() + 1)}-${logDate.getDate()}`;
-            dateTime = Cookies.get('timeformat') === '12'
-              ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
-              : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
-            dateStr = `${localization.key['import.date']} ${dateDMY} ${dateTime})`;
-        } catch(e) {
-            reader.abort();
-            dateStr = localization.key['import.broken.el'];
+    for (let i = 0; i < log_data.files.length; i++) {
+        size += log_data.files[i].size;
+    }
+
+    if (log_data.files.length > 10) {
+        msg_def.innerHTML = "";
+        msg_err.innerHTML = localization.key['import.warn.count'];
+        up_btn.hide();
+        return;
+    }
+
+    if (size > 52428800) {
+        msg_def.innerHTML = "";
+        msg_err.innerHTML = localization.key['import.warn.size'];
+        up_btn.hide();
+        return;
+    }
+
+    window.processedFiles = [];
+
+    for (let i = 0; i < log_data.files.length; i++) {
+        const file = log_data.files[i];
+        const reader = new FileReader();
+
+        reader.onload = (f) => {
+            let logDate, dateDMY, dateTime, dateStr;
+            try {
+                const content = f.target.result;
+                logDate = new Date(parseInt(content.split("\n")[1].split(" ")[0]));
+                if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
+                dateDMY = `${logDate.getFullYear()}-${(logDate.getMonth() + 1)}-${logDate.getDate()}`;
+                dateTime = Cookies.get('timeformat') === '12'
+                    ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+                    : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
+                dateStr = `${localization.key['import.date']} ${dateDMY} ${dateTime})`;
+
+                window.processedFiles.push({
+                    name: file.name,
+                    content: content,
+                    originalFile: file
+                });
+
+            } catch(e) {
+                reader.abort();
+                dateStr = localization.key['import.broken.el'];
+                msg_def.innerHTML = "";
+                msg_err.innerHTML = localization.key['import.broken.label'];
+                msg_ok.innerHTML = "";
+                up_btn.hide();
+                log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr}</li>`;
+                return;
+            }
+
+            log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr}</li>`;
+
+            filesProcessed++;
+
+            if (filesProcessed === log_data.files.length) {
+                msg_def.innerHTML = "";
+                msg_ok.innerHTML = localization.key['import.ready'];
+                up_btn.show();
+            }
+        }
+
+        reader.onerror = () => {
             msg_def.innerHTML = "";
             msg_err.innerHTML = localization.key['import.broken.label'];
             msg_ok.innerHTML = "";
             up_btn.hide();
-            log_list.innerHTML += `<li style='font-family:monospace'> ${log_data.files[i].name} ${dateStr}</li>`;
-            return;
         }
-        log_list.innerHTML += `<li style='font-family:monospace'> ${log_data.files[i].name} ${dateStr}</li>`;
 
-        filesProcessed++;
+        reader.readAsText(file, "UTF-8");
+    }
+}
 
-        if (filesProcessed === log_data.files.length) {
-            msg_def.innerHTML = "";
-            msg_ok.innerHTML = localization.key['import.ready'];
-            up_btn.show();
+function submitLog(el) {
+    up_btn.hide();
+    msg_err.innerHTML = "";
+    msg_def.innerHTML = "";
+    msg_ok.classList.add("wait");
+    msg_ok.innerHTML = localization.key['import.upload'];
+    logFile.setAttribute("disabled", "");
+
+    const formData = new FormData();
+
+    if (window.processedFiles && window.processedFiles.length > 0) {
+        window.processedFiles.forEach((file, index) => {
+            const blob = new Blob([file.content], { type: 'text/plain' });
+            formData.append('file[]', blob, file.name);
+        });
+    } else {
+        const fileInput = document.getElementById('logFile');
+        for (let i = 0; i < fileInput.files.length; i++) {
+            formData.append('file[]', fileInput.files[i]);
         }
     }
 
-    reader.onerror = () => {
-        msg_def.innerHTML = "";
-        msg_err.innerHTML = localization.key['import.broken.label'];
-        msg_ok.innerHTML = "";
-        up_btn.hide();
-    }
- }
+    fetch(el.getAttribute("action"), {
+        method: el.method,
+        body: formData
+    })
+    .then(async response => {
+        const text = await response.text();
+
+        msg_ok.innerHTML = localization.key['import.end'];
+
+        if (response.status === 406) {
+            msg_ok.innerHTML = "";
+            msg_err.innerHTML = text;
+        } else {
+            msg_ok.innerHTML = text;
+        }
+
+        if (!response.ok) {
+            throw new Error(text);
+        }
+
+        return text;
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
+        if (!msg_err.innerHTML) {
+            msg_err.innerHTML = error.message;
+        }
+    })
+    .finally(() => {
+        msg_ok.classList.remove("wait");
+        logFile.removeAttribute("disabled");
+    });
+
+    return false;
 }
 
 function delSession() {

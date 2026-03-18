@@ -2,32 +2,46 @@
 
 function maintenance() {
     let mode;
-    let xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-	$("#wait_layout").hide();
-	mode = this.responseText;
-	if (!mode.length) return;
-	let dialogOpt = {
-	     title: localization.key['dialog.maintenance.title'],
-	     message : `${localization.key['dialog.maintenance.status']} ${mode}`,
-	     btnClassSuccessText: localization.key['dialog.maintenance.en'],
-	     btnClassFailText: localization.key['dialog.maintenance.dis'],
-	     btnClassFail: "btn btn-info btn-sm",
-	     onResolve: function() {
-	      xmlhttp.open("POST","maintenance.php?enable");
-	      xmlhttp.send();
-	     },
-	     onReject: function() {
-	      xmlhttp.open("POST","maintenance.php?disable");
-	      xmlhttp.send();
-	     }
-	};
-	 redDialog.make(dialogOpt);
-      }
-    };
-     xmlhttp.open("POST","maintenance.php?mode");
-     xmlhttp.send();
+
+    fetch("maintenance.php?mode", {
+        method: "POST"
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+    })
+    .then(data => {
+        $("#wait_layout").hide();
+        mode = data;
+
+        if (!mode.length) return;
+
+        let dialogOpt = {
+            title: localization.key['dialog.maintenance.title'],
+            message: `${localization.key['dialog.maintenance.status']} ${mode}`,
+            btnClassSuccessText: localization.key['dialog.maintenance.en'],
+            btnClassFailText: localization.key['dialog.maintenance.dis'],
+            btnClassFail: "btn btn-info btn-sm",
+            onResolve: function() {
+                fetch("maintenance.php?enable", {
+                    method: "POST"
+                }).catch(error => console.error('Error:', error));
+            },
+            onReject: function() {
+                fetch("maintenance.php?disable", {
+                    method: "POST"
+                }).catch(error => console.error('Error:', error));
+            }
+        };
+
+        redDialog.make(dialogOpt);
+    })
+    .catch(error => {
+        serverError(error);
+        $("#wait_layout").hide();
+    });
 }
 
 function initTableSorting(tableSelector) {
