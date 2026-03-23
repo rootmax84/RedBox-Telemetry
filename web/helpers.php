@@ -317,9 +317,9 @@ function getBearerToken(): ?string
 
 /**
  * Send notification to Telegram
- * @return array|null Returns decoded response or null on failure
+ * @return array|null|int Returns decoded response on success, null on nothing, -1 on timeout
  */
-function notify(?string $text, ?string $tg_token, ?string $tg_chatid): ?array
+function notify(?string $text, ?string $tg_token, ?string $tg_chatid): array|int|null
 {
     if (empty($tg_token) || empty($tg_chatid)) {
         return null;
@@ -349,7 +349,16 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid): ?array
     $response = curl_exec($ch);
     curl_close($ch);
 
+    // Check for timeout
     if ($response === false) {
+        $curlError = curl_errno($ch);
+        curl_close($ch);
+
+        // CURLE_OPERATION_TIMEDOUT (28) is the timeout error code
+        if ($curlError === CURLE_OPERATION_TIMEDOUT) {
+            return -1;
+        }
+
         return null;
     }
 

@@ -119,9 +119,11 @@ try {
 
             $response = $testMessage === null 
                 ? $translations[$_COOKIE['lang']]['set.nothing']
-                : ($testMessage['ok'] 
-                    ? $translations[$_COOKIE['lang']]['set.tg.send'] 
-                    : $testMessage['description']);
+                : ($testMessage === -1
+                    ? $translations[$_COOKIE['lang']]['set.tg.timeout']
+                    : ($testMessage['ok']
+                        ? $translations[$_COOKIE['lang']]['set.tg.send']
+                        : $testMessage['description']));
         }
 
         // Handle data forwarding URL
