@@ -40,6 +40,8 @@ $live_data_rate = 1000; //Live data response in ms
 $results_per_page = 50; //Pagination count of items per page
 $merge_max = 50000; //Merged session datapoints count limit
 
+$tg_socks_proxy = ''; //SOCKS5 proxy address for Telegram API. Format: address:port or username:password@address:port or empty string to disable
+
 //Maintenance mode
 if (file_exists('maintenance') && !isset($_SESSION['admin'])){
     header("Refresh:0; url=maintenance.php");

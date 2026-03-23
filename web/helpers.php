@@ -319,7 +319,7 @@ function getBearerToken(): ?string
  * Send notification to Telegram
  * @return array|null|int Returns decoded response on success, null on nothing, -1 on timeout
  */
-function notify(?string $text, ?string $tg_token, ?string $tg_chatid): array|int|null
+function notify(?string $text, ?string $tg_token, ?string $tg_chatid, ?string $tg_socks_proxy = null): array|int|null
 {
     if (empty($tg_token) || empty($tg_chatid)) {
         return null;
@@ -336,18 +336,52 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid): array|int
         return null;
     }
 
-    curl_setopt_array($ch, [
+    $curlOptions = [
         CURLOPT_POST => true,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
+        CURLOPT_TIMEOUT => 15,
         CURLOPT_POSTFIELDS => [
             'chat_id' => $tg_chatid,
             'text' => $text,
         ],
-    ]);
+    ];
+
+    // Configure proxy if provided
+    if (!empty($tg_socks_proxy)) {
+        // Parse proxy string (format: address:port or username:password@address:port)
+        $proxyAuth = null;
+        $proxyAddress = $tg_socks_proxy;
+
+        // Check if proxy contains authentication
+        if (strpos($tg_socks_proxy, '@') !== false) {
+            $parts = explode('@', $tg_socks_proxy, 2);
+            $proxyAuth = $parts[0];
+            $proxyAddress = $parts[1];
+        }
+
+        // Validate proxy address format (address:port)
+        $addressParts = explode(':', $proxyAddress);
+        if (count($addressParts) === 2 && is_numeric($addressParts[1])) {
+            $curlOptions[CURLOPT_PROXY] = $proxyAddress;
+            $curlOptions[CURLOPT_PROXYTYPE] = CURLPROXY_SOCKS5;
+
+            // Set proxy authentication if provided
+            if (!empty($proxyAuth)) {
+                $authParts = explode(':', $proxyAuth, 2);
+                if (count($authParts) === 2) {
+                    $curlOptions[CURLOPT_PROXYUSERPWD] = $proxyAuth;
+                }
+            }
+        } else {
+            error_log("Invalid proxy format");
+            curl_close($ch);
+            return null;
+        }
+    }
+
+    curl_setopt_array($ch, $curlOptions);
 
     $response = curl_exec($ch);
-    curl_close($ch);
 
     // Check for timeout
     if ($response === false) {
@@ -361,6 +395,8 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid): array|int
 
         return null;
     }
+
+    curl_close($ch);
 
     return json_decode($response, true);
 }

@@ -115,7 +115,7 @@ try {
                 [$tg_token, $tg_chatid, $username]
             );
 
-            $testMessage = notify("👋", $tg_token, $tg_chatid);
+            $testMessage = notify("👋", $tg_token, $tg_chatid, $tg_socks_proxy ?? '');
 
             $response = $testMessage === null 
                 ? $translations[$_COOKIE['lang']]['set.nothing']
