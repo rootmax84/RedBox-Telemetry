@@ -321,6 +321,8 @@ function getBearerToken(): ?string
  */
 function notify(?string $text, ?string $tg_token, ?string $tg_chatid, ?string $tg_socks_proxy = null): array|int|null
 {
+    global $tg_api_url;
+
     if (empty($tg_token) || empty($tg_chatid)) {
         return null;
     }
@@ -331,7 +333,9 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid, ?string $t
         return null;
     }
 
-    $ch = curl_init('https://api.telegram.org/bot' . urlencode($tg_token) . '/sendMessage');
+    $apiBaseUrl = !empty($tg_api_url) ? $tg_api_url : 'https://api.telegram.org/bot';
+
+    $ch = curl_init($apiBaseUrl . urlencode($tg_token) . '/sendMessage');
     if ($ch === false) {
         return null;
     }
