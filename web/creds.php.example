@@ -41,7 +41,8 @@ $results_per_page = 50; //Pagination count of items per page
 $merge_max = 50000; //Merged session datapoints count limit
 
 $tg_socks_proxy = ''; //SOCKS5 proxy address for Telegram API. Format: address:port or username:password@address:port or empty string to disable
-$tg_api_url = ''; //You can use external gateway like https://github.com/rootmax84/pytgw if Telegram has blocked by pidorases. Example: https://api-url/bot. Empty string - direct connect
+$tg_api_url = ''; //You can use external gateway if Telegram has blocked by pidorases. Example: https://api-url/bot. Empty string - direct connect
+$tg_api_id = ''; //The value of the X-Connection-Id header in the body of the request to the gateway. Required for authorization if it is set on the gateway
 
 //Maintenance mode
 if (file_exists('maintenance') && !isset($_SESSION['admin'])){

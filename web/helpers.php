@@ -321,7 +321,7 @@ function getBearerToken(): ?string
  */
 function notify(?string $text, ?string $tg_token, ?string $tg_chatid, ?string $tg_socks_proxy = null): array|int|null
 {
-    global $tg_api_url;
+    global $tg_api_url, $tg_api_id;
 
     if (empty($tg_token) || empty($tg_chatid)) {
         return null;
@@ -348,6 +348,7 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid, ?string $t
             'chat_id' => $tg_chatid,
             'text' => $text,
         ],
+        CURLOPT_HTTPHEADER => array_key_exists('tg_api_id', $GLOBALS) ? ['X-Connection-Id: ' . ($tg_api_id ?? '')] : [],
     ];
 
     // Configure proxy if provided
@@ -387,6 +388,9 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid, ?string $t
 
     $response = curl_exec($ch);
 
+    // Get HTTP status code
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
     // Check for timeout
     if ($response === false) {
         $curlError = curl_errno($ch);
@@ -401,6 +405,10 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid, ?string $t
     }
 
     curl_close($ch);
+
+    if ($httpCode === 500) {
+        return -1;
+    }
 
     return json_decode($response, true);
 }
