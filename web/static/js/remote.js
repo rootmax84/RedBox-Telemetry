@@ -187,7 +187,7 @@ function cfgDownload() {
     }
 
     const dataString = btoa(dataToDownload.join(','));
-    const fileName = `rbx_cfg_server_${Date.now()}.b64`;
+    const fileName = `ra150_mcu_cfg_${Date.now()}.b64`;
     const blob = new Blob([dataString], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
