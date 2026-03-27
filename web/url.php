@@ -20,7 +20,10 @@ if ($current_seshid && is_numeric($current_seshid)) {
 }
 
 // Determine month with validation
-$raw_month = $_POST["selmonth"] ?? $_GET["month"] ?? $calculated_month ?? '';
+$raw_month = $_POST["selmonth"] ?? $_GET["month"] ?? '';
+if ($raw_month === '') {
+    $raw_month = $calculated_month ?? '';
+}
 $month = sanitizeInput($raw_month, 'month');
 
 // Build URL

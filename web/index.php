@@ -392,22 +392,25 @@ if (isset($sids[0])) {
     <form method="post" class="form-horizontal" action="url.php" id="sessionForm">
       <select id="seshidtag" name="seshidtag" class="form-control">
         <?php foreach ($seshdates as $dateid => $datestr) { ?>
-          <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>><?php echo $datestr; echo $seshprofile[$dateid]; if ($show_session_length) {echo $seshsizes[$dateid];} {echo $seship[$dateid];} {echo $sesactive[$dateid];} ?><?php if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr']; ?></option>
-            <?php if ($dateid == $session_id && $sesfavorite[$dateid] == 1) { ?>
-                <script>$('.favorite').addClass('favorite-en')</script>
-            <?php } ?>
+          <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>>
+            <?php
+              echo $datestr;
+              echo $seshprofile[$dateid];
+              if ($show_session_length) { echo $seshsizes[$dateid]; }
+              echo $seship[$dateid];
+              echo $sesactive[$dateid];
+              if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr'];
+            ?>
+          </option>
+          <?php if ($dateid == $session_id && $sesfavorite[$dateid] == 1) { ?>
+            <script>$('.favorite').addClass('favorite-en')</script>
+          <?php } ?>
         <?php } ?>
-            </select>
-        <?php   if ( $filterprofile <> "" ) { ?>
-            <input type="hidden" name="selprofile" id="hiddenProfile" value="<?php echo htmlspecialchars($filterprofile); ?>">
-        <?php   } ?>
-        <?php   if ( $filteryear <> "" ) { ?>
-            <input type="hidden" name="selyear" id="hiddenYear" value="<?php echo htmlspecialchars($filteryear); ?>">
-        <?php   } ?>
-        <?php   if ( $filtermonth <> "" ) { ?>
-            <input type="hidden" name="selmonth" id="hiddenMonth" value="<?php echo htmlspecialchars($filtermonth); ?>">
-        <?php   } ?>
       </select>
+
+      <input type="hidden" name="selprofile" id="hiddenProfile" value="<?php echo htmlspecialchars($filterprofile); ?>">
+      <input type="hidden" name="selyear" id="hiddenYear" value="<?php echo htmlspecialchars($filteryear); ?>">
+      <input type="hidden" name="selmonth" id="hiddenMonth" value="<?php echo htmlspecialchars($filtermonth); ?>">
     </form>
     </div>
 
