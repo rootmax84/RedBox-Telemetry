@@ -127,7 +127,12 @@
              <h6 style="color:#777" l10n="user.url.label"></h6>
 		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
 		<div class="settings--cell">
-		 <input class="form-control" type="text" name="forward_url"  l10n-placeholder="user.url.placeholder" maxlength="2083" value="<?php echo $forward_url; ?>" autocomplete="new-password"><br>
+		    <div class="clear-input">
+			<input class="form-control clear-input__input" type="text" name="forward_url"  l10n-placeholder="user.url.placeholder" maxlength="2083" value="<?php echo $forward_url; ?>" autocomplete="new-password">
+			<button type="button" class="clear-input__btn">
+			    <span class="clear-input__icon"></span>
+			</button>
+		    </div><br><br>
 		    <div class="password-toggle">
 			<input class="form-control password-input" type="password" name="forward_token"  l10n-placeholder="user.url.token.placeholder" maxlength="128" value="<?php echo $forward_token; ?>" autocomplete="new-password">
 			<button type="button" class="password-toggle__btn">

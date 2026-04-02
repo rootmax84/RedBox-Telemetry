@@ -52,7 +52,12 @@ if (!$logged_in) {
         <div style="font-weight:bold; color:#961911; text-align:center; width:100%; font-size:20px; letter-spacing:1.5px; text-shadow: none">RedB<img src="static/img/logo.svg" alt style="height:12px; width:12px; margin-right:1px">x Telemetry</div>
         <h6 style="text-align:center; margin-bottom:20px" l10n="login.label"></h6>
         <form method="post" class="form-group" action=".">
-            <input class="form-control" type="text" name="user" value="" maxlength="32" l10n-placeholder="login.login" autocomplete="off" required autofocus><br>
+            <div class="clear-input">
+                <input class="form-control clear-input__input" type="text" name="user" value="" maxlength="32" l10n-placeholder="login.login" autocomplete="off" required autofocus>
+                <button type="button" class="clear-input__btn">
+                    <span class="clear-input__icon"></span>
+                </button>
+            </div><br><br>
             <div class="password-toggle">
                 <input class="form-control password-input" type="password" name="pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="off" required="">
                 <button type="button" class="password-toggle__btn">

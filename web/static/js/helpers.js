@@ -60,6 +60,7 @@ $(document).ready(function(){
   });
 
   PasswordToggle.initAll();
+  ClearInput.initAll();
   document.querySelector('.storage-usage-img')?.addEventListener('click', () => xhrResponse(`${localization.key['stor.usage']} ${Cookies.get('storage_usage')}%`));
 });
 
@@ -1946,6 +1947,31 @@ class PasswordToggle {
                 input.type = isPassword ? 'text' : 'password';
                 button.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
             });
+        }
+    }
+}
+
+//clear inputs
+class ClearInput {
+    static initAll() {
+        document.querySelectorAll('.clear-input').forEach(container => {
+            ClearInput.init(container);
+        });
+    }
+
+    static init(container) {
+        const input = container.querySelector('.clear-input__input');
+        const button = container.querySelector('.clear-input__btn');
+
+        if (input && button) {
+            const clickHandler = () => {
+                input.value = '';
+                input.focus();
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            };
+
+            button.addEventListener('click', clickHandler);
+            container._clearHandler = clickHandler;
         }
     }
 }
