@@ -7,7 +7,7 @@ set_exception_handler(function($exception) {
     error_log("Uncaught Exception: " . $exception->getMessage());
     session_destroy();
     header('Location: catch.php?c=error');
-    die();
+    exit;
 });
 
 $required_extensions = ['mysqli'];

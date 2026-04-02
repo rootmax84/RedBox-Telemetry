@@ -10,8 +10,10 @@ function get_db_connection() {
         } catch (Exception $e) {
             if (file_exists('maintenance')) {
                 header('Location: catch.php?c=maintenance');
+                exit;
             } else {
                 header('Location: catch.php?c=dberror');
+                exit;
             }
         }
     }
