@@ -1247,8 +1247,14 @@ let initMapLeaflet = () => {
         map.fitBounds(polyline.getBounds(), {maxZoom: 15});
     };
 
-    const markerCir = L.circleMarker(startCrd, {color:'purple',alt:'Start Point',radius:10,weight:1, className: 'circle-marker-stroke'});
-    const markerPnt = L.circleMarker(startCrd, {color:'purple',alt:'End Point',radius:5,weight:1,fillOpacity:1, className: 'circle-marker-stroke'});
+    const carDivIcon = L.divIcon({
+        html: '<div></div>',
+        className: 'marker-car',
+        iconSize: [16, 16],
+        iconAnchor: [8, 10]
+    });
+
+    const markerPnt = L.marker(startCrd, {icon: carDivIcon});
 
     markerUpd = itm => {
         map.eachLayer(layer => {
@@ -1259,7 +1265,7 @@ let initMapLeaflet = () => {
 
         if (itm && itm.dataIndex > 0) {
             const pos = path[itm.dataIndex] || path.at(-1) || [0,0];
-            [markerCir, markerPnt].forEach(marker => {
+            [markerPnt].forEach(marker => {
                 marker.setLatLng(pos).addTo(map);
             });
 
@@ -1280,7 +1286,7 @@ let initMapLeaflet = () => {
                 }
             }
         } else {
-            [markerCir, markerPnt].forEach(marker => map.removeLayer(marker));
+            [markerPnt].forEach(marker => map.removeLayer(marker));
         }
     }
 
