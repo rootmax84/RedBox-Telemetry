@@ -348,7 +348,7 @@ async function fetchData() {
             
             // Обновляем timestamp
             const date = new Date(data.at(-1));
-            let date_res = date.toLocaleString(Cookies.get('timeformat') == '12' ? 'en-US' : 'sv-SE', {
+            let date_res = date.toLocaleString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
@@ -358,6 +358,12 @@ async function fetchData() {
                 hour12: Cookies.get('timeformat') == '12'
             });
             date_res = date_res.replace(/-/g, '.').replace(', ', ' ');
+
+            // Remove AM/PM space
+            if (Cookies.get('timeformat') == '12') {
+                date_res = date_res.replace(/\s?(AM|PM)/i, '$1');
+            }
+
             $("#timestamp").html(`${localization.key['remote.last.change']} ${date_res}`);
             
             data.splice(data.length - 2, 2); //удаляем ~ и timestamp
