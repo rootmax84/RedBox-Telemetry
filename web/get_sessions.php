@@ -2,7 +2,7 @@
 require_once 'helpers.php';
 require_once 'timezone.php';
 include_once 'translations.php';
-$lang = $_COOKIE['lang'];
+$lang = $_COOKIE['lang'] ?? 'en';
 
 function getFilterValue($postKey, $getKey, $default) {
     return isset($_POST[$postKey]) ? $_POST[$postKey] : (isset($_GET[$getKey]) ? $_GET[$getKey] : $default);
