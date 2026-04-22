@@ -62,6 +62,10 @@ $(document).ready(function(){
   PasswordToggle.initAll();
   ClearInput.initAll();
   document.querySelector('.storage-usage-img')?.addEventListener('click', () => xhrResponse(`${localization.key['stor.usage']} ${Cookies.get('storage_usage')}%`));
+
+  document.querySelectorAll('.clear-input__btn, .password-toggle__btn').forEach(el => {
+    el.setAttribute('tabindex', '-1');
+  });
 });
 
 let lastPlotUpdateTime = 0;
