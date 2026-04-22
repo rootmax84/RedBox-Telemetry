@@ -4,7 +4,46 @@ if (version_compare(PHP_VERSION, '8.2.0', '<')) {
 }
 
 set_exception_handler(function($exception) {
-    error_log("Uncaught Exception: " . $exception->getMessage());
+    $previous = $exception->getPrevious();
+
+    $log = sprintf(
+        "=== UNCAUGHT EXCEPTION ===\n" .
+        "Message: %s\n" .
+        "Code: %d\n" .
+        "File: %s\n" .
+        "Line: %d\n" .
+        "Trace:\n%s\n",
+        $exception->getMessage(),
+        $exception->getCode(),
+        $exception->getFile(),
+        $exception->getLine(),
+        $exception->getTraceAsString()
+    );
+
+    if ($previous) {
+        $log .= sprintf(
+            "\nPrevious exception:\n" .
+            "Message: %s\n" .
+            "File: %s\n" .
+            "Line: %d\n",
+            $previous->getMessage(),
+            $previous->getFile(),
+            $previous->getLine()
+        );
+    }
+
+    $log .= sprintf(
+        "\nRequest info:\n" .
+        "URI: %s\n" .
+        "Method: %s\n" .
+        "IP: %s\n",
+        $_SERVER['REQUEST_URI'] ?? 'unknown',
+        $_SERVER['REQUEST_METHOD'] ?? 'unknown',
+        $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+    );
+
+    error_log($log);
+
     session_destroy();
     header('Location: catch.php?c=error');
     exit;
