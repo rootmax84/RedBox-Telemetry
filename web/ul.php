@@ -181,8 +181,8 @@ $allowedProfileFields = [
 // bulk insert config
 $bulk_config = [
     'enabled' => $memcached_connected, // if memcached available
-    'buffer_size' => 10,
-    'buffer_ttl' => 5,
+    'buffer_size' => $bulk_upload_buffer_size ?? 10,
+    'buffer_ttl' => $bulk_upload_buffer_ttl ?? 5,
     'table' => $db_table,
     'username' => $username
 ];

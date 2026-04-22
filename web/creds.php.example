@@ -27,6 +27,8 @@ $db_pids_table = $username.$db_pids_prefix;
 $def_limit = 100; //Default user db size limit MB
 $max_upload_requests_per_second = 100; //Upload rate limit
 $max_api_requests_per_second = 10; //API rate limit
+$bulk_upload_buffer_size = 10;
+$bulk_upload_buffer_ttl = 5;
 
 $salt = ['cost' => 10]; //Password salt cost. Min/Max/Default 4/31/10. Higher value = more CPU usage on authorization process
 $admin = "admin";
