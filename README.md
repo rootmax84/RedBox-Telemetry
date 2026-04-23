@@ -88,6 +88,40 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
   </tr>
 </table>
 
+### creds.php variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `$db_host` | Database host address (mariadb for Docker) | `mariadb` |
+| `$db_user` | MySQL username | `ratel` |
+| `$db_pass` | MySQL password | `ratel` |
+| `$db_port` | MySQL port | `3306` |
+| `$db_name` | Database name | `ratel` |
+| `$db_log_prefix` | Suffix for log tables | `_logs` |
+| `$db_sessions_prefix` | Suffix for sessions tables | `_sessions` |
+| `$db_pids_prefix` | Suffix for PIDs tables | `_pids` |
+| `$db_engine` | Table engine (ROCKSDB or INNODB) | `ROCKSDB` |
+| `$db_innodb_compression` | Enable row compression for InnoDB | `false` |
+| `$db_memcached` | Memcached host address (memcached for Docker) | `memcached` |
+| `$db_memcached_ttl` | Memcached TTL in seconds | `3600` |
+| `$db_users` | Users table name | `users` |
+| `$def_limit` | Default user database size limit (MB) | `100` |
+| `$max_upload_requests_per_second` | Upload rate limit (requests/sec) | `100` |
+| `$max_api_requests_per_second` | API rate limit (requests/sec) | `10` |
+| `$bulk_upload_buffer_size` | Bulk upload buffer size | `10` |
+| `$bulk_upload_buffer_ttl` | Bulk upload buffer TTL (seconds) | `5` |
+| `$salt['cost']` | Password hashing cost (4-31, higher = more CPU) | `10` |
+| `$admin` | Admin username | `admin` |
+| `$admin_timeformat_12` | Use 12-hour time format (false = 24h) | `false` |
+| `$show_session_length` | Display session length in UI | `true` |
+| `$max_load_avg` | Server load limit for log uploads (0 = disabled) | `10` |
+| `$live_data_rate` | Live data response interval (ms) | `1000` |
+| `$results_per_page` | Items per page in pagination | `50` |
+| `$merge_max` | Maximum merged session datapoints | `50000` |
+| `$tg_socks_proxy` | SOCKS5 proxy for Telegram API | (empty) |
+| `$tg_api_url` | Custom Telegram API gateway URL | (empty) |
+| `$tg_api_id` | X-Connection-Id header for gateway auth | (empty) |
+
 ### Typical nginx host configuration for standalone installation:
 ```
 #vhost
