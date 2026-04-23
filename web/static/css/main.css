@@ -1446,3 +1446,8 @@ input[type="text"] {
 .flot-tooltip {
   box-shadow: 1px 1px 4px 1px rgb(2, 2, 2, 0.2);
 }
+
+.flot-tooltip-table {
+  font-size: .8em;
+  margin-bottom: 0;
+}

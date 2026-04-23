@@ -58,8 +58,7 @@ function convertToRealTime(processedTime) {
         mode: 'x',
         tooltipOffsetX: 20,
         tooltipOffsetY: 20,
-		// 2015.08.17 - edit by surfrock66 - Added variable for displaying time in tooltip
-        tooltipTemplate: '<table class="table" style="font-size:.8em;"><thead><tr><th><%= time[0] %></th><th><%= value %></th><th><%= change %></th><th><%= event %></th></tr></thead><tbody><%= body %></tbody></table>',
+        tooltipTemplate: '<table class="table flot-tooltip-table"><thead><tr><th><%= time[0] %></th><th><%= value %></th><th><%= change %></th><th><%= event %></th></tr></thead><tbody><%= body %></tbody></table>',
         dataPointTemplate: '<tr><td><%= series.label %></td><td><%= datapoint[1] %></td><td><%= (delta > 0 ? "+" : "") %><%= delta %></td><td><%= rlbc %></td></tr>',
         transformDataPointData: false,
         tooltipStyles: {
