@@ -1442,3 +1442,7 @@ input[type="text"] {
         transform: translateX(100%);
     }
 }
+
+.flot-tooltip {
+  box-shadow: 1px 1px 4px 1px rgb(2, 2, 2, 0.2);
+}

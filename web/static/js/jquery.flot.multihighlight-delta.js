@@ -70,7 +70,7 @@ function convertToRealTime(processedTime) {
           'padding': '0.4em 0.6em',
           'border-radius': '0.5em',
           'font-size': '0.8em',
-          'border': '1px solid #111'
+          'border': '1px dashed rgba(0,0,0,.4)'
         },
         delta: function (previousDataPoint, dataPoint) {
           if (!previousDataPoint) {
