@@ -371,6 +371,7 @@ async function fetchData() {
             // Выполняем fillData() только если данные изменились
             if (dataChanged) {
                 xhrResponse(localization.key['remote.mcu.update.dialog']);
+                localStorage.setItem("data", JSON.stringify(data));
                 fillData();
                 createChoices();
             }
