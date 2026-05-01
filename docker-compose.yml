@@ -52,6 +52,7 @@ services:
             PHP_PM_START_SERVERS: "2"
             PHP_PM_MIN_SPARE_SERVERS: "1"
             PHP_PM_MAX_SPARE_SERVERS: "3"
+            TZ: "UTC" #https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
         depends_on:
             mariadb:
                 condition: service_healthy
