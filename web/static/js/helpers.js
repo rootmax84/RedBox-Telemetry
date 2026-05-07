@@ -1111,9 +1111,13 @@ let initMapLeaflet = () => {
         let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
         if (lat == null || lon == null || isNaN(lat) || isNaN(lon) || (lat == 0 && lon == 0)) return;
         if (stream) {
+            let cleanSpd = stripHtml(spd);
+            let speedNum = parseFloat(cleanSpd);
+            let hasSpeed = !isNaN(speedNum) && speedNum > 0;
+
             marker = new L.marker([lat, lon]).bindTooltip(
                 `${spd}${spd === localization.key['nospd'] ? '' : ' ' + spd_unit}`,
-                {permanent:true, direction:'right', className:"stream-marker"}
+                {permanent:hasSpeed, direction:'right', className:"stream-marker"}
             ).addTo(map);
             map.setView(marker.getLatLng(), map.getZoom());
 
@@ -1997,6 +2001,21 @@ function showHints() {
         <li>${localization.key['hint.delbutt']}</li>
     </ul>`
     );
+}
+
+function stripHtml(html) {
+    let result = '';
+    let inTag = false;
+    for (let i = 0; i < html.length; i++) {
+        if (html[i] === '<') {
+            inTag = true;
+        } else if (html[i] === '>') {
+            inTag = false;
+        } else if (!inTag) {
+            result += html[i];
+        }
+    }
+    return result;
 }
 
 let redDialog = {
