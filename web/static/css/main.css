@@ -1150,8 +1150,12 @@ input[type="checkbox"]:disabled:checked::after {
   text-align: center;
 }
 
-.is-open .choices__inner{
+.is-open .choices__inner {
   border-radius: 5px 5px 0 0;
+}
+
+.is-flipped.is-open .choices__inner {
+  border-radius: 0 0 5px 5px;
 }
 
 .choices__inner {
