@@ -1168,6 +1168,10 @@ input[type="checkbox"]:disabled:checked::after {
   border-bottom-right-radius: 5px;
 }
 
+.is-flipped .choices__list--dropdown,.is-flipped .choices__list[aria-expanded] {
+    border-radius: 5px 5px 0 0;
+}
+
 .choices__list--multiple .choices__item {
   vertical-align: inherit;
   color: inherit;
