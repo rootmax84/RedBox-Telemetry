@@ -69,3 +69,7 @@ tbody tr:hover {
 .login {
   margin: 50px auto;
 }
+
+.pages {
+  padding-top: 0;
+}

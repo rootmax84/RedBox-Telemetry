@@ -733,7 +733,7 @@ if ($r->num_rows > 0) {
     <?= "Memcached: " . ($memcached_connected ? $translations[$lang]['btn.yes'] : $translations[$lang]['btn.no']) . " | " . $translations[$lang]['admin.db'] . ": " . round($res[1]) . $translations[$lang]['admin.mb'] ?>
 </p>
 <hr>
-<div class="pages" style="padding:0">
+<div class="pages">
 <?php //Pagination with page count limit
 $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $total_pages = $number_of_page;
