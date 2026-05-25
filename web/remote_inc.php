@@ -1932,6 +1932,8 @@
                 return navigator.share({
                   text: '',
                   url: url,
+                }).catch((err) => {
+                    if (err.name !== 'AbortError') throw err;
                 }).finally(() => {
                     $(".fetch-data").css("display", "none");
                     $(".share-img").css("pointer-events", "auto");
