@@ -364,7 +364,7 @@ async function fetchData() {
                 date_res = date_res.replace(/\s?(AM|PM)/i, '$1');
             }
 
-            $("#timestamp").html(`${localization.key['remote.last.change']} ${date_res}`);
+            $("#timestamp").html(`${localization.key['remote.last.change']} <br> ${date_res}`);
             
             data.splice(data.length - 2, 2); //удаляем ~ и timestamp
             
