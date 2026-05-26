@@ -9,51 +9,75 @@ $mergesession = filter_input(INPUT_POST, 'mergesession', FILTER_SANITIZE_NUMBER_
 $page = $_GET["page"] ?? 1;
 
 $sessionids = [];
+$mergesess = [];
 
-$i = 1;
-$mergesess1 = "";
 foreach ($_GET as $key => $value) {
     if (!in_array($key, ["mergesession", "page", "csrf_token"])) {
-        ${'mergesess' . $i} = $key;
-        array_push($sessionids, $key);
-        $i++;
-    } elseif (in_array($key, ["mergesession", "page"])) {
-        array_push($sessionids, $value);
+        $sid = (int)$key;
+        if ($sid > 0) {
+            $sessionids[] = $sid;
+            $mergesess[] = $sid;
+        }
+    } elseif ($key === "mergesession" && !empty($value)) {
+        $sessionids[] = (int)$value;
     }
 }
 
-if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empty($mergesess1)) {
-    // get profileName,favorite,desc from merged session
+$sessionids = array_unique($sessionids);
+$mergesess1 = !empty($mergesess) ? $mergesess[0] : null;
+
+if (!empty($mergesession) && !empty($mergesess1)) {
+
     $profileQuery = "SELECT profileName, description, favorite, ip FROM $db_sessions_table WHERE session = ?";
-    $profileResult = $db->execute_query($profileQuery, [$mergesession])->fetch_assoc();
+    $stmt = $db->prepare($profileQuery);
+    $stmt->bind_param('i', $mergesession);
+    $stmt->execute();
+    $profileResult = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
     $profileName = $profileResult['profileName'];
     $profileFavorite = $profileResult['favorite'];
     $profileDesc = $profileResult['description'];
     $profileIp = $profileResult['ip'];
 
-    $qrystr = "SELECT MIN(time) as time, MAX(timeend) as timeend, MIN(session) as session, SUM(sessionsize) as sessionsize FROM $db_sessions_table WHERE session = ?";
-    $i = 1;
-    while (isset(${'mergesess' . $i}) || !empty(${'mergesess' . $i})) {
-        $qrystr .= " OR session = '" . ${'mergesess' . $i} . "'";
-        $i++;
-    }
+    $allSessions = array_values($sessionids);
+    $placeholders = implode(',', array_fill(0, count($allSessions), '?'));
+    $qrystr = "SELECT MIN(time) as time, MAX(timeend) as timeend, MIN(session) as session, SUM(sessionsize) as sessionsize 
+               FROM $db_sessions_table 
+               WHERE session IN ($placeholders)";
 
-    $mergerow = $db->execute_query($qrystr, [$mergesession])->fetch_assoc();
+    $stmt = $db->prepare($qrystr);
+    $types = str_repeat('i', count($allSessions));
+    $stmt->bind_param($types, ...$allSessions);
+    $stmt->execute();
+    $mergerow = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
     $newsession = $mergerow['session'];
     $newtimestart = $mergerow['time'];
     $newtimeend = $mergerow['timeend'];
     $newsessionsize = $mergerow['sessionsize'];
 
-    foreach ($sessionids as $value) {
-        if ($value == $newsession) {
-            $updatequery = "UPDATE $db_sessions_table SET time=$newtimestart, timeend=$newtimeend, sessionsize=$newsessionsize, profileName=?, favorite=?, description=?, ip=? where session = ?";
-            $db->execute_query($updatequery, [$profileName, $profileFavorite, $profileDesc, $profileIp, $newsession]);
-        } else {
-            $delquery = "DELETE FROM $db_sessions_table WHERE session = ?";
-            $db->execute_query($delquery, [$value]);
-            $updatequery = "UPDATE $db_table SET session=$newsession WHERE session = ?";
-            $db->execute_query($updatequery, [$value]);
-        }
+    $updateMain = "UPDATE $db_sessions_table 
+                   SET time = ?, timeend = ?, sessionsize = ?, profileName = ?, favorite = ?, description = ?, ip = ? 
+                   WHERE session = ?";
+    $stmt = $db->prepare($updateMain);
+    $stmt->bind_param('iiissssi', $newtimestart, $newtimeend, $newsessionsize, $profileName, $profileFavorite, $profileDesc, $profileIp, $newsession);
+    $stmt->execute();
+    $stmt->close();
+
+    foreach ($allSessions as $sid) {
+        if ($sid == $newsession) continue;
+
+        $delStmt = $db->prepare("DELETE FROM $db_sessions_table WHERE session = ?");
+        $delStmt->bind_param('i', $sid);
+        $delStmt->execute();
+        $delStmt->close();
+
+        $updDataStmt = $db->prepare("UPDATE $db_table SET session = ? WHERE session = ?");
+        $updDataStmt->bind_param('ii', $newsession, $sid);
+        $updDataStmt->execute();
+        $updDataStmt->close();
     }
 
     cache_flush();
@@ -139,6 +163,14 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
                     ?>
                 </tbody>
             </table>
+            <?php
+                if (!$number_of_result) {
+            ?>
+                <h3 style='text-align:center' l10n="no.sess"></h3>
+                <script>
+                    document.getElementById('merge-btn').disabled = true;
+                </script>
+            <?php } ?>
         </form>
         <div class="pages">
         <?php //Pagination with page count limit
@@ -230,6 +262,12 @@ if (isset($mergesession) && !empty($mergesession) && isset($mergesess1) && !empt
                         msDate = <?php echo $mergesession; ?>;
                     }
                 }
+
+                if (!msDate.length) {
+                    serverError();
+                    return;
+                }
+
                 let maximum = <?php echo isset($merge_max) ? $merge_max : 50000; ?>;
                 let oversize = total > maximum;
                 let dialogOpt = {
