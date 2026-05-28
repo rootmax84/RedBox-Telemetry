@@ -2,8 +2,7 @@
 <img width="10%" src="https://github.com/user-attachments/assets/40f72afc-300c-47f6-8ded-2898eeae8654">
 </p>
 
-![CI History](https://img.shields.io/github/actions/workflow/status/rootmax84/RedBox-Telemetry/.github/workflows/docker-image.yml?branch=main&label=build%20history&style=flat-round) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rootmax84_RedBox-Telemetry&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rootmax84_RedBox-Telemetry) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=rootmax84_RedBox-Telemetry&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=rootmax84_RedBox-Telemetry)
-
+![CI History](https://img.shields.io/github/actions/workflow/status/rootmax84/RedBox-Telemetry/.github/workflows/docker-image.yml?branch=main&label=build%20history&style=flat-round) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rootmax84_RedBox-Telemetry&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rootmax84_RedBox-Telemetry) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=rootmax84_RedBox-Telemetry&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=rootmax84_RedBox-Telemetry) [![CodeQL](https://github.com/rootmax84/RedBox-Telemetry/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/rootmax84/RedBox-Telemetry/actions/workflows/github-code-scanning/codeql)
 # RedBox Telemetry
 Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive devices. Can be used with Torque PRO and generic OBD devices too.
 
