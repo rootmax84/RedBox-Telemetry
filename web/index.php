@@ -320,7 +320,6 @@ if (isset($sids[0])) {
   <div class="share-img" onClick="shareSession()" <?php if ($limit < 0) { ?> style="right:40px" <?php } ?>></div>
   <div class="chart-fill-toggle" onClick="chartToggle()" style="right:<?php echo ($limit < 0) ? '70px' : '100px'; ?>"></div>
   <div class="favorite" onClick="addToFavorite()" style="right:<?php echo ($limit < 0) ? '100px' : '130px'; ?>"></div>
-  <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '130px' : '160px'; ?>"></a>
   <div class="live" style="right:<?php echo ($limit < 0) ? '160px' : '190px'; ?>"></div>
   <?php } elseif (!isset($_SESSION['admin'])) { ?>
   <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></a>
@@ -332,6 +331,158 @@ if (isset($sids[0])) {
     </div>
   </div>
 </div>
+
+  <div class="menu-container">
+    <input type="checkbox" id="menu-toggle" class="menu-toggle"/>
+
+    <label for="menu-toggle" class="menu-button">
+      <span class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    </label>
+
+    <label for="menu-toggle" class="menu-overlay"></label>
+
+    <ul class="menu-list" role="menu">
+<?php if(isset($_SESSION['admin'])) {?>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./users_admin.php?action=reg'">
+          <span class="icon" id="reg-img"></span>
+          <span l10n="admin.page.btn.reg"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./users_admin.php?action=edit'">
+          <span class="icon" id="editPid-img"></span>
+          <span l10n="admin.page.btn.edit"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./users_admin.php?action=del'">
+          <span class="icon" id="del-img"></span>
+          <span l10n="admin.page.btn.del"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./users_admin.php?action=trunc'">
+          <span class="icon" id="clear-img"></span>
+          <span l10n="admin.page.btn.trunc"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('./adminer.php?mysql=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
+          <span class="icon" id="adminer-img"></span>
+          Adminer
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="maintenance()">
+          <span class="icon" id="maintenance-img"></span>
+          <span l10n="admin.page.btn.maintenance"></span>
+        </button>
+      </li>
+<?php } else {?>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="favoriteSessions()">
+          <span class="icon" id="fav-img"></span>
+          <span l10n="fav.btn"></span>
+        </button>
+      </li>
+    <?php if (isset($session_id) && !empty($session_id)) { ?>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="delSession()">
+          <span class="icon" id="del-img"></span>
+          <span l10n="func.del"></span>
+        </button>
+      </li>
+    <?php } ?>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="delSessions()">
+          <span class="icon" id="delMass-img"></span>
+          <span l10n="func.multi.del"></span>
+        </button>
+      </li>
+    <?php if (isset($session_id) && !empty($session_id)) { ?>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="mergeSessions()">
+          <span class="icon" id="merge-img"></span>
+          <span l10n="func.merge"></span>
+        </button>
+      </li>
+    <?php } ?>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="pidEdit()">
+          <span class="icon" id="editPid-img"></span>
+          <span l10n="func.pid"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="showToken()">
+          <span class="icon" id="token-img"></span>
+          <span l10n="func.token"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="usersSettings()">
+          <span class="icon" id="settings-img"></span>
+          <span l10n="func.settings"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="remoteRa()">
+          <span class="icon" id="remote-ra-rbx-img"></span>
+          <span l10n="func.remote"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="showHints()">
+          <span class="icon" id="hint-img"></span>
+          <span l10n="hint.button"></span>
+        </button>
+      </li>
+    <?php if (isset($session_id) && !empty($session_id)) { ?>
+      <li role="none">
+          <hr>
+      </li>
+      <li role="none">
+        <button class="menu-item <?php if ($id != "RedManage") { ?> menu-item-disabled <?php } ?>" role="menuitem" tabindex="-1" onclick="exportSession('RBX')"<?php if ($id != "RedManage") { ?> disabled <?php } ?>>
+          <span class="icon" id="rbx-img"></span>
+          <span l10n="export.session"></span>RBX
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="exportSession('CSV')">
+          <span class="icon" id="csv-img"></span>
+          <span l10n="export.session"></span>CSV
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="exportSession('JSON')">
+          <span class="icon" id="json-img"></span>
+          <span l10n="export.session"></span>JSON
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item <?php if (!$imapdata) { ?> menu-item-disabled <?php } ?>" role="menuitem" tabindex="-1" onclick="exportSession('KML')" <?php if (!$imapdata) { ?> disabled <?php } ?>>
+          <span class="icon" id="kml-img"></span>
+          <span l10n="export.session"></span>KML
+        </button>
+      </li>
+    <?php } ?>
+      <li role="none">
+          <hr>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="uploadLogDialog()">
+          <span class="icon" id="import-img"></span>
+          <span l10n="import.data"></span>
+        </button>
+      </li>
+<?php }?>
+    </ul>
+  </div>
 
 <div id="right-container" class="col-md-auto col-xs-12">
   <?php if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) {?>
@@ -417,8 +568,26 @@ if (isset($sids[0])) {
     <!-- Variable Select Block -->
     <div class="row center-block" style="padding-bottom:10px;">
       <select multiple id="plot_data">
-        <?php foreach ($coldata as $xcol) { ?>
-          <option value="<?php echo $xcol['colname']; ?>" <?php $i = 1; while (isset(${'var' . $i})) { if (${'var' . $i} == $xcol['colname'] || $xcol['colfavorite'] == 1) { echo " selected"; } $i = $i + 1; } ?>><?php echo $xcol['colcomment']; ?></option>
+        <?php $fav_selected_count = 0;
+            foreach ($coldata as $xcol) {
+        ?>
+        <option value="<?php echo $xcol['colname']; ?>" <?php
+            $is_matched = false;
+            $i = 1;
+            while (isset(${'var' . $i})) {
+                if (${'var' . $i} == $xcol['colname']) {
+                    $is_matched = true;
+                    break;
+                }
+                $i++;
+            }
+            if ($is_matched) {
+                echo ' selected';
+            } elseif ($xcol['colfavorite'] == 1 && $fav_selected_count < 10) {
+                echo ' selected';
+                $fav_selected_count++;
+            }
+            ?>><?php echo $xcol['colcomment']; ?></option>
         <?php } ?>
       </select>
     </div>
@@ -488,121 +657,21 @@ initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 	      </tbody>
 	    </table>
 </div>
-<br>
-
-<!--Functions buttons -->
-<p class="divided" onclick="funcToggle()">
- <span class="tlue" l10n="functions"></span>
- <span class="divider"></span>
- <span class="toggle" id="func_toggle" l10n="expand"></span>
-</p>
-
-<div id="func" style="display:none">
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="favoriteSessions()" l10n="fav.btn"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="pidEdit()" l10n="func.pid"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="delSession()" l10n="func.del"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="showToken()" l10n="func.token"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="delSessions()" l10n="func.multi.del"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="usersSettings()" l10n="func.settings"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="mergeSessions()" l10n="func.merge"></a>
-   </div>
-<div class="btn-group btn-group-justified func-btn">
-    <a class="btn btn-default func-btn" onclick="showHints()" l10n="hint.button"></a>
-   </div>
-</div>
-<br>
-
-<!--Upload log -->
-<p class="divided" onclick="logToggle()">
- <span class="tlue" l10n="import.data"></span>
- <span class="divider"></span>
- <span class="toggle" id="log_toggle" l10n="expand"></span>
-</p>
-
-<div class="drop-card" id="log" style="display:none">
-    <div style="display:flex; justify-content:center; margin-bottom:10px;">
-	     <span class="label label-default" id="log-msg-def" l10n="import.label"></span>
-	     <span class="label label-success" id="log-msg-ok"></span>
-	     <span class="label label-danger" id="log-msg-err"></span>
-    </div>
-    <div style="display:flex; justify-content:center;">
-	    <form method="POST" action="redlog.php" onsubmit="return submitLog(this);" style="display:contents" enctype="multipart/form-data">
-	     <input class="btn btn-default" style="border-radius:5px" type="file" multiple name="file[]" id="logFile" onchange="checkLog();" accept=".txt">
-	     <input class="btn btn-default upload-log-btn" id="log-upload-btn" value="" type="submit">
-	    </form>
-    </div>
-    <ul id="log-list"></ul>
-   </div>
-<br>
-
-<!-- Export Data Block -->
-<p class="divided" onclick="expToggle()">
- <span class="tlue" l10n="export.data"></span>
- <span class="divider"></span>
- <span class="toggle" id="exp_toggle" l10n="expand"></span>
-</p>
-<div id="exp" style="display:none">
-	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" onclick="exportSession('RBX')" <?php if ($id != "RedManage") { ?> disabled <?php } ?>>RBX</a>
-	  </div>
-	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" onclick="exportSession('CSV')">CSV</a>
-	  </div>
-	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" onclick="exportSession('JSON')">JSON</a>
-	  </div>
-	  <div class="btn-group btn-group-justified func-btn">
-	    <a class="btn btn-default func-btn" onclick="exportSession('KML')" <?php if (!$imapdata) { ?> disabled <?php } ?>>KML</a>
-	  </div>
-   </div>
 <script>
-function funcToggle() {
-	if ($("#func").is(":hidden")) {
-		$("#func").show();
-		$("#func_toggle").html(localization.key['collapse']);
-	} else {
-		$("#func").hide();
-		$("#func_toggle").html(localization.key['expand']);
-	}
-}
-
-function expToggle() {
-	if ($("#exp").is(":hidden")) {
-		$("#exp").show();
-		$("#exp_toggle").html(localization.key['collapse']);
-	} else {
-		$("#exp").hide();
-		$("#exp_toggle").html(localization.key['expand']);
-	}
-}
-
 function logToggle() {
-	if ($("#log").is(":hidden")) {
-		$("#log").show();
-		$("#log_toggle").html(localization.key['collapse']);
-	} else {
-		$("#log").hide();
-		$("#log_toggle").html(localization.key['expand']);
-		msg_def.innerHTML = localization.key['import.label'];
-		msg_ok.innerHTML = "";
-		msg_err.innerHTML = "";
-		document.getElementById('logFile').value = "";
-		up_btn.hide();
-		log_list.innerHTML = "";
-	}
+    if ($("#log").is(":hidden")) {
+	$("#log").show();
+	$("#log_toggle").html('↑');
+    } else {
+	$("#log").hide();
+	$("#log_toggle").html('↓');
+	msg_def.innerHTML = localization.key['import.label'];
+	msg_ok.innerHTML = "";
+	msg_err.innerHTML = "";
+	document.getElementById('logFile').value = "";
+	up_btn.hide();
+	log_list.innerHTML = "";
+    }
 }
 
 const noSleep = new NoSleep();
@@ -772,16 +841,7 @@ if ($current_page < $total_pages) {
 }
 ?>
 </div>
-
-<div class="admin-panel">
-    <a class="btn btn-default btn-admin" href="./users_admin.php?action=reg" l10n="admin.page.btn.reg"></a>
-    <a class="btn btn-default btn-admin" href="./users_admin.php?action=edit" l10n="admin.page.btn.edit"></a>
-    <a class="btn btn-default btn-admin" href="./users_admin.php?action=del" l10n="admin.page.btn.del"></a>
-    <a class="btn btn-default btn-admin" href="./users_admin.php?action=trunc" l10n="admin.page.btn.trunc"></a>
-    <a class="btn btn-default btn-admin" href="./adminer.php?mysql=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>" target="_blank">Adminer</a>
-    <a class="btn btn-default btn-admin" href="#" onclick="maintenance()" l10n="admin.page.btn.maintenance"></a>
 </div>
-    </div>
 <script>initTableSorting(".users-list")</script>
 <?php } elseif (isset($session_id) && !empty($session_id)) { ?>
     <p class="copyright"></p>
@@ -790,25 +850,6 @@ if ($current_page < $total_pages) {
 <div class="login" style="text-align:center; width:fit-content; margin: 50px auto">
     <h4 l10n="nodata.show"></h4>
     <h6 l10n="data.upload.label"></h6>
-<ul class="no-data-url-list">
-    <li><a href="#" onclick="showToken()" l10n="nodata.token"></a></li>
-    <li><a href="#" onclick="usersSettings()" l10n="nodata.settings"></a></li>
-    <li><a href="#" onclick="pidEdit()" l10n="nodata.pid"></a></li>
-</ul>
-<div class="drop-card" id="log">
-    <div style="display:flex; justify-content:center; margin-bottom:10px;">
-	     <span class="label label-default" id="log-msg-def" l10n="import.label" style="width:320px"></span>
-	     <span class="label label-success" id="log-msg-ok"></span>
-	     <span class="label label-danger" id="log-msg-err"></span>
-    </div>
-    <div style="display:flex; justify-content:center;">
-	    <form method="POST" action="redlog.php" onsubmit="return submitLog(this);" style="display:contents" enctype="multipart/form-data">
-	     <input class="btn btn-default" style="border-radius:5px;width:100%" type="file" multiple name="file[]" id="logFile" onchange="checkLog();" accept=".txt">
-	     <input class="btn btn-default upload-log-btn" id="log-upload-btn" value="" type="submit">
-	    </form>
-    </div>
-    <ul id="log-list"></ul>
-   </div>
 </div>
 <div class="row center-block" style="transform:translateY(-30px);text-align:center">
     <p class="copyright"></p>
@@ -835,165 +876,223 @@ if ($current_page < $total_pages) {
 <!-- logs upload -->
 <?php if(!isset($_SESSION['admin'])) {?>
 <script>
-const msg_def = document.getElementById('log-msg-def');
-const msg_ok = document.getElementById('log-msg-ok');
-const msg_err = document.getElementById('log-msg-err');
-const up_btn = $('#log-upload-btn');
-const log_list = document.getElementById('log-list');
-const logInput = document.getElementById('logFile');
+function uploadLogDialog() {
+    const messageHtml = `<div class="drop-card" id="log">
+         <div style="display:flex; justify-content:center; margin-bottom:10px;">
+             <span class="label label-default" id="log-msg-def">${localization.key['import.label']}</span>
+             <span class="label label-success" id="log-msg-ok"></span>
+             <span class="label label-danger" id="log-msg-err"></span>
+         </div>
+         <div style="display:flex; justify-content:center;">
+             <form method="POST" action="redlog.php" style="display:contents" enctype="multipart/form-data">
+                 <input class="btn btn-default" style="border-radius:5px" type="file" multiple name="file[]" id="logFile" accept=".txt">
+                 <input class="btn btn-default upload-log-btn" id="log-upload-btn" type="submit" value="">
+             </form>
+         </div>
+         <ul id="log-list"></ul>
+    </div>`;
 
-function checkLog() {
-    msg_def.innerHTML = "";
-    msg_err.innerHTML = "";
-    msg_ok.innerHTML = "";
-    log_list.innerHTML = "";
-    const log_data = document.getElementById('logFile');
-    let size = 0;
-    let filesProcessed = 0;
-    window.processedFiles = []; // массив для обработанных файлов
+    redDialog.make({
+        title: localization.key['dialog.result'],
+        message: messageHtml,
+        btnClassSuccessText: "OK",
+        btnClassFail: "hidden",
+        onResolve: () => {
+            window.location.href = '/';
+        }
+    });
 
-    if (!log_data.files.length) {
-        $("#log-list").css({"display":"none"});
-        msg_def.innerHTML = localization.key['import.label'];
-        up_btn.hide();
-        return;
-    } else {
-        $("#log-list").css({"display":"grid"});
+    document.getElementById('redDialogWrap').style.width = 'auto';
+
+    const dropArea = document.getElementById('log');
+    const fl = document.getElementById('logFile');
+    const msg_def = document.getElementById('log-msg-def');
+    const msg_ok = document.getElementById('log-msg-ok');
+    const msg_err = document.getElementById('log-msg-err');
+    const up_btn = $('#log-upload-btn');
+    const log_list = document.getElementById('log-list');
+
+    dropArea.addEventListener('drop', drop);
+    dropArea.addEventListener('dragover', dragover);
+    dropArea.addEventListener('dragleave', dragleave);
+
+    function drop(event) {
+        event.preventDefault();
+        dropArea.style.border = '';
+        fl.files = event.dataTransfer.files;
+        checkLog();
     }
 
-    msg_def.innerHTML = localization.key['import.read'];
-
-    for (let i = 0; i < log_data.files.length; i++) {
-        size += log_data.files[i].size;
+    function dragover(event) {
+        event.preventDefault();
+        dropArea.style.borderColor = '#0eff00';
     }
 
-    if (log_data.files.length > 10) {
+    function dragleave(event) {
+        event.preventDefault();
+        dropArea.style.borderColor = '';
+    }
+
+    function checkLog() {
         msg_def.innerHTML = "";
-        msg_err.innerHTML = localization.key['import.warn.count'];
-        up_btn.hide();
-        return;
-    }
+        msg_err.innerHTML = "";
+        msg_ok.innerHTML = "";
+        log_list.innerHTML = "";
+        const log_data = document.getElementById('logFile');
+        let size = 0;
+        let filesProcessed = 0;
+        window.processedFiles = [];
 
-    if (size > 52428800) {
-        msg_def.innerHTML = "";
-        msg_err.innerHTML = localization.key['import.warn.size'];
-        up_btn.hide();
-        return;
-    }
+        if (!log_data.files.length) {
+            $("#log-list").css({"display":"none"});
+            msg_def.innerHTML = localization.key['import.label'];
+            up_btn.hide();
+            return;
+        } else {
+            $("#log-list").css({"display":"grid"});
+        }
 
-    window.processedFiles = [];
+        msg_def.innerHTML = localization.key['import.read'];
 
-    for (let i = 0; i < log_data.files.length; i++) {
-        const file = log_data.files[i];
-        const reader = new FileReader();
+        for (let i = 0; i < log_data.files.length; i++) {
+            size += log_data.files[i].size;
+        }
 
-        reader.onload = (f) => {
-            let logDate, dateDMY, dateTime, dateStr;
-            try {
-                const content = f.target.result;
-                logDate = new Date(parseInt(content.split("\n")[1].split(" ")[0]));
-                if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
-                dateDMY = `${logDate.getFullYear()}-${(logDate.getMonth() + 1)}-${logDate.getDate()}`;
-                dateTime = Cookies.get('timeformat') === '12'
-                    ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
-                    : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
-                dateStr = `${localization.key['import.date']} ${dateDMY} ${dateTime})`;
+        if (log_data.files.length > 10) {
+            msg_def.innerHTML = "";
+            msg_err.innerHTML = localization.key['import.warn.count'];
+            up_btn.hide();
+            return;
+        }
 
-                window.processedFiles.push({
-                    name: file.name,
-                    content: content,
-                    originalFile: file
-                });
+        if (size > 52428800) {
+            msg_def.innerHTML = "";
+            msg_err.innerHTML = localization.key['import.warn.size'];
+            up_btn.hide();
+            return;
+        }
 
-            } catch(e) {
-                reader.abort();
-                dateStr = localization.key['import.broken.el'];
+        window.processedFiles = [];
+
+        for (let i = 0; i < log_data.files.length; i++) {
+            const file = log_data.files[i];
+            const reader = new FileReader();
+
+            reader.onload = (f) => {
+                let logDate, dateDMY, dateTime, dateStr;
+                try {
+                    const content = f.target.result;
+                    logDate = new Date(parseInt(content.split("\n")[1].split(" ")[0]));
+                    if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
+                    dateDMY = `${logDate.getFullYear()}-${(logDate.getMonth() + 1)}-${logDate.getDate()}`;
+                    dateTime = Cookies.get('timeformat') === '12'
+                        ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+                        : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
+                    dateStr = `${localization.key['import.date']} ${dateDMY} ${dateTime})`;
+
+                    window.processedFiles.push({
+                        name: file.name,
+                        content: content,
+                        originalFile: file
+                    });
+                } catch(e) {
+                    reader.abort();
+                    dateStr = localization.key['import.broken.el'];
+                    msg_def.innerHTML = "";
+                    msg_err.innerHTML = localization.key['import.broken.label'];
+                    msg_ok.innerHTML = "";
+                    up_btn.hide();
+                    log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr}</li>`;
+                    return;
+                }
+
+                log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr}</li>`;
+                filesProcessed++;
+
+                if (filesProcessed === log_data.files.length) {
+                    msg_def.innerHTML = "";
+                    msg_ok.innerHTML = localization.key['import.ready'];
+                    up_btn.show();
+                }
+            };
+
+            reader.onerror = () => {
                 msg_def.innerHTML = "";
                 msg_err.innerHTML = localization.key['import.broken.label'];
                 msg_ok.innerHTML = "";
                 up_btn.hide();
-                log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr}</li>`;
-                return;
-            }
+            };
 
-            log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr}</li>`;
-
-            filesProcessed++;
-
-            if (filesProcessed === log_data.files.length) {
-                msg_def.innerHTML = "";
-                msg_ok.innerHTML = localization.key['import.ready'];
-                up_btn.show();
-            }
-        }
-
-        reader.onerror = () => {
-            msg_def.innerHTML = "";
-            msg_err.innerHTML = localization.key['import.broken.label'];
-            msg_ok.innerHTML = "";
-            up_btn.hide();
-        }
-
-        reader.readAsText(file, "UTF-8");
-    }
-}
-
-function submitLog(el) {
-    up_btn.hide();
-    msg_err.innerHTML = "";
-    msg_def.innerHTML = "";
-    msg_ok.classList.add("wait");
-    msg_ok.innerHTML = localization.key['import.upload'];
-    logFile.setAttribute("disabled", "");
-
-    const formData = new FormData();
-
-    if (window.processedFiles && window.processedFiles.length > 0) {
-        window.processedFiles.forEach((file, index) => {
-            const blob = new Blob([file.content], { type: 'text/plain' });
-            formData.append('file[]', blob, file.name);
-        });
-    } else {
-        const fileInput = document.getElementById('logFile');
-        for (let i = 0; i < fileInput.files.length; i++) {
-            formData.append('file[]', fileInput.files[i]);
+            reader.readAsText(file, "UTF-8");
         }
     }
 
-    fetch(el.getAttribute("action"), {
-        method: el.method,
-        body: formData
-    })
-    .then(async response => {
-        const text = await response.text();
+    function submitLog(event) {
+        event.preventDefault();
+        const el = event.target;
+        const logFile = document.getElementById('logFile');
 
-        msg_ok.innerHTML = localization.key['import.end'];
+        up_btn.hide();
+        msg_err.innerHTML = "";
+        msg_def.innerHTML = "";
+        msg_ok.classList.add("wait");
+        msg_ok.innerHTML = localization.key['import.upload'];
+        logFile.setAttribute("disabled", "");
 
-        if (response.status === 406) {
-            msg_ok.innerHTML = "";
-            msg_err.innerHTML = text;
+        const formData = new FormData();
+
+        if (window.processedFiles && window.processedFiles.length > 0) {
+            window.processedFiles.forEach((file) => {
+                const blob = new Blob([file.content], { type: 'text/plain' });
+                formData.append('file[]', blob, file.name);
+            });
         } else {
-            msg_ok.innerHTML = text;
+            for (let i = 0; i < logFile.files.length; i++) {
+                formData.append('file[]', logFile.files[i]);
+            }
         }
 
-        if (!response.ok) {
-            throw new Error(text);
-        }
+        fetch(el.getAttribute("action"), {
+            method: el.method,
+            body: formData
+        })
+        .then(async response => {
+            const text = await response.text();
 
-        return text;
-    })
-    .catch(error => {
-        console.error('Fetch error:', error);
-        if (!msg_err.innerHTML) {
-            msg_err.innerHTML = error.message;
-        }
-    })
-    .finally(() => {
-        msg_ok.classList.remove("wait");
-        logFile.removeAttribute("disabled");
-    });
+            if (response.status === 406) {
+                msg_ok.innerHTML = "";
+                msg_err.innerHTML = text;
+            } else {
+                msg_ok.innerHTML = text;
+            }
 
-    return false;
+            if (!response.ok) {
+                throw new Error(text);
+            }
+
+            return text;
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            if (!msg_err.innerHTML) {
+                msg_err.innerHTML = error.message;
+            }
+        })
+        .finally(() => {
+            msg_ok.classList.remove("wait");
+            logFile.removeAttribute("disabled");
+        });
+    }
+
+    const form = document.querySelector('#redDialogWrap form');
+    if (form) {
+        form.addEventListener('submit', submitLog);
+    }
+
+    const fileInput = document.getElementById('logFile');
+    if (fileInput) {
+        fileInput.addEventListener('change', checkLog);
+    }
 }
 
 function delSession() {
@@ -1040,50 +1139,6 @@ function delSession() {
   redDialog.make(dialogOpt);
 }
 
-function showToken() {
-    $("#wait_layout").show();
-
-    fetch("users_handler.php?get_token")
-        .then(response => {
-            if (response.ok) {
-                return response.text();
-            }
-        })
-        .then(token => {
-            $("#wait_layout").hide();
-            const dialogOpt = {
-                title: `${localization.key['dialog.token']} <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="float: right;"><path fill="currentColor" d="M7 14q-.825 0-1.412-.587T5 12t.588-1.412T7 10t1.413.588T9 12t-.587 1.413T7 14m0 4q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q1.675 0 3.038.825T12.2 9H21l3 3l-4.5 4.5l-2-1.5l-2 1.5l-2.125-1.5H12.2q-.8 1.35-2.162 2.175T7 18m0-2q1.4 0 2.463-.85T10.875 13H14l1.45 1.025L17.5 12.5l1.775 1.375L21.15 12l-1-1h-9.275q-.35-1.3-1.412-2.15T7 8Q5.35 8 4.175 9.175T3 12t1.175 2.825T7 16"></path></svg>`,
-                btnClassSuccessText: localization.key['btn.copy'],
-                btnClassFail: "btn btn-info btn-sm",
-                btnClassFailText: localization.key['btn.renew'],
-                message: token,
-                onResolve: function() {
-                    copyToClipboard(token);
-                },
-                onReject: function() {
-                    $("#wait_layout").show();
-                    fetch("users_handler.php?renew_token")
-                        .then(response => {
-                            if (response.ok) {
-                                showToken();
-                            } else {
-                                serverError();
-                            }
-                        })
-                        .catch(() => serverError());
-                }
-            };
-            redDialog.make(dialogOpt);
-            $("#dialogText").css({"letter-spacing": ".6px", "font-family": "monospace"});
-            $("#redDialog_title").css({"background-image": "none"});
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            $("#wait_layout").hide();
-            serverError();
-        });
-}
-
 function exportSession(type) {
   $("#wait_layout").hide();
   const sessionId = "<?php echo $session_id; ?>";
@@ -1126,48 +1181,8 @@ function exportSession(type) {
   redDialog.make(dialogOpt);
 }
 
-function favoriteSessions() {
-    location.href = "./fav_sessions.php";
-}
-
-function delSessions() {
-    location.href = "./del_sessions.php";
-}
-
 function mergeSessions() {
     location.href = "./merge_sessions.php?mergesession=<?php echo $session_id; ?>";
-}
-
-function pidEdit() {
-    location.href = "./pid_edit.php";
-}
-
-function usersSettings() {
-    location.href = "./users_settings.php";
-}
-
-let dropArea = document.getElementById('log');
-let fl = document.getElementById('logFile');
-
-dropArea.addEventListener('drop', drop);
-dropArea.addEventListener('dragover', dragover);
-dropArea.addEventListener('dragleave', dragleave);
-
-function drop(event) {
-    event.preventDefault();
-    dropArea.style.border = '';
-    fl.files = event.dataTransfer.files;
-    checkLog();
-}
-
-function dragover(event) {
-    event.preventDefault();
-    dropArea.style.borderColor = '#0eff00';
-}
-
-function dragleave(event) {
-    event.preventDefault();
-    dropArea.style.borderColor = '';
 }
 
 function shareSession() {
@@ -1388,7 +1403,6 @@ function updateSessionList() {
             serverError(error);
         });
 }
-
 </script>
 <?php } ?>
   </body>

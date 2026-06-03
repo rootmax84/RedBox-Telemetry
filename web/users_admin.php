@@ -20,55 +20,131 @@ include 'head.php';
             <div class="container">
               <div id="theme-switch"></div>
                 <div class="navbar-header">
-		    <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
+                    <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
                 </div>
             </div>
         </div>
+  <div class="menu-container">
+    <input type="checkbox" id="menu-toggle" class="menu-toggle"/>
+
+    <label for="menu-toggle" class="menu-button">
+      <span class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    </label>
+
+    <label for="menu-toggle" class="menu-overlay"></label>
+
+    <ul class="menu-list" role="menu">
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1"
+          <?php if(isset($_GET['action']) && $_GET['action'] == 'reg'): ?>
+            style="color:#961911"
+          <?php else: ?>
+            onclick="location.href='./users_admin.php?action=reg'"
+          <?php endif; ?>
+        >
+          <span class="icon" id="reg-img"></span>
+          <span l10n="admin.page.btn.reg"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1"
+          <?php if(isset($_GET['action']) && $_GET['action'] == 'edit'): ?>
+            style="color:#961911"
+          <?php else: ?>
+            onclick="location.href='./users_admin.php?action=edit'"
+          <?php endif; ?>
+        >
+          <span class="icon" id="editPid-img"></span>
+          <span l10n="admin.page.btn.edit"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1"
+          <?php if(isset($_GET['action']) && $_GET['action'] == 'del'): ?>
+            style="color:#961911"
+          <?php else: ?>
+            onclick="location.href='./users_admin.php?action=del'"
+          <?php endif; ?>
+        >
+          <span class="icon" id="del-img"></span>
+          <span l10n="admin.page.btn.del"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1"
+          <?php if(isset($_GET['action']) && $_GET['action'] == 'trunc'): ?>
+            style="color:#961911"
+          <?php else: ?>
+            onclick="location.href='./users_admin.php?action=trunc'"
+          <?php endif; ?>
+        >
+          <span class="icon" id="clear-img"></span>
+          <span l10n="admin.page.btn.trunc"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('./adminer.php?mysql=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
+          <span class="icon" id="adminer-img"></span>
+          Adminer
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="maintenance()">
+          <span class="icon" id="maintenance-img"></span>
+          <span l10n="admin.page.btn.maintenance"></span>
+        </button>
+      </li>
+    </ul>
+  </div>
         <div class="login">
-	<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
+        <form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
 <?php
 if ($_GET['action'] == "edit") {
     $user = isset($_GET['user']) ? $_GET['user'] : null;
     $limit = isset($_GET['limit']) ? $_GET['limit'] : null;
 ?>
-	    <h4 l10n="admin.edit.title"></h4>
-		<input class="form-control" type="text" name="e_login" value="<?php echo htmlspecialchars($user); ?>" maxlength="32" l10n-placeholder="login.login" required autofocus <?php if(isset($user)){?> readonly <?php }?>></br>
-		<div class="password-toggle">
-		    <input class="form-control password-input" type="password" name="e_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password">
-		    <button type="button" class="password-toggle__btn">
-			<span class="password-toggle__icon"></span>
-		    </button>
-		</div><br><br>
-		<input class="form-control" type="number" min="-1" max="100000" name="e_limit" l10n-placeholder="input.limits" value="<?php if($user != $admin) echo htmlspecialchars($limit); ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
-		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.edit.btn"></button>
+            <h4 l10n="admin.edit.title"></h4>
+                <input class="form-control" type="text" name="e_login" value="<?php echo htmlspecialchars($user); ?>" maxlength="32" l10n-placeholder="login.login" required autofocus <?php if(isset($user)){?> readonly <?php }?>></br>
+                <div class="password-toggle">
+                    <input class="form-control password-input" type="password" name="e_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password">
+                    <button type="button" class="password-toggle__btn">
+                        <span class="password-toggle__icon"></span>
+                    </button>
+                </div><br><br>
+                <input class="form-control" type="number" min="-1" max="100000" name="e_limit" l10n-placeholder="input.limits" value="<?php if($user != $admin) echo htmlspecialchars($limit); ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
+                <button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.edit.btn"></button>
 <?php
 }
 elseif ($_GET['action'] == "reg") {
 ?>
-	    <h4 l10n="admin.reg.title"></h4>
-		<input class="form-control" type="text" name="reg_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus><br>
-		<div class="password-toggle">
-		    <input class="form-control password-input" type="password" name="reg_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password" required>
-		    <button type="button" class="password-toggle__btn">
-			<span class="password-toggle__icon"></span>
-		    </button>
-		</div>
-		<div style="padding:15px 0"><label style="font-size:13px;font-family:'Open Sans'"><input type="checkbox" style="margin-bottom:3px" name="reg_legacy"><span l10n="admin.reg.obd" style="margin-left:3px"></span></label></div>
-		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.reg.btn"></button>
+            <h4 l10n="admin.reg.title"></h4>
+                <input class="form-control" type="text" name="reg_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus><br>
+                <div class="password-toggle">
+                    <input class="form-control password-input" type="password" name="reg_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password" required>
+                    <button type="button" class="password-toggle__btn">
+                        <span class="password-toggle__icon"></span>
+                    </button>
+                </div>
+                <div style="padding:15px 0"><label style="font-size:13px;font-family:'Open Sans'"><input type="checkbox" style="margin-bottom:3px" name="reg_legacy"><span l10n="admin.reg.obd" style="margin-left:3px"></span></label></div>
+                <button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.reg.btn"></button>
 <?php
 }
 elseif ($_GET['action'] == "del") {
 ?>
-	    <h4 l10n="admin.del.title"></h4>
-		<input class="form-control" type="text" name="del_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus><br>
-		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.del.btn"></button>
+            <h4 l10n="admin.del.title"></h4>
+                <input class="form-control" type="text" name="del_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus><br>
+                <button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.del.btn"></button>
 <?php
 }
 elseif ($_GET['action'] == "trunc") {
 ?>
-	    <h4 l10n="admin.trunc.title"></h4>
-		<input class="form-control" type="text" name="trunc_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus></br>
-		<button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.trunc.btn"></button>
+            <h4 l10n="admin.trunc.title"></h4>
+                <input class="form-control" type="text" name="trunc_login" value="" maxlength="32" l10n-placeholder="login.login" required autofocus></br>
+                <button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.trunc.btn"></button>
 <?php
 }
 ?>

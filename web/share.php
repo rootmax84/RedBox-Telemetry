@@ -262,7 +262,7 @@ include 'head.php';
                         <li data-value="de">Deutsch</li>
                       </ul>
                 </div>
-            <div class="navbar-header">
+            <div class="navbar-header" style="margin-left:0 !important">
                 <a class="navbar-brand" href="#" style="cursor:default">
                     <div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry
                 </a>
@@ -275,11 +275,27 @@ include 'head.php';
             <!-- Variable Select Block -->
             <div class="row center-block" style="padding-bottom:10px;">
                 <select multiple id="plot_data">
-                    <?php $var1 = ""; foreach ($coldata as $xcol) { ?>
-                        <option value="<?php echo $xcol['colname']; ?>" <?php $i = 1; while (isset(${'var' . $i})) { if (${'var' . $i} == $xcol['colname'] || $xcol['colfavorite'] == 1) { echo " selected"; } $i = $i + 1; } ?>>
-                            <?php echo $xcol['colcomment']; ?>
-                        </option>
-                    <?php } ?>
+                    <?php $var1 = ""; $fav_selected_count = 0; foreach ($coldata as $xcol) { ?>
+                        <option value="<?php echo $xcol['colname']; ?>" <?php
+                            $is_matched = false;
+                            $i = 1;
+                            while (isset(${'var' . $i})) {
+                            if (${'var' . $i} == $xcol['colname']) {
+                                $is_matched = true;
+                                break;
+                            }
+                                $i++;
+                            }
+                            if ($is_matched) {
+                                echo ' selected';
+                            } elseif ($xcol['colfavorite'] == 1 && $fav_selected_count < 10) {
+                                echo ' selected';
+                                $fav_selected_count++;
+                            }
+                            ?>>
+                                <?php echo $xcol['colcomment']; ?>
+                            </option>
+                        <?php } ?>
                 </select>
             </div>
 

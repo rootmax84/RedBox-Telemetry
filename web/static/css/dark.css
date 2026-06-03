@@ -109,3 +109,7 @@ input:checked + .slider {
 .flot-tooltip {
   box-shadow: none;
 }
+
+.menu-overlay {
+  background: #ffffffc7;
+}

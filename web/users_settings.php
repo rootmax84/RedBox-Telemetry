@@ -16,7 +16,6 @@
          <div class="new-session"><a href='.' l10n='sess.new'></a></div>
          <div class="storage-usage-img"></div>
     <?php } ?>
-         <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></a>
             <div class="container">
               <div id="theme-switch"></div>
                 <div class="navbar-header">
@@ -24,6 +23,65 @@
                 </div>
               </div>
             </div>
+  <div class="menu-container">
+    <input type="checkbox" id="menu-toggle" class="menu-toggle"/>
+
+    <label for="menu-toggle" class="menu-button">
+      <span class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    </label>
+
+    <label for="menu-toggle" class="menu-overlay"></label>
+
+    <ul class="menu-list" role="menu">
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="favoriteSessions()">
+          <span class="icon" id="fav-img"></span>
+          <span l10n="fav.btn"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="delSessions()">
+          <span class="icon" id="delMass-img"></span>
+          <span l10n="func.multi.del"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="pidEdit()">
+          <span class="icon" id="editPid-img"></span>
+          <span l10n="func.pid"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="showToken()">
+          <span class="icon" id="token-img"></span>
+          <span l10n="func.token"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" style="color:#961911">
+          <span class="icon" id="settings-img"></span>
+          <span l10n="func.settings"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="remoteRa()">
+          <span class="icon" id="remote-ra-rbx-img"></span>
+          <span l10n="func.remote"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="showHints()">
+          <span class="icon" id="hint-img"></span>
+          <span l10n="hint.button"></span>
+        </button>
+      </li>
+    </ul>
+  </div>
+
     <div class="settings-container">
             <div class="settings-unit">
              <h4 l10n="user.tg.title"></h4>

@@ -24,15 +24,79 @@
                       </ul>
                 </div>
     <?php } ?>
-                <div class="navbar-header">
     <?php if (!isset($uid)) { ?>
+                <div class="navbar-header">
                  <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
     <?php } else { ?>
+                <div class="navbar-header" style="margin-left:0 !important">
                  <a class="navbar-brand" href="#" style="cursor:default"><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
     <?php } ?>
                 </div>
               </div>
             </div>
+ <?php $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+  if (!str_contains($path, 'share_remote.php')) { ?>
+  <div class="menu-container">
+    <input type="checkbox" id="menu-toggle" class="menu-toggle"/>
+
+    <label for="menu-toggle" class="menu-button">
+      <span class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    </label>
+
+
+    <label for="menu-toggle" class="menu-overlay"></label>
+
+    <ul class="menu-list" role="menu">
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="favoriteSessions()">
+          <span class="icon" id="fav-img"></span>
+          <span l10n="fav.btn"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="delSessions()">
+          <span class="icon" id="delMass-img"></span>
+          <span l10n="func.multi.del"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="pidEdit()">
+          <span class="icon" id="editPid-img"></span>
+          <span l10n="func.pid"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="showToken()">
+          <span class="icon" id="token-img"></span>
+          <span l10n="func.token"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="usersSettings()">
+          <span class="icon" id="settings-img"></span>
+          <span l10n="func.settings"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" style="color:#961911">
+          <span class="icon" id="remote-ra-rbx-img"></span>
+          <span l10n="func.remote"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="showHints()">
+          <span class="icon" id="hint-img"></span>
+          <span l10n="hint.button"></span>
+        </button>
+      </li>
+    </ul>
+  </div>
+    <?php } ?>
+
 <?php if ($isValid) { ?>
     <div class="container-remote">
         <div class="tabs">
