@@ -41,26 +41,25 @@ function initChoicesSystem() {
         createChoices();
     }
 
-    if (localStorage.getItem('translations-cache-ru')) {
+    if (localStorage.getItem(`${localization.cacheKey}-${localization.currentLang}`)) {
         executeCreateChoices();
         return;
     }
 
     timeoutId = setTimeout(() => {
-        console.warn('translations-cache-ru not found in localStorage after timeout');
         cleanup();
     }, MAX_WAIT_TIME);
 
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = function(key, value) {
         originalSetItem.apply(this, arguments);
-        if (key === 'translations-cache-ru') {
+        if (key === `${localization.cacheKey}-${localization.currentLang}`) {
             executeCreateChoices();
         }
     };
 
     window.addEventListener('storage', (e) => {
-        if (e.key === 'translations-cache-ru' && e.newValue) {
+        if (e.key === `${localization.cacheKey}-${localization.currentLang}` && e.newValue) {
             executeCreateChoices();
         }
     });
@@ -127,7 +126,6 @@ async function checkSig() {
             throw new Error('Signature invalid');
         }
     } catch (error) {
-        console.error('Sig check error:', error);
         window.location.href = 'catch.php?c=noshare';
         throw error;
     }
@@ -290,7 +288,6 @@ function saveData() {
         }
     })
     .catch(error => {
-        console.error('Ошибка:', error);
         xhrResponse(localization.key['redlog.err']);
     });
 }
@@ -383,7 +380,6 @@ async function fetchData() {
             return null;
         }
     } catch (error) {
-        console.error('Fetch error:', error);
         return null;
     }
 }
@@ -1734,7 +1730,6 @@ function pg0SetBtn() {
     saveData();
   } catch (e) {
     xhrResponse(e);
-    console.error("pg0SetBtn error:", e);
   }
 }
 
@@ -1775,7 +1770,6 @@ function pg1SetBtn() {
     saveData();
   } catch (e) {
     xhrResponse(e);
-    console.error("pg1SetBtn error:", e);
   }
 }
 
@@ -1834,7 +1828,6 @@ function calibSetBtn() {
     let t = temp[i];
     if (t < 0 || t > 150) {
       xhrResponse(`${localization.key['dialog.token.err']}: ${t}℃`);
-      console.error("Temperature out of range:", t);
       return;
     }
     setDataValue(data, idxT[i], t & 0xFF, 'uint8'); // uint8
@@ -1846,7 +1839,6 @@ function calibSetBtn() {
       // -------- V-mode ----------
       let volts = volt[i];
       if (volts < 0.01 || volts > 5) {
-        console.error("Invalid volt:", volts);
         xhrResponse(`${localization.key['dialog.token.err']}: ${volts}V`);
         return;
       }
@@ -1857,7 +1849,6 @@ function calibSetBtn() {
       const ohm = volt[i];
       if (ohm < 1 || ohm > 99000) {
         xhrResponse(`${localization.key['dialog.token.err']}: ${ohm}ohm`);
-        console.error("Invalid ohm:", ohm);
         return;
       }
       const pos_from_ohm = rConv(ohm);
@@ -1865,7 +1856,6 @@ function calibSetBtn() {
     }
 
     if (sensor_voltage < 0 || sensor_voltage > 1023) {
-      console.error("MCU sensor_voltage out of range:", sensor_voltage);
       return;
     }
 
