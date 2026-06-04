@@ -294,6 +294,16 @@
                                 </td>
                             </tr>
                             <tr>
+                                <td class="popup-target" l10n="boost.pid.deadband"><div class="popup popup-hidden" l10n="boost.popup.pid.deadband"></div></td>
+                                <td>
+                                    <div class="inc-dec">
+                                        <div class="value-button decrease" onclick="dv('pid-deadband',1,1)"></div>
+                                        <input type="number" class="form-control" required="" id="pid-deadband" min="0" max="25" placeholder="..." onkeydown="return nolet(event);" onkeyup="vlim(this.id,25);" onchange="vlim(this.id,25);">
+                                        <div class="value-button increase" onclick="iv('pid-deadband',1,1);vlim('pid-deadband',25);"></div> kPa
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
                                 <td class="popup-target" l10n="boost.pid.mode"><div class="popup popup-hidden" l10n="boost.popup.pid.mode"></div></td>
                                 <td>
                                     <select id="pid-mode" class="remote-button">
@@ -1457,7 +1467,7 @@
                             </tr>
                             <tr>
                                 <th></th>
-                                <th id="nom" l10n="calibration.ntc.nominal.label"></th>
+                                <th id="nom"></th>
                                 <th><span l10n="calibration.ntc.unit"></span></th>
                             </tr>
                             <tr>

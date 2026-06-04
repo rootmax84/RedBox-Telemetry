@@ -964,6 +964,7 @@ function fillData() {
     $("#pid-ki").value = getFloat(data[220],data[219],data[218],data[217]);
     $("#pid-kd").value = getFloat(data[224],data[223],data[222],data[221]);
     $("#pid-freq").value = data[212];
+    $("#pid-deadband").value = data[329];
 
     switch (data[211]) {
       case 0: //P-on-m
@@ -1448,6 +1449,9 @@ function pidSetBtn() {
 
     // pid freq: data[212]
     setDataValue(data, 212, parseInt($("#pid-freq").val()||0,10), 'uint8');
+
+    // pid deadband: data[329]
+    setDataValue(data, 329, parseInt($("#pid-deadband").val()||0,10), 'uint8');
 
     // Kp at addr 213 (4 bytes float32)
     setDataValue(data, 213, parseFloat($("#pid-kp").val() || 0), 'float32');
