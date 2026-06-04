@@ -478,7 +478,7 @@ let selected_map;
 
 function limits_boost() {
     const mapType = $("#boost-map").prop("selectedIndex");
-    const fields = $("#boost-target, #boost-start, #boost-g1-target, #boost-g2-target, #boost-g3-target, #boost-g4-target");
+    const fields = $("#boost-target, #boost-start, #boost-threshold, #boost-g1-target, #boost-g2-target, #boost-g3-target, #boost-g4-target");
     
     // Минимальное значение
     fields.each(function() {
@@ -924,10 +924,9 @@ function checkPIM() {
 function fillData() {
 // === BOOST
     //main
-    $("#boost-target").value = data[0];
-    $("#boost-start").value = data[10];
     $("#boost-target").value = getInt(data[227], data[226]) - 101;
     $("#boost-start").value = data[229] * 5;
+    $("#boost-threshold").value = data[330] * 5;
     $("#boost-duty").value = data[228];
     $("#boost-dc-corr").value = data[295];
     $("#boost-rpm-start").value = data[245] * 50;
@@ -1414,16 +1413,28 @@ function boostSetBtn() {
     // boost duty: data[228]
     setDataValue(data, 228, parseInt($("#boost-duty").val() || 0, 10), 'uint8');
 
-    // boost start (single byte, presented as *5 when read) data[229]
-    setDataValue(data, 229, Math.round((parseInt($("#boost-start").val() || 0, 10) / 5)), 'uint8');
+    // Check: threshold <= start
+    var boostStartVal = parseInt($("#boost-start").val() || 0, 10);
+    var boostThresholdVal = parseInt($("#boost-threshold").val() || 0, 10);
+    if (boostThresholdVal <= boostStartVal) {
+        // boost start (single byte, presented as *5 when read) data[229]
+        setDataValue(data, 229, Math.round(boostStartVal / 5), 'uint8');
+        // boost threshold (single byte, presented as *5 when read) data[230]
+        setDataValue(data, 230, Math.round(boostThresholdVal / 5), 'uint8');
+    } else fillData();
 
     // boost DC correction: data[295]
     setDataValue(data, 295, parseInt($("#boost-dc-corr").val() || 0, 10), 'uint8');
 
-    // boost rpm start/end/duty: start data[245], end data[294], duty data[246]
-    setDataValue(data, 245, Math.round((parseInt($("#boost-rpm-start").val()||0,10) / 50)), 'uint8');
-    setDataValue(data, 294, Math.round((parseInt($("#boost-rpm-end").val()||0,10) / 50)), 'uint8');
-    setDataValue(data, 246, parseInt($("#boost-rpm-duty").val() || 0, 10), 'uint8');
+    // Check: rpm start < rpm end
+    var boostRpmStart = Math.round((parseInt($("#boost-rpm-start").val()||0,10) / 50));
+    var boostRpmEnd = Math.round((parseInt($("#boost-rpm-end").val()||0,10) / 50));
+    if (boostRpmStart < boostRpmEnd) {
+        // boost rpm start/end/duty: start data[245], end data[294], duty data[246]
+        setDataValue(data, 245, boostRpmStart, 'uint8');
+        setDataValue(data, 294, boostRpmEnd, 'uint8');
+        setDataValue(data, 246, parseInt($("#boost-rpm-duty").val() || 0, 10), 'uint8');
+    } else fillData();
 
     // map selection: data[264]
     setDataValue(data, 264, parseInt($("#boost-map").val()||0,10), 'uint8');

@@ -158,6 +158,16 @@
                                 </td>
                             </tr>
                             <tr>
+                                <td class="popup-target" l10n="boost.main.threshold"><div class="popup popup-hidden" l10n="boost.popup.threshold"></div></td>
+                                <td>
+                                    <div class="inc-dec">
+                                        <div class="value-button decrease" onclick="dv('boost-threshold',1,5)"></div>
+                                        <input type="number" class="form-control" required="" id="boost-threshold" min="0" max="999" step="5" placeholder="..." onkeydown="return nolet(event);" onchange="limits_boost();" onkeyup="limits_boost();">
+                                        <div class="value-button increase" onclick="iv('boost-threshold',1,5);limits_boost()"></div> kPa
+                                    </div>
+                                </td>                            </tr>
+
+                            <tr>
                                 <td l10n="boost.main.duty"></td>
                                 <td>
                                     <div class="inc-dec" id="duty-off" style="pointer-events: auto;">
