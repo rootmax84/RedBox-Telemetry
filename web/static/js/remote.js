@@ -1419,8 +1419,8 @@ function boostSetBtn() {
     if (boostThresholdVal <= boostStartVal) {
         // boost start (single byte, presented as *5 when read) data[229]
         setDataValue(data, 229, Math.round(boostStartVal / 5), 'uint8');
-        // boost threshold (single byte, presented as *5 when read) data[230]
-        setDataValue(data, 230, Math.round(boostThresholdVal / 5), 'uint8');
+        // boost threshold (single byte, presented as *5 when read) data[330]
+        setDataValue(data, 330, Math.round(boostThresholdVal / 5), 'uint8');
     } else fillData();
 
     // boost DC correction: data[295]
@@ -1641,6 +1641,10 @@ function psSetBtn() {
     setDataValue(data, 318, parseInt($("#eop-sel").val()||0,10), 'uint8');
     setDataValue(data, 319, parseInt($("#fp-sel").val()||0,10), 'uint8');
     saveData();
+
+    eop_sensor = data[318];
+    fp_sensor  = data[319];
+    limits_logic();
 }
 
 // --- AFR calibration (afr-set-btn) ---

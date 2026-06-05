@@ -950,7 +950,7 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <div class="inc-dec">
+                                    <div class="inc-dec popup-target">
                                         <input type="number" class="form-control" required="" id="pg1-a-value" min="0" max="65535" placeholder="..." onkeydown="return nolet(event);" onchange="limits_logic();" onkeyup="limits_logic();" step="1">
                                         <div class="popup popup-hidden" id="pg1-a-label" hidden=""></div>
                                     </div>
