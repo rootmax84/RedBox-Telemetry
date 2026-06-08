@@ -1705,7 +1705,7 @@ const calcVal = (pgVar, selector) => {
     return varInt > 0 && varInt <= 6 ? parseInt(value) + 40 :
            varInt === 7 ? map(parseInt(value), 0, 100, 0, 147) :
            varInt === 20 ? parseInt(value) * 60 :
-           [11,12,15,18].includes(varInt) ? parseFloat(value) * 100.01 : value;
+           [11,12,15,18].includes(varInt) ? Math.round(parseFloat(value) * 100) : value;
 };
 
 // PG0 setter
@@ -1857,7 +1857,8 @@ function calibSetBtn() {
         xhrResponse(`${localization.key['dialog.token.err']}: ${volts}V`);
         return;
       }
-      const pos = Math.floor(f32(volts * 100.01));
+      const pos = Math.round(volts * 100);
+
       sensor_voltage = volt_calc_pos(pos);
     } else {
       // -------- R-mode ----------
