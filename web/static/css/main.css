@@ -1640,6 +1640,7 @@ input[type="text"] {
   background: #0000007a;
   cursor: default;
   pointer-events: auto;
+  backdrop-filter: blur(2px);
 }
 
 .menu-toggle:checked ~ .menu-overlay {
