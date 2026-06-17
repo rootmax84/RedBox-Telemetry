@@ -1414,8 +1414,8 @@ function boostSetBtn() {
     setDataValue(data, 228, parseInt($("#boost-duty").val() || 0, 10), 'uint8');
 
     // Check: threshold <= start
-    var boostStartVal = parseInt($("#boost-start").val() || 0, 10);
-    var boostThresholdVal = parseInt($("#boost-threshold").val() || 0, 10);
+    const boostStartVal = parseInt($("#boost-start").val() || 0, 10);
+    const boostThresholdVal = parseInt($("#boost-threshold").val() || 0, 10);
     if (boostThresholdVal <= boostStartVal) {
         // boost start (single byte, presented as *5 when read) data[229]
         setDataValue(data, 229, Math.round(boostStartVal / 5), 'uint8');
@@ -1427,8 +1427,8 @@ function boostSetBtn() {
     setDataValue(data, 295, parseInt($("#boost-dc-corr").val() || 0, 10), 'uint8');
 
     // Check: rpm start < rpm end
-    var boostRpmStart = Math.round((parseInt($("#boost-rpm-start").val()||0,10) / 50));
-    var boostRpmEnd = Math.round((parseInt($("#boost-rpm-end").val()||0,10) / 50));
+    const boostRpmStart = Math.round((parseInt($("#boost-rpm-start").val()||0,10) / 50));
+    const boostRpmEnd = Math.round((parseInt($("#boost-rpm-end").val()||0,10) / 50));
     if (boostRpmStart < boostRpmEnd) {
         // boost rpm start/end/duty: start data[245], end data[294], duty data[246]
         setDataValue(data, 245, boostRpmStart, 'uint8');
