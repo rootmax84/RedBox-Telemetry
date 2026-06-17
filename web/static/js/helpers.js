@@ -1443,17 +1443,18 @@ setInterval(()=> {
 
 //Key events
 document.addEventListener('keydown', (event) => {
-    //Close active dialog
-    if (document.querySelector("#redDialogOverLay") != null) {
-        if (event.key === 'Escape') {
+    if (event.key === 'Escape') {
+        const dialogOverlay = document.querySelector('#redDialogOverLay');
+        if (dialogOverlay) {
             redDialog.doReset(redDialog.options);
         }
-    }
-    //Delete current session dialog
-    if (typeof delSession === 'function') {
-        if (event.key === 'Delete') {
-            delSession();
+
+        const menuToggle = document.querySelector('.menu-toggle');
+        if (menuToggle) {
+            menuToggle.checked = false;
         }
+    } else if (event.key === 'Delete' && typeof delSession === 'function') {
+        delSession();
     }
 });
 
@@ -2113,6 +2114,10 @@ let redDialog = {
     },
 
     make(customOptions = {}) {
+        const menuToggle = document.querySelector('.menu-toggle');
+        if (menuToggle) {
+            menuToggle.checked = false;
+        }
         const options = {...this.options, ...customOptions};
         this.doReset(options);
 
