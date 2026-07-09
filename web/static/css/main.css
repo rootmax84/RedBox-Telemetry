@@ -211,6 +211,7 @@ html,body {
   font-size: 19px;
   font-weight: 300;
   color: #222222;
+  margin-bottom: 4px;
 }
 
 .live-data td:nth-child(2),
