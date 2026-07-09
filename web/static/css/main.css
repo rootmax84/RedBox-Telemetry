@@ -1667,3 +1667,7 @@ input[type="text"] {
         white-space: nowrap;
     }
 }
+
+.btn:focus, .btn:active:focus, .btn.active:focus {
+  outline: 0 !important;
+}
