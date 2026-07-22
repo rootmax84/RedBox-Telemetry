@@ -860,11 +860,37 @@ if ($current_page < $total_pages) {
 <?php if(!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) {?>
 
 <script>
- const path = [<?php echo $imapdata; ?>]; //this would be a new variable containing speed data for each segment
- if (!path.length) {
+ const rawPath = [<?php echo $imapdata; ?>];
+
+ if (!rawPath.length) {
     $('#map-div').hide();
  } else {
-    window.MapData = {path};
+    const validSegmentsWithIndices = extractValidSegmentsWithIndices(rawPath, { minPoints: Math.trunc(rawPath.length * 0.05) });
+
+    const segmentsCoords = validSegmentsWithIndices.map(seg => seg.map(p => p.coord));
+    const flatCoords = segmentsCoords.flat();
+    const flatIndices = validSegmentsWithIndices.flat().map(p => p.index);
+
+    window.MapData = {
+        segmentsCoords,
+        segmentsIndices: validSegmentsWithIndices,
+        flatCoords,
+        flatIndices
+    };
+
+    window.MapData.rawPathLength = rawPath.length;
+
+    const origToFlat = {};
+    window.MapData.segmentsIndices.flat().forEach(({ index }) => {
+        if (index >= 0 && !(index in origToFlat)) {
+            origToFlat[index] = window.MapData.flatIndices.indexOf(index);
+        }
+    });
+    window.MapData.origToFlat = origToFlat;
+
+    window.chartRangeStart = 0;
+    window.chartRangeEnd = 0;
+
     initMap = initMapLeaflet;
     jsCBinitMap = ()=>$(document).ready(initMap);
     jsCBinitMap();
