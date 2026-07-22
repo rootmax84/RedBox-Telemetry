@@ -113,6 +113,8 @@ function updatePlot(callback) {
     if (callback && typeof callback === 'function') {
         setTimeout(callback);
     }
+    window.chartRangeStart = 0;
+    window.chartRangeEnd = jsTimeMap.length - 1;
 }
 
 //start of chart plotting js code
@@ -267,13 +269,15 @@ function doPlot(position) {
     }
 
     //asigned the plot to a new variable and new function to update the plot in realtime when using the slider
-    chartUpdRange = (a,b) => {
+    chartUpdRange = (a, b) => {
+        window.chartRangeStart = a;
+        window.chartRangeEnd = b;
         let dataSet = [];
-        flotData.forEach(i=>dataSet.push({label:i.label,data:i.data.slice(a,b)}));
+        flotData.forEach(i => dataSet.push({label: i.label, data: i.data.slice(a, b)}));
         plot.setData(dataSet);
         plot.draw();
         heatData = dataSet;
-    }
+    };
     plot = $.plot("#placeholder", flotData, {
         xaxes: [ {
             mode: "time",
@@ -569,6 +573,83 @@ let updCharts = (last = false)=>{
 //End of chart plotting js code
 
 //Start of Leaflet Map Providers js code
+// ======================= Helper function for segment splitting =======================
+function extractValidSegmentsWithIndices(coords, options = {}) {
+    const {
+        maxStep = 0.003,          // distance between adjacent points to cut (~330 m)
+        maxMergeDist = 0.002,     // if the end of one segment and start of the next are closer than this – merge them
+        minPoints = 5,            // minimum number of points in a segment (fewer – delete)
+        minDistance = 0.0001,     // minimum displacement within a segment (to filter static points)
+        staticVariance = 1e-12    // variance threshold (below – static)
+    } = options;
+
+    if (!coords.length) return [];
+
+    const dist = (p1, p2) => {
+        const dlat = p1[0] - p2[0];
+        const dlng = p1[1] - p2[1];
+        return Math.sqrt(dlat * dlat + dlng * dlng);
+    };
+
+    // 1. Find indices of breaks (distance > maxStep)
+    const breaks = [];
+    for (let i = 1; i < coords.length; i++) {
+        if (dist(coords[i - 1], coords[i]) > maxStep) {
+            breaks.push(i - 1);
+        }
+    }
+
+    // 2. Cut into raw segments, preserving original indices
+    const rawSegments = [];
+    let start = 0;
+    for (const b of breaks) {
+        const slice = coords.slice(start, b + 1);
+        rawSegments.push(slice.map((coord, idx) => ({ coord, index: start + idx })));
+        start = b + 1;
+    }
+    const lastSlice = coords.slice(start);
+    rawSegments.push(lastSlice.map((coord, idx) => ({ coord, index: start + idx })));
+
+    // 3. Merge neighboring segments if the distance between them is small
+    const mergedSegments = [];
+    let currentSegment = rawSegments[0];
+    for (let i = 1; i < rawSegments.length; i++) {
+        const lastPoint = currentSegment[currentSegment.length - 1].coord;
+        const firstPoint = rawSegments[i][0].coord;
+        if (dist(lastPoint, firstPoint) <= maxMergeDist) {
+            // Merge: add the points of the next segment to the current one
+            currentSegment = currentSegment.concat(rawSegments[i]);
+        } else {
+            // Gap is large enough – save the current segment and start a new one
+            mergedSegments.push(currentSegment);
+            currentSegment = rawSegments[i];
+        }
+    }
+    mergedSegments.push(currentSegment);
+
+    // 4. Filter merged segments: remove too short ones and static segments
+    const validSegments = mergedSegments.filter(seg => {
+        if (seg.length < minPoints) return false;
+
+        const first = seg[0].coord;
+        const last = seg[seg.length - 1].coord;
+        const totalDist = dist(first, last);
+        if (totalDist < minDistance) {
+            let variance = 0;
+            for (const p of seg) {
+                variance += Math.pow(p.coord[0] - first[0], 2) + Math.pow(p.coord[1] - first[1], 2);
+            }
+            variance /= seg.length;
+            if (variance < staticVariance) return false; // pure static
+            // otherwise – a real stop, keep it
+        }
+        return true;
+    });
+
+    return validSegments; // array of segments [{coord, index}]
+}
+
+// ======================= Map initialization =======================
 let map = null;
 let polyline = null;
 let initMapLeaflet = () => {
@@ -582,7 +663,7 @@ let initMapLeaflet = () => {
         maxZoom: 19,
         attribution: '© Esri'});
 
-    let path = window.MapData.path;
+    // Map initialization
     map = new L.Map("map", {
         center: new L.LatLng(0, 0),
         dragging: !L.Browser.mobile,
@@ -602,10 +683,9 @@ let initMapLeaflet = () => {
 
     let layerControl = L.control.layers(baseMaps).addTo(map);
 
-    // Live stream control
+    // ---------------------- Controls ----------------------
     const addControlsToZoomContainer = function(map) {
         const zoomControl = document.querySelector('.leaflet-control-zoom');
-
         if (!zoomControl) return;
 
         const streamButton = L.DomUtil.create('a', 'leaflet-control-zoom-stream');
@@ -615,26 +695,371 @@ let initMapLeaflet = () => {
             <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2m-8-5v.01M12 18l-3.5-5a4 4 0 1 1 7 0z"/>
           </svg>
         `;
-
         const svg = streamButton.querySelector('svg');
-        streamBtn_svg = svg;
+        // save to global variable if needed (defined above)
+        if (typeof streamBtn_svg !== 'undefined') streamBtn_svg = svg;
 
         L.DomEvent.on(streamButton, 'mousedown', function(e) {
-          L.DomEvent.preventDefault(e);
-          L.DomEvent.stopPropagation(e);
-          dataToggle();
-          if (map._isFullscreen) {
-            $('html, body').animate({ scrollTop: $(document).height() });
-          }
+            L.DomEvent.preventDefault(e);
+            L.DomEvent.stopPropagation(e);
+            dataToggle();
+            if (map._isFullscreen) {
+                $('html, body').animate({ scrollTop: $(document).height() });
+            }
         });
-
         zoomControl.appendChild(streamButton);
     };
 
     if (!uid && !sid && !sig) addControlsToZoomContainer(map);
 
-    let hotlineLayer = null;
+    // ---------------------- Hotline layer group ----------------------
+    let hotlineLayers = L.layerGroup().addTo(map); // will contain hotline for each segment
     let currentDataSource = null;
+
+    // ---------------------- Start and End markers ----------------------
+    const playSvgIcon = L.divIcon({
+        html: `<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                 <polygon points="5,3 21,12 5,21" fill="green" stroke="white" stroke-width="1"/>
+               </svg>`,
+        className: 'svg-icon',
+        iconAnchor: [12, 12]
+    });
+
+    const stopSvgIcon = L.divIcon({
+        html: `<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                 <rect x="5" y="5" width="14" height="14" fill="black" stroke="white" stroke-width="1"/>
+               </svg>`,
+        className: 'svg-icon',
+        iconAnchor: [12, 12]
+    });
+
+    const getStartCoord = () => {
+        const segs = window.MapData.segmentsCoords;
+        if (!segs.length) return [0, 0];
+        const lastSeg = segs[segs.length - 1];
+        return lastSeg[lastSeg.length - 1]; // the oldest point
+    };
+
+    const getEndCoord = () => {
+        const segs = window.MapData.segmentsCoords;
+        if (!segs.length) return [0, 0];
+        return segs[0][0]; // the newest point
+    };
+
+    const startcir = L.marker(getStartCoord(), { icon: playSvgIcon, alt: 'Start Point' }).addTo(map);
+    const endcir = L.marker(getEndCoord(), { icon: stopSvgIcon, alt: 'End Point' }).addTo(map);
+
+    startcir.unbindTooltip().bindTooltip(localization.key['travel.start'] ?? 'Start', { className: 'travel-tooltip' });
+    endcir.unbindTooltip().bindTooltip(localization.key['travel.end'] ?? 'End', { className: 'travel-tooltip' });
+
+    // ---------------------- Polyline ----------------------
+    polyline = L.polyline(window.MapData.segmentsCoords, {
+        color: '#000000',
+        dashArray: '5, 5',
+        weight: 3,
+        opacity: 0.9,
+        className: 'travel-line-stroke'
+    }).addTo(map);
+
+    // Full track on load
+    window.currentMapSlicedCoords = window.MapData.flatCoords;
+    window.currentMapSlicedIndices = window.MapData.flatIndices;
+
+    // ---------------------- Fit map bounds ----------------------
+    if (window.MapData.segmentsCoords.length) {
+        map.fitBounds(polyline.getBounds());
+    }
+
+    // ---------------------- Range update function (slider) ----------------------
+    mapUpdRange = (origStartIdx, origEndIdx) => {
+        const origToFlat = window.MapData.origToFlat;
+        if (!origToFlat) return;
+
+        // Ensure indices are in correct order (start ≤ end)
+        let s = Math.min(origStartIdx, origEndIdx);
+        let e = Math.max(origStartIdx, origEndIdx);
+
+        // Find the nearest valid indices in the flat array
+        let flatStart = origToFlat[s];
+        let flatEnd = origToFlat[e];
+        while (flatStart === undefined && s <= e) { s++; flatStart = origToFlat[s]; }
+        while (flatEnd === undefined && e >= s) { e--; flatEnd = origToFlat[e]; }
+        if (flatStart === undefined || flatEnd === undefined) return;
+
+        const flat = window.MapData.flatCoords;
+        const sliced = flat.slice(flatStart, flatEnd + 1).filter(([lat, lng]) => lat !== 0 || lng !== 0);
+        if (!sliced.length) return;
+
+        // Rebuild segments for display (without short segment filtering)
+        const slicedSegmentsWithIndices = extractValidSegmentsWithIndices(sliced, {
+            maxStep: 0.003,
+            minPoints: 1,
+            minDistance: 0
+        });
+        const slicedSegmentsCoords = slicedSegmentsWithIndices.map(seg => seg.map(p => p.coord));
+
+        // Save the current slice of coordinates and indices for markerUpd and other needs
+        const slicedIndices = window.MapData.flatIndices
+            .slice(flatStart, flatEnd + 1)
+            .filter((_, i) => {
+                const coord = flat[flatStart + i];
+                return coord[0] !== 0 || coord[1] !== 0;
+            });
+        window.currentMapSlicedCoords = sliced;
+        window.currentMapSlicedIndices = slicedIndices;
+
+        // Update polyline and markers
+        polyline.setLatLngs(slicedSegmentsCoords);
+        startcir.setLatLng(sliced[sliced.length - 1]);
+        endcir.setLatLng(sliced[0]);
+
+        // If Hotline/Heatmap is active
+        if (currentDataSource !== null) {
+            updateHotline(currentDataSource, [flatStart, flatEnd], s, e);
+        } else {
+            if (!map.hasLayer(polyline)) polyline.addTo(map);
+        }
+
+        // Fit map to visible area
+        map.fitBounds(polyline.getBounds(), { maxZoom: 15 });
+    };
+
+    // ---------------------- Hotline / Heatmap ----------------------
+    let hotlineLegend = null;
+
+    function updateLegend(min, max) {
+        if (hotlineLegend) {
+            map.removeControl(hotlineLegend);
+            hotlineLegend = null;
+        }
+        if (isNaN(min) || isNaN(max)) return;
+
+        hotlineLegend = L.control.hotlineLegend({
+            min: Number.isInteger(min) ? min : min.toFixed(2),
+            mid: Number.isInteger((min + max) / 2) ? Math.round((min + max) / 2) : ((min + max) / 2).toFixed(2),
+            max: Number.isInteger(max) ? max : max.toFixed(2),
+            palette: { 0: 'green', 0.5: 'yellow', 1: 'red' },
+            position: 'bottomright'
+        }).addTo(map);
+    }
+
+    function findClosestPoint(latlng, points) {
+        if (!points || points.length === 0) return null;
+        let minDist = Infinity;
+        let closest = null;
+        for (let i = 0; i < points.length; i++) {
+            const d = latlng.distanceTo(points[i]);
+            if (d < minDist) {
+                minDist = d;
+                closest = points[i];
+            }
+        }
+        return minDist < 1000 ? closest : null;
+    }
+
+    let tooltipHideTimer = null;
+
+    function showTooltipAtPoint(point, sourceIndex) {
+        if (!point) return;
+
+        map.eachLayer(layer => {
+            if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
+                map.removeLayer(layer);
+            }
+        });
+
+        let timeDisplay = '';
+        if (point.time) {
+            const realTimeValue = findNearestRealTime(point.time);
+            const realTime = new Date(realTimeValue);
+            const use12HourFormat = Cookies.get('timeformat') === '12';
+            timeDisplay = realTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: use12HourFormat
+            });
+        }
+
+        const tooltipContent = timeDisplay
+            ? `${timeDisplay}<br>${heatData[sourceIndex].label}: ${point.alt}`
+            : `${heatData[sourceIndex].label}: ${point.alt}`;
+
+        L.tooltip({
+            permanent: false,
+            direction: 'top',
+            className: 'heat-data-tooltip'
+        })
+        .setLatLng(point)
+        .setContent(tooltipContent)
+        .addTo(map);
+
+        if ('ontouchstart' in window) {
+            if (tooltipHideTimer) clearTimeout(tooltipHideTimer);
+            tooltipHideTimer = setTimeout(() => {
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
+                        map.removeLayer(layer);
+                    }
+                });
+                tooltipHideTimer = null;
+            }, 5000);
+        }
+    }
+
+    function updateHotline(sourceIndex, rangeFlatIndices, origRangeStart = null, origRangeEnd = null) {
+        // Remove all previous hotline layers
+        hotlineLayers.clearLayers();
+
+        // If no source selected or no data – return to regular polyline
+        if (sourceIndex === null || sourceIndex === "" || !heatData || !heatData[sourceIndex]) {
+            currentDataSource = null;
+            if (!map.hasLayer(polyline)) polyline.addTo(map);
+            if (hotlineLegend) {
+                map.removeControl(hotlineLegend);
+                hotlineLegend = null;
+            }
+            return;
+        }
+
+        // Determine which segments to use
+        let targetSegmentsIndices = window.MapData.segmentsIndices; // all segments with indices
+        if (rangeFlatIndices && rangeFlatIndices.length === 2) {
+            // Restrict segments to flat index range
+            const [flatStart, flatEnd] = rangeFlatIndices;
+            const flatIndices = window.MapData.flatIndices;
+            const flatCoords = window.MapData.flatCoords;
+            const sliced = flatCoords.slice(flatStart, flatEnd + 1);
+            if (sliced.length === 0) {
+                // Empty range – reset to polyline
+                currentDataSource = null;
+                if (!map.hasLayer(polyline)) polyline.addTo(map);
+                if (hotlineLegend) {
+                    map.removeControl(hotlineLegend);
+                    hotlineLegend = null;
+                }
+                return;
+            }
+            // Rebuild segments for the slice (without short segment filtering)
+            const slicedWithIndices = extractValidSegmentsWithIndices(sliced, {
+                maxStep: 0.003,
+                minPoints: 1,
+                minDistance: 0
+            });
+            // Replace local indices (0..sliced.length-1) with global original indices
+            targetSegmentsIndices = slicedWithIndices.map(seg =>
+                seg.map((p, localIdx) => {
+                    const globalIdx = flatIndices[flatStart + localIdx];
+                    return { coord: p.coord, index: globalIdx };
+                })
+            );
+        }
+
+        const sourceData = heatData[sourceIndex].data;
+        if (!sourceData || sourceData.length === 0) {
+            // No data to display – return to polyline
+            currentDataSource = null;
+            if (!map.hasLayer(polyline)) polyline.addTo(map);
+            if (hotlineLegend) {
+                map.removeControl(hotlineLegend);
+                hotlineLegend = null;
+            }
+            return;
+        }
+
+        // Use origRangeStart if provided, otherwise current chart range
+        const dataOffset = origRangeStart !== null ? origRangeStart : (window.chartRangeStart || 0);
+
+        let globalMin = Infinity;
+        let globalMax = -Infinity;
+        let anyLayer = false;
+
+        // Build hotline for each segment
+        targetSegmentsIndices.forEach(segWithIdx => {
+            const points = [];
+            segWithIdx.forEach(({ coord, index }) => {
+                // Skip points without index (e.g., added by streaming)
+                if (index < 0) return;
+
+                // Calculate position in the trimmed sourceData
+                const dataIdx = index - dataOffset;
+                if (dataIdx < 0 || dataIdx >= sourceData.length) return;
+
+                let value = null;
+                let timestamp = null;
+                const raw = sourceData[dataIdx];
+                if (Array.isArray(raw) && raw.length >= 2) {
+                    timestamp = raw[0];
+                    value = raw[1];
+                } else {
+                    value = raw;
+                    timestamp = (window.timeData && window.timeData[index]) || null;
+                }
+                if (value === null || value === undefined || isNaN(value)) return;
+
+                const latLng = L.latLng(coord[0], coord[1], value);
+                latLng.alt = value;
+                if (timestamp) latLng.time = timestamp;
+                points.push(latLng);
+
+                if (value < globalMin) globalMin = value;
+                if (value > globalMax) globalMax = value;
+            });
+
+            if (points.length === 0) return;
+
+            // Just in case all values are the same
+            if (globalMin === globalMax) {
+                globalMin -= 0.1;
+                globalMax += 0.1;
+            }
+
+            const hotline = L.hotline(points, {
+                min: globalMin,
+                max: globalMax,
+                palette: { 0.0: 'green', 0.5: 'yellow', 1.0: 'red' },
+                weight: 3,
+                outlineColor: '#444',
+                outlineWidth: 1
+            });
+
+            hotline.sourceIndex = sourceIndex;
+            hotline.hotlineData = { points, min: globalMin, max: globalMax };
+
+            // Event handlers (similar to the original code)
+            hotline.on('mousemove click', function(e) {
+                const closest = findClosestPoint(e.latlng, this.hotlineData.points);
+                if (closest) showTooltipAtPoint(closest, this.sourceIndex);
+            });
+
+            hotline.on('mouseout', function() {
+                if (!('ontouchstart' in window)) {
+                    map.eachLayer(layer => {
+                        if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
+                            map.removeLayer(layer);
+                        }
+                    });
+                }
+            });
+
+            hotlineLayers.addLayer(hotline);
+            anyLayer = true;
+        });
+
+        if (anyLayer) {
+            currentDataSource = sourceIndex;
+            if (map.hasLayer(polyline)) map.removeLayer(polyline);
+            updateLegend(globalMin, globalMax);
+        } else {
+            // If no layers were created – return to polyline
+            currentDataSource = null;
+            if (!map.hasLayer(polyline)) polyline.addTo(map);
+            if (hotlineLegend) {
+                map.removeControl(hotlineLegend);
+                hotlineLegend = null;
+            }
+        }
+    }
 
     function createDataSourceSelector() {
         let control = L.control({position: 'bottomleft'});
@@ -642,7 +1067,7 @@ let initMapLeaflet = () => {
         control.onAdd = function(map) {
             let div = L.DomUtil.create('div', 'data-source-selector');
 
-            // Создаем базовую структуру селектора
+            // Create basic selector structure
             div.innerHTML = `
                 <div class="heat-data">
                     <select id="heat-dataSourceSelect">
@@ -676,17 +1101,9 @@ let initMapLeaflet = () => {
 
     function updateDataSourceSelector() {
         let select = document.getElementById('heat-dataSourceSelect');
-        if (!select) {
-            setTimeout(updateDataSourceSelector, 500);
-            return;
-        }
-
+        if (!select) { setTimeout(updateDataSourceSelector, 500); return; }
         let currentValue = select.value;
-
-        while (select.options.length > 1) {
-            select.remove(1);
-        }
-
+        while (select.options.length > 1) select.remove(1);
         if (heatData && heatData.length > 0) {
             heatData.forEach((source, index) => {
                 let option = document.createElement('option');
@@ -694,7 +1111,6 @@ let initMapLeaflet = () => {
                 option.textContent = source.label;
                 select.appendChild(option);
             });
-
             if (currentValue !== '' && currentValue < heatData.length) {
                 select.value = currentValue;
                 select.title = select.options[select.selectedIndex].text;
@@ -709,11 +1125,7 @@ let initMapLeaflet = () => {
         let updateTimeout = null;
         return function(e) {
             const sourceIndex = e.target.value;
-
-            if (updateTimeout) {
-                clearTimeout(updateTimeout);
-            }
-
+            if (updateTimeout) clearTimeout(updateTimeout);
             if (stream) {
                 updateHotline('');
                 updateTimeout = setTimeout(() => {
@@ -730,13 +1142,11 @@ let initMapLeaflet = () => {
         const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
         if (dataSourceSelect) {
             dataSourceSelect.removeEventListener('change', handleSelectorChange);
-
             dataSourceSelect.addEventListener('change', handleSelectorChange);
         } else {
             setTimeout(addSelectorEventHandler, 500);
         }
     }
-
     setTimeout(addSelectorEventHandler, 500);
 
     let lastFlotDataLength = 0;
@@ -748,312 +1158,98 @@ let initMapLeaflet = () => {
         }
     }, 1000);
 
-    function prepareHotlineData(sourceIndex, rangeIndices) {
-        if (!heatData || !heatData[sourceIndex] || !heatData[sourceIndex].data) {
-            return null;
-        }
+    // ---------------------- Dynamic update while streaming ----------------------
+    const rate = Number(Cookies.get('tracking-rate')) || 1000;
+    setInterval(() => {
+        let marker = null;
+        let lat = stream ? parseFloat($('#lat').html()) : null;
+        let lon = stream ? parseFloat($('#lon').html()) : null;
+        let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : localization.key['nospd']) : null;
+        let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
+        if (lat == null || lon == null || isNaN(lat) || isNaN(lon) || (lat == 0 && lon == 0)) return;
 
-        const sourceData = heatData[sourceIndex].data;
+        if (stream) {
+            let cleanSpd = stripHtml(spd);
+            let speedNum = parseFloat(cleanSpd);
+            let hasSpeed = !isNaN(speedNum) && speedNum > 0;
 
-        if (!sourceData || sourceData.length === 0) {
-            return null;
-        }
+            marker = new L.marker([lat, lon]).bindTooltip(
+                `${spd}${spd === localization.key['nospd'] ? '' : ' ' + spd_unit}`,
+                { permanent: hasSpeed, direction: 'right', className: "stream-marker" }
+            ).addTo(map);
+            map.setView(marker.getLatLng(), map.getZoom());
 
-        const coordinates = window.routeCoordinates || polyline.getLatLngs();
+            if (Cookies.get('plot') !== undefined) {
+                const newPoint = [lat, lon];
+                const segs = window.MapData.segmentsCoords;
+                const segsIdx = window.MapData.segmentsIndices;
 
-        if (!coordinates || coordinates.length === 0) {
-            return null;
-        }
-
-        let dataToUse = sourceData;
-        let coordsToUse = coordinates;
-
-        if (rangeIndices && rangeIndices.length === 2) {
-            const [startIdx, endIdx] = rangeIndices;
-            dataToUse = sourceData.slice(startIdx, endIdx + 1);
-            coordsToUse = coordinates.slice(startIdx, endIdx + 1);
-        }
-
-        const minLength = Math.min(dataToUse.length, coordsToUse.length);
-        if (dataToUse.length !== coordsToUse.length) {
-            dataToUse = dataToUse.slice(0, minLength);
-            coordsToUse = coordsToUse.slice(0, minLength);
-        }
-
-        const points = [];
-        let min = Infinity;
-        let max = -Infinity;
-
-        for (let i = 0; i < dataToUse.length; i++) {
-            let value, timestamp;
-
-            if (Array.isArray(dataToUse[i]) && dataToUse[i].length >= 2) {
-                timestamp = dataToUse[i][0];
-                value = dataToUse[i][1];
-            } else {
-                value = dataToUse[i];
-                timestamp = (window.timeData && window.timeData[i]) || null;
-            }
-
-            if (value === null || value === undefined || isNaN(value)) {
-                continue;
-            }
-
-            let lat, lng;
-
-            if (coordsToUse[i] instanceof L.LatLng) {
-                lat = coordsToUse[i].lat;
-                lng = coordsToUse[i].lng;
-            } else if (Array.isArray(coordsToUse[i])) {
-                lat = coordsToUse[i][0];
-                lng = coordsToUse[i][1];
-            } else {
-                continue;
-            }
-
-            const latLng = L.latLng(lat, lng, value);
-
-            latLng.alt = value;
-            if (timestamp) {
-                latLng.time = timestamp;
-            }
-
-            points.push(latLng);
-
-            min = Math.min(min, value);
-            max = Math.max(max, value);
-        }
-
-        if (points.length === 0) {
-            return null;
-        }
-
-        if (min === max) {
-            min = min - 0.1;
-            max = max + 0.1;
-        }
-
-        return {
-            points,
-            min,
-            max
-        };
-    }
-
-    function findClosestPoint(latlng, points) {
-        if (!points || points.length === 0) return null;
-
-        let minDist = Infinity;
-        let closestPoint = null;
-
-        for (let i = 0; i < points.length; i++) {
-            const dist = latlng.distanceTo(points[i]);
-            if (dist < minDist) {
-                minDist = dist;
-                closestPoint = points[i];
-            }
-        }
-
-        return minDist < 1000 ? closestPoint : null;
-    }
-
-    let tooltipHideTimer = null;
-
-    function showTooltipAtPoint(point, sourceIndex) {
-        if (!point) return;
-
-        map.eachLayer(layer => {
-            if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
-                map.removeLayer(layer);
-            }
-        });
-
-        let timeDisplay = '';
-        if (point.time) {
-            const realTimeValue = findNearestRealTime(point.time);
-            const realTime = new Date(realTimeValue);
-
-            const use12HourFormat = Cookies.get('timeformat') === '12';
-
-            if (use12HourFormat) {
-                timeDisplay = realTime.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true
-                });
-            } else {
-                timeDisplay = realTime.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false
-                });
-            }
-        }
-
-        const tooltipContent = timeDisplay ? 
-            `${timeDisplay}<br>${heatData[sourceIndex].label}: ${point.alt}` : 
-            `${heatData[sourceIndex].label}: ${point.alt}`;
-
-        L.tooltip({
-            permanent: false,
-            direction: 'top',
-            className: 'heat-data-tooltip'
-        })
-        .setLatLng(point)
-        .setContent(tooltipContent)
-        .addTo(map);
-
-        if ('ontouchstart' in window) {
-            if (tooltipHideTimer) {
-                clearTimeout(tooltipHideTimer);
-                tooltipHideTimer = null;
-            }
-
-            tooltipHideTimer = setTimeout(() => {
-                map.eachLayer(layer => {
-                    if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
-                        map.removeLayer(layer);
+                // Add to the beginning of the first segment if close enough (or create a new one)
+                if (segs.length > 0) {
+                    const firstSeg = segs[0];
+                    const firstSegIdx = segsIdx[0];
+                    const distToFirst = Math.sqrt((newPoint[0] - firstSeg[0][0]) ** 2 + (newPoint[1] - firstSeg[0][1]) ** 2);
+                    if (distToFirst <= 0.0005) {
+                        firstSeg.unshift(newPoint);
+                        firstSegIdx.unshift({ coord: newPoint, index: -1 }); // streaming point without index
+                    } else {
+                        // Create a new segment
+                        segs.unshift([newPoint]);
+                        segsIdx.unshift([{ coord: newPoint, index: -1 }]);
                     }
-                });
-                tooltipHideTimer = null;
-            }, 5000);
-        }
-    }
-
-    function updateHotline(sourceIndex, rangeIndices) {
-
-        if (hotlineLayer) {
-            map.removeLayer(hotlineLayer);
-            hotlineLayer = null;
-        }
-
-        if (sourceIndex === null || sourceIndex === "") {
-            currentDataSource = null;
-            if (!map.hasLayer(polyline)) {
-                polyline.addTo(map);
-            }
-
-            if (hotlineLegend) {
-                map.removeControl(hotlineLegend);
-                hotlineLegend = null;
-            }
-            return;
-        }
-
-        let hotlineData = prepareHotlineData(sourceIndex, rangeIndices);
-        if (!hotlineData) {
-            if (!map.hasLayer(polyline)) {
-                polyline.addTo(map);
-            }
-
-            if (hotlineLegend) {
-                map.removeControl(hotlineLegend);
-                hotlineLegend = null;
-            }
-            return;
-        }
-
-        if (map.hasLayer(polyline)) {
-            map.removeLayer(polyline);
-        }
-
-        currentDataSource = sourceIndex;
-
-        try {
-            hotlineLayer = L.hotline(hotlineData.points, {
-                min: hotlineData.min,
-                max: hotlineData.max,
-                palette: {
-                    0.0: 'green',
-                    0.5: 'yellow',
-                    1.0: 'red'
-                },
-                weight: 3,
-                outlineColor: '#444',
-                outlineWidth: 1
-            }).addTo(map);
-
-            hotlineLayer.hotlineData = hotlineData;
-            hotlineLayer.sourceIndex = sourceIndex;
-
-            hotlineLayer.on('mousemove', function(e) {
-                const closestPoint = findClosestPoint(e.latlng, this.hotlineData.points);
-                if (closestPoint) {
-                    showTooltipAtPoint(closestPoint, this.sourceIndex);
+                } else {
+                    segs.push([newPoint]);
+                    segsIdx.push([{ coord: newPoint, index: -1 }]);
                 }
-            });
 
-            hotlineLayer.on('mouseout', function() {
-                if (!('ontouchstart' in window)) {
-                    map.eachLayer(layer => {
-                        if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
-                            map.removeLayer(layer);
-                        }
-                    });
+                // Update flat arrays
+                window.MapData.flatCoords = segs.flat();
+                window.MapData.flatIndices = segsIdx.flat().map(p => p.index);
+                polyline.setLatLngs(segs);
+                endcir.setLatLng(newPoint);
+
+                if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
+                    // For streaming, use the latest known value
+                    const latestData = heatData[currentDataSource].data[heatData[currentDataSource].data.length - 1];
+                    if (latestData) {
+                        const value = Array.isArray(latestData) ? latestData[1] : latestData;
+                        // Add point to the hotline of the current (first) segment
+                        // Easier to rebuild the whole Hotline (might be expensive, but okay for streaming)
+                        updateHotline(currentDataSource);
+                    }
                 }
-            });
-
-            hotlineLayer.on('click', function(e) {
-                const closestPoint = findClosestPoint(e.latlng, this.hotlineData.points);
-                if (closestPoint) {
-                    showTooltipAtPoint(closestPoint, this.sourceIndex);
-                }
-            });
-
-            updateLegend(hotlineData.min, hotlineData.max);
-        } catch (error) {
-            console.error('Error in updateHotline:', error);
-
-            if (!map.hasLayer(polyline)) {
-                polyline.addTo(map);
             }
-
-            if (hotlineLegend) {
-                map.removeControl(hotlineLegend);
-                hotlineLegend = null;
-            }
+            setTimeout(() => { map.removeLayer(marker); }, rate);
         }
-    }
+    }, rate);
 
-    let hotlineLegend = null;
+    // ---------------------- Coordinates on click ----------------------
+    let c = new L.Control.Coordinates({
+        latitudeText: localization.key['lat'] ?? 'Latitude',
+        longitudeText: localization.key['lon'] ?? 'Longitude',
+    });
+    c.addTo(map);
+    function onMapClick(e) { c.setCoordinates(e); }
+    map.on('click', onMapClick);
 
-    function updateLegend(min, max) {
-        if (hotlineLegend) {
-            map.removeControl(hotlineLegend);
-        }
-
-        hotlineLegend = L.control.hotlineLegend({
-            min: Number.isInteger(min) ? min : min.toFixed(2),
-            mid: Number.isInteger(min + max) ? Math.round((min+max)/2) : ((min+max)/2).toFixed(2),
-            max: Number.isInteger(max) ? max : max.toFixed(2),
-            palette: {0: 'green', 0.5: 'yellow', 1: 'red'},
-            position: 'bottomright'
-        }).addTo(map);
-    }
-
+    // ---------------------- Hotline Legend ----------------------
     L.Control.HotlineLegend = L.Control.extend({
         options: {
             position: 'bottomright',
             min: 0,
-            mid: .5,
+            mid: 0.5,
             max: 1,
-            palette: {0: 'green', 0.5: 'yellow', 1: 'red'},
+            palette: { 0: 'green', 0.5: 'yellow', 1: 'red' },
             width: 15,
             height: 80
         },
-
-        initialize: function(options) {
-            L.Util.setOptions(this, options);
-        },
-
+        initialize: function(options) { L.Util.setOptions(this, options); },
         onAdd: function(map) {
             this._container = L.DomUtil.create('div', 'hotline-legend-container');
             this._container.style.display = 'flex';
             this._container.style.flexDirection = 'row';
 
-            var labelsContainer = L.DomUtil.create('div', 'hotline-legend-labels', this._container);
+            const labelsContainer = L.DomUtil.create('div', 'hotline-legend-labels', this._container);
             labelsContainer.style.display = 'flex';
             labelsContainer.style.flexDirection = 'column';
             labelsContainer.style.justifyContent = 'space-between';
@@ -1062,7 +1258,7 @@ let initMapLeaflet = () => {
             labelsContainer.style.fontWeight = 'bold';
 
             function createLabel(container, value) {
-                var label = L.DomUtil.create('div', 'hotline-legend-label', container);
+                const label = L.DomUtil.create('div', 'hotline-legend-label', container);
                 label.style.border = '2px solid rgba(0, 0, 0, 0.2)';
                 label.style.borderRadius = '4px';
                 label.style.padding = '2px';
@@ -1073,23 +1269,21 @@ let initMapLeaflet = () => {
                 return label;
             }
 
-            var maxLabel = createLabel(labelsContainer, this.options.max);
-            var midLabel = createLabel(labelsContainer, this.options.mid);
-            var minLabel = createLabel(labelsContainer, this.options.min);
+            createLabel(labelsContainer, this.options.max);
+            createLabel(labelsContainer, this.options.mid);
+            createLabel(labelsContainer, this.options.min);
 
-            var canvas = L.DomUtil.create('canvas', 'hotline-legend-canvas', this._container);
+            const canvas = L.DomUtil.create('canvas', 'hotline-legend-canvas', this._container);
             canvas.width = this.options.width;
             canvas.height = this.options.height;
             canvas.style.display = 'block';
             canvas.style.borderRadius = '4px';
 
-            var ctx = canvas.getContext('2d');
-            var gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-
-            for (var stop in this.options.palette) {
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+            for (let stop in this.options.palette) {
                 gradient.addColorStop(stop, this.options.palette[stop]);
             }
-
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -1101,160 +1295,7 @@ let initMapLeaflet = () => {
         return new L.Control.HotlineLegend(options);
     };
 
-    //Dynamic tracking marker when stream is open
-    const rate = Number(Cookies.get('tracking-rate')) || 1000;
-    setInterval(()=>{
-        let marker = null;
-        let lat = stream ? parseFloat($('#lat').html()) : null;
-        let lon = stream ? parseFloat($('#lon').html()) : null;
-        let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : localization.key['nospd']) : null;
-        let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
-        if (lat == null || lon == null || isNaN(lat) || isNaN(lon) || (lat == 0 && lon == 0)) return;
-        if (stream) {
-            let cleanSpd = stripHtml(spd);
-            let speedNum = parseFloat(cleanSpd);
-            let hasSpeed = !isNaN(speedNum) && speedNum > 0;
-
-            marker = new L.marker([lat, lon]).bindTooltip(
-                `${spd}${spd === localization.key['nospd'] ? '' : ' ' + spd_unit}`,
-                {permanent:hasSpeed, direction:'right', className:"stream-marker"}
-            ).addTo(map);
-            map.setView(marker.getLatLng(), map.getZoom());
-
-            //update travel line/end point
-            if (Cookies.get('plot') !== undefined) {
-                path.unshift([lat,lon]);
-                endcir.setLatLng(path.at(0));
-
-                if (currentDataSource !== null) {
-                    if (heatData && heatData[currentDataSource]) {
-                        updCharts(true);
-                        if (hotlineLayer) {
-                            let currentLatLngs = hotlineLayer.getLatLngs();
-                            let latestDataPoint = heatData[currentDataSource].data.at(-1);
-
-                            if (latestDataPoint) {
-                                const currentTime = Date.now();
-
-                                let newPoint = L.latLng(lat, lon, latestDataPoint[1]);
-                                newPoint.alt = latestDataPoint[1];
-                                newPoint.time = currentTime;
-
-                                heatData[currentDataSource].data.unshift([currentTime, latestDataPoint[1]]);
-
-                                if (Array.isArray(currentLatLngs[0])) {
-                                    currentLatLngs[0].unshift(newPoint);
-                                } else {
-                                    currentLatLngs.unshift(newPoint);
-                                }
-
-                                hotlineLayer.setLatLngs(currentLatLngs);
-
-                                // update hotlineData.points for tooltip
-                                if (hotlineLayer.hotlineData && Array.isArray(hotlineLayer.hotlineData.points)) {
-                                    hotlineLayer.hotlineData.points.unshift(newPoint);
-
-                                    const newValue = latestDataPoint[1];
-                                    const newMin = Math.min(hotlineLayer.hotlineData.min, newValue);
-                                    const newMax = Math.max(hotlineLayer.hotlineData.max, newValue);
-
-                                    hotlineLayer.options.min = newMin;
-                                    hotlineLayer.options.max = newMax;
-                                    hotlineLayer.redraw();
-
-                                    if (hotlineLegend) {
-                                        const labels = hotlineLegend._container.querySelectorAll('.hotline-legend-label');
-                                        if (labels.length >= 3) {
-                                            labels[0].innerHTML = Number.isInteger(newMax) ? newMax : newMax.toFixed(2);
-                                            labels[1].innerHTML = Number.isInteger((newMin+newMax)/2) ? 
-                                                Math.round((newMin+newMax)/2) : ((newMin+newMax)/2).toFixed(2);
-                                            labels[2].innerHTML = Number.isInteger(newMin) ? newMin : newMin.toFixed(2);
-                                        }
-                                    }
-
-                                    hotlineLayer.hotlineData.min = newMin;
-                                    hotlineLayer.hotlineData.max = newMax;
-                                }
-                            } else {
-                                updateHotline(currentDataSource);
-                            }
-                        } else {
-                            updateHotline(currentDataSource);
-                        }
-                    } else {
-                        if (!map.hasLayer(polyline)) {
-                            polyline.setLatLngs(path);
-                            polyline.addTo(map);
-                        } else {
-                            polyline.setLatLngs(path);
-                        }
-                    }
-                } else {
-                    polyline.setLatLngs(path);
-                }
-            }
-            setTimeout(()=>{map.removeLayer(marker)}, rate);
-        }
-    }, rate);
-
-    // start and end point marker
-    let pathL = path.length;
-    let endCrd = path[0];
-    let startCrd = path[pathL-1];
-
-    // start marker
-    const playSvgIcon = L.divIcon({
-        html: `<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                 <polygon points="5,3 21,12 5,21" fill="green" stroke="white" stroke-width="1"/>
-               </svg>`,
-        className: 'svg-icon',
-        iconAnchor: [12, 12]
-    });
-
-    // end marker
-    const stopSvgIcon = L.divIcon({
-        html: `<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-             <rect x="5" y="5" width="14" height="14" fill="black" stroke="white" stroke-width="1"/>
-               </svg>`,
-        className: 'svg-icon',
-        iconAnchor: [12, 12]
-    });
-
-    const startcir = L.marker(startCrd, {icon: playSvgIcon, alt: 'Start Point'}).addTo(map);
-    const endcir = L.marker(endCrd, {icon: stopSvgIcon, alt: 'End Point'}).addTo(map);
-
-    startcir.unbindTooltip().bindTooltip(localization.key['travel.start'] ?? 'Start', {className: 'travel-tooltip'});
-    endcir.unbindTooltip().bindTooltip(localization.key['travel.end'] ?? 'End', {className: 'travel-tooltip'});
-
-    // travel line
-    polyline = L.polyline(path, {
-        color: '#000000',
-        dashArray: '5, 5',
-        weight: 3,
-        opacity: 0.9,
-        className: 'travel-line-stroke'
-    }).addTo(map);
-
-    // zoom the map to the polyline
-    map.fitBounds(polyline.getBounds());
-
-    mapUpdRange = (a,b) => {
-        path = window.MapData.path.slice(a,b).filter(([a,b])=>(a>0||a<0||b>0||b<0));
-        if (!path.length) return;
-
-        startcir.setLatLng(path[path.length-1]);
-        endcir.setLatLng(path[0]);
-
-        if (currentDataSource !== null) {
-            updateHotline(currentDataSource, [a, b]);
-        } else {
-            polyline.setLatLngs(path);
-            polyline.addTo(map);
-        }
-
-        map.fitBounds(polyline.getBounds(), {maxZoom: 15});
-    };
-
+    // ---------------------- Marker for the slider ----------------------
     const carDivIcon = L.divIcon({
         html: '<div></div>',
         className: 'marker-car',
@@ -1262,54 +1303,58 @@ let initMapLeaflet = () => {
         iconAnchor: [8, 10]
     });
 
-    const markerPnt = L.marker(startCrd, {icon: carDivIcon});
+    const markerPnt = L.marker(getStartCoord(), { icon: carDivIcon });
 
     markerUpd = itm => {
+        // Remove previous tooltips
         map.eachLayer(layer => {
             if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
                 map.removeLayer(layer);
             }
         });
 
-        if (itm && itm.dataIndex > 0) {
-            const pos = path[itm.dataIndex] || path.at(-1) || [0,0];
-            [markerPnt].forEach(marker => {
-                marker.setLatLng(pos).addTo(map);
-            });
+        if (itm && itm.dataIndex >= 0) {
+            // itm.dataIndex – index in the current trimmed chart window.
+            // Convert it to the global original index.
+            const origIdx = (window.chartRangeStart || 0) + itm.dataIndex;
 
+            // Look for the point in what is currently drawn on the map
+            const posInSliced = window.currentMapSlicedIndices?.indexOf(origIdx);
+            if (posInSliced === undefined || posInSliced === -1) {
+                // Point is not within the map's visible range – hide marker
+                map.removeLayer(markerPnt);
+                return;
+            }
+
+            const pos = window.currentMapSlicedCoords[posInSliced];
+            markerPnt.setLatLng(pos).addTo(map);
+
+            // Show HeatData if a source is selected
             if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
-                let dataPoint = heatData[currentDataSource].data[itm.dataIndex];
-                if (dataPoint) {
-                    let value = dataPoint[1];
-                    let label = heatData[currentDataSource].label;
-
-                    L.tooltip({
-                        permanent: false,
-                        direction: 'top',
-                        className: 'heat-data-tooltip'
-                    })
-                    .setLatLng(pos)
-                    .setContent(`${label}: ${value}`)
-                    .addTo(map);
+                const sourceData = heatData[currentDataSource].data;
+                // Index in the trimmed heatData window = origIdx - chartRangeStart
+                const dataIdx = origIdx - (window.chartRangeStart || 0);
+                if (dataIdx >= 0 && dataIdx < sourceData.length) {
+                    const dataPoint = sourceData[dataIdx];
+                    if (dataPoint) {
+                        const value = Array.isArray(dataPoint) ? dataPoint[1] : dataPoint;
+                        const label = heatData[currentDataSource].label;
+                        L.tooltip({
+                            permanent: false,
+                            direction: 'top',
+                            className: 'heat-data-tooltip'
+                        })
+                        .setLatLng(pos)
+                        .setContent(`${label}: ${value}`)
+                        .addTo(map);
+                    }
                 }
             }
         } else {
-            [markerPnt].forEach(marker => map.removeLayer(marker));
+            map.removeLayer(markerPnt);
         }
-    }
-
-    //coords
-    let c = new L.Control.Coordinates({
-        latitudeText: localization.key['lat'] ?? 'Latitude',
-        longitudeText: localization.key['lon'] ?? 'Longitude',
-    });
-    c.addTo(map);
-
-    function onMapClick(e) {
-        c.setCoordinates(e);
-    }
-    map.on('click', onMapClick);
-}
+    };
+};
 //End of Leaflet Map Providers js code
 
 //slider js code
@@ -2082,7 +2127,6 @@ function showToken() {
             serverError();
         });
 }
-
 
 let redDialog = {
     options: {
