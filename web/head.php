@@ -146,28 +146,29 @@ setInterval(checkCSRFToken, 60000);
 document.addEventListener('DOMContentLoaded', addCsrfTokenToForms);
 
 function auth() {
- setTimeout(auth,5000);
- fetch("auth.php", {method: "HEAD"})
+  fetch("auth.php", {method: "HEAD"})
     .then(resp => {
         switch(resp.status) {
             case 200:
-            $("#offline_layout").hide();
-            if (!$('#redDialogOverLay').length) {
-                document.documentElement.style.overflow = '';
-            }
+                $("#offline_layout").hide();
+                if (!$('#redDialogOverLay').length) {
+                    document.documentElement.style.overflow = '';
+                }
             break;
             case 401:
-            location.href='.?logout=true';
+                location.href='.?logout=true';
             break;
             case 307:
-            location.href='maintenance.php';
+                location.href='maintenance.php';
+            break;
+            default:
+                throw new Error('offline');
             break;
         }
-    }).catch(err => {
-                        $("#offline_layout").show()
-                        document.documentElement.style.overflow = 'hidden';
-                    }
-            );
+    }).catch(() => {
+        $("#offline_layout").show()
+        document.documentElement.style.overflow = 'hidden';
+    }).finally(() => setTimeout(auth, 5000));
 }
 
 const username = "<?php if (isset($username) && $username != $admin) echo $username; ?>";
