@@ -97,11 +97,11 @@ function getFilteredGpsQuery($db_table, $filterRate) {
 
     if ($filterRate === 1) {
         // 100% of data (without filtering)
-        return "SELECT kff1006, kff1005, time FROM $db_table WHERE session=? ORDER BY time DESC";
+        return "SELECT kff1006, kff1005, kff1007, time FROM $db_table WHERE session=? ORDER BY time DESC";
     } elseif ($filterRate === 2) {
         // 75%
         return "SELECT * FROM (
-            SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            SELECT kff1006, kff1005, kff1007, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
             FROM $db_table
             WHERE session=?
         ) as filtered_data
@@ -110,7 +110,7 @@ function getFilteredGpsQuery($db_table, $filterRate) {
     } elseif ($filterRate === 3) {
         // 50%
         return "SELECT * FROM (
-            SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            SELECT kff1006, kff1005, kff1007, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
             FROM $db_table
             WHERE session=?
         ) as filtered_data
@@ -119,7 +119,7 @@ function getFilteredGpsQuery($db_table, $filterRate) {
     } elseif ($filterRate === 4) {
         // 33%
         return "SELECT * FROM (
-            SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            SELECT kff1006, kff1005, kff1007, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
             FROM $db_table
             WHERE session=?
         ) as filtered_data
@@ -128,7 +128,7 @@ function getFilteredGpsQuery($db_table, $filterRate) {
     } else {
         // 25%
         return "SELECT * FROM (
-            SELECT kff1006, kff1005, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
+            SELECT kff1006, kff1005, kff1007, time, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
             FROM $db_table
             WHERE session=?
         ) as filtered_data

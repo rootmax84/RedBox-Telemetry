@@ -1,7 +1,7 @@
 <?php
 
 function get_db_connection() {
-    global $db_users, $live_data_rate, $db_engine, $admin, $salt, $username, $db_sessions_table;
+    global $db_users, $live_data_rate, $db_engine, $admin, $salt, $username, $db_sessions_table, $db_table;
     include 'creds.php';
 
     if (!isset($db)) {
@@ -199,7 +199,7 @@ function create_users_table()
 
 function perform_migration() {
     $db = get_db_connection();
-    global $db_users;
+    global $db_users, $db_table;
 
     // Clean install
     if (!check_table_exists($db, $db_users)) {
@@ -233,7 +233,7 @@ function perform_migration() {
 
 function perform_user_migration() {
     $db = get_db_connection();
-    global $username, $admin, $db_sessions_table;
+    global $username, $admin, $db_sessions_table, $db_table;
 
     if ($username == $admin) {
         return;
@@ -253,6 +253,17 @@ function perform_user_migration() {
     $index_name = 'favorite_index';
     if (!index_exists($db, $db_sessions_table, $index_name)) {
         $db->query("ALTER TABLE $db_sessions_table ADD INDEX `$index_name` (`favorite`)");
+    }
+
+    $old_index = 'session_kff1005_kff1006';
+    $new_index = 'session_gps';
+
+    if (index_exists($db, $db_table, $old_index)) {
+        $db->query("DROP INDEX `$old_index` ON $db_table");
+    }
+
+    if (!index_exists($db, $db_table, $new_index)) {
+        $db->query("CREATE INDEX `$new_index` ON $db_table (`session`, `kff1005`, `kff1006`, `kff1007`)");
     }
 }
 

@@ -255,7 +255,7 @@ try {
                 kff120c float NOT NULL DEFAULT 0,
                 kff1001 float NOT NULL DEFAULT 0,
                 kff1204 float NOT NULL DEFAULT 0,
-                KEY session_kff1005_kff1006 (session,kff1005,kff1006),
+                KEY session_gps (session,kff1005,kff1006,kff1007),
                 PRIMARY KEY (time)) ENGINE=".$db_engine;
 
             // Create sessions table

@@ -652,6 +652,8 @@ function extractValidSegmentsWithIndices(coords, options = {}) {
 // ======================= Map initialization =======================
 let map = null;
 let polyline = null;
+let headingArrowsLayer = null;          // layer group for heading direction arrows
+
 let initMapLeaflet = () => {
     let osm = new L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -675,6 +677,11 @@ let initMapLeaflet = () => {
         },
         layers: [osm]
     });
+
+    // ---------- Create a pane for heading arrows ----------
+    // the arrows do not capture mouse events and block hotline tooltips.
+    map.createPane('headingPane');
+    map.getPane('headingPane').style.pointerEvents = 'none';
 
     let baseMaps = {
         [localization.key['layer.map'] ?? 'Map']: osm,
@@ -765,10 +772,143 @@ let initMapLeaflet = () => {
     window.currentMapSlicedCoords = window.MapData.flatCoords;
     window.currentMapSlicedIndices = window.MapData.flatIndices;
 
-    // ---------------------- Fit map bounds ----------------------
+    // ---------------------- Heading arrows layer ----------------------
+    headingArrowsLayer = L.layerGroup().addTo(map);
+
+    // Fit map bounds initially
     if (window.MapData.segmentsCoords.length) {
         map.fitBounds(polyline.getBounds());
     }
+
+    // ---------------------- Heading arrows update function ----------------------
+    /**
+     * Clears and redraws heading arrows on the visible track segment.
+     * - Skips entirely if all headings are 0, null, or undefined.
+     * - Uses distance-based placement with a base minimum distance that adapts to
+     *   the current zoom level (closer zoom = more arrows, farther zoom = fewer).
+     * - Caps the total number of arrows at MAX_ARROWS to maintain performance.
+     */
+    function updateHeadingArrows() {
+        headingArrowsLayer.clearLayers();
+        const indices = window.currentMapSlicedIndices;   // original indices of visible points
+        const coords = window.currentMapSlicedCoords;     // [lat, lng] of visible points
+        if (!indices || !coords || coords.length === 0) return;
+
+        const origHeading = window.MapData.origHeading;
+        if (!origHeading) return;
+
+        // --- Check if any valid heading exists (non-zero, non-null, non-undefined) ---
+        let hasValidHeading = false;
+        for (let i = 0; i < indices.length; i++) {
+            const idx = indices[i];
+            const h = origHeading[idx];
+            if (h !== undefined && h !== null && h !== 0) {
+                hasValidHeading = true;
+                break;
+            }
+        }
+        if (!hasValidHeading) return;   // No valid heading → skip arrows entirely
+
+        // --- Dynamic density based on current map zoom ---
+        const zoom = map.getZoom();
+        const MIN_DIST_ZOOM_MAX = 1;    // meters at maximum zoom (e.g., 18) – many arrows
+        const MAX_DIST_ZOOM_MIN = 5000;  // meters at minimum zoom (e.g., 1) – few arrows
+        const zoomRange = 17;            // 18 - 1
+        const t = (18 - zoom) / zoomRange;
+        let baseDist = MIN_DIST_ZOOM_MAX + (MAX_DIST_ZOOM_MIN - MIN_DIST_ZOOM_MAX) * t;
+        baseDist = Math.max(MIN_DIST_ZOOM_MAX, baseDist); // safety for zoom > 18
+
+        const MAX_ARROWS = 300;  // absolute upper limit to prevent performance issues
+
+        // --- Calculate total length of the visible polyline segment ---
+        let totalDistance = 0;
+        const distances = [0];   // cumulative distance from the first point
+        for (let i = 1; i < coords.length; i++) {
+            const d = L.latLng(coords[i-1][0], coords[i-1][1])
+                        .distanceTo(L.latLng(coords[i][0], coords[i][1]));
+            totalDistance += d;
+            distances.push(totalDistance);
+        }
+
+        if (totalDistance === 0) return;  // all points are at the same location
+
+        // --- Adjust minimum distance to avoid too few or too many arrows ---
+        let minDist = baseDist;
+        // Ensure at least 2–3 arrows on very short tracks
+        if (totalDistance < minDist * 2) {
+            minDist = totalDistance / 2;
+        } else if (totalDistance / minDist < 3) {
+            minDist = totalDistance / 3;
+        }
+        // Enforce the global maximum arrow count
+        const estimatedArrows = Math.ceil(totalDistance / minDist);
+        if (estimatedArrows > MAX_ARROWS) {
+            minDist = totalDistance / MAX_ARROWS;
+        }
+
+        // --- Place arrows along the track ---
+        let lastDist = 0;       // distance of the last placed arrow
+        let firstArrow = true;
+
+        for (let i = 0; i < coords.length; i++) {
+            const origIdx = indices[i];
+            if (origIdx < 0) continue;                // streaming point without a valid index
+            const hdg = origHeading[origIdx];
+            if (hdg === undefined || hdg === null || hdg === 0) continue; // skip missing or zero headings
+
+            if (firstArrow) {
+                addArrow(coords[i], hdg);
+                lastDist = distances[i];
+                firstArrow = false;
+                continue;
+            }
+
+            if (distances[i] - lastDist >= minDist) {
+                addArrow(coords[i], hdg);
+                lastDist = distances[i];
+            }
+        }
+
+        /**
+         * Helper: creates a single arrow marker at the given position.
+         * @param {[number, number]} pos - [lat, lng]
+         * @param {number} hdg - heading in degrees (clockwise from north)
+         */
+        function addArrow(pos, hdg) {
+            const arrowIcon = L.divIcon({
+                html: `<svg
+                    width="16" height="16"
+                    viewBox="-12 -12 24 24"
+                    style="transform: rotate(${hdg}deg); display: block; opacity:1.0; filter: drop-shadow(0 0 1px black);"
+                >
+                    <polygon
+                        points="0,-10 -6,8 0,2 6,8"
+                        fill="#fff"
+                        stroke="#000"
+                        stroke-width="1"
+                        stroke-linejoin="round"
+                    />
+                </svg>`,
+                className: '',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            L.marker(pos, { 
+                icon: arrowIcon, 
+                pane: 'headingPane',
+                interactive: false
+            }).addTo(headingArrowsLayer);
+        }
+    }
+
+    // Initial draw of arrows (if heading data exists)
+    updateHeadingArrows();
+
+    // Redraw arrows when the user changes the zoom level
+    map.on('zoomend', function() {
+        updateHeadingArrows();
+    });
 
     // ---------------------- Range update function (slider) ----------------------
     mapUpdRange = (origStartIdx, origEndIdx) => {
@@ -819,6 +959,9 @@ let initMapLeaflet = () => {
         } else {
             if (!map.hasLayer(polyline)) polyline.addTo(map);
         }
+
+        // Update heading arrows to match the new visible segment
+        updateHeadingArrows();
 
         // Fit map to visible area
         map.fitBounds(polyline.getBounds(), { maxZoom: 15 });
@@ -1207,6 +1350,9 @@ let initMapLeaflet = () => {
                 window.MapData.flatIndices = segsIdx.flat().map(p => p.index);
                 polyline.setLatLngs(segs);
                 endcir.setLatLng(newPoint);
+
+                // For heading arrows: streaming points have index -1, so they are automatically ignored
+                updateHeadingArrows();
 
                 if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
                     // For streaming, use the latest known value

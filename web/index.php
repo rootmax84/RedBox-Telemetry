@@ -119,9 +119,9 @@ if (isset($sids[0])) {
         $i = 0;
         while($row = $gps_time_data->fetch_row()) {
             if (($row[0] != 0) && ($row[1] != 0)) {
-                $geolocs[] = ["lat" => $row[0], "lon" => $row[1]];
+                $geolocs[] = ["lat" => $row[0], "lon" => $row[1], "heading" => $row[2]];
             }
-            $timearray[$i] = $row[2];
+            $timearray[$i] = $row[3];
             $i++;
         }
         $gps_data = ['geolocs' => $geolocs, 'timearray' => $timearray];
@@ -143,7 +143,7 @@ if (isset($sids[0])) {
     // Create array of Latitude/Longitude strings in leafletjs JavaScript format
     $mapdata = [];
     foreach($geolocs as $d) {
-        $mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon'])."]";
+        $mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon']).",".sprintf("%.14f",$d['heading'])."]";
     }
     $imapdata = implode(",", $mapdata);
 
@@ -865,7 +865,10 @@ if ($current_page < $total_pages) {
  if (!rawPath.length) {
     $('#map-div').hide();
  } else {
-    const validSegmentsWithIndices = extractValidSegmentsWithIndices(rawPath, { minPoints: Math.trunc(rawPath.length * 0.05) });
+    const coordsOnly = rawPath.map(p => [p[0], p[1]]);
+    const validSegmentsWithIndices = extractValidSegmentsWithIndices(coordsOnly, {
+        minPoints: Math.trunc(rawPath.length * 0.05)
+    });
 
     const segmentsCoords = validSegmentsWithIndices.map(seg => seg.map(p => p.coord));
     const flatCoords = segmentsCoords.flat();
@@ -879,6 +882,14 @@ if ($current_page < $total_pages) {
     };
 
     window.MapData.rawPathLength = rawPath.length;
+
+    const origHeading = {};
+    rawPath.forEach((point, idx) => {
+        if (point.length >= 3) {
+            origHeading[idx] = point[2];
+        }
+    });
+    window.MapData.origHeading = origHeading;
 
     const origToFlat = {};
     window.MapData.segmentsIndices.flat().forEach(({ index }) => {
