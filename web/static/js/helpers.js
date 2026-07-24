@@ -777,7 +777,16 @@ let initMapLeaflet = () => {
 
     // Fit map bounds initially
     if (window.MapData.segmentsCoords.length) {
-        map.fitBounds(polyline.getBounds());
+        const bounds = polyline.getBounds();
+        if (bounds.isValid()) {
+            map.fitBounds(bounds);
+        } else {
+            // Fallback: center on first available coordinate
+            const firstCoord = window.MapData.flatCoords[0];
+            if (firstCoord) {
+                map.setView(firstCoord, 13);
+            }
+        }
     }
 
     // ---------------------- Heading arrows update function ----------------------
@@ -939,6 +948,16 @@ let initMapLeaflet = () => {
         const slicedSegmentsCoords = slicedSegmentsWithIndices.map(seg => seg.map(p => p.coord));
 
         // Save the current slice of coordinates and indices for markerUpd and other needs
+        if (!slicedSegmentsCoords.length) {
+            // No visible segments after filtering – clear polyline and markers
+            polyline.setLatLngs([]);
+            startcir.setLatLng([0,0]);
+            endcir.setLatLng([0,0]);
+            map.removeLayer(markerPnt);
+            headingArrowsLayer.clearLayers();
+            return;
+        }
+
         const slicedIndices = window.MapData.flatIndices
             .slice(flatStart, flatEnd + 1)
             .filter((_, i) => {
@@ -963,8 +982,13 @@ let initMapLeaflet = () => {
         // Update heading arrows to match the new visible segment
         updateHeadingArrows();
 
-        // Fit map to visible area
-        map.fitBounds(polyline.getBounds(), { maxZoom: 15 });
+        // Safe bounds fitting
+        const bounds = polyline.getBounds();
+        if (bounds.isValid()) {
+            map.fitBounds(bounds, { maxZoom: 15 });
+        } else if (sliced.length > 0) {
+            map.setView(sliced[0], 13);
+        }
     };
 
     // ---------------------- Hotline / Heatmap ----------------------
@@ -1753,8 +1777,20 @@ const mapResize = (() => {
     return () => {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
+            if (!map || !polyline) return;
             map.invalidateSize();
-            map.fitBounds(polyline.getBounds());
+
+            const bounds = polyline.getBounds();
+            if (bounds.isValid()) {
+                map.fitBounds(bounds);
+            } else {
+                const flatCoords = window.MapData?.flatCoords;
+                if (flatCoords && flatCoords.length > 0) {
+                    map.setView(flatCoords[0], 13);
+                } else {
+                    map.setView([0, 0], 2);
+                }
+            }
         }, 100);
     };
 })();

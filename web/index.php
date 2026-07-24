@@ -866,9 +866,22 @@ if ($current_page < $total_pages) {
     $('#map-div').hide();
  } else {
     const coordsOnly = rawPath.map(p => [p[0], p[1]]);
-    const validSegmentsWithIndices = extractValidSegmentsWithIndices(coordsOnly, {
+    let validSegmentsWithIndices = extractValidSegmentsWithIndices(coordsOnly, {
         minPoints: Math.trunc(rawPath.length * 0.05)
     });
+
+    if (!validSegmentsWithIndices.length) {
+        const fallbackPoints = rawPath
+            .map((p, idx) => ({
+                coord: [p[0], p[1]],
+                index: idx
+            }))
+            .filter(item => item.coord[0] !== 0 || item.coord[1] !== 0);
+
+        if (fallbackPoints.length) {
+            validSegmentsWithIndices = [fallbackPoints];
+        }
+    }
 
     const segmentsCoords = validSegmentsWithIndices.map(seg => seg.map(p => p.coord));
     const flatCoords = segmentsCoords.flat();
