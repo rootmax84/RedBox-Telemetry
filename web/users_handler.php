@@ -322,7 +322,7 @@ try {
                 ('kff1001', 'Speed (GPS)', 'km/h', 1, 1, 0),
                 ('kff1005', 'GPS Longitude', '°', 0, 0, 0),
                 ('kff1006', 'GPS Latitude', '°', 0, 0, 0),
-                ('kff1007', 'GPS Bearing (Used in GPS records)', NULL, 0, 0, 0),
+                ('kff1007', 'GPS Bearing', '°', 0, 0, 0),
                 ('kff1202', 'Boost', 'Bar', 1, 1, 0),
                 ('kff1204', 'Trip Distance', 'km', 1, 1, 0),
                 ('kff120c', 'Trip Distance (Stored in Vehicle Profile)', 'km', 1, 1, 0),
