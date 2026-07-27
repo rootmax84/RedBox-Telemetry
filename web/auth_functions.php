@@ -255,15 +255,15 @@ function perform_user_migration() {
         $db->query("ALTER TABLE $db_sessions_table ADD INDEX `$index_name` (`favorite`)");
     }
 
-    $old_index = 'session_kff1005_kff1006';
-    $new_index = 'session_gps';
+    $old_index = 'session_gps';
+    $new_index = 'session_time_gps';
 
     if (index_exists($db, $db_table, $old_index)) {
         $db->query("DROP INDEX `$old_index` ON $db_table");
     }
 
     if (!index_exists($db, $db_table, $new_index)) {
-        $db->query("CREATE INDEX `$new_index` ON $db_table (`session`, `kff1005`, `kff1006`, `kff1007`)");
+        $db->query("CREATE INDEX `$new_index` ON $db_table (`session`, `time`, `kff1006`, `kff1005`, `kff1007`)");
     }
 }
 
