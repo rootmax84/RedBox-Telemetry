@@ -1119,7 +1119,7 @@ function uploadLogDialog() {
         for (let i = 0; i < log_data.files.length; i++) {
             size += log_data.files[i].size;
         }
-        if (log_data.files.length > 20) {
+        if (log_data.files.length > 10) {
             msg_def.innerHTML = "";
             msg_err.innerHTML = localization.key['import.warn.count'];
             up_btn.hide();
