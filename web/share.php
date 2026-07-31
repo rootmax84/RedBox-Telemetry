@@ -96,9 +96,9 @@ if ($username) {
         $i = 0;
         while($row = $gps_time_data->fetch_row()) {
             if (($row[0] != 0) && ($row[1] != 0)) {
-                $geolocs[] = ["lat" => $row[0], "lon" => $row[1]];
+                $geolocs[] = ["lat" => $row[0], "lon" => $row[1], "heading" => $row[2]];
             }
-            $timearray[$i] = $row[2];
+            $timearray[$i] = $row[3];
             $i++;
         }
         $gps_data = ['geolocs' => $geolocs, 'timearray' => $timearray];
@@ -120,7 +120,7 @@ if ($username) {
     // Create array of Latitude/Longitude strings in leafletjs JavaScript format
     $mapdata = [];
     foreach($geolocs as $d) {
-        $mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon'])."]";
+        $mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon']).",".sprintf("%.14f",$d['heading'])."]";
     }
     $imapdata = implode(",", $mapdata);
 
@@ -344,11 +344,61 @@ include 'head.php';
     
     <?php if(!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
         <script>
-            const path = [<?php echo $imapdata; ?>]; //this would be a new variable containing speed data for each segment
-            if (!path.length) {
+            const rawPath = [<?php echo $imapdata; ?>];
+
+            if (!rawPath.length) {
                 $('#map-div').hide();
-            } else {
-                window.MapData = {path};
+             } else {
+                const coordsOnly = rawPath.map(p => [p[0], p[1]]);
+                let validSegmentsWithIndices = extractValidSegmentsWithIndices(coordsOnly, {
+                    minPoints: Math.trunc(rawPath.length * 0.05)
+                });
+
+                if (!validSegmentsWithIndices.length) {
+                    const fallbackPoints = rawPath
+                        .map((p, idx) => ({
+                            coord: [p[0], p[1]],
+                            index: idx
+                        }))
+                        .filter(item => item.coord[0] !== 0 || item.coord[1] !== 0);
+
+                    if (fallbackPoints.length) {
+                        validSegmentsWithIndices = [fallbackPoints];
+                    }
+                }
+
+                const segmentsCoords = validSegmentsWithIndices.map(seg => seg.map(p => p.coord));
+                const flatCoords = segmentsCoords.flat();
+                const flatIndices = validSegmentsWithIndices.flat().map(p => p.index);
+
+                window.MapData = {
+                    segmentsCoords,
+                    segmentsIndices: validSegmentsWithIndices,
+                    flatCoords,
+                    flatIndices
+                };
+
+                window.MapData.rawPathLength = rawPath.length;
+
+                const origHeading = {};
+                rawPath.forEach((point, idx) => {
+                    if (point.length >= 3) {
+                        origHeading[idx] = point[2];
+                    }
+                });
+                window.MapData.origHeading = origHeading;
+
+                const origToFlat = {};
+                window.MapData.segmentsIndices.flat().forEach(({ index }) => {
+                    if (index >= 0 && !(index in origToFlat)) {
+                        origToFlat[index] = window.MapData.flatIndices.indexOf(index);
+                    }
+                });
+                window.MapData.origToFlat = origToFlat;
+
+                window.chartRangeStart = 0;
+                window.chartRangeEnd = 0;
+
                 initMap = initMapLeaflet;
 
                 const checkTranslationsCache = () => {
@@ -372,7 +422,7 @@ include 'head.php';
                         initMapLogic();
                     }
                 }, 100);
-            }
+             }
         </script>
     <?php } ?>
 </body>
