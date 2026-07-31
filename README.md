@@ -14,7 +14,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - Live data streaming and real-time tracking
 - RedManage dashboards support
 - Remote RedManage settings control
-- Import data from RedManage logger
+- Import logs from RedManage/Torque
 - User data limits and quotas
 - Light/Dark themes
 - Maintenance mode

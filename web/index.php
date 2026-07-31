@@ -935,7 +935,7 @@ function uploadLogDialog() {
          </div>
          <div style="display:flex; justify-content:center;">
              <form method="POST" action="redlog.php" style="display:contents" enctype="multipart/form-data">
-                 <input class="btn btn-default" style="border-radius:5px" type="file" multiple name="file[]" id="logFile" accept=".txt">
+                 <input class="btn btn-default" style="border-radius:5px" type="file" multiple name="file[]" id="logFile" accept=".txt,.csv">
                  <input class="btn btn-default upload-log-btn" id="log-upload-btn" type="submit" value="">
              </form>
          </div>
@@ -962,6 +962,8 @@ function uploadLogDialog() {
     const up_btn = $('#log-upload-btn');
     const log_list = document.getElementById('log-list');
 
+    window.processedFiles = [];
+
     dropArea.addEventListener('drop', drop);
     dropArea.addEventListener('dragover', dragover);
     dropArea.addEventListener('dragleave', dragleave);
@@ -983,14 +985,124 @@ function uploadLogDialog() {
         dropArea.style.borderColor = '';
     }
 
-    function checkLog() {
+    function readFileStart(file) {
+        return new Promise((resolve, reject) => {
+            const slice = file.slice(0, 2048);
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsText(slice);
+        });
+    }
+
+    function detectTypeAndDate(startContent, fileName) {
+        let logType = null;
+        let logDate = null;
+
+        function localizeMonth(str) {
+            const months = {
+                'янв': 'jan', 'фев': 'feb', 'мар': 'mar', 'апр': 'apr',
+                'май': 'may', 'мая': 'may',
+                'июн': 'jun', 'июл': 'jul', 'авг': 'aug',
+                'сен': 'sep', 'окт': 'oct', 'ноя': 'nov', 'дек': 'dec',
+                'ene': 'jan', 'feb': 'feb', 'mar': 'mar', 'abr': 'apr',
+                'may': 'may', 'jun': 'jun', 'jul': 'jul', 'ago': 'aug',
+                'sep': 'sep', 'oct': 'oct', 'nov': 'nov', 'dic': 'dec',
+                'mär': 'mar', 'mrz': 'mar', 'mai': 'may', 'okt': 'oct', 'dez': 'dec'
+            };
+            let result = str.toLowerCase();
+            for (let ru in months) {
+                result = result.replace(new RegExp(ru + '\\.?', 'g'), months[ru]);
+            }
+            return result;
+        }
+
+        if (startContent.startsWith("TIME ECT")) {
+            logType = 'redlog';
+        } else if (startContent.includes("Device Time") || startContent.includes("GPS Time")) {
+            logType = 'torque';
+        } else {
+            return { logType: null, logDate: null };
+        }
+
+        try {
+            const lines = startContent.split("\n");
+            if (logType === 'redlog') {
+                if (lines.length >= 2) {
+                    const timestamp = parseInt(lines[1].split(" ")[0]);
+                    logDate = new Date(timestamp);
+                    if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
+                }
+            } else {
+                let headerLine = null;
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line.startsWith("Device Time") || line.startsWith("GPS Time")) {
+                        headerLine = line;
+                        break;
+                    }
+                }
+                if (!headerLine) throw new Error('Header not found');
+                const headers = headerLine.split(",").map(h => h.trim().toLowerCase());
+                const deviceTimeIdx = headers.indexOf('device time');
+                const gpsTimeIdx = headers.indexOf('gps time');
+
+                let firstDataLine = null;
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line === '' || line.startsWith("GPS Time") || line.startsWith("Device Time")) continue;
+                    firstDataLine = line;
+                    break;
+                }
+                if (!firstDataLine) throw new Error('No data line');
+                const cols = firstDataLine.split(",");
+
+                let dateStr = null;
+                if (deviceTimeIdx !== -1 && cols[deviceTimeIdx] && cols[deviceTimeIdx].trim() !== '-' && cols[deviceTimeIdx].trim() !== '') {
+                    dateStr = cols[deviceTimeIdx].trim();
+                } else if (gpsTimeIdx !== -1 && cols[gpsTimeIdx] && cols[gpsTimeIdx].trim() !== '-' && cols[gpsTimeIdx].trim() !== '') {
+                    dateStr = cols[gpsTimeIdx].trim();
+                }
+                if (!dateStr) throw new Error('No date value');
+
+                dateStr = localizeMonth(dateStr);
+                logDate = new Date(dateStr);
+                if (isNaN(logDate)) {
+                    const parts = dateStr.split(' ');
+                    if (parts.length >= 2) {
+                        const dateParts = parts[0].split('-');
+                        const timeParts = parts[1].split(':');
+                        if (dateParts.length === 3 && timeParts.length === 3) {
+                            const day = parseInt(dateParts[0]);
+                            const monthIndex = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(dateParts[1].toLowerCase());
+                            const year = parseInt(dateParts[2]);
+                            const hours = parseInt(timeParts[0]);
+                            const minutes = parseInt(timeParts[1]);
+                            const secondsParts = timeParts[2].split('.');
+                            const seconds = parseInt(secondsParts[0]);
+                            const ms = secondsParts.length > 1 ? parseInt(secondsParts[1]) : 0;
+                            if (!isNaN(day) && monthIndex !== -1 && !isNaN(year)) {
+                                logDate = new Date(year, monthIndex, day, hours, minutes, seconds, ms);
+                            }
+                        }
+                    }
+                    if (isNaN(logDate)) throw new Error('Invalid date');
+                }
+            }
+        } catch (e) {
+            logDate = null;
+        }
+
+        return { logType, logDate };
+    }
+
+    async function checkLog() {
         msg_def.innerHTML = "";
         msg_err.innerHTML = "";
         msg_ok.innerHTML = "";
         log_list.innerHTML = "";
         const log_data = document.getElementById('logFile');
         let size = 0;
-        let filesProcessed = 0;
         window.processedFiles = [];
 
         if (!log_data.files.length) {
@@ -1007,14 +1119,12 @@ function uploadLogDialog() {
         for (let i = 0; i < log_data.files.length; i++) {
             size += log_data.files[i].size;
         }
-
-        if (log_data.files.length > 10) {
+        if (log_data.files.length > 20) {
             msg_def.innerHTML = "";
             msg_err.innerHTML = localization.key['import.warn.count'];
             up_btn.hide();
             return;
         }
-
         if (size > 52428800) {
             msg_def.innerHTML = "";
             msg_err.innerHTML = localization.key['import.warn.size'];
@@ -1022,64 +1132,53 @@ function uploadLogDialog() {
             return;
         }
 
-        window.processedFiles = [];
-
-        for (let i = 0; i < log_data.files.length; i++) {
-            const file = log_data.files[i];
-            const reader = new FileReader();
-
-            reader.onload = (f) => {
-                let logDate, dateDMY, dateTime, dateStr;
-                try {
-                    const content = f.target.result;
-                    logDate = new Date(parseInt(content.split("\n")[1].split(" ")[0]));
-                    if (isNaN(logDate) || logDate.getFullYear() < 2000) throw new Error('');
-                    dateDMY = `${logDate.getFullYear()}-${(logDate.getMonth() + 1)}-${logDate.getDate()}`;
-                    dateTime = Cookies.get('timeformat') === '12'
-                        ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
-                        : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
-                    dateStr = `${localization.key['import.date']} ${dateDMY} ${dateTime})`;
-
-                    window.processedFiles.push({
-                        name: file.name,
-                        content: content,
-                        originalFile: file
-                    });
-                } catch(e) {
-                    reader.abort();
-                    dateStr = localization.key['import.broken.el'];
+        const filePromises = Array.from(log_data.files).map(async (file) => {
+            try {
+                const startContent = await readFileStart(file);
+                const { logType, logDate } = detectTypeAndDate(startContent, file.name);
+                if (!logType || !logDate) {
                     msg_def.innerHTML = "";
                     msg_err.innerHTML = localization.key['import.broken.label'];
                     msg_ok.innerHTML = "";
                     up_btn.hide();
-                    log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr}</li>`;
+                    log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${localization.key['import.broken.el']}</li>`;
                     return;
                 }
 
-                log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr}</li>`;
-                filesProcessed++;
+                const dateDMY = `${logDate.getFullYear()}-${(logDate.getMonth() + 1)}-${logDate.getDate()}`;
+                const dateTime = Cookies.get('timeformat') === '12'
+                    ? logDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+                    : `${logDate.getHours()}:${('0' + logDate.getMinutes()).slice(-2)}`;
+                const dateStr = `${localization.key['import.date']} ${dateDMY} ${dateTime})`;
 
-                if (filesProcessed === log_data.files.length) {
-                    msg_def.innerHTML = "";
-                    msg_ok.innerHTML = localization.key['import.ready'];
-                    up_btn.show();
-                }
-            };
+                window.processedFiles.push({
+                    name: file.name,
+                    file: file,
+                    type: logType
+                });
 
-            reader.onerror = () => {
+                const typeLabel = logType === 'redlog' ? ' [RedManage]' : ' [Torque]';
+                log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr} ${typeLabel}</li>`;
+            } catch (e) {
                 msg_def.innerHTML = "";
                 msg_err.innerHTML = localization.key['import.broken.label'];
                 msg_ok.innerHTML = "";
                 up_btn.hide();
-            };
+                log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${localization.key['import.broken.el']}</li>`;
+            }
+        });
 
-            reader.readAsText(file, "UTF-8");
+        await Promise.all(filePromises);
+
+        if (window.processedFiles.length === log_data.files.length) {
+            msg_def.innerHTML = "";
+            msg_ok.innerHTML = localization.key['import.ready'];
+            up_btn.show();
         }
     }
 
-    function submitLog(event) {
+    async function submitLog(event) {
         event.preventDefault();
-        const el = event.target;
         const logFile = document.getElementById('logFile');
 
         up_btn.hide();
@@ -1089,49 +1188,66 @@ function uploadLogDialog() {
         msg_ok.innerHTML = localization.key['import.upload'];
         logFile.setAttribute("disabled", "");
 
-        const formData = new FormData();
-
-        if (window.processedFiles && window.processedFiles.length > 0) {
-            window.processedFiles.forEach((file) => {
-                const blob = new Blob([file.content], { type: 'text/plain' });
-                formData.append('file[]', blob, file.name);
-            });
-        } else {
-            for (let i = 0; i < logFile.files.length; i++) {
-                formData.append('file[]', logFile.files[i]);
-            }
+        const groups = {};
+        for (const item of window.processedFiles) {
+            if (!groups[item.type]) groups[item.type] = [];
+            groups[item.type].push(item.file);
         }
 
-        fetch(el.getAttribute("action"), {
-            method: el.method,
-            body: formData
-        })
-        .then(async response => {
-            const text = await response.text();
+        const endpoints = {
+            redlog: 'redlog.php',
+            torque: 'torque_log.php'
+        };
 
-            if (response.status === 406) {
-                msg_ok.innerHTML = "";
-                msg_err.innerHTML = text;
-            } else {
-                msg_ok.innerHTML = text;
-            }
+        let finalMessage = '';
+        let hasErrors = false;
 
-            if (!response.ok) {
-                throw new Error(text);
-            }
+        const uploadPromises = Object.keys(groups).map(async (type) => {
+            const formData = new FormData();
+            groups[type].forEach(file => {
+                formData.append('file[]', file, file.name);
+            });
 
-            return text;
-        })
-        .catch(error => {
-            console.error('Fetch error:', error);
-            if (!msg_err.innerHTML) {
-                msg_err.innerHTML = error.message;
+            try {
+                const response = await fetch(endpoints[type], {
+                    method: 'POST',
+                    body: formData
+                });
+                const text = await response.text();
+                if (response.ok) {
+                    return { type, success: true, message: text };
+                } else {
+                    return { type, success: false, message: text || 'Unknown error' };
+                }
+            } catch (error) {
+                return { type, success: false, message: error.message };
             }
-        })
-        .finally(() => {
-            msg_ok.classList.remove("wait");
-            logFile.removeAttribute("disabled");
         });
+
+        const results = await Promise.all(uploadPromises);
+
+        let successCount = 0;
+        let errorMessages = [];
+        results.forEach(r => {
+            if (r.success) {
+                successCount++;
+                if (finalMessage) finalMessage += ' ';
+                finalMessage += r.message + '<br>';
+            } else {
+                hasErrors = true;
+                errorMessages.push(r.type + ': ' + r.message);
+            }
+        });
+
+        if (hasErrors) {
+            msg_ok.innerHTML = '';
+            msg_err.innerHTML = errorMessages.join('<br>');
+        } else {
+            msg_ok.innerHTML = finalMessage || 'OK';
+        }
+
+        msg_ok.classList.remove("wait");
+        logFile.removeAttribute("disabled");
     }
 
     const form = document.querySelector('#redDialogWrap form');

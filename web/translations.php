@@ -41,7 +41,7 @@ $translations = [
         'stream' => 'Stream',
         'import.data' => 'Import',
         'export.session' => 'Export session',
-        'import.label' => 'Select/Drop RedManage logger file(s) to upload',
+        'import.label' => 'Select or drag RedManage/Torque log files',
         'datasum.name' => 'Name',
         'datasum.min' => 'Min',
         'datasum.max' => 'Max',
@@ -484,6 +484,16 @@ $translations = [
         'hint.delete' => '<strong>Delete selected chart range</strong> — removes only this range from the current session',
         'hint.legend' => '<strong>Click/tap on legend items</strong> — hides/shows metric display',
         'hint.delbutt' => '<strong>Delete key on keyboard</strong> — deletes the current session',
+        'redlog.session' => [
+            'one'  => 'session',
+            'few'  => 'sessions',
+            'many' => 'sessions',
+        ],
+        'redlog.file' => [
+            'one'  => 'file',
+            'few'  => 'files',
+            'many' => 'files',
+        ],
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -525,7 +535,7 @@ $translations = [
         'stream' => 'Стрим',
         'import.data' => 'Импорт',
         'export.session' => 'Экспорт сессии',
-        'import.label' => 'Выберите или перетащите сюда файл(ы) логгера RedManage для загрузки',
+        'import.label' => 'Выберите или перетащите логи RedManage/Torque',
         'datasum.name' => 'Имя',
         'datasum.min' => 'Мин.',
         'datasum.max' => 'Макс.',
@@ -968,6 +978,16 @@ $translations = [
         'hint.delete' => '<strong>Удаление выделенного диапазона графика</strong> — удаляет только этот диапазон из текущей сессии',
         'hint.legend' => '<strong>Клик/тап по элементам легенды графика</strong> — отключает/включает отображение метрики',
         'hint.delbutt' => '<strong>Кнопка delete на клавиатуре</strong> — удаляет текущую сессию',
+        'redlog.session' => [
+            'one' => 'сессия',
+            'few' => 'сессии',
+            'many' => 'сессий',
+        ],
+        'redlog.file' => [
+            'one' => 'файл',
+            'few' => 'файла',
+            'many' => 'файлов',
+        ],
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -1009,7 +1029,7 @@ $translations = [
         'stream' => 'Flujo',
         'import.data' => 'Importar',
         'export.session' => 'Exportar sesión',
-        'import.label' => 'Selecciona / arrastra archivos de logger RedManage para subir',
+        'import.label' => 'Seleccione o arrastre logs de RedManage/Torque',
         'datasum.name' => 'Nombre',
         'datasum.min' => 'Mín',
         'datasum.max' => 'Max',
@@ -1452,6 +1472,16 @@ $translations = [
         'hint.delete' => '<strong>Eliminar rango seleccionado del gráfico</strong> — elimina solo este rango de la sesión actual',
         'hint.legend' => '<strong>Clic/toque en elementos de la leyenda</strong> — oculta/muestra la visualización de la métrica',
         'hint.delbutt' => '<strong>Tecla Suprimir en el teclado</strong> — elimina la sesión actual',
+        'redlog.session' => [
+            'one'  => 'sesión',
+            'few'  => 'sesiones',
+            'many' => 'sesiones',
+        ],
+        'redlog.file' => [
+            'one'  => 'archivo',
+            'few'  => 'archivos',
+            'many' => 'archivos',
+        ],
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -1493,7 +1523,7 @@ $translations = [
         'stream' => 'Datenstrom',
         'import.data' => 'Importieren',
         'export.session' => 'Session exportieren',
-        'import.label' => 'Wählen Sie RedManage Logger-Datei(en) zum Hochladen aus oder ziehen Sie sie hierhin',
+        'import.label' => 'RedManage/Torque-Logs auswählen oder ziehen',
         'datasum.name' => 'Name',
         'datasum.min' => 'Min',
         'datasum.max' => 'Max',
@@ -1936,6 +1966,16 @@ $translations = [
         'hint.delete' => '<strong>Löschen des ausgewählten Diagrammbereichs</strong> — entfernt nur diesen Bereich aus der aktuellen Sitzung',
         'hint.legend' => '<strong>Klick/Tippen auf Legenden-Elemente</strong> — blendet Metrikanzeige ein/aus',
         'hint.delbutt' => '<strong>Entf-Taste auf der Tastatur</strong> — löscht die aktuelle Sitzung',
+        'redlog.session' => [
+            'one'  => 'Sitzung',
+            'few'  => 'Sitzungen',
+            'many' => 'Sitzungen',
+        ],
+        'redlog.file' => [
+            'one'  => 'Datei',
+            'few'  => 'Dateien',
+            'many' => 'Dateien',
+        ],
     ],
 ];
 
