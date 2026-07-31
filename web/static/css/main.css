@@ -1599,7 +1599,7 @@ input[type="text"] {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 5px 20px;
+  padding: 5px 10px;
   font-size: 15px;
   color: #666;
   cursor: pointer;
@@ -1610,6 +1610,7 @@ input[type="text"] {
   width: 100%;
   text-align: left;
   font-family: inherit;
+  border-radius: 2.5px;
 }
 
 .menu-item:hover {
@@ -1671,4 +1672,8 @@ input[type="text"] {
 
 .btn:focus, .btn:active:focus, .btn.active:focus {
   outline: 0 !important;
+}
+
+[role="none"] {
+  margin: 0 8px;
 }
