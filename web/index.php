@@ -927,6 +927,7 @@ if ($current_page < $total_pages) {
 <?php if(!isset($_SESSION['admin'])) {?>
 <script>
 function uploadLogDialog() {
+    let reload_sw = false;
     const messageHtml = `<div class="drop-card" id="log">
          <div style="display:flex; justify-content:center; margin-bottom:10px;">
              <span class="label label-default" id="log-msg-def">${localization.key['import.label']}</span>
@@ -948,7 +949,9 @@ function uploadLogDialog() {
         btnClassSuccessText: "OK",
         btnClassFail: "hidden",
         onResolve: () => {
-            window.location.href = '/';
+            if (reload_sw) {
+                window.location.href = '/';
+            }
         }
     });
 
@@ -1244,6 +1247,7 @@ function uploadLogDialog() {
             msg_err.innerHTML = errorMessages.join('<br>');
         } else {
             msg_ok.innerHTML = finalMessage || 'OK';
+            reload_sw = true;
         }
 
         msg_ok.classList.remove("wait");
