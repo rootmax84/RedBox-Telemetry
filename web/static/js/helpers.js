@@ -23,6 +23,13 @@ let chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
 let chart_fillGradient = localStorage.getItem(`${username}-chart_fillGradient`) === "true";
 let chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
 
+// Выносим ctime в глобальную область видимости, чтобы использовать везде
+function ctime(t) {
+    let date = new Date(t);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU');
+}
+
 $(document).ready(function(){
   // Reset flot zoom
   const handleSliderInit = () => {
@@ -30,6 +37,9 @@ $(document).ready(function(){
         // Reset map indexes
         mapIndexStart = 0;
         mapIndexEnd = jsTimeMap.length - 1;
+        // Сбрасываем сохранённое выделение
+        cutStart = null;
+        cutEnd = null;
         initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
     }
   };
@@ -108,8 +118,16 @@ function streamInteractToggle() {
 
 function updatePlot(callback) {
     updCharts();
-    initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
-
+    // Сохраняем выделенный временной диапазон (если есть), иначе берём полный
+    let startTime, endTime;
+    if (cutStart !== null && cutEnd !== null) {
+        startTime = cutStart;
+        endTime = cutEnd;
+    } else {
+        startTime = jsTimeMap[0];
+        endTime = jsTimeMap.at(-1);
+    }
+    initSlider(jsTimeMap, startTime, endTime);
     if (callback && typeof callback === 'function') {
         setTimeout(callback);
     }
@@ -397,6 +415,10 @@ function doPlot(position) {
         mapIndexStart = jsTimeMap.length - b - 1;
         mapIndexEnd = jsTimeMap.length - a - 1;
 
+        // Сохраняем выделенный временной диапазон в глобальные переменные
+        cutStart = jsTimeMap[a];
+        cutEnd = jsTimeMap[b];
+
         if($("#map").length) {
             updateMapWithRangePreservingHeatline(mapIndexStart, mapIndexEnd);
         }
@@ -480,8 +502,36 @@ let updCharts = (last = false)=>{
             };
             window.gapInfo = processedResult.gaps;
 
-            // update jsTimeMap with real time markers
-            jsTimeMap = Object.values(processedResult.timeMapping);
+            // update jsTimeMap with real time markers – обязательно сортируем
+            jsTimeMap = Object.values(processedResult.timeMapping).sort((a, b) => a - b);
+
+            // Если ранее было выделение (cutStart/cutEnd заданы), пересчитываем индексы для нового jsTimeMap
+            if (cutStart !== null && cutEnd !== null) {
+                let newStartIdx = jsTimeMap.findIndex(t => t >= cutStart);
+                let newEndIdx = jsTimeMap.findIndex(t => t >= cutEnd);
+                if (newStartIdx === -1) newStartIdx = 0;
+                if (newEndIdx === -1) newEndIdx = jsTimeMap.length - 1;
+                // Прижимаем к границам, если нужно
+                newStartIdx = Math.min(newStartIdx, jsTimeMap.length - 1);
+                newEndIdx = Math.min(newEndIdx, jsTimeMap.length - 1);
+                // Обновляем глобальные индексы карты (инвертированные)
+                mapIndexStart = jsTimeMap.length - newEndIdx - 1;
+                mapIndexEnd = jsTimeMap.length - newStartIdx - 1;
+
+                // Обновляем слайдер, если он уже инициализирован
+                let slider = $("#slider-range11");
+                if (slider.hasClass("ui-slider")) {
+                    slider.slider("option", "max", jsTimeMap.length - 1);
+                    slider.slider("values", [newStartIdx, newEndIdx]);
+                    $("#slider-time").val(ctime(jsTimeMap[newStartIdx]) + " - " + ctime(jsTimeMap[newEndIdx]));
+                    $("#slider-time").attr("sv0", jsTimeMap[newStartIdx]);
+                    $("#slider-time").attr("sv1", jsTimeMap[newEndIdx]);
+                }
+            } else {
+                // Нет выделения – сбрасываем индексы карты на полный диапазон
+                mapIndexStart = 0;
+                mapIndexEnd = jsTimeMap.length - 1;
+            }
 
             if ($('#placeholder')[0]==undefined) { //this would only be true the first time we load the chart
                 $('#Chart-Container').empty();
@@ -1319,7 +1369,10 @@ let initMapLeaflet = () => {
     let lastFlotDataLength = 0;
     setInterval(() => {
         if (heatData && heatData.length !== lastFlotDataLength) {
-            updateMapWithRangePreservingHeatline(mapIndexStart, mapIndexEnd);
+            // Обновляем карту только если уже было выделение (индексы не null)
+            if (mapIndexStart !== null && mapIndexEnd !== null) {
+                updateMapWithRangePreservingHeatline(mapIndexStart, mapIndexEnd);
+            }
             lastFlotDataLength = heatData.length;
             updateDataSourceSelector();
         }
@@ -1547,16 +1600,6 @@ let initSlider = (jsTimeMap,start,end)=>{
         return out;
     }
 
-    function ctime(t) {//covert the epoch time to local readable 
-        let date = new Date(t);
-
-        if (isNaN(date.getTime())) {
-            return '';
-        }
-
-        return  date.toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU');
-    }
-
     let sv = $(function() {//jquery range slider
         $( "#slider-range11" ).slider({
             range: true,
@@ -1589,9 +1632,9 @@ let initSlider = (jsTimeMap,start,end)=>{
 //End slider js code
 
 function updateMapWithRangePreservingHeatline(startIndex = null, endIndex = null) {
+    // Если индексы не заданы – ничего не делаем
     if (startIndex === null || endIndex === null) {
-        mapIndexStart = 0;
-        mapIndexEnd = jsTimeMap.length - 1;
+        return;
     }
 
     const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
