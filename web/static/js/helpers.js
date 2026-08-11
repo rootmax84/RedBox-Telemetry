@@ -584,6 +584,29 @@ let updCharts = (last = false)=>{
                 tds[2].textContent = v[4];
                 tds[3].textContent = v[6];
                 tds[4].querySelector('.line').textContent = v[3];
+
+                if (v[0] === 'k21fa') {
+                    const minCell = tds[1];
+                    const maxCell = tds[2];
+
+                    minCell.style.cursor = 'pointer';
+                    maxCell.style.cursor = 'pointer';
+
+                    minCell.addEventListener('click', () => {
+                        const val = parseFloat(minCell.textContent);
+                        if (!isNaN(val)) {
+                            xhrResponse(calculate(val));
+                        }
+                    });
+
+                    maxCell.addEventListener('click', () => {
+                        const val = parseFloat(maxCell.textContent);
+                        if (!isNaN(val)) {
+                            xhrResponse(calculate(val));
+                        }
+                    });
+                }
+
                 rowFragment.appendChild(tr);
             });
 
