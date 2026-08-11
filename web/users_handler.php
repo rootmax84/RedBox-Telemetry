@@ -307,7 +307,7 @@ try {
                 ('k21cc', 'Air Fuel Ratio', NULL, 1, 1, 0),
                 ('k21e1', 'BS1 Input', NULL, 1, 1, 0),
                 ('k21e2', 'BS2 Input', NULL, 1, 1, 0),
-                ('k21fa', 'Rollback', NULL, 1, 1, 0),
+                ('k21fa', 'Rollback', '⚠', 1, 1, 0),
                 ('k46', 'Ambient Air Temp', '°C', 1, 1, 0),
                 ('k5', 'Engine Coolant Temperature', '°C', 1, 1, 0),
                 ('k5c', 'Engine Oil Temperature', '°C', 1, 1, 0),
