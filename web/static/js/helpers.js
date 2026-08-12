@@ -1427,44 +1427,65 @@ let initMapLeaflet = () => {
                 const segs = window.MapData.segmentsCoords;
                 const segsIdx = window.MapData.segmentsIndices;
 
-                // Add to the beginning of the first segment if close enough (or create a new one)
-                if (segs.length > 0) {
-                    const firstSeg = segs[0];
-                    const firstSegIdx = segsIdx[0];
-                    const distToFirst = Math.sqrt((newPoint[0] - firstSeg[0][0]) ** 2 + (newPoint[1] - firstSeg[0][1]) ** 2);
-                    if (distToFirst <= 0.0005) {
-                        firstSeg.unshift(newPoint);
-                        firstSegIdx.unshift({ coord: newPoint, index: -1 }); // streaming point without index
-                    } else {
-                        // Create a new segment
-                        segs.unshift([newPoint]);
-                        segsIdx.unshift([{ coord: newPoint, index: -1 }]);
-                    }
-                } else {
-                    segs.push([newPoint]);
-                    segsIdx.push([{ coord: newPoint, index: -1 }]);
+                let lastSeg = segs.length > 0 ? segs[segs.length - 1] : null;
+                let lastSegIdx = segsIdx.length > 0 ? segsIdx[segsIdx.length - 1] : null;
+
+                let distToLast = Infinity;
+                if (lastSeg && lastSeg.length > 0) {
+                    const lastPoint = lastSeg[lastSeg.length - 1];
+                    distToLast = Math.sqrt((newPoint[0] - lastPoint[0]) ** 2 + (newPoint[1] - lastPoint[1]) ** 2);
                 }
 
-                // Update flat arrays
+                if (window.MapData.nextIndex === undefined) {
+                    const flatIndices = window.MapData.flatIndices || [];
+                    window.MapData.nextIndex = flatIndices.length > 0 ? Math.max(...flatIndices) + 1 : 0;
+                }
+                const newIndex = window.MapData.nextIndex++;
+
+                if (lastSeg && distToLast <= 0.0005) {
+                    lastSeg.push(newPoint);
+                    lastSegIdx.push({ coord: newPoint, index: newIndex });
+                } else {
+                    segs.push([newPoint]);
+                    segsIdx.push([{ coord: newPoint, index: newIndex }]);
+                    lastSeg = segs[segs.length - 1];
+                    lastSegIdx = segsIdx[segsIdx.length - 1];
+                }
+
                 window.MapData.flatCoords = segs.flat();
                 window.MapData.flatIndices = segsIdx.flat().map(p => p.index);
+
                 polyline.setLatLngs(segs);
+                polyline.redraw();
+
                 endcir.setLatLng(newPoint);
 
-                // For heading arrows: streaming points have index -1, so they are automatically ignored
+                if (mapIndexStart !== null && mapIndexEnd !== null) {
+                    window.currentMapSlicedCoords.push(newPoint);
+                    window.currentMapSlicedIndices.push(newIndex);
+                } else {
+                    window.currentMapSlicedCoords = window.MapData.flatCoords.slice();
+                    window.currentMapSlicedIndices = window.MapData.flatIndices.slice();
+                }
+
                 updateHeadingArrows();
 
                 if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
-                    // For streaming, use the latest known value
-                    const latestData = heatData[currentDataSource].data[heatData[currentDataSource].data.length - 1];
-                    if (latestData) {
-                        const value = Array.isArray(latestData) ? latestData[1] : latestData;
-                        // Add point to the hotline of the current (first) segment
-                        // Easier to rebuild the whole Hotline (might be expensive, but okay for streaming)
-                        updateHotline(currentDataSource);
+                    const sourceData = heatData[currentDataSource].data;
+                    let value = null;
+                    if (sourceData.length > 0) {
+                        const last = sourceData[sourceData.length - 1];
+                        value = Array.isArray(last) ? last[1] : last;
+                    } else {
+                        value = 0;
                     }
+                    const now = Date.now();
+                    sourceData.push([now, value]);
+
+                    updateHotline(currentDataSource);
                 }
             }
+
             setTimeout(() => { map.removeLayer(marker); }, rate);
         }
     }, rate);
