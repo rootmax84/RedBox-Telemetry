@@ -202,7 +202,6 @@ include 'head.php';
             <div id="theme-switch"></div>
             <div class="navbar-header">
                 <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
-                <span title="logout" class="navbar-brand logout" onClick="logout()"></span>
             </div>
         </div>
     </div>
@@ -260,6 +259,12 @@ include 'head.php';
         <button class="menu-item" role="menuitem" tabindex="-1" onclick="showHints()">
           <span class="icon" id="hint-img"></span>
           <span l10n="hint.button"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="logout()">
+          <span class="icon" id="logout-img"></span>
+          <span l10n="logout"></span>
         </button>
       </li>
     </ul>

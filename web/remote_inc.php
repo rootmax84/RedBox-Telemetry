@@ -26,7 +26,7 @@
     <?php } ?>
     <?php if (!isset($uid)) { ?>
                 <div class="navbar-header">
-                 <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a><span title="logout" class="navbar-brand logout" onClick="logout()"></span>
+                 <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
     <?php } else { ?>
                 <div class="navbar-header" style="margin-left:0 !important">
                  <a class="navbar-brand" href="#" style="cursor:default"><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
@@ -91,6 +91,12 @@
         <button class="menu-item" role="menuitem" tabindex="-1" onclick="showHints()">
           <span class="icon" id="hint-img"></span>
           <span l10n="hint.button"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="logout()">
+          <span class="icon" id="logout-img"></span>
+          <span l10n="logout"></span>
         </button>
       </li>
     </ul>

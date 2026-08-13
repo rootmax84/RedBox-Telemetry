@@ -494,6 +494,7 @@ $translations = [
             'few'  => 'files',
             'many' => 'files',
         ],
+        'logout' => 'Logout',
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -988,6 +989,7 @@ $translations = [
             'few' => 'файла',
             'many' => 'файлов',
         ],
+        'logout' => 'Выйти',
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -1483,6 +1485,7 @@ $translations = [
             'few'  => 'archivos',
             'many' => 'archivos',
         ],
+        'logout' => 'Salir',
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -1977,6 +1980,7 @@ $translations = [
             'few'  => 'Dateien',
             'many' => 'Dateien',
         ],
+        'logout' => 'Abmeldung',
     ],
 ];
 
