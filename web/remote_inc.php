@@ -52,6 +52,12 @@
 
     <ul class="menu-list" role="menu">
       <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./search.php'">
+          <span class="icon" id="search-img"></span>
+          <span l10n="search.find"></span>
+        </button>
+      </li>
+      <li role="none">
         <button class="menu-item" role="menuitem" tabindex="-1" onclick="favoriteSessions()">
           <span class="icon" id="fav-img"></span>
           <span l10n="fav.btn"></span>
