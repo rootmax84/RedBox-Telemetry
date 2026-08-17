@@ -7,9 +7,11 @@ if (isset($_GET['c'])) {
         'noshare' => 404,
         'block', 'toomanyattempts' => 429,
         'error' => 500,
-        default => 200,
+        default => 204,
     };
     http_response_code($http_code);
+} else {
+    http_response_code(204);
 }
 
 include 'head.php';
