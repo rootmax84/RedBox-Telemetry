@@ -98,6 +98,12 @@ include 'head.php';
           <span l10n="admin.page.btn.maintenance"></span>
         </button>
       </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="logout()">
+          <span class="icon" id="logout-img"></span>
+          <span l10n="logout"></span>
+        </button>
+      </li>
     </ul>
   </div>
         <div class="login">
