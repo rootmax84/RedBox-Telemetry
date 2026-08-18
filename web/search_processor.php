@@ -49,14 +49,21 @@ $offset = ($page - 1) * $perPage;
 $column = "`" . $pid . "`";
 
 $countSql = "SELECT COUNT(DISTINCT session) AS total FROM $db_table WHERE $column $operator ?";
-$countStmt = $db->prepare($countSql);
-if (!$countStmt) {
-    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
-    exit;
-}
-$countStmt->bind_param('d', $valueFloat);
-if (!$countStmt->execute()) {
-    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
+try {
+    $countStmt = $db->prepare($countSql);
+    $countStmt->bind_param('d', $valueFloat);
+    $countStmt->execute();
+} catch (mysqli_sql_exception $e) {
+    if ($e->getCode() === 1054) {
+        echo json_encode([
+            'data' => [],
+            'total' => 0,
+            'hasMore' => false,
+            'page' => $page
+        ]);
+    } else {
+        echo json_encode(['error' => $translations[$lang]['search.error_query']]);
+    }
     exit;
 }
 $countResult = $countStmt->get_result();
