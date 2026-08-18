@@ -274,6 +274,82 @@ function findNearestRealTime(processedTime) {
     return nearestTimesCache[processedTime];
 }
 
+function renderSparkline(container, values) {
+    if (!container || !values || values.length === 0) {
+        if (container) container.innerHTML = '';
+        return;
+    }
+
+    let groupSize = Math.ceil(values.length / 100000);
+    let averagedData = [];
+    for (let i = 0; i < values.length; i += groupSize) {
+        let group = values.slice(i, i + groupSize);
+        let average = group.reduce((sum, value) => sum + value, 0) / group.length;
+        averagedData.push(average);
+    }
+
+    const span = document.createElement('span');
+    span.className = 'line';
+    span.textContent = averagedData.join(',');
+    container.innerHTML = '';
+    container.appendChild(span);
+
+    if (typeof $ !== 'undefined' && $.fn.peity) {
+        $(span).peity('line', { width: '50' });
+    }
+}
+
+function updateSummaryTable() {
+    const tbody = document.querySelector('#Summary-Container table tbody');
+    if (!tbody || !heatData) return;
+
+    const heatMap = new Map();
+    heatData.forEach(series => {
+        heatMap.set(series.label, series.data);
+    });
+
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const cells = row.children;
+        const label = cells[0].textContent.trim();
+        const data = heatMap.get(label);
+
+        if (data && data.length > 0) {
+            const sortedData = [...data].sort((a, b) => {
+                const ta = Array.isArray(a) ? a[0] : 0;
+                const tb = Array.isArray(b) ? b[0] : 0;
+                return ta - tb;
+            });
+
+            const values = sortedData
+                .map(point => Array.isArray(point) ? point[1] : point)
+                .filter(v => typeof v === 'number' && !isNaN(v));
+
+            if (values.length > 0) {
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                const mean = Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 100) / 100;
+
+                cells[1].textContent = min;
+                cells[2].textContent = max;
+                cells[3].textContent = mean;
+
+                renderSparkline(cells[4], values);
+            } else {
+                cells[1].textContent = 'N/A';
+                cells[2].textContent = 'N/A';
+                cells[3].textContent = 'N/A';
+                renderSparkline(cells[4], []);
+            }
+        } else {
+            cells[1].textContent = 'N/A';
+            cells[2].textContent = 'N/A';
+            cells[3].textContent = 'N/A';
+            renderSparkline(cells[4], []);
+        }
+    });
+}
+
 function doPlot(position) {
     // Reset map indexes
     mapIndexStart = 0;
@@ -291,7 +367,7 @@ function doPlot(position) {
         window.chartRangeStart = a;
         window.chartRangeEnd = b;
         let dataSet = [];
-        flotData.forEach(i => dataSet.push({label: i.label, data: i.data.slice(a, b)}));
+        flotData.forEach(i => dataSet.push({label: i.label, data: i.data.slice(a, b)})); // probably b + 1, for updateSummaryTable() mean accuracy
         plot.setData(dataSet);
         plot.draw();
         heatData = dataSet;
@@ -546,6 +622,7 @@ let updCharts = (last = false)=>{
             //always update the chart trimmed range when plotting new data
             const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];
             chartUpdRange(a,b);
+            updateSummaryTable();
             //this updates the whole summary table
             $('#Summary-Container').empty();
             $('#Summary-Container').append($('<div>',{class:'table-responsive'}).append($('<table>',{class:'table table-sum'}).append($('<thead>').append($('<tr>'))).append('<tbody>')));
@@ -1670,6 +1747,7 @@ let initSlider = (jsTimeMap,start,end)=>{
                 if (Cookies.get('plot') === undefined) updateMapWithRangePreservingHeatline(a, b);
             }
             if ($(".demo-container").length) chartUpdRange(a,b);
+            updateSummaryTable();
         });
     });
 }
