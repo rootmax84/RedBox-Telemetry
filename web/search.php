@@ -125,7 +125,7 @@ include 'head.php';
                         </td>
                         <td style="width:.5%"></td>
                         <td style="width:5%">
-                            <input type="number" step="any" class="form-control" id="valueInput" name="value" l10n-placeholder="stream.val" required>
+                            <input type="number" style="text-align:center" step="any" class="form-control" id="valueInput" name="value" l10n-placeholder="stream.val" required>
                         </td>
                         <td style="width:.5%"></td>
                         <td style="width:0%">
@@ -149,13 +149,10 @@ include 'head.php';
                 </thead>
                 <tbody id="results-body"></tbody>
             </table>
-            <div id="loading-indicator" style="text-align:center; padding:20px; display:none;">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-            </div>
             <div id="no-more" style="text-align:center; padding:20px; display:none;">
                 <span class="label label-default"><?= $translations[$lang]['search.no_more'] ?></span>
             </div>
-            <div id="no-results" style="text-align:center; padding:20px; display:none;">
+            <div id="no-results" style="text-align:center; display:none;">
                 <span class="label label-default"><?= $translations[$lang]['search.no_results'] ?></span>
             </div>
         </div>
@@ -168,7 +165,6 @@ include 'head.php';
         const valueInput = document.getElementById('valueInput');
         const resultsBody = document.getElementById('results-body');
         const resultsTable = document.getElementById('results-table');
-        const loadingIndicator = document.getElementById('loading-indicator');
         const noMore = document.getElementById('no-more');
         const noResults = document.getElementById('no-results');
 
@@ -255,7 +251,6 @@ include 'head.php';
             if (page > 1 && !hasMore) return;
 
             isLoading = true;
-            loadingIndicator.style.display = 'block';
             $('.fetch-data').css('display', 'block');
 
             const params = new FormData();
@@ -271,7 +266,6 @@ include 'head.php';
             .then(response => response.json())
             .then(data => {
                 isLoading = false;
-                loadingIndicator.style.display = 'none';
                 $('.fetch-data').css('display', 'none');
 
                 if (data.error) {
@@ -311,7 +305,6 @@ include 'head.php';
             })
             .catch(err => {
                 isLoading = false;
-                loadingIndicator.style.display = 'none';
                 $('.fetch-data').css('display', 'none');
                 showError(err.message);
             });
