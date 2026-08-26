@@ -1518,8 +1518,9 @@ let initMapLeaflet = () => {
                     window.MapData.nextIndex = flatIndices.length > 0 ? Math.max(...flatIndices) + 1 : 0;
                 }
                 const newIndex = window.MapData.nextIndex++;
+                const STREAM_SEGMENT_THRESHOLD = 0.005;
 
-                if (lastSeg && distToLast <= 0.0005) {
+                if (lastSeg && distToLast <= STREAM_SEGMENT_THRESHOLD) {
                     lastSeg.push(newPoint);
                     lastSegIdx.push({ coord: newPoint, index: newIndex });
                 } else {
