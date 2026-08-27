@@ -1486,6 +1486,7 @@ let initMapLeaflet = () => {
         let lon = stream ? parseFloat($('#lon').html()) : null;
         let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : localization.key['nospd']) : null;
         let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
+        const hdg = stream ? parseFloat($('#hdg').html()) : 0;
         if (lat == null || lon == null || isNaN(lat) || isNaN(lon) || (lat == 0 && lon == 0)) return;
 
         if (stream) {
@@ -1518,6 +1519,7 @@ let initMapLeaflet = () => {
                     window.MapData.nextIndex = flatIndices.length > 0 ? Math.max(...flatIndices) + 1 : 0;
                 }
                 const newIndex = window.MapData.nextIndex++;
+                window.rawPath.push([newPoint[0], newPoint[1], hdg || 0]);
                 const STREAM_SEGMENT_THRESHOLD = 0.005;
 
                 if (lastSeg && distToLast <= STREAM_SEGMENT_THRESHOLD) {
@@ -1651,6 +1653,11 @@ let initMapLeaflet = () => {
     const markerPnt = L.marker(getStartCoord(), { icon: carDivIcon });
 
     markerUpd = itm => {
+        if (stream) {
+            map.removeLayer(markerPnt);
+            return;
+        }
+
         // Remove previous tooltips
         map.eachLayer(layer => {
             if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
@@ -1658,29 +1665,23 @@ let initMapLeaflet = () => {
             }
         });
 
-        if (itm && itm.dataIndex >= 0) {
-            // itm.dataIndex – index in the current trimmed chart window.
-            // Convert it to the global original index.
-            const origIdx = (window.chartRangeStart || 0) + itm.dataIndex;
+        if (itm && itm.datapoint && window.currentMapSlicedCoords && window.currentMapSlicedCoords.length > 0) {
+            const chartLen = window.chartRangeEnd - window.chartRangeStart;
+            if (chartLen > 0) {
+                const frac = itm.dataIndex / chartLen;
 
-            // Look for the point in what is currently drawn on the map
-            const posInSliced = window.currentMapSlicedIndices?.indexOf(origIdx);
-            if (posInSliced === undefined || posInSliced === -1) {
-                // Point is not within the map's visible range – hide marker
-                map.removeLayer(markerPnt);
-                return;
-            }
+                const idx = Math.min(
+                    window.currentMapSlicedCoords.length - 1,
+                    Math.floor(frac * window.currentMapSlicedCoords.length)
+                );
 
-            const pos = window.currentMapSlicedCoords[posInSliced];
-            markerPnt.setLatLng(pos).addTo(map);
+                const pos = window.currentMapSlicedCoords[idx];
+                markerPnt.setLatLng(pos).addTo(map);
 
-            // Show HeatData if a source is selected
-            if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
-                const sourceData = heatData[currentDataSource].data;
-                // Index in the trimmed heatData window = origIdx - chartRangeStart
-                const dataIdx = origIdx - (window.chartRangeStart || 0);
-                if (dataIdx >= 0 && dataIdx < sourceData.length) {
-                    const dataPoint = sourceData[dataIdx];
+                if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
+                    const sourceData = heatData[currentDataSource].data;
+                    const heatIdx = Math.min(sourceData.length - 1, Math.floor(frac * sourceData.length));
+                    const dataPoint = sourceData[heatIdx];
                     if (dataPoint) {
                         const value = Array.isArray(dataPoint) ? dataPoint[1] : dataPoint;
                         const label = heatData[currentDataSource].label;
@@ -1694,6 +1695,8 @@ let initMapLeaflet = () => {
                         .addTo(map);
                     }
                 }
+            } else {
+                map.removeLayer(markerPnt);
             }
         } else {
             map.removeLayer(markerPnt);
@@ -2474,6 +2477,60 @@ function showToken() {
             $("#wait_layout").hide();
             serverError();
         });
+}
+
+function rebuildMapFromRawPath() {
+    if (map) {
+        map.remove();
+        map = null;
+    }
+
+    const rawPath = window.rawPath;
+    if (!rawPath.length) return;
+
+    const coordsOnly = rawPath.map(p => [p[0], p[1]]);
+    let validSegmentsWithIndices = extractValidSegmentsWithIndices(coordsOnly, {
+        minPoints: Math.trunc(rawPath.length * 0.05)
+    });
+
+    if (!validSegmentsWithIndices.length) {
+        const fallbackPoints = rawPath
+            .map((p, idx) => ({ coord: [p[0], p[1]], index: idx }))
+            .filter(item => item.coord[0] !== 0 || item.coord[1] !== 0);
+        if (fallbackPoints.length) {
+            validSegmentsWithIndices = [fallbackPoints];
+        }
+    }
+
+    const segmentsCoords = validSegmentsWithIndices.map(seg => seg.map(p => p.coord));
+    const flatCoords = segmentsCoords.flat();
+    const flatIndices = validSegmentsWithIndices.flat().map(p => p.index);
+
+    window.MapData = {
+        segmentsCoords,
+        segmentsIndices: validSegmentsWithIndices,
+        flatCoords,
+        flatIndices,
+        nextIndex: rawPath.length
+    };
+
+    const origHeading = {};
+    rawPath.forEach((point, idx) => {
+        if (point.length >= 3) {
+            origHeading[idx] = point[2];
+        }
+    });
+    window.MapData.origHeading = origHeading;
+
+    const origToFlat = {};
+    window.MapData.segmentsIndices.flat().forEach(({ index }) => {
+        if (index >= 0 && !(index in origToFlat)) {
+            origToFlat[index] = window.MapData.flatIndices.indexOf(index);
+        }
+    });
+    window.MapData.origToFlat = origToFlat;
+
+    initMapLeaflet();
 }
 
 let redDialog = {
