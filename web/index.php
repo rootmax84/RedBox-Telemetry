@@ -709,6 +709,10 @@ function dataToggle() {
 		noSleep.disable();
 		stream = false;
 		stopPlotUpdates();
+		rebuildMapFromRawPath();
+		if (window.MapData && window.MapData.flatCoords.length > 0) {
+		    mapUpdRange(0, window.MapData.flatCoords.length - 1);
+		}
 	}
 	if (streamBtn_svg !== null) streamBtn_svg.style.color = stream ? '#008000' : 'inherit';
     });
@@ -872,7 +876,7 @@ if ($current_page < $total_pages) {
 <?php if(!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) {?>
 
 <script>
- const rawPath = [<?php echo $imapdata; ?>];
+ window.rawPath = [<?php echo $imapdata; ?>];
 
  if (!rawPath.length) {
     $('#map-div').hide();
