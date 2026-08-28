@@ -28,7 +28,6 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - Customizable data point filtering before graph rendering
 - Simple API for fetching latest metrics
 - API exporter for Prometheus/Grafana integration
-- Forward ingress requests to external systems
 - Localized UI (EN/RU/ES/DE)
 - and more...
 

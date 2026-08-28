@@ -3,8 +3,8 @@
     require_once 'db_limits.php';
 
     //Conversion and gap settings etc
-    $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,api_gps,forward_url,forward_token FROM $db_users WHERE user=?", [$username])->fetch_row();
-    [$token, $chatid, $speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter, $api_gps, $forward_url, $forward_token] = $setqry;
+    $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,api_gps FROM $db_users WHERE user=?", [$username])->fetch_row();
+    [$token, $chatid, $speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter, $api_gps] = $setqry;
 
     $db->close();
 
@@ -203,28 +203,6 @@
 		    <div class="cntr">
 		        <button class="btn btn-info btn-sm" type="submit" l10n="btn.save"></button>
 		    </div>
-		</form>
-        </div>
-	<hr>
-            <div class="settings-unit">
-             <h4 l10n="user.url.title"></h4>
-             <h6 style="color:#777" l10n="user.url.label"></h6>
-		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
-		<div class="settings--cell">
-		    <div class="clear-input">
-			<input class="form-control clear-input__input" type="text" name="forward_url"  l10n-placeholder="user.url.placeholder" maxlength="2083" value="<?php echo $forward_url; ?>" autocomplete="new-password">
-			<button type="button" class="clear-input__btn">
-			    <span class="clear-input__icon"></span>
-			</button>
-		    </div>
-		    <div class="password-toggle">
-			<input class="form-control password-input" type="password" name="forward_token"  l10n-placeholder="user.url.token.placeholder" maxlength="128" value="<?php echo $forward_token; ?>" autocomplete="new-password">
-			<button type="button" class="password-toggle__btn">
-			    <span class="password-toggle__icon"></span>
-			</button>
-		    </div>
-		</div>
-		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.save"></button></div>
 		</form>
         </div>
 	<hr>

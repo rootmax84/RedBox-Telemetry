@@ -171,8 +171,6 @@ function create_users_table()
 	token char(64) NULL,
 	tg_token varchar(50) NULL,
 	tg_chatid bigint(20) NULL,
-	forward_url varchar(2083) NULL,
-	forward_token varchar(128) NULL,
 	share_secret char(32) NULL,
 	speed enum('No conversion','km to miles','miles to km') NOT NULL DEFAULT 'No conversion',
 	temp enum('No conversion','Celsius to Fahrenheit','Fahrenheit to Celsius') NOT NULL DEFAULT 'No conversion',
@@ -209,8 +207,6 @@ function perform_migration() {
     $migrations = [
         'stream_lock'     => "ALTER TABLE $db_users ADD COLUMN stream_lock TINYINT(1) NOT NULL DEFAULT 0",
         'sessions_filter' => "ALTER TABLE $db_users ADD COLUMN sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
-        'forward_url'     => "ALTER TABLE $db_users ADD COLUMN forward_url VARCHAR(2083) NULL",
-        'forward_token'   => "ALTER TABLE $db_users ADD COLUMN forward_token VARCHAR(190) NULL",
         'share_secret'    => "ALTER TABLE $db_users ADD COLUMN share_secret CHAR(32)",
         'login_attempts'  => "ALTER TABLE $db_users ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
         'last_attempt'    => "ALTER TABLE $db_users ADD COLUMN last_attempt DATETIME",

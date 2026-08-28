@@ -126,26 +126,6 @@ try {
                         : $testMessage['description']));
         }
 
-        // Handle data forwarding URL
-        if (isset($_POST['forward_url'], $_POST['forward_token'])) {
-            if (strlen($_POST['forward_token']) > 128) {
-                $response = $translations[$_COOKIE['lang']]['user.url.token.err'];
-            }
-            elseif (isValidExternalHttpUrl($_POST['forward_url']) || empty($_POST['forward_url'])) {
-                $row = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc();
-
-                $db->execute_query("UPDATE $db_users SET forward_url=?, forward_token=? WHERE user=?",
-                    [$_POST['forward_url'] !== '' ? $_POST['forward_url'] : null,
-                     $_POST['forward_token'] !== '' ? $_POST['forward_token'] : null,
-                $username]);
-
-                cache_flush($row["token"]);
-                $response = $translations[$_COOKIE['lang']]['user.url.updated'];
-            } else {
-                $response = $translations[$_COOKIE['lang']]['user.url.err'];
-            }
-        }
-
         // Handle share secret update
         if (isset($_POST['share_secret'])) {
             $secret = bin2hex(random_bytes(16));

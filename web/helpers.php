@@ -186,35 +186,6 @@ function getFilteredQuery($selectstring, $db_table, $streamLimit, $filterRate) {
 }
 
 /**
- * Forward url validation
- */
-function isValidExternalHttpUrl($url) {
-    // 1. Check if it's a valid URL
-    if (!filter_var($url, FILTER_VALIDATE_URL)) {
-        return false;
-    }
-
-    // 2. Check if the scheme is http or https
-    $scheme = parse_url($url, PHP_URL_SCHEME);
-    if (!in_array(strtolower($scheme), ['http', 'https'])) {
-        return false;
-    }
-
-    // 3. Get the host from the URL
-    $host = parse_url($url, PHP_URL_HOST);
-
-    // 4. Get the current host (the server's own domain)
-    $currentHost = $_SERVER['HTTP_HOST'] ?? '';
-
-    // 5. Normalize both hosts by removing 'www.' and converting to lowercase
-    $host = strtolower(preg_replace('/^www\./', '', $host));
-    $currentHost = strtolower(preg_replace('/^www\./', '', $currentHost));
-
-    // 6. Return true only if the URL doesn't point to the same host
-    return $host !== $currentHost;
-}
-
-/**
  * Checks rate limits for requests based on client IP
  * Running memcached required
  *
@@ -440,76 +411,6 @@ function verify_csrf_token(string $token): bool
 }
 
 /**
- * Forward upload request
- */
-function forward_request(string $username, string $forward_url, ?string $forward_token = null): void
-{
-    if (function_exists('fastcgi_finish_request')) {
-        fastcgi_finish_request();
-    }
-
-    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    $forward_data = $_REQUEST;
-
-    if (empty($forward_data['eml'])) {
-        $forward_data = array_merge(['eml' => $username . '@redbox.null'], $forward_data);
-    }
-
-    $ch = curl_init();
-
-    if ($method === 'GET') {
-        $query = http_build_query($forward_data);
-        $url_with_query = $forward_url . (strpos($forward_url, '?') === false ? '?' : '&') . $query;
-        curl_setopt($ch, CURLOPT_URL, $url_with_query);
-        curl_setopt($ch, CURLOPT_HTTPGET, true);
-    } else {
-        curl_setopt($ch, CURLOPT_URL, $forward_url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $forward_data);
-    }
-
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-    curl_setopt($ch, CURLOPT_NOSIGNAL, 1);
-
-    // Headers
-    $headers = [];
-    if (!empty($forward_token)) {
-        // Validate forward_token if it comes from your application
-        if (preg_match('/^[a-zA-Z0-9-_.]+$/', $forward_token)) {
-            $headers[] = 'Authorization: Bearer ' . $forward_token;
-        }
-    } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-        // Sanitize and validate the Authorization header
-        $auth_header = trim($_SERVER['HTTP_AUTHORIZATION']);
-
-        // Basic validation for common auth schemes
-        if (preg_match('/^(Bearer|Basic) [a-zA-Z0-9-_.]+$/', $auth_header)) {
-            $headers[] = 'Authorization: ' . $auth_header;
-        }
-    }
-
-    if (!empty($headers)) {
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    }
-
-    // Execute and log
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($error) {
-        error_log("[Forwarding] Failed to forward {$method} request for user {$username} to {$forward_url}: $error");
-    } elseif ($http_code >= 400) {
-        error_log("[Forwarding] Forwarded {$method} request for user {$username} to {$forward_url}, but got HTTP error: $http_code");
-    } else {
-        error_log("[Forwarding] Successfully forwarded {$method} request for user {$username} to {$forward_url}");
-    }
-}
-
-/**
  * return PIDs data for API
  */
 function getPidsQuery($db, $table, $includeGps = false)
@@ -603,6 +504,50 @@ function insert_single_record(mysqli $db, string $db_table, array $rawkeys, arra
         $db->query($sql);
     } catch (Exception $e) {
         cache_flush();
+    }
+}
+
+/**
+ * Bulk insert of raw data records.
+ *
+ * @param mysqli $db
+ * @param string $db_table
+ * @param array $records
+ */
+function insert_bulk_records(mysqli $db, string $db_table, array $records) {
+    if (empty($records)) return;
+
+    // Collect all unique keeys from all records
+    $allKeys = [];
+    foreach ($records as $record) {
+        foreach (array_keys($record) as $key) {
+            if (!in_array($key, $allKeys)) {
+                $allKeys[] = $key;
+            }
+        }
+    }
+
+    // Build string of columns
+    $columns = quote_names($allKeys);
+
+    // Build value array for each record
+    $valueRows = [];
+    foreach ($records as $record) {
+        $rowValues = [];
+        foreach ($allKeys as $key) {
+            $rowValues[] = $record[$key] ?? '';
+        }
+        $valueRows[] = '(' . quote_values($rowValues) . ')';
+    }
+
+    $valuesStr = implode(', ', $valueRows);
+    $sql = "INSERT IGNORE INTO $db_table ($columns) VALUES $valuesStr";
+
+    try {
+        $db->query($sql);
+    } catch (Exception $e) {
+        cache_flush();
+        error_log("Bulk insert error: " . $e->getMessage());
     }
 }
 

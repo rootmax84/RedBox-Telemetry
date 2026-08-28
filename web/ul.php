@@ -50,7 +50,7 @@ if (!empty($token)) {
 
  //Check auth via Bearer token
  if ($user_data === false) {
-    $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid, forward_url, forward_token, lang FROM $db_users WHERE token=?", [$token]);
+    $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid, lang FROM $db_users WHERE token=?", [$token]);
     if ($userqry->num_rows) {
         $access = 1;
         $user_data = $userqry->fetch_assoc();
@@ -73,8 +73,6 @@ if (!empty($token)) {
     $limit = $user_data['s'];
     $tg_token = $user_data['tg_token'];
     $tg_chatid = $user_data['tg_chatid'];
-    $forward_url = $user_data['forward_url'] ?? null;
-    $forward_token = $user_data['forward_token'] ?? null;
     $lang = $lang ?? $user_data['lang'];
  }
 } else $access = 0;
@@ -178,6 +176,106 @@ $allowedProfileFields = [
     'profileName'
 ];
 
+//RedManage bulk insert
+$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+if (stripos($contentType, 'application/json') !== false) {
+    // Bulk-request
+    $json = file_get_contents('php://input');
+    $records = json_decode($json, true);
+
+    if (is_array($records) && !empty($records)) {
+        $db->begin_transaction();
+        try {
+            $bulkRecords = [];
+            $sessionUpdates = [];
+
+            foreach ($records as $record) {
+                $rawkeys = [];
+                $rawvalues = [];
+                $sesskeys = [];
+                $sessvalues = [];
+                $sessuploadid = '';
+                $sesstime = '0';
+                $id = '';
+
+                foreach ($record as $key => $value) {
+                    if (in_array($key, ["time", "session", "id"])) {
+                        if ($key == 'session') $sessuploadid = $value;
+                        if ($key == 'time') $sesstime = $value;
+                        if ($key == 'id') $id = $value;
+                        else {
+                            $sesskeys[] = $key;
+                            $sessvalues[] = $value;
+                        }
+                    } elseif (preg_match("/^k/", $key)) {
+                        $rawkeys[] = $key;
+                        $rawvalues[] = ($value == 'Infinity') ? -1 : $value;
+                    }
+                    // profile fields ignores
+                }
+
+                // add missed columns
+                foreach ($rawkeys as $idx => $key) {
+                    if (!in_array($key, $dbfields) && preg_match('/^k[0-9a-fA-F]+$/', $key)) {
+                        $dataType = is_numeric($rawvalues[$idx]) ? "FLOAT" : "VARCHAR(255)";
+                        if (!column_exists($db, $db_table, $key)) {
+                            $sqlalter = "ALTER TABLE $db_table ADD COLUMN ".quote_name($key)." $dataType NOT NULL DEFAULT '0'";
+                            $db->query($sqlalter);
+                        }
+                        $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite) VALUES (?,?,?,?,?)";
+                        $db->execute_query($sqlalterkey, [$key, $key, '1', '1', '0']);
+                        $dbfields[] = $key;
+                        cache_flush();
+                    }
+                }
+
+                // build record for bulk insert
+                $allRawKeys = array_merge($rawkeys, $sesskeys);
+                $allRawValues = array_merge($rawvalues, $sessvalues);
+                $bulkRecord = [];
+                foreach ($allRawKeys as $i => $key) {
+                    $bulkRecord[$key] = $allRawValues[$i];
+                }
+                $bulkRecords[] = $bulkRecord;
+
+                // save data for session update
+                $sesskeys[] = 'timeend';
+                $sessvalues[] = $sesstime;
+                $sessionUpdates[] = [
+                    'keys' => $sesskeys,
+                    'values' => $sessvalues,
+                    'id' => $id,
+                    'sesstime' => $sesstime,
+                ];
+            }
+
+            // Bulk-insert
+            insert_bulk_records($db, $db_table, $bulkRecords);
+
+            // Sessions table update
+            foreach ($sessionUpdates as $sess) {
+                $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sess['keys']).") VALUES (".quote_values($sess['values']).") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+                $db->execute_query($sessionqrystring, [$sess['id'], $sess['sesstime']]);
+            }
+
+            $db->commit();
+            echo "OK!";
+            exit;
+        } catch (Exception $e) {
+            $db->rollback();
+            error_log("Bulk processing error: " . $e->getMessage());
+            http_response_code(500);
+            echo "Bulk error";
+            exit;
+        }
+    } else {
+        http_response_code(400);
+        echo "Invalid JSON";
+        exit;
+    }
+}
+
+// Default insert per request
 // Iterate over all the k* _GET arguments to check that a field exists
 if (sizeof($_REQUEST) > 0) {
   $keys = [];
@@ -315,8 +413,3 @@ $db->close();
 
 // Return the response required by Torque/RedManage
 echo "OK!";
-
-// Forward request to another URL if specified
-if (!empty($forward_url)) {
-    forward_request($username, $forward_url, $forward_token);
-}
