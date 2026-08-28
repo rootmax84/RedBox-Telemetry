@@ -37,7 +37,7 @@ if ($memcached_connected) {
 }
 
 if ($s_data === false) {
-    $s_result = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 OR id IN ('kff1005', 'kff1006') ORDER by description ASC");
+    $s_result = $db->query("SELECT id,description,units FROM $db_pids_table WHERE stream = 1 OR id IN ('kff1005', 'kff1006', 'kff1007') ORDER by description ASC");
     if ($s_result->num_rows) {
         $s_data = [];
         while ($row = $s_result->fetch_array()) {
@@ -150,6 +150,8 @@ if ($r->num_rows) {
             $data = "<tr hidden><td id='lon'>{$row[$currentPid]}</td></tr>";
         } elseif ($currentPid === 'kff1006') {
             $data = "<tr hidden><td id='lat'>{$row[$currentPid]}</td></tr>";
+        } elseif ($currentPid === 'kff1007') {
+            $data = "<tr hidden><td id='hdg'>{$row[$currentPid]}</td></tr>";
         } else {
             $data = "<tr>";
             $data .= "<td>{$currentDes}</td>";

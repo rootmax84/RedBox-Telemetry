@@ -690,7 +690,8 @@ const noSleep = new NoSleep();
 let streamBtn_svg = null
 let stream = false;
 let src = null;
-function dataToggle() {
+function dataToggleCore() {
+    const heatDataSource = currentDataSource;
     updatePlot(function() {
 	if ($("#data").is(":hidden")) {
 		$("#data").show();
@@ -710,12 +711,26 @@ function dataToggle() {
 		stream = false;
 		stopPlotUpdates();
 		rebuildMapFromRawPath();
+		setTimeout(()=>{
+			document.getElementById('heat-dataSourceSelect').value = heatDataSource ?? '';
+		},1000);
 		if (window.MapData && window.MapData.flatCoords.length > 0) {
 		    mapUpdRange(0, window.MapData.flatCoords.length - 1);
 		}
 	}
 	if (streamBtn_svg !== null) streamBtn_svg.style.color = stream ? '#008000' : 'inherit';
     });
+}
+
+let lastCallTime = 0;
+
+function dataToggle() {
+    const now = Date.now();
+    if (now - lastCallTime < 2000) {
+        return;
+    }
+    lastCallTime = now;
+    dataToggleCore();
 }
 </script>
 	</div>

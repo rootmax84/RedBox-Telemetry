@@ -871,7 +871,7 @@ let initMapLeaflet = () => {
 
     // ---------------------- Hotline layer group ----------------------
     let hotlineLayers = L.layerGroup().addTo(map); // will contain hotline for each segment
-    let currentDataSource = null;
+    window.currentDataSource = null;
 
     // ---------------------- Start and End markers ----------------------
     const playSvgIcon = L.divIcon({
@@ -1224,7 +1224,7 @@ let initMapLeaflet = () => {
         }
     }
 
-    function updateHotline(sourceIndex, rangeFlatIndices, origRangeStart = null, origRangeEnd = null) {
+    globalThis.updateHotline = function(sourceIndex, rangeFlatIndices, origRangeStart = null, origRangeEnd = null) {
         // Remove all previous hotline layers
         hotlineLayers.clearLayers();
 
@@ -1519,7 +1519,7 @@ let initMapLeaflet = () => {
                     window.MapData.nextIndex = flatIndices.length > 0 ? Math.max(...flatIndices) + 1 : 0;
                 }
                 const newIndex = window.MapData.nextIndex++;
-                window.rawPath.push([newPoint[0], newPoint[1], hdg || 0]);
+                window.rawPath.unshift([newPoint[0], newPoint[1], hdg || 0]);
                 const STREAM_SEGMENT_THRESHOLD = 0.005;
 
                 if (lastSeg && distToLast <= STREAM_SEGMENT_THRESHOLD) {
