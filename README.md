@@ -107,8 +107,6 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 | `$def_limit` | Default user database size limit (MB) | `100` |
 | `$max_upload_requests_per_second` | Upload rate limit (requests/sec) | `100` |
 | `$max_api_requests_per_second` | API rate limit (requests/sec) | `10` |
-| `$bulk_upload_buffer_size` | Bulk upload buffer size | `10` |
-| `$bulk_upload_buffer_ttl` | Bulk upload buffer TTL (seconds) | `5` |
 | `$salt['cost']` | Password hashing cost (4-31, higher = more CPU) | `10` |
 | `$admin` | Admin username | `admin` |
 | `$admin_timeformat_12` | Use 12-hour time format (false = 24h) | `false` |
