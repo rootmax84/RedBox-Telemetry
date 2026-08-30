@@ -4,6 +4,10 @@
  * Date: 2013-03-21
  * Time: 10:59 AM
  *
+ * - Highlight nearest metric in tooltip
+ * - performance optimizations with caching and requestAnimationFrame
+ * - Ignore hidden series (based on points.show and lines.show)
+ * - Compatible with hiddenGraphs plugin
  */
 
 //Time conversion processing
@@ -84,6 +88,8 @@ function convertToRealTime(processedTime) {
   class MultiHighlightDeltaPlugin {
     constructor(plot) {
       this.plot = plot;
+      this._rafId = null;
+      this._pendingData = null;
     }
 
     static compileTemplate(str) {
@@ -107,8 +113,8 @@ function convertToRealTime(processedTime) {
       const ctx = this;
 
       const handlerProxies = {
-        onPlotHover: (event, position, item) => ctx.onPlotHover(event, position, item),
-        onMouseOut: () => ctx.onMouseOut()
+        onPlotHover: (event, position, item) => ctx._handleHover(event, position, item),
+        onMouseOut: () => ctx._handleMouseOut()
       };
 
       this.plot.hooks.bindEvents.push((plot) => {
@@ -126,7 +132,6 @@ function convertToRealTime(processedTime) {
         plot.getPlaceholder().on('plothover plottouchmove', handlerProxies.onPlotHover);
         plot.getPlaceholder().on('mouseout touchend', handlerProxies.onMouseOut);
 
-        // Keep a cache of the templates
         ctx.tooltipTemplate = MultiHighlightDeltaPlugin.compileTemplate(options.tooltipTemplate);
         ctx.dataPointTemplate = MultiHighlightDeltaPlugin.compileTemplate(options.dataPointTemplate);
       });
@@ -151,7 +156,20 @@ function convertToRealTime(processedTime) {
       return $tip;
     }
 
-    onPlotHover(event, position, item) {
+    _handleHover(event, position, item) {
+      if (this._rafId) {
+        cancelAnimationFrame(this._rafId);
+        this._rafId = null;
+      }
+      this._pendingData = { event, position, item };
+      this._rafId = requestAnimationFrame(() => {
+        this._processHover(this._pendingData.event, this._pendingData.position, this._pendingData.item);
+        this._pendingData = null;
+        this._rafId = null;
+      });
+    }
+
+    _processHover(event, position, item) {
       const data = this.plot.getData();
       const options = this.plot.getOptions().multihighlightdelta;
       const deltaFunction = options.delta;
@@ -166,13 +184,21 @@ function convertToRealTime(processedTime) {
         throw new Error(`Mode '${mode}' is not recognized, must be x or y`);
       }
 
-      if (!item) return;
+      if (!item) {
+        this._handleMouseOut();
+        return;
+      }
 
-      this.plot.unhighlight();
       const matchingDataPoints = [];
       let showEventHeader = false;
 
       for (const series of data) {
+        const isHidden = (series.points && series.points.show === false) &&
+                         (series.lines && series.lines.show === false);
+        if (isHidden) {
+          continue;
+        }
+
         const seriesData = series.data;
         for (let j = 0; j < seriesData.length; j++) {
           if (seriesData[j][index] === item.datapoint[index]) {
@@ -181,14 +207,18 @@ function convertToRealTime(processedTime) {
               dataPoint: seriesData[j],
               delta: deltaFunction(j > 0 ? seriesData[j - 1] : null, seriesData[j])
             });
-            if (series.label.includes('Rollback')) {
+            if (series.label && series.label.includes('Rollback')) {
               showEventHeader = true;
             }
           }
         }
       }
 
-      // Compute the cursor's Y position inside the canvas
+      if (matchingDataPoints.length === 0) {
+        this._handleMouseOut();
+        return;
+      }
+
       const axes = this.plot.getAxes();
       const placeholder = this.plot.getPlaceholder();
       const offset = placeholder.offset();
@@ -215,12 +245,8 @@ function convertToRealTime(processedTime) {
         const dataPoint = matchingDataPoints[i].dataPoint;
         const delta = matchingDataPoints[i].delta;
 
-        if (i === closestIndex) {
-            this.plot.highlight(seriesData, dataPoint);
-        }
-
         let rlbc = '';
-        if (seriesData.label.includes('Rollback')) {
+        if (seriesData.label && seriesData.label.includes('Rollback')) {
           rlbc = calculate(dataPoint[1]);
         }
 
@@ -239,12 +265,13 @@ function convertToRealTime(processedTime) {
         const text = this.dataPointTemplate(templateData);
         childrenTexts.push(text);
 
-        // Convert time and format it
-        const realTimestamp = convertToRealTime(dataPoint[0]);
-        const xDateFormat = Cookies.get('timeformat') == '12'
-          ? '%d/%m/%Y  %I:%M:%S%p'
-          : '%d/%m/%Y  %H:%M:%S';
-        timeArray[0] = $.plot.formatDate(realTimestamp, xDateFormat);
+        if (i === 0) {
+          const realTimestamp = convertToRealTime(dataPoint[0]);
+          const xDateFormat = Cookies.get('timeformat') == '12'
+            ? '%d/%m/%Y  %I:%M:%S%p'
+            : '%d/%m/%Y  %H:%M:%S';
+          timeArray[0] = $.plot.formatDate(realTimestamp, xDateFormat);
+        }
       }
 
       const tooltipText = this.tooltipTemplate({
@@ -257,13 +284,12 @@ function convertToRealTime(processedTime) {
 
       const $tooltip = this.findOrCreateTooltip(options.tooltipStyles);
 
-      // If we are going to overflow outside the screen's dimensions, display it to the left instead
       let xPositionProperty = 'left';
       let yPositionProperty = 'top';
       let xPosition = position.pageX + options.tooltipOffsetX;
       let yPosition = position.pageY + options.tooltipOffsetY;
 
-      $tooltip.html(tooltipText); // So that we can use dimensions right away
+      $tooltip.html(tooltipText);
       const tooltipWidth = $tooltip.width();
       const tooltipHeight = $tooltip.height();
       const css = {
@@ -293,8 +319,13 @@ function convertToRealTime(processedTime) {
       $tooltip.css(css).show();
     }
 
-    onMouseOut() {
-      this.plot.unhighlight();
+    _handleMouseOut() {
+      if (this._rafId) {
+        cancelAnimationFrame(this._rafId);
+        this._rafId = null;
+        this._pendingData = null;
+      }
+
       $('#flotMultihighlightTip').hide().css({
         top: 'auto',
         left: 'auto',
@@ -308,14 +339,12 @@ function convertToRealTime(processedTime) {
     new MultiHighlightDeltaPlugin(plot).initialize();
   };
 
-  // Wire up the plugin with flot
   this.jQuery.plot.plugins.push({
     init: MultiHighlightDelta.init,
     options: MultiHighlightDelta.options,
     name: 'multihighlightdelta',
-    version: '0.2'
+    version: '0.6'
   });
 
-  // Nothing to wire since we're injecting the plugin inside flot
   return {};
 });
