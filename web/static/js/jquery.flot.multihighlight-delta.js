@@ -214,7 +214,10 @@ function convertToRealTime(processedTime) {
         const seriesData = matchingDataPoints[i].seriesData;
         const dataPoint = matchingDataPoints[i].dataPoint;
         const delta = matchingDataPoints[i].delta;
-        this.plot.highlight(seriesData, dataPoint);
+
+        if (i === closestIndex) {
+            this.plot.highlight(seriesData, dataPoint);
+        }
 
         let rlbc = '';
         if (seriesData.label.includes('Rollback')) {
