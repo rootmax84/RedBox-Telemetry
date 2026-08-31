@@ -623,6 +623,9 @@ let updCharts = (last = false)=>{
             const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];
             chartUpdRange(a,b);
             updateSummaryTable();
+            if (typeof currentDataSource !== 'undefined' && currentDataSource !== null && heatData && heatData[currentDataSource]) {
+                updateHotline(currentDataSource);
+            }
             //this updates the whole summary table
             $('#Summary-Container').empty();
             $('#Summary-Container').append($('<div>',{class:'table-responsive'}).append($('<table>',{class:'table table-sum'}).append($('<thead>').append($('<tr>'))).append('<tbody>')));
@@ -1228,6 +1231,11 @@ let initMapLeaflet = () => {
         // Remove all previous hotline layers
         hotlineLayers.clearLayers();
 
+        if (window._tempStreamHotline) {
+            map.removeLayer(window._tempStreamHotline);
+            window._tempStreamHotline = null;
+        }
+
         // If no source selected or no data – return to regular polyline
         if (sourceIndex === null || sourceIndex === "" || !heatData || !heatData[sourceIndex]) {
             currentDataSource = null;
@@ -1284,8 +1292,7 @@ let initMapLeaflet = () => {
             return;
         }
 
-        // Use origRangeStart if provided, otherwise current chart range
-        const dataOffset = origRangeStart !== null ? origRangeStart : (window.chartRangeStart || 0);
+        let currentDataIndex = 0;
 
         let globalMin = Infinity;
         let globalMax = -Infinity;
@@ -1294,13 +1301,9 @@ let initMapLeaflet = () => {
         // Build hotline for each segment
         targetSegmentsIndices.forEach(segWithIdx => {
             const points = [];
-            segWithIdx.forEach(({ coord, index }) => {
-                // Skip points without index (e.g., added by streaming)
-                if (index < 0) return;
-
-                // Calculate position in the trimmed sourceData
-                const dataIdx = index - dataOffset;
-                if (dataIdx < 0 || dataIdx >= sourceData.length) return;
+            segWithIdx.forEach(({ coord }) => {
+                if (currentDataIndex >= sourceData.length) return;
+                const dataIdx = currentDataIndex++;
 
                 let value = null;
                 let timestamp = null;
@@ -1310,7 +1313,7 @@ let initMapLeaflet = () => {
                     value = raw[1];
                 } else {
                     value = raw;
-                    timestamp = (window.timeData && window.timeData[index]) || null;
+                    timestamp = (window.timeData && window.timeData[dataIdx]) || null;
                 }
                 if (value === null || value === undefined || isNaN(value)) return;
 
@@ -1549,20 +1552,47 @@ let initMapLeaflet = () => {
                 }
 
                 updateHeadingArrows();
-
                 if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
                     const sourceData = heatData[currentDataSource].data;
-                    let value = null;
                     if (sourceData.length > 0) {
-                        const last = sourceData[sourceData.length - 1];
-                        value = Array.isArray(last) ? last[1] : last;
-                    } else {
-                        value = 0;
-                    }
-                    const now = Date.now();
-                    sourceData.push([now, value]);
+                        const lastRaw = sourceData[sourceData.length - 1];
+                        const lastValue = Array.isArray(lastRaw) ? lastRaw[1] : lastRaw;
 
-                    updateHotline(currentDataSource);
+                        let lastHotlinePoint = null;
+                        hotlineLayers.eachLayer(layer => {
+                            if (layer.hotlineData && layer.hotlineData.points.length > 0) {
+                                lastHotlinePoint = layer.hotlineData.points[layer.hotlineData.points.length - 1];
+                            }
+                        });
+
+                        if (lastHotlinePoint && lat !== null && lon !== null) {
+                            const newPoint = L.latLng(lat, lon, lastValue);
+
+                            let min = 0, max = 1;
+                            if (hotlineLayers.getLayers().length > 0) {
+                                const firstLayer = hotlineLayers.getLayers()[0];
+                                    if (firstLayer.hotlineData) {
+                                        min = firstLayer.hotlineData.min;
+                                        max = firstLayer.hotlineData.max;
+                                }
+                            }
+
+                            const tempHotline = L.hotline([lastHotlinePoint, newPoint], {
+                                min: min,
+                                max: max,
+                                palette: { 0.0: 'green', 0.5: 'yellow', 1.0: 'red' },
+                                weight: 3,
+                                outlineColor: '#444',
+                                outlineWidth: 1
+                            });
+
+                            if (window._tempStreamHotline) {
+                                map.removeLayer(window._tempStreamHotline);
+                            }
+                            tempHotline.addTo(map);
+                            window._tempStreamHotline = tempHotline;
+                        }
+                    }
                 }
             }
 
