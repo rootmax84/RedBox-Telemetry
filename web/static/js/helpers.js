@@ -1522,48 +1522,6 @@ let initMapLeaflet = () => {
                 }
 
                 updateHeadingArrows();
-                if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
-                    const sourceData = heatData[currentDataSource].data;
-                    if (sourceData.length > 0) {
-                        const lastRaw = sourceData[sourceData.length - 1];
-                        const lastValue = Array.isArray(lastRaw) ? lastRaw[1] : lastRaw;
-
-                        let lastHotlinePoint = null;
-                        hotlineLayers.eachLayer(layer => {
-                            if (layer.hotlineData && layer.hotlineData.points.length > 0) {
-                                lastHotlinePoint = layer.hotlineData.points[layer.hotlineData.points.length - 1];
-                            }
-                        });
-
-                        if (lastHotlinePoint && lat !== null && lon !== null) {
-                            const newPoint = L.latLng(lat, lon, lastValue);
-
-                            let min = 0, max = 1;
-                            if (hotlineLayers.getLayers().length > 0) {
-                                const firstLayer = hotlineLayers.getLayers()[0];
-                                    if (firstLayer.hotlineData) {
-                                        min = firstLayer.hotlineData.min;
-                                        max = firstLayer.hotlineData.max;
-                                }
-                            }
-
-                            const tempHotline = L.hotline([lastHotlinePoint, newPoint], {
-                                min: min,
-                                max: max,
-                                palette: { 0.0: 'green', 0.5: 'yellow', 1.0: 'red' },
-                                weight: 3,
-                                outlineColor: '#444',
-                                outlineWidth: 1
-                            });
-
-                            if (window._tempStreamHotline) {
-                                map.removeLayer(window._tempStreamHotline);
-                            }
-                            tempHotline.addTo(map);
-                            window._tempStreamHotline = tempHotline;
-                        }
-                    }
-                }
             }
 
             setTimeout(() => { map.removeLayer(marker); }, rate);
