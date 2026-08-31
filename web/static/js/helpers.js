@@ -1099,6 +1099,7 @@ let initMapLeaflet = () => {
             minDistance: 0
         });
         const slicedSegmentsCoords = slicedSegmentsWithIndices.map(seg => seg.map(p => p.coord));
+        window.currentMapSegmentsForHotline = slicedSegmentsWithIndices;
 
         // Save the current slice of coordinates and indices for markerUpd and other needs
         if (!slicedSegmentsCoords.length) {
@@ -1228,7 +1229,6 @@ let initMapLeaflet = () => {
     }
 
     globalThis.updateHotline = function(sourceIndex, rangeFlatIndices, origRangeStart = null, origRangeEnd = null) {
-        // Remove all previous hotline layers
         hotlineLayers.clearLayers();
 
         if (window._tempStreamHotline) {
@@ -1236,7 +1236,6 @@ let initMapLeaflet = () => {
             window._tempStreamHotline = null;
         }
 
-        // If no source selected or no data – return to regular polyline
         if (sourceIndex === null || sourceIndex === "" || !heatData || !heatData[sourceIndex]) {
             currentDataSource = null;
             if (!map.hasLayer(polyline)) polyline.addTo(map);
@@ -1247,42 +1246,15 @@ let initMapLeaflet = () => {
             return;
         }
 
-        // Determine which segments to use
-        let targetSegmentsIndices = window.MapData.segmentsIndices; // all segments with indices
-        if (rangeFlatIndices && rangeFlatIndices.length === 2) {
-            // Restrict segments to flat index range
-            const [flatStart, flatEnd] = rangeFlatIndices;
-            const flatIndices = window.MapData.flatIndices;
-            const flatCoords = window.MapData.flatCoords;
-            const sliced = flatCoords.slice(flatStart, flatEnd + 1);
-            if (sliced.length === 0) {
-                // Empty range – reset to polyline
-                currentDataSource = null;
-                if (!map.hasLayer(polyline)) polyline.addTo(map);
-                if (hotlineLegend) {
-                    map.removeControl(hotlineLegend);
-                    hotlineLegend = null;
-                }
-                return;
-            }
-            // Rebuild segments for the slice (without short segment filtering)
-            const slicedWithIndices = extractValidSegmentsWithIndices(sliced, {
-                maxStep: 0.003,
-                minPoints: 1,
-                minDistance: 0
-            });
-            // Replace local indices (0..sliced.length-1) with global original indices
-            targetSegmentsIndices = slicedWithIndices.map(seg =>
-                seg.map((p, localIdx) => {
-                    const globalIdx = flatIndices[flatStart + localIdx];
-                    return { coord: p.coord, index: globalIdx };
-                })
-            );
+        let targetSegmentsIndices;
+        if (window.currentMapSegmentsForHotline) {
+            targetSegmentsIndices = window.currentMapSegmentsForHotline;
+        } else {
+            targetSegmentsIndices = window.MapData.segmentsIndices;
         }
 
         const sourceData = heatData[sourceIndex].data;
         if (!sourceData || sourceData.length === 0) {
-            // No data to display – return to polyline
             currentDataSource = null;
             if (!map.hasLayer(polyline)) polyline.addTo(map);
             if (hotlineLegend) {
@@ -1293,12 +1265,10 @@ let initMapLeaflet = () => {
         }
 
         let currentDataIndex = 0;
-
         let globalMin = Infinity;
         let globalMax = -Infinity;
         let anyLayer = false;
 
-        // Build hotline for each segment
         targetSegmentsIndices.forEach(segWithIdx => {
             const points = [];
             segWithIdx.forEach(({ coord }) => {
@@ -1313,8 +1283,11 @@ let initMapLeaflet = () => {
                     value = raw[1];
                 } else {
                     value = raw;
-                    timestamp = (window.timeData && window.timeData[dataIdx]) || null;
+                    if (window.timeData && window.timeData[dataIdx]) {
+                        timestamp = window.timeData[dataIdx];
+                    }
                 }
+
                 if (value === null || value === undefined || isNaN(value)) return;
 
                 const latLng = L.latLng(coord[0], coord[1], value);
@@ -1328,7 +1301,6 @@ let initMapLeaflet = () => {
 
             if (points.length === 0) return;
 
-            // Just in case all values are the same
             if (globalMin === globalMax) {
                 globalMin -= 0.1;
                 globalMax += 0.1;
@@ -1346,7 +1318,6 @@ let initMapLeaflet = () => {
             hotline.sourceIndex = sourceIndex;
             hotline.hotlineData = { points, min: globalMin, max: globalMax };
 
-            // Event handlers (similar to the original code)
             hotline.on('mousemove click', function(e) {
                 const closest = findClosestPoint(e.latlng, this.hotlineData.points);
                 if (closest) showTooltipAtPoint(closest, this.sourceIndex);
@@ -1371,7 +1342,6 @@ let initMapLeaflet = () => {
             if (map.hasLayer(polyline)) map.removeLayer(polyline);
             updateLegend(globalMin, globalMax);
         } else {
-            // If no layers were created – return to polyline
             currentDataSource = null;
             if (!map.hasLayer(polyline)) polyline.addTo(map);
             if (hotlineLegend) {
