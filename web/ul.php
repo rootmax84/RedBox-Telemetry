@@ -22,74 +22,70 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { //Respond to preflights
 //Check if token header is present and non empty than go to database
 $token = getBearerToken();
 if (!empty($token)) {
+    $lang = $_POST['lang'] ?? $_GET['lang'] ?? null;
 
- $lang = $_POST['lang'] ?? $_GET['lang'] ?? null;
-
- //Maintenance mode
- if (file_exists('maintenance')){
-  http_response_code(423);
-  die($translations[$lang ?? 'en']['maintenance']);
- }
-
- $_SESSION['torque_logged_in'] = true;
- require_once 'db.php';
-
- //Server overload check
- $load = sys_getloadavg(); //Fetch CPU load avg
- if ($max_load_avg > 0 && $load[1] > $max_load_avg){
-  http_response_code(503);
-  die($translations[$lang ?? 'en']['overload']);
- }
-
- $cache_key = "user_data_" . $token;
- $user_data = false;
-
- if ($memcached_connected) {
-    $user_data = $memcached->get($cache_key);
- }
-
- //Check auth via Bearer token
- if ($user_data === false) {
-    $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid, lang FROM $db_users WHERE token=?", [$token]);
-    if ($userqry->num_rows) {
-        $access = 1;
-        $user_data = $userqry->fetch_assoc();
-        if ($memcached_connected) {
-            try {
-                $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
-            } catch (Exception $e) {
-                $errorMessage = sprintf("Memcached error on upload auth: %s (Code: %d)", $e->getMessage(), $e->getCode());
-                error_log($errorMessage);
-            }
-        }
-    } else {
-        $access = 0;
+    if (file_exists('maintenance')) {
+        http_response_code(423);
+        die($translations[$lang ?? 'en']['maintenance']);
     }
- }
 
- if ($user_data) {
-    $access = 1;
-    $username = $user_data['user'];
-    $limit = $user_data['s'];
-    $tg_token = $user_data['tg_token'];
-    $tg_chatid = $user_data['tg_chatid'];
-    $lang = $lang ?? $user_data['lang'];
- }
-} else $access = 0;
+    $_SESSION['torque_logged_in'] = true;
+    require_once 'db.php';
 
-if ($access != 1 || $limit == 0){
-     http_response_code(403);
-     die($translations[$lang ?? 'en']['denied']);
+    $load = sys_getloadavg();
+    if ($max_load_avg > 0 && $load[1] > $max_load_avg) {
+        http_response_code(503);
+        die($translations[$lang ?? 'en']['overload']);
+    }
+
+    $cache_key = "user_data_" . $token;
+    $user_data = false;
+
+    if ($memcached_connected) {
+        $user_data = $memcached->get($cache_key);
+    }
+
+    if ($user_data === false) {
+        $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid, lang FROM $db_users WHERE token=?", [$token]);
+        if ($userqry->num_rows) {
+            $access = 1;
+            $user_data = $userqry->fetch_assoc();
+            if ($memcached_connected) {
+                try {
+                    $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
+                } catch (Exception $e) {
+                    error_log("Memcached error on upload auth: " . $e->getMessage());
+                }
+            }
+        } else {
+            $access = 0;
+        }
+    }
+
+    if ($user_data) {
+        $access = 1;
+        $username = $user_data['user'];
+        $limit = $user_data['s'];
+        $tg_token = $user_data['tg_token'];
+        $tg_chatid = $user_data['tg_chatid'];
+        $lang = $lang ?? $user_data['lang'];
+    }
+} else {
+    $access = 0;
 }
 
-$db_table = $username.$db_log_prefix;
+if ($access != 1 || $limit == 0) {
+    http_response_code(403);
+    die($translations[$lang ?? 'en']['denied']);
+}
 
-//Validate RedManage time if necessary
+$db_table = $username . $db_log_prefix;
+
 if (isset($_REQUEST['servertime'])) {
-  $dt = new DateTime('now', new DateTimeZone('UTC'));
-  $timestamp = (int)($dt->format('Uu') / 1000);
-  echo $timestamp;
-  exit;
+    $dt = new DateTime('now', new DateTimeZone('UTC'));
+    $timestamp = (int)($dt->format('Uu') / 1000);
+    echo $timestamp;
+    exit;
 }
 
 $db_limit_cache_key = "db_limit_" . $db_table;
@@ -105,19 +101,18 @@ if ($db_limit === false) {
         try {
             $memcached->set($db_limit_cache_key, $db_limit, 300);
         } catch (Exception $e) {
-            $errorMessage = sprintf("Memcached error on upload: %s (Code: %d)", $e->getMessage(), $e->getCode());
-            error_log($errorMessage);
+            error_log("Memcached error on upload: " . $e->getMessage());
         }
     }
 }
 
-if ($db_limit >= $limit && $limit != -1){
+if ($db_limit >= $limit && $limit != -1) {
     http_response_code(507);
     die($translations[$lang]['no_space']);
 }
 
-$db_sessions_table = $username.$db_sessions_prefix;
-$db_pids_table = $username.$db_pids_prefix;
+$db_sessions_table = $username . $db_sessions_prefix;
+$db_pids_table = $username . $db_pids_prefix;
 
 $table_structure_cache_key = "table_structure_" . $db_table;
 $dbfields = false;
@@ -126,7 +121,6 @@ if ($memcached_connected) {
     $dbfields = $memcached->get($table_structure_cache_key);
 }
 
-// Create an array of all the existing fields in the database
 if ($dbfields === false) {
     $result = $db->query("SHOW COLUMNS FROM $db_table");
     $dbfields = [];
@@ -139,8 +133,7 @@ if ($dbfields === false) {
         try {
             $memcached->set($table_structure_cache_key, $dbfields, $db_memcached_ttl ?? 3600);
         } catch (Exception $e) {
-            $errorMessage = sprintf("Memcached error on upload: %s (Code: %d)", $e->getMessage(), $e->getCode());
-            error_log($errorMessage);
+            error_log("Memcached error on upload: " . $e->getMessage());
         }
     }
 }
@@ -150,12 +143,11 @@ $max_upload_requests_per_second = $max_upload_requests_per_second ?? 100;
 
 if ($memcached_connected) {
     $current_requests = $memcached->get($rate_limit_key);
-
     if ($current_requests === false) {
         try {
             $memcached->set($rate_limit_key, 1, 1);
         } catch (Exception $e) {
-            error_log(sprintf("Memcached error on upload: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+            error_log("Memcached error on upload: " . $e->getMessage());
         }
     } else {
         if ($current_requests >= $max_upload_requests_per_second) {
@@ -166,20 +158,79 @@ if ($memcached_connected) {
             try {
                 $memcached->increment($rate_limit_key, 1);
             } catch (Exception $e) {
-                error_log(sprintf("Memcached error on upload: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                error_log("Memcached error on upload: " . $e->getMessage());
             }
         }
     }
 }
 
-$allowedProfileFields = [
-    'profileName'
-];
+$allowedProfileFields = ['profileName'];
 
-//RedManage bulk insert
+function processSessionStartRecord($db, $record, $db_sessions_table, $lang, $username, $tg_token, $tg_chatid, $tg_socks_proxy, $translations) {
+    $sesskeys = [];
+    $sessvalues = [];
+    $spv = [];
+    $sessuploadid = $record['session'];
+    $sesstime = $record['time'];
+    $id = $record['id'] ?? '';
+    $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+
+    foreach ($record as $key => $value) {
+        if (preg_match("/^profile/", $key) && in_array($key, ['profileName'])) {
+            $spv[$key] = $value;
+        } elseif (in_array($key, ['session', 'time', 'id'])) {
+            $sesskeys[] = $key;
+            $sessvalues[] = $value;
+        }
+    }
+
+    $sesskeys[] = 'timeend';
+    $sessvalues[] = $sesstime;
+
+    $sessionqrystring = "INSERT INTO $db_sessions_table (" . quote_names($sesskeys) . ") VALUES (" . quote_values($sessvalues) . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+    $db->execute_query($sessionqrystring, [$id, $sesstime]);
+
+    $updateFields = [];
+    $params = [];
+    foreach ($spv as $field => $value) {
+        if ($value !== '') {
+            $updateFields[] = "$field = ?";
+            $params[] = $value;
+        }
+    }
+
+    if (!empty($updateFields)) {
+        $updateFields[] = "ip = ?";
+        $params[] = $ip;
+        $updateFields[] = "timeend = ?";
+        $timeend = round(microtime(true) * 1000);
+        $params[] = $timeend;
+
+        $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
+        $params[] = $sessuploadid;
+        $db->execute_query($sql, $params);
+    }
+
+    $delay = time() - intval($sessuploadid / 1000);
+    if ($delay > 10) {
+        $formattedDelay = formatDuration((int)$sessuploadid, time() * 1000, $lang);
+        $startTime = intval($sessuploadid / 1000);
+        $formattedDate = date("d.m.Y", $startTime);
+        $formattedTime = date("H:i", $startTime);
+        $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']} ({$translations[$lang]['upload.delayed']} {$formattedDelay}, {$translations[$lang]['upload.start_time']} {$formattedDate} {$translations[$lang]['upload.at']} {$formattedTime})";
+    } else {
+        $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']}";
+    }
+
+    touch(sys_get_temp_dir() . '/' . $username);
+    if (!empty($tg_token) && !empty($tg_chatid)) {
+        notify($message, $tg_token, $tg_chatid, $tg_socks_proxy ?? '');
+    }
+}
+
+//RedManage bulk requests
 $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 if (stripos($contentType, 'application/json') !== false) {
-    // Bulk-request
     $json = file_get_contents('php://input');
     $records = json_decode($json, true);
 
@@ -189,12 +240,21 @@ if (stripos($contentType, 'application/json') !== false) {
             echo "Too many records";
             exit;
         }
+
         $db->begin_transaction();
         try {
             $bulkRecords = [];
             $sessionUpdates = [];
+            $sessionStartRecords = [];
 
             foreach ($records as $record) {
+                $isSessionStart = isset($record['profileName']) || !empty(array_filter(array_keys($record), fn($k) => strpos($k, 'profile') === 0));
+
+                if ($isSessionStart) {
+                    $sessionStartRecords[] = $record;
+                    continue;
+                }
+
                 $rawkeys = [];
                 $rawvalues = [];
                 $sesskeys = [];
@@ -216,15 +276,13 @@ if (stripos($contentType, 'application/json') !== false) {
                         $rawkeys[] = $key;
                         $rawvalues[] = ($value == 'Infinity') ? -1 : $value;
                     }
-                    // profile fields ignores
                 }
 
-                // add missed columns
                 foreach ($rawkeys as $idx => $key) {
                     if (!in_array($key, $dbfields) && preg_match('/^k[0-9a-fA-F]+$/', $key)) {
                         $dataType = is_numeric($rawvalues[$idx]) ? "FLOAT" : "VARCHAR(255)";
                         if (!column_exists($db, $db_table, $key)) {
-                            $sqlalter = "ALTER TABLE $db_table ADD COLUMN ".quote_name($key)." $dataType NOT NULL DEFAULT '0'";
+                            $sqlalter = "ALTER TABLE $db_table ADD COLUMN " . quote_name($key) . " $dataType NOT NULL DEFAULT '0'";
                             $db->query($sqlalter);
                         }
                         $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite) VALUES (?,?,?,?,?)";
@@ -234,7 +292,6 @@ if (stripos($contentType, 'application/json') !== false) {
                     }
                 }
 
-                // build record for bulk insert
                 $allRawKeys = array_merge($rawkeys, $sesskeys);
                 $allRawValues = array_merge($rawvalues, $sessvalues);
                 $bulkRecord = [];
@@ -243,7 +300,6 @@ if (stripos($contentType, 'application/json') !== false) {
                 }
                 $bulkRecords[] = $bulkRecord;
 
-                // save data for session update
                 $sesskeys[] = 'timeend';
                 $sessvalues[] = $sesstime;
                 $sessionUpdates[] = [
@@ -254,13 +310,17 @@ if (stripos($contentType, 'application/json') !== false) {
                 ];
             }
 
-            // Bulk-insert
-            insert_bulk_records($db, $db_table, $bulkRecords);
+            if (!empty($bulkRecords)) {
+                insert_bulk_records($db, $db_table, $bulkRecords);
+            }
 
-            // Sessions table update
             foreach ($sessionUpdates as $sess) {
-                $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sess['keys']).") VALUES (".quote_values($sess['values']).") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+                $sessionqrystring = "INSERT INTO $db_sessions_table (" . quote_names($sess['keys']) . ") VALUES (" . quote_values($sess['values']) . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
                 $db->execute_query($sessionqrystring, [$sess['id'], $sess['sesstime']]);
+            }
+
+            foreach ($sessionStartRecords as $record) {
+                processSessionStartRecord($db, $record, $db_sessions_table, $lang, $username, $tg_token, $tg_chatid, $tg_socks_proxy ?? '', $translations);
             }
 
             $db->commit();
@@ -280,138 +340,91 @@ if (stripos($contentType, 'application/json') !== false) {
     }
 }
 
-// Default insert per request
-// Iterate over all the k* _GET arguments to check that a field exists
+// single requests
 if (sizeof($_REQUEST) > 0) {
-  $keys = [];
-  $values = [];
-  $sesskeys = [];
-  $sessvalues = [];
-  $sessprofilekeys = [];
-  $spv = [];
-  $sessuploadid = "";
-  $sesstime = "0";
+    $keys = [];
+    $values = [];
+    $sesskeys = [];
+    $sessvalues = [];
+    $spv = [];
+    $sessuploadid = "";
+    $sesstime = "0";
+    $submitval = 0;
 
-  foreach ($_REQUEST as $key => $value) {
-    if (in_array($key, ["time", "session", "id"])) {
-      // Keep non k* columns listed here
-      if ($key == 'session') {
-        $sessuploadid = $value;
-      }
-      if ($key == 'time') {
-        $sesstime = $value;
-      }
-      if ($key == 'id') {
-        $id = $value;
-      } else {
-        $sesskeys[] = $key;
-        $sessvalues[] = $value;
-     }
-      $submitval = 1;
-    } elseif (preg_match("/^k/", $key)) {
-      // Keep columns starting with k
-      $keys[] = $key;
-      // My Torque app tries to pass "Infinity" in for some values...catch that error, set to -1
-      if ($value == 'Infinity') {
-        $values[] = -1;
-      } else {
-        $values[] = $value;
-      }
-      $submitval = 1;
-    } elseif (in_array($key, ["notice", "noticeClass"])) {
-      $keys[] = $key;
-      $values[] = $value;
-      $submitval = 3; //do nothing with this yet
-    } elseif (preg_match("/^profile/", $key)) {
-        if (in_array($key, $allowedProfileFields)) {
-            $spv[$key] = $value;
-            $submitval = 2;
+    foreach ($_REQUEST as $key => $value) {
+        if (in_array($key, ["time", "session", "id"])) {
+            if ($key == 'session') {
+                $sessuploadid = $value;
+            }
+            if ($key == 'time') {
+                $sesstime = $value;
+            }
+            if ($key == 'id') {
+                $id = $value;
+            } else {
+                $sesskeys[] = $key;
+                $sessvalues[] = $value;
+            }
+            $submitval = 1;
+        } elseif (preg_match("/^k/", $key)) {
+            $keys[] = $key;
+            $values[] = ($value == 'Infinity') ? -1 : $value;
+            $submitval = 1;
+        } elseif (in_array($key, ["notice", "noticeClass"])) {
+            $keys[] = $key;
+            $values[] = $value;
+            $submitval = 3;
+        } elseif (preg_match("/^profile/", $key)) {
+            if (in_array($key, $allowedProfileFields)) {
+                $spv[$key] = $value;
+                $submitval = 2;
+            }
+        } else {
+            $submitval = 0;
         }
-    } else {
-      $submitval = 0;
+
+        if (!in_array($key, $dbfields) && $submitval == 1 && preg_match('/^k[0-9a-fA-F]+$/', $key)) {
+            $dataType = is_numeric($value) ? "FLOAT" : "VARCHAR(255)";
+            if (!column_exists($db, $db_table, $key)) {
+                $sqlalter = "ALTER TABLE $db_table ADD COLUMN " . quote_name($key) . " $dataType NOT NULL DEFAULT '0'";
+                $db->query($sqlalter);
+            }
+            $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite) VALUES (?,?,?,?,?)";
+            $db->execute_query($sqlalterkey, [$key, $key, '1', '1', '0']);
+            cache_flush();
+        }
     }
 
-    // If the field doesn't already exist, add it to the database except id key
-    if (!in_array($key, $dbfields) && $submitval == 1 && preg_match('/^k[0-9a-fA-F]+$/', $key)) {
-      $dataType = is_numeric($value) ? "FLOAT" : "VARCHAR(255)";
-
-      if (!column_exists($db, $db_table, $key)) {
-        $sqlalter = "ALTER TABLE $db_table ADD COLUMN ".quote_name($key)." $dataType NOT NULL DEFAULT '0'";
-        $db->query($sqlalter);
-      }
-
-      $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite) VALUES (?,?,?,?,?)";
-      $db->execute_query($sqlalterkey, [$key, $key, '1', '1', '0']);
-      cache_flush();
-    }
-  }
-  // start insert/update incoming data
-  $rawkeys = array_merge($keys, $sesskeys);
-  $rawvalues = array_merge($values, $sessvalues);
-
-  if ((sizeof($rawkeys) === sizeof($rawvalues)) && sizeof($rawkeys) > 0 && (sizeof($sesskeys) === sizeof($sessvalues)) && sizeof($sesskeys) > 0) {
-    // Now insert the data for all the fields into the raw logs table
-    if ($submitval == 1) {
-        insert_single_record($db, $db_table, $rawkeys, $rawvalues);
-    }
-
-    $sesskeys[] = 'timeend';
-    $sessvalues[] = $sesstime;
-    $sessionqrystring = "INSERT INTO $db_sessions_table (".quote_names($sesskeys).") VALUES (".quote_values($sessvalues).") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
-
-    if ($submitval == 2) { // Profile info
+    if ($submitval == 2) {
+        $record = [];
+        foreach ($_REQUEST as $key => $value) {
+            if (in_array($key, ['session', 'time', 'id']) || preg_match("/^profile/", $key)) {
+                $record[$key] = $value;
+            }
+        }
         $db->begin_transaction();
         try {
-            $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
-
-            $updateFields = [];
-            $params = [];
-
-            foreach ($spv as $field => $value) {
-                if ($value !== '') {
-                    $updateFields[] = "$field = ?";
-                    $params[] = $value;
-                }
-            }
-
-            if (!empty($updateFields)) {
-                $updateFields[] = "ip = ?";
-                $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
-                $params[] = $ip;
-
-                $updateFields[] = "timeend = ?";
-                $timeend = round(microtime(true) * 1000);
-                $params[] = $timeend;
-
-                $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
-                $params[] = $sessuploadid;
-
-                $db->execute_query($sql, $params);
-            }
-
+            processSessionStartRecord($db, $record, $db_sessions_table, $lang, $username, $tg_token, $tg_chatid, $tg_socks_proxy ?? '', $translations);
             $db->commit();
-
-            $delay = time() - intval($sessuploadid / 1000);
-            if ($delay > 10) {
-                $formattedDelay = formatDuration((int)$sessuploadid, time() * 1000, $lang);
-                $startTime = intval($sessuploadid / 1000);
-                $formattedDate = date("d.m.Y", $startTime);
-                $formattedTime = date("H:i", $startTime);
-                $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']} ({$translations[$lang]['upload.delayed']} {$formattedDelay}, {$translations[$lang]['upload.start_time']} {$formattedDate} {$translations[$lang]['upload.at']} {$formattedTime})";
-            } else {
-                $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']}";
-            }
-            touch(sys_get_temp_dir().'/'.$username); // Create empty file in tmp to get new session notify on frontend
-            notify($message, $tg_token, $tg_chatid, $tg_socks_proxy ?? ''); // Notify to user telegram bot at session start
-
         } catch (Exception $e) {
             $db->rollback();
             error_log("Profile transaction error: " . $e->getMessage());
         }
-    } else { //Update session info
-        $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
+    } else {
+        $rawkeys = array_merge($keys, $sesskeys);
+        $rawvalues = array_merge($values, $sessvalues);
+
+        if ((sizeof($rawkeys) === sizeof($rawvalues)) && sizeof($rawkeys) > 0 && (sizeof($sesskeys) === sizeof($sessvalues)) && sizeof($sesskeys) > 0) {
+            if ($submitval == 1) {
+                insert_single_record($db, $db_table, $rawkeys, $rawvalues);
+            }
+
+            $sesskeys[] = 'timeend';
+            $sessvalues[] = $sesstime;
+            $sessionqrystring = "INSERT INTO $db_sessions_table (" . quote_names($sesskeys) . ") VALUES (" . quote_values($sessvalues) . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+            $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
+        }
     }
-  }
 }
 
 $db->close();
