@@ -255,7 +255,7 @@ function convertToRealTime(processedTime) {
           datapoint: dataPoint,
           delta,
           rlbc,
-          isClosest: i === closestIndex
+          isClosest: (i === closestIndex) && (matchingDataPoints.length > 1)
         };
 
         if (options.transformDataPointData) {
