@@ -184,6 +184,11 @@ if (stripos($contentType, 'application/json') !== false) {
     $records = json_decode($json, true);
 
     if (is_array($records) && !empty($records)) {
+        if (count($records) > 100) {
+            http_response_code(400);
+            echo "Too many records";
+            exit;
+        }
         $db->begin_transaction();
         try {
             $bulkRecords = [];
