@@ -166,68 +166,6 @@ if ($memcached_connected) {
 
 $allowedProfileFields = ['profileName'];
 
-function processSessionStartRecord($db, $record, $db_sessions_table, $lang, $username, $tg_token, $tg_chatid, $tg_socks_proxy, $translations) {
-    $sesskeys = [];
-    $sessvalues = [];
-    $spv = [];
-    $sessuploadid = $record['session'];
-    $sesstime = $record['time'];
-    $id = $record['id'] ?? '';
-    $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
-
-    foreach ($record as $key => $value) {
-        if (preg_match("/^profile/", $key) && in_array($key, ['profileName'])) {
-            $spv[$key] = $value;
-        } elseif (in_array($key, ['session', 'time', 'id'])) {
-            $sesskeys[] = $key;
-            $sessvalues[] = $value;
-        }
-    }
-
-    $sesskeys[] = 'timeend';
-    $sessvalues[] = $sesstime;
-
-    $sessionqrystring = "INSERT INTO $db_sessions_table (" . quote_names($sesskeys) . ") VALUES (" . quote_values($sessvalues) . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
-    $db->execute_query($sessionqrystring, [$id, $sesstime]);
-
-    $updateFields = [];
-    $params = [];
-    foreach ($spv as $field => $value) {
-        if ($value !== '') {
-            $updateFields[] = "$field = ?";
-            $params[] = $value;
-        }
-    }
-
-    if (!empty($updateFields)) {
-        $updateFields[] = "ip = ?";
-        $params[] = $ip;
-        $updateFields[] = "timeend = ?";
-        $timeend = round(microtime(true) * 1000);
-        $params[] = $timeend;
-
-        $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
-        $params[] = $sessuploadid;
-        $db->execute_query($sql, $params);
-    }
-
-    $delay = time() - intval($sessuploadid / 1000);
-    if ($delay > 10) {
-        $formattedDelay = formatDuration((int)$sessuploadid, time() * 1000, $lang);
-        $startTime = intval($sessuploadid / 1000);
-        $formattedDate = date("d.m.Y", $startTime);
-        $formattedTime = date("H:i", $startTime);
-        $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']} ({$translations[$lang]['upload.delayed']} {$formattedDelay}, {$translations[$lang]['upload.start_time']} {$formattedDate} {$translations[$lang]['upload.at']} {$formattedTime})";
-    } else {
-        $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']}";
-    }
-
-    touch(sys_get_temp_dir() . '/' . $username);
-    if (!empty($tg_token) && !empty($tg_chatid)) {
-        notify($message, $tg_token, $tg_chatid, $tg_socks_proxy ?? '');
-    }
-}
-
 //RedManage bulk requests
 $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 if (stripos($contentType, 'application/json') !== false) {
@@ -340,7 +278,7 @@ if (stripos($contentType, 'application/json') !== false) {
     }
 }
 
-// single requests
+//Single requests
 if (sizeof($_REQUEST) > 0) {
     $keys = [];
     $values = [];

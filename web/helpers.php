@@ -552,6 +552,81 @@ function insert_bulk_records(mysqli $db, string $db_table, array $records) {
 }
 
 /**
+ * Session start records handler
+ *
+ * @param mysqli $db
+ * @param array $record
+ * @param string $db_sessions_table
+ * @param string $lang
+ * @param string $username
+ * @param string $tg_token
+ * @param string $tg_chatid
+ * @param string $tg_socks_proxy
+ * @param array $translations
+ */
+function processSessionStartRecord($db, array $record, string $db_sessions_table, string $lang, string $username, ?string $tg_token, ?string $tg_chatid, ?string $tg_socks_proxy, array $translations): void {
+    $sesskeys = [];
+    $sessvalues = [];
+    $spv = [];
+    $sessuploadid = $record['session'];
+    $sesstime = $record['time'];
+    $id = $record['id'] ?? '';
+
+    $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+
+    foreach ($record as $key => $value) {
+        if (preg_match("/^profile/", $key) && in_array($key, ['profileName'], true)) {
+            $spv[$key] = $value;
+        } elseif (in_array($key, ['session', 'time', 'id'], true)) {
+            $sesskeys[] = $key;
+            $sessvalues[] = $value;
+        }
+    }
+
+    $sesskeys[] = 'timeend';
+    $sessvalues[] = $sesstime;
+
+    $sessionqrystring = "INSERT INTO $db_sessions_table (" . quote_names($sesskeys) . ") VALUES (" . quote_values($sessvalues) . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+    $db->execute_query($sessionqrystring, [$id, $sesstime]);
+
+    $updateFields = [];
+    $params = [];
+    foreach ($spv as $field => $value) {
+        if ($value !== '') {
+            $updateFields[] = "$field = ?";
+            $params[] = $value;
+        }
+    }
+
+    if (!empty($updateFields)) {
+        $updateFields[] = "ip = ?";
+        $params[] = $ip;
+        $updateFields[] = "timeend = ?";
+        $timeend = round(microtime(true) * 1000);
+        $params[] = $timeend;
+
+        $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
+        $params[] = $sessuploadid;
+        $db->execute_query($sql, $params);
+    }
+
+    if (!empty($tg_token) && !empty($tg_chatid)) {
+        $delay = time() - intval($sessuploadid / 1000);
+        if ($delay > 10) {
+            $formattedDelay = formatDuration((int)$sessuploadid, time() * 1000, $lang);
+            $startTime = intval($sessuploadid / 1000);
+            $formattedDate = date("d.m.Y", $startTime);
+            $formattedTime = date("H:i", $startTime);
+            $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']} ({$translations[$lang]['upload.delayed']} {$formattedDelay}, {$translations[$lang]['upload.start_time']} {$formattedDate} {$translations[$lang]['upload.at']} {$formattedTime})";
+        } else {
+            $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']}";
+        }
+        notify($message, $tg_token, $tg_chatid, $tg_socks_proxy);
+    }
+    touch(sys_get_temp_dir() . '/' . $username);
+}
+
+/**
  * Months translator
  */
 function getTranslatedMonth(string $month, string $lang) {
