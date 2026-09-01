@@ -30,9 +30,7 @@ function ctime(t) {
     return date.toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU');
 }
 
-$(document).ready(function(){
-  // Reset flot zoom
-  const handleSliderInit = () => {
+const handleSliderInit = () => {
     if (!stream) {
         // Reset map indexes
         mapIndexStart = 0;
@@ -42,7 +40,9 @@ $(document).ready(function(){
         cutEnd = null;
         initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
     }
-  };
+};
+
+$(document).ready(function(){
   $("#Chart-Container").on("dblclick", handleSliderInit);
   longTap("#Chart-Container", handleSliderInit);
   nogps = document.querySelector('#nogps');
@@ -1231,11 +1231,6 @@ let initMapLeaflet = () => {
     globalThis.updateHotline = function(sourceIndex, rangeFlatIndices, origRangeStart = null, origRangeEnd = null) {
         hotlineLayers.clearLayers();
 
-        if (window._tempStreamHotline) {
-            map.removeLayer(window._tempStreamHotline);
-            window._tempStreamHotline = null;
-        }
-
         if (sourceIndex === null || sourceIndex === "" || !heatData || !heatData[sourceIndex]) {
             currentDataSource = null;
             if (!map.hasLayer(polyline)) polyline.addTo(map);
@@ -1247,7 +1242,9 @@ let initMapLeaflet = () => {
         }
 
         let targetSegmentsIndices;
-        if (window.currentMapSegmentsForHotline) {
+        if (stream) {
+            targetSegmentsIndices = window.MapData.segmentsIndices;
+        } else if (window.currentMapSegmentsForHotline) {
             targetSegmentsIndices = window.currentMapSegmentsForHotline;
         } else {
             targetSegmentsIndices = window.MapData.segmentsIndices;
@@ -1478,13 +1475,13 @@ let initMapLeaflet = () => {
                 const segs = window.MapData.segmentsCoords;
                 const segsIdx = window.MapData.segmentsIndices;
 
-                let lastSeg = segs.length > 0 ? segs[segs.length - 1] : null;
-                let lastSegIdx = segsIdx.length > 0 ? segsIdx[segsIdx.length - 1] : null;
+                let firstSeg = segs.length > 0 ? segs[0] : null;
+                let firstSegIdx = segsIdx.length > 0 ? segsIdx[0] : null;
 
-                let distToLast = Infinity;
-                if (lastSeg && lastSeg.length > 0) {
-                    const lastPoint = lastSeg[lastSeg.length - 1];
-                    distToLast = Math.sqrt((newPoint[0] - lastPoint[0]) ** 2 + (newPoint[1] - lastPoint[1]) ** 2);
+                let distToFirst = Infinity;
+                if (firstSeg && firstSeg.length > 0) {
+                    const firstPoint = firstSeg[0];
+                    distToFirst = Math.sqrt((newPoint[0] - firstPoint[0]) ** 2 + (newPoint[1] - firstPoint[1]) ** 2);
                 }
 
                 if (window.MapData.nextIndex === undefined) {
@@ -1495,14 +1492,12 @@ let initMapLeaflet = () => {
                 window.rawPath.unshift([newPoint[0], newPoint[1], hdg || 0]);
                 const STREAM_SEGMENT_THRESHOLD = 0.005;
 
-                if (lastSeg && distToLast <= STREAM_SEGMENT_THRESHOLD) {
-                    lastSeg.push(newPoint);
-                    lastSegIdx.push({ coord: newPoint, index: newIndex });
+                if (firstSeg && distToFirst <= STREAM_SEGMENT_THRESHOLD) {
+                    firstSeg.unshift(newPoint);
+                    firstSegIdx.unshift({ coord: newPoint, index: newIndex });
                 } else {
-                    segs.push([newPoint]);
-                    segsIdx.push([{ coord: newPoint, index: newIndex }]);
-                    lastSeg = segs[segs.length - 1];
-                    lastSegIdx = segsIdx[segsIdx.length - 1];
+                    segs.unshift([newPoint]);
+                    segsIdx.unshift([{ coord: newPoint, index: newIndex }]);
                 }
 
                 window.MapData.flatCoords = segs.flat();
@@ -1514,8 +1509,8 @@ let initMapLeaflet = () => {
                 endcir.setLatLng(newPoint);
 
                 if (mapIndexStart !== null && mapIndexEnd !== null) {
-                    window.currentMapSlicedCoords.push(newPoint);
-                    window.currentMapSlicedIndices.push(newIndex);
+                    window.currentMapSlicedCoords.unshift(newPoint);
+                    window.currentMapSlicedIndices.unshift(newIndex);
                 } else {
                     window.currentMapSlicedCoords = window.MapData.flatCoords.slice();
                     window.currentMapSlicedIndices = window.MapData.flatIndices.slice();
@@ -2489,6 +2484,21 @@ function rebuildMapFromRawPath() {
     window.MapData.origToFlat = origToFlat;
 
     initMapLeaflet();
+
+    setTimeout(() => {
+        const heatSelect = document.getElementById('heat-dataSourceSelect');
+        const activeHeat = window.currentDataSource;
+
+        if (heatSelect) {
+            if (activeHeat !== null && activeHeat !== undefined && activeHeat !== '') {
+                heatSelect.value = String(activeHeat);
+                updateHotline(activeHeat);
+            } else {
+                heatSelect.value = "";
+                updateHotline("");
+            }
+        }
+    }, 1000);
 }
 
 let redDialog = {

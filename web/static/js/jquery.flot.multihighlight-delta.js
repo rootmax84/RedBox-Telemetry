@@ -191,6 +191,7 @@ function convertToRealTime(processedTime) {
 
       const matchingDataPoints = [];
       let showEventHeader = false;
+      const seenLabels = new Set();
 
       for (const series of data) {
         const isHidden = (series.points && series.points.show === false) &&
@@ -202,14 +203,22 @@ function convertToRealTime(processedTime) {
         const seriesData = series.data;
         for (let j = 0; j < seriesData.length; j++) {
           if (seriesData[j][index] === item.datapoint[index]) {
+            if (seenLabels.has(series.label)) {
+              break;
+            }
+
             matchingDataPoints.push({
               seriesData: series,
               dataPoint: seriesData[j],
               delta: deltaFunction(j > 0 ? seriesData[j - 1] : null, seriesData[j])
             });
+            seenLabels.add(series.label);
+
             if (series.label && series.label.includes('Rollback')) {
               showEventHeader = true;
             }
+
+            break;
           }
         }
       }

@@ -691,9 +691,9 @@ let streamBtn_svg = null
 let stream = false;
 let src = null;
 function dataToggleCore() {
-    const heatDataSource = window.currentDataSource ?? null;
     updatePlot(function() {
 	if ($("#data").is(":hidden")) {
+		handleSliderInit();
 		$("#data").show();
 		$("#data_toggle").html(localization.key['collapse']);
 		src = new EventSource("stream.php<?php echo $stream_lock > 0 ? '?id=' . $session_id : ''; ?>");
@@ -712,9 +712,6 @@ function dataToggleCore() {
 		stopPlotUpdates();
 		if (rawPath.length) {
 		    rebuildMapFromRawPath();
-		    setTimeout(()=>{
-			    document.getElementById('heat-dataSourceSelect').value = heatDataSource ?? '';
-		    },1000);
 		    if (window.MapData && window.MapData.flatCoords.length > 0) {
 			mapUpdRange(0, window.MapData.flatCoords.length - 1);
 		    }
