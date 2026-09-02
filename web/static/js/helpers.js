@@ -806,6 +806,9 @@ function extractValidSegmentsWithIndices(coords, options = {}) {
 let map = null;
 let polyline = null;
 let headingArrowsLayer = null;          // layer group for heading direction arrows
+let pendingHeatlinePolyline = null;
+let pendingHeatPoints = [];
+let lastHeatCoord = null;
 
 let initMapLeaflet = () => {
     let osm = new L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -920,6 +923,15 @@ let initMapLeaflet = () => {
         opacity: 0.9,
         className: 'travel-line-stroke'
     }).addTo(map);
+
+    // Temp polyline for heatline
+    pendingHeatlinePolyline = L.polyline([], {
+        color: '#000000',
+        dashArray: '5, 5',
+        weight: 3,
+        opacity: 0.9,
+        className: 'travel-line-stroke'
+    });
 
     // Full track on load
     window.currentMapSlicedCoords = window.MapData.flatCoords;
@@ -1231,6 +1243,15 @@ let initMapLeaflet = () => {
     globalThis.updateHotline = function(sourceIndex, rangeFlatIndices, origRangeStart = null, origRangeEnd = null) {
         hotlineLayers.clearLayers();
 
+        pendingHeatPoints = [];
+        if (pendingHeatlinePolyline) {
+            pendingHeatlinePolyline.setLatLngs([]);
+            if (map.hasLayer(pendingHeatlinePolyline)) {
+                map.removeLayer(pendingHeatlinePolyline);
+            }
+        }
+        lastHeatCoord = null;
+
         if (sourceIndex === null || sourceIndex === "" || !heatData || !heatData[sourceIndex]) {
             currentDataSource = null;
             if (!map.hasLayer(polyline)) polyline.addTo(map);
@@ -1338,6 +1359,11 @@ let initMapLeaflet = () => {
             currentDataSource = sourceIndex;
             if (map.hasLayer(polyline)) map.removeLayer(polyline);
             updateLegend(globalMin, globalMax);
+
+            if (targetSegmentsIndices.length > 0 && targetSegmentsIndices[0].length > 0) {
+                const firstPoint = targetSegmentsIndices[0][0].coord;
+                lastHeatCoord = L.latLng(firstPoint[0], firstPoint[1]);
+            }
         } else {
             currentDataSource = null;
             if (!map.hasLayer(polyline)) polyline.addTo(map);
@@ -1345,6 +1371,7 @@ let initMapLeaflet = () => {
                 map.removeControl(hotlineLegend);
                 hotlineLegend = null;
             }
+            lastHeatCoord = null;
         }
     }
 
@@ -1517,6 +1544,23 @@ let initMapLeaflet = () => {
                 }
 
                 updateHeadingArrows();
+
+                if (currentDataSource !== null && pendingHeatlinePolyline) {
+                    pendingHeatPoints.push(newPoint);
+
+                    let pendingCoords;
+                    if (lastHeatCoord) {
+                        pendingCoords = [lastHeatCoord, ...pendingHeatPoints];
+                    } else {
+                        pendingCoords = pendingHeatPoints.slice();
+                    }
+
+                    pendingHeatlinePolyline.setLatLngs(pendingCoords);
+
+                    if (!map.hasLayer(pendingHeatlinePolyline)) {
+                        pendingHeatlinePolyline.addTo(map);
+                    }
+                }
             }
 
             setTimeout(() => { map.removeLayer(marker); }, rate);
