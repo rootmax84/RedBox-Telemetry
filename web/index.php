@@ -1524,7 +1524,7 @@ function updateSessionList() {
                     }
 
                     if (session.ip) {
-                        optionText += ` (${localization.key['get.sess.ip'] || 'IP'}: ${session.ip})`;
+                        optionText += ` (IP: ${session.ip})`;
                     }
 
                     if (session.active) {

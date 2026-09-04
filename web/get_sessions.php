@@ -22,7 +22,7 @@ $params = [];
 $types = ""; // Types for bind_param (example, 's' for strings)
 
 // Build SQL-query with prepared expressions
-$query = "SELECT time, timeend, session, profileName, sessionsize, ip, favorite
+$query = "SELECT time, timeend, session, profileName, ip, favorite
           FROM $db_sessions_table
           WHERE 1=1";
 
@@ -55,7 +55,7 @@ if (isset($_GET['id'])) {
 }
 
 // Sort and group
-$query .= " GROUP BY session, profileName, time, timeend, sessionsize ORDER BY session DESC";
+$query .= " GROUP BY session, profileName, time, timeend ORDER BY session DESC";
 
 // Do stuff in database
 $stmt = $db->prepare($query);
@@ -67,9 +67,9 @@ $sessionqry = $stmt->get_result();
 
 // If nothing found pull last 20 sessions
 if ($sessionqry->num_rows == 0) {
-    $query = "SELECT time, timeend, session, profileName, sessionsize, ip, favorite
+    $query = "SELECT time, timeend, session, profileName, ip, favorite
               FROM $db_sessions_table
-              GROUP BY session, profileName, time, timeend, sessionsize
+              GROUP BY session, profileName, time, timeend
               ORDER BY session DESC
               LIMIT 20";
 
@@ -91,9 +91,9 @@ while ($row = $sessionqry->fetch_assoc()) {
     $session_ip = $row["ip"];
     $sids[] = preg_replace('/\D/', '', $sid);
     $seshdates[$sid] = date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", substr($sid, 0, -3));
-    $seshsizes[$sid] = " ({$translations[$lang]['get.sess.length']} $session_duration_str)";
-    $seshprofile[$sid] = " ({$translations[$lang]['sel.profile']} $session_profileName)";
-    $seship[$sid] = " ({$translations[$lang]['get.sess.ip']} $session_ip)";
+    $seshsizes[$sid] = " ({$translations[$lang]['get.sess.length']}: $session_duration_str)";
+    $seshprofile[$sid] = " ({$translations[$lang]['sel.profile']}: $session_profileName)";
+    $seship[$sid] = " (IP: $session_ip)";
     $sesactive[$sid] = ($row["timeend"] > (time() * 1000) - 60000) ? " {$translations[$lang]['get.sess.active']}" : null;
     $sesfavorite[$sid] = $row["favorite"];
 }

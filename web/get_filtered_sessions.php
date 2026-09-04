@@ -19,7 +19,7 @@ if ($filterprofile === "ALL" || $filterprofile === "") $filterprofile = "%%";
 
 $current_id = $_GET['current_id'] ?? '';
 
-$query = "SELECT time, timeend, session, profileName, sessionsize, ip, favorite
+$query = "SELECT time, timeend, session, profileName, ip, favorite
           FROM $db_sessions_table
           WHERE 1=1";
 
@@ -44,7 +44,7 @@ if ($filterprofile !== "%%") {
     $types .= "s";
 }
 
-$query .= " GROUP BY session, profileName, time, timeend, sessionsize ORDER BY session DESC";
+$query .= " GROUP BY session, profileName, time, timeend ORDER BY session DESC";
 
 $stmt = $db->prepare($query);
 if (!empty($params)) {
