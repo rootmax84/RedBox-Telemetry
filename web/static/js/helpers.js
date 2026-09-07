@@ -1704,54 +1704,201 @@ let initMapLeaflet = () => {
 
 //slider js code
 let [cutStart, cutEnd] = [null, null];
-let initSlider = (jsTimeMap,start,end)=>{
+let initSlider = (jsTimeMap, start, end) => {
     $("#slider-range11").off();
+    $("#slider-time").off('.rangeDrag');
+    $(document).off('.rangeDrag');
+
     if ($("#slider-range11").hasClass("ui-slider")) {
         $("#slider-range11").slider("destroy");
-        initSlider(jsTimeMap,start,end);
+        initSlider(jsTimeMap, start, end);
     }
 
-    const [sessStart, sessEnd] = [jsTimeMap[0], jsTimeMap.at(-1)]
+    const [sessStart, sessEnd] = [jsTimeMap[0], jsTimeMap.at(-1)];
+
+    function timelookup(t) {
+        return jsTimeMap.findIndex(e => e === t);
+    }
 
     let TimeStartv = timelookup(start);
     let TimeEndv = timelookup(end);
 
-    function timelookup(t) { //retrun array index, used for slider steps/value, RIP IE, no polyfill 
-        let fx = (e) => e == t;
-        let out = jsTimeMap.findIndex(fx);
-        return out;
+    function applyRange(v0, v1) {
+        if (v0 > v1) { let tmp = v0; v0 = v1; v1 = tmp; }
+        $('#slider-time').attr("sv0", jsTimeMap[v0]);
+        $('#slider-time').attr("sv1", jsTimeMap[v1]);
+        const [a, b] = [jsTimeMap.length - v1 - 1, jsTimeMap.length - v0 - 1];
+        if (Math.abs(a - b) < 3) return;
+        [cutStart, cutEnd] = [jsTimeMap[v0], jsTimeMap[v1]];
+        if (cutStart === sessStart && cutEnd === sessEnd) {
+            [cutStart, cutEnd] = [null, null];
+        }
+        if ($("#map").length && Cookies.get('plot') === undefined) {
+            updateMapWithRangePreservingHeatline(a, b);
+        }
+        if ($(".demo-container").length) chartUpdRange(a, b);
+        updateSummaryTable();
+        $("#slider-time").val(ctime(jsTimeMap[v0]) + " - " + ctime(jsTimeMap[v1]));
     }
 
-    let sv = $(function() {//jquery range slider
-        $( "#slider-range11" ).slider({
+    $(function() {
+        let slider = $("#slider-range11");
+        let timeDisplay = $("#slider-time");
+
+        slider.slider({
             range: true,
-            min: 0 ,
-            max:  jsTimeMap.length -1,
-            values: [ TimeStartv, TimeEndv ],
-            slide: function( event, ui ) {
-                $( "#slider-time" ).val( ctime(jsTimeMap[ui.values[ 0 ]]) + " - " + ctime(jsTimeMap[ui.values[ 1 ]]));
-        }});
-        $( "#slider-time" ).val( ctime(jsTimeMap[$( "#slider-range11" ).slider( "values", 0 )]) +  " - " + ctime(jsTimeMap[$( "#slider-range11" ).slider( "values", 1 )])); 
-        //merged the 2 listeners in 1 and added functions to visually trim map data and plot in realtime when using the trim session slider
-        $( "#slider-range11" ).on( "slidechange", (event,ui)=>{
-            $('#slider-time').attr("sv0", jsTimeMap[$('#slider-range11').slider("values", 0)])
-            $('#slider-time').attr("sv1", jsTimeMap[$('#slider-range11').slider("values", 1)])
-            const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];
-            if (Math.abs(a-b)<3) return;
-
-            [cutStart, cutEnd] = [jsTimeMap[$('#slider-range11').slider("values",0)], jsTimeMap[$('#slider-range11').slider("values",1)]];
-            if (cutStart === sessStart && cutEnd === sessEnd) {
-                [cutStart, cutEnd] = [null, null];
+            min: 0,
+            max: jsTimeMap.length - 1,
+            values: [TimeStartv, TimeEndv],
+            slide: function(event, ui) {
+                $("#slider-time").val(ctime(jsTimeMap[ui.values[0]]) + " - " + ctime(jsTimeMap[ui.values[1]]));
+                $('#slider-time').attr("sv0", jsTimeMap[ui.values[0]]);
+                $('#slider-time').attr("sv1", jsTimeMap[ui.values[1]]);
             }
-
-            if ($("#map").length) {
-                if (Cookies.get('plot') === undefined) updateMapWithRangePreservingHeatline(a, b);
-            }
-            if ($(".demo-container").length) chartUpdRange(a,b);
-            updateSummaryTable();
         });
+
+        let initialV0 = slider.slider("values", 0);
+        let initialV1 = slider.slider("values", 1);
+        $("#slider-time").val(ctime(jsTimeMap[initialV0]) + " - " + ctime(jsTimeMap[initialV1]));
+        $('#slider-time').attr("sv0", jsTimeMap[initialV0]);
+        $('#slider-time').attr("sv1", jsTimeMap[initialV1]);
+
+        function slideChangeHandler(event, ui) {
+            let v0 = slider.slider("values", 0);
+            let v1 = slider.slider("values", 1);
+            applyRange(v0, v1);
+        }
+        slider.on('slidechange', slideChangeHandler);
+
+        (function initRangeDrag() {
+            if (!timeDisplay.length) return;
+
+            let isDragging = false;
+            let startX = 0;
+            let startVal0 = 0, startVal1 = 0;
+
+            function getSliderBounds() {
+                let min = slider.slider("option", "min");
+                let max = slider.slider("option", "max");
+                let width = slider.width();
+                return { min, max, width };
+            }
+
+            function getValues() {
+                return slider.slider("values");
+            }
+
+            function disableSlideChange() {
+                slider.off('slidechange', slideChangeHandler);
+            }
+            function enableSlideChange() {
+                slider.on('slidechange', slideChangeHandler);
+            }
+
+            timeDisplay.on("mousedown.rangeDrag", function(e) {
+                e.preventDefault();
+                isDragging = true;
+                startX = e.clientX;
+                let vals = getValues();
+                startVal0 = vals[0];
+                startVal1 = vals[1];
+                disableSlideChange();
+                $(document).on("mousemove.rangeDrag", onMouseMove);
+                $(document).on("mouseup.rangeDrag", onMouseUp);
+            });
+
+            function onMouseMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                let deltaX = e.clientX - startX;
+                let bounds = getSliderBounds();
+                let step = (bounds.max - bounds.min) / bounds.width;
+                let deltaVal = deltaX * step;
+                let newVal0 = startVal0 + deltaVal;
+                let newVal1 = startVal1 + deltaVal;
+                let range = startVal1 - startVal0;
+                newVal0 = Math.max(bounds.min, Math.min(bounds.max - range, newVal0));
+                newVal1 = newVal0 + range;
+                newVal0 = Math.round(newVal0);
+                newVal1 = Math.round(newVal1);
+                if (newVal0 !== startVal0 || newVal1 !== startVal1) {
+                    slider.slider("values", [newVal0, newVal1]);
+                    $("#slider-time").val(ctime(jsTimeMap[newVal0]) + " - " + ctime(jsTimeMap[newVal1]));
+                    $('#slider-time').attr("sv0", jsTimeMap[newVal0]);
+                    $('#slider-time').attr("sv1", jsTimeMap[newVal1]);
+                    startVal0 = newVal0;
+                    startVal1 = newVal1;
+                    startX = e.clientX;
+                }
+            }
+
+            function onMouseUp(e) {
+                if (isDragging) {
+                    isDragging = false;
+                    let v0 = slider.slider("values", 0);
+                    let v1 = slider.slider("values", 1);
+                    enableSlideChange();
+                    applyRange(v0, v1);
+                }
+                $(document).off(".rangeDrag");
+            }
+
+            timeDisplay.on("touchstart.rangeDrag", function(e) {
+                let touch = e.originalEvent.touches[0];
+                if (!touch) return;
+                e.preventDefault();
+                isDragging = true;
+                startX = touch.clientX;
+                let vals = getValues();
+                startVal0 = vals[0];
+                startVal1 = vals[1];
+                disableSlideChange();
+                $(document).on("touchmove.rangeDrag", onTouchMove);
+                $(document).on("touchend.rangeDrag", onTouchEnd);
+            });
+
+            function onTouchMove(e) {
+                $("#slider-time").addClass('slider-active');
+                if (!isDragging) return;
+                e.preventDefault();
+                let touch = e.originalEvent.touches[0];
+                if (!touch) return;
+                let deltaX = touch.clientX - startX;
+                let bounds = getSliderBounds();
+                let step = (bounds.max - bounds.min) / bounds.width;
+                let deltaVal = deltaX * step;
+                let newVal0 = startVal0 + deltaVal;
+                let newVal1 = startVal1 + deltaVal;
+                let range = startVal1 - startVal0;
+                newVal0 = Math.max(bounds.min, Math.min(bounds.max - range, newVal0));
+                newVal1 = newVal0 + range;
+                newVal0 = Math.round(newVal0);
+                newVal1 = Math.round(newVal1);
+                if (newVal0 !== startVal0 || newVal1 !== startVal1) {
+                    slider.slider("values", [newVal0, newVal1]);
+                    $("#slider-time").val(ctime(jsTimeMap[newVal0]) + " - " + ctime(jsTimeMap[newVal1]));
+                    $('#slider-time').attr("sv0", jsTimeMap[newVal0]);
+                    $('#slider-time').attr("sv1", jsTimeMap[newVal1]);
+                    startVal0 = newVal0;
+                    startVal1 = newVal1;
+                    startX = touch.clientX;
+                }
+            }
+
+            function onTouchEnd(e) {
+                $("#slider-time").removeClass('slider-active')
+                if (isDragging) {
+                    isDragging = false;
+                    let v0 = slider.slider("values", 0);
+                    let v1 = slider.slider("values", 1);
+                    enableSlideChange();
+                    applyRange(v0, v1);
+                }
+                $(document).off(".rangeDrag");
+            }
+        })();
     });
-}
+};
 //End slider js code
 
 function updateMapWithRangePreservingHeatline(startIndex = null, endIndex = null) {

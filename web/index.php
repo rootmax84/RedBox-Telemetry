@@ -636,7 +636,7 @@ let jsTimeMap = [<?php echo $itime; ?>].reverse(); //Session time array, reverse
 initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
 </script>
 <div class="slider-container">
-  <input type="text" id="slider-time" readonly disabled>
+  <input type="text" id="slider-time" readonly>
   <div id="slider-range11"></div>
 </div>
 <br>

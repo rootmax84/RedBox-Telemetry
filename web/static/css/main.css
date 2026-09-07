@@ -108,6 +108,7 @@ html,body {
 .ui-slider-horizontal .ui-slider-handle {
   top: -.3em;
   margin-left: -.6em;
+  cursor: pointer;
 }
 
 .ui-slider-horizontal .ui-slider-range {
@@ -1197,6 +1198,11 @@ input[type="checkbox"]:disabled:checked::after {
   border-radius: 5px 5px 0 0;
   height: 22px;
   z-index: 1;
+  cursor: pointer;
+}
+
+#slider-time:active, .slider-active {
+  background: #eee;
 }
 
 .ui-widget-header {
