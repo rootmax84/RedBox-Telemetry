@@ -243,10 +243,6 @@ html,body {
   opacity: 0;
 }
 
-.login-form-main {
-  border-radius: .5em 2em;
-}
-
 input[type=text]:disabled {
   background: #fff;
 }
