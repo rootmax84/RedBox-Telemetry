@@ -63,7 +63,8 @@ if (isset($_GET['logout'])) {
 }
 
 if (file_exists('maintenance') && !isset($_SESSION['admin'])) {
-    die();
+    header("Refresh:0; url=maintenance.php");
+    exit;
 }
 
 // Check Memcached presence
