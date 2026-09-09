@@ -1,23 +1,14 @@
 <?php
 require_once __DIR__ . '/src/helpers.php';
 include_once __DIR__ . '/translations.php';
+require_once __DIR__ . '/src/methods.php';
 
 //Allow CORS and JWT
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With,Authorization,Content-Type');
 header('Access-Control-Max-Age: 86400');
 
-$allowedMethods = ['GET', 'POST', 'OPTIONS'];
-if (!in_array($_SERVER['REQUEST_METHOD'], $allowedMethods)) {
-    http_response_code(405);
-    echo json_encode(['error' => 'Method not allowed']);
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { //Respond to preflights
-    header('Access-Control-Allow-Methods: ' . implode(", ", $allowedMethods));
-    exit;
-}
+allowMethods('GET', 'POST', 'OPTIONS');
 
 //Check if token header is present and non empty than go to database
 $token = getBearerToken();

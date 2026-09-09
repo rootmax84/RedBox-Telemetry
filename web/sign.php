@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/methods.php';
+allowMethods('POST');
 
 header('Content-Type: application/json');
 $data = json_decode(file_get_contents('php://input'), true);

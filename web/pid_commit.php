@@ -1,7 +1,10 @@
 <?php
+
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/auth_user.php';
 require_once __DIR__ . '/translations.php';
+require_once __DIR__ . '/src/methods.php';
+allowMethods('POST');
 
 if (empty($_POST)) {
     die("Invalid Requests");

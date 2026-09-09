@@ -6,6 +6,8 @@ if (!$_COOKIE['stream']) {
 require_once __DIR__ . '/src/db.php';
 include_once __DIR__ . '/timezone.php';
 include_once __DIR__ . '/translations.php';
+require_once __DIR__ . '/src/methods.php';
+allowMethods('POST');
 
 if (isset($_SESSION['admin'])) header("Refresh:0; url=.");
 

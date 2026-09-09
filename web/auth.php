@@ -4,6 +4,8 @@ if (empty($_COOKIE['stream'])) {
 }
 
 require_once __DIR__ . '/src/creds.php';
+require_once __DIR__ . '/src/methods.php';
+allowMethods('HEAD', 'POST');
 
 if (file_exists('maintenance')) {
     http_response_code(307);
@@ -14,11 +16,14 @@ if (file_exists(sys_get_temp_dir().'/'.$username)) {
     unlink(sys_get_temp_dir().'/'.$username);
 }
 
-if (isset($_GET["update-csrf-token"])) {
-    $token = generate_csrf_token();
-    echo json_encode([
-        'token' => $token,
-        'expiry' => $_SESSION['csrf_token_time'] + 3300
-    ]);
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (isset($input['action']) && $input['action'] === 'update-csrf-token') {
+        $token = generate_csrf_token();
+        echo json_encode([
+            'token' => $token,
+            'expiry' => $_SESSION['csrf_token_time'] + 3300
+        ]);
+        exit;
+    }
 }

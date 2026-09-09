@@ -128,7 +128,12 @@ function checkCSRFToken() {
         const expiryTime = parseInt(expiryMeta.content);
 
         if (currentTime > expiryTime + 60) {
-            fetch('auth.php?update-csrf-token', { method: 'GET', credentials: 'same-origin' })
+                fetch('auth.php', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'update-csrf-token' })
+                })
                 .then(response => response.json())
                 .then(data => {
                     tokenMeta.content = data.token;

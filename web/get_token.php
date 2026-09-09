@@ -1,23 +1,12 @@
 <?php
 include __DIR__ . '/translations.php';
+require_once __DIR__ . '/src/methods.php';
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With, Authorization, Content-Type');
 header('Access-Control-Max-Age: 30');
 
-$allowedMethods = ['POST', 'OPTIONS'];
-$requestMethod = $_SERVER['REQUEST_METHOD'];
-
-if (!in_array($requestMethod, $allowedMethods)) {
-    http_response_code(405);
-    echo 'Method not allowed';
-    exit;
-}
-
-if ($requestMethod === 'OPTIONS') {
-    header('Access-Control-Allow-Methods: ' . implode(", ", $allowedMethods));
-    exit;
-}
+allowMethods('POST', 'OPTIONS');
 
 if (empty($_POST)) {
     http_response_code(400);
