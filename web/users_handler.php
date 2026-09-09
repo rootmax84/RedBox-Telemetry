@@ -1,8 +1,8 @@
 <?php
-require_once 'helpers.php';
-require_once 'auth_functions.php';
-require_once 'db.php';
-include_once 'translations.php';
+require_once __DIR__ . '/src/helpers.php';
+require_once __DIR__ . '/src/auth_functions.php';
+require_once __DIR__ . '/src/db.php';
+include_once __DIR__ . '/translations.php';
 
 function handleUserSettings($db, $translations, $username, $admin, $db_users) {
     if (!isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'], 

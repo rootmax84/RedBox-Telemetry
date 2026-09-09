@@ -1,7 +1,7 @@
 <?php
-require_once 'creds.php';
-require_once 'auth_functions.php';
-require_once 'db.php';
+require_once __DIR__ . '/src/creds.php';
+require_once __DIR__ . '/src/auth_functions.php';
+require_once __DIR__ . '/src/db.php';
 
 if (!isset($_SESSION['admin'])) {
     http_response_code(403);
@@ -13,7 +13,7 @@ if (!isset($_GET['action'])) {
  header("Location: .");
  die;
 }
-include 'head.php';
+include_once __DIR__ . '/src/head.php';
 ?>
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse" style="position: relative">

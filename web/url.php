@@ -1,7 +1,7 @@
 <?php
-require 'db.php';
-include_once 'translations.php';
-include_once 'helpers.php';
+require_once __DIR__ . '/src/db.php';
+include_once __DIR__ . '/translations.php';
+include_once __DIR__ . '/src/helpers.php';
 
 // session ID sanitize
 $current_seshid = sanitizeInput(

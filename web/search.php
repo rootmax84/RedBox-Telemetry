@@ -1,7 +1,7 @@
 <?php
-require_once 'db.php';
-require_once 'db_limits.php';
-include_once 'translations.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/db_limits.php';
+include_once __DIR__ . '/translations.php';
 
 $pids = [];
 $pidQuery = $db->query("SELECT id, description FROM $db_pids_table ORDER BY description ASC");
@@ -12,7 +12,7 @@ if ($pidQuery) {
 }
 $db->close();
 
-include 'head.php';
+include_once __DIR__ . '/src/head.php';
 ?>
 <body>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">

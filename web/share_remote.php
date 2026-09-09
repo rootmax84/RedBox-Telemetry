@@ -1,8 +1,8 @@
 <?php
 $_SESSION['torque_logged_in'] = true;
-require_once 'db.php';
-require_once 'helpers.php';
-include_once 'translations.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/helpers.php';
+include_once __DIR__ . '/translations.php';
 $lang = $_COOKIE['lang'] ?? 'en';
 
 if (!checkRateLimit(5)) {
@@ -10,7 +10,7 @@ if (!checkRateLimit(5)) {
     exit;
 }
 
-require_once 'timezone.php';
+require_once __DIR__ . '/timezone.php';
 
 if (isset($_GET['uid'], $_GET['sig'])) {
     $uid = $_GET['uid'];
@@ -84,6 +84,5 @@ if (isset($_GET['uid'], $_GET['sig'])) {
     }
 }
 
-include 'head.php';
-include 'remote_inc.php';
-?>
+include_once __DIR__ . '/src/head.php';
+include_once __DIR__ . '/src/remote_inc.php';

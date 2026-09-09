@@ -1,6 +1,6 @@
 <?php
-    require_once 'db.php';
-    require_once 'db_limits.php';
+    require_once __DIR__ . '/src/db.php';
+    require_once __DIR__ . '/src/db_limits.php';
 
     //Conversion and gap settings etc
     $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,api_gps FROM $db_users WHERE user=?", [$username])->fetch_row();
@@ -8,7 +8,7 @@
 
     $db->close();
 
-    include 'head.php';
+    include_once __DIR__ . '/src/head.php';
 ?>
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">

@@ -1,8 +1,8 @@
 <?php
-require_once 'db.php';
-require_once 'creds.php';
-require_once 'auth_functions.php';
-require_once 'auth_user.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/creds.php';
+require_once __DIR__ . '/src/auth_functions.php';
+require_once __DIR__ . '/src/auth_user.php';
 
 if(!isset($username) || $username == $admin){
     header("Location: .");

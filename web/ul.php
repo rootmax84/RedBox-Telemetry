@@ -1,6 +1,6 @@
 <?php
-require_once 'helpers.php';
-include 'translations.php';
+require_once __DIR__ . '/src/helpers.php';
+include_once __DIR__ . '/translations.php';
 
 //Allow CORS and JWT
 header('Access-Control-Allow-Origin: *');
@@ -30,7 +30,7 @@ if (!empty($token)) {
     }
 
     $_SESSION['torque_logged_in'] = true;
-    require_once 'db.php';
+    require_once __DIR__ . '/src/db.php';
 
     $load = sys_getloadavg();
     if ($max_load_avg > 0 && $load[1] > $max_load_avg) {

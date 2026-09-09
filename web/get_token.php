@@ -1,5 +1,5 @@
 <?php
-include 'translations.php';
+include __DIR__ . '/translations.php';
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With, Authorization, Content-Type');
@@ -42,8 +42,8 @@ if (empty($user) || empty($pass)) {
 }
 
 $_SESSION['torque_logged_in'] = true;
-require_once 'auth_functions.php';
-require_once 'db.php';
+require_once __DIR__ . '/src/auth_functions.php';
+require_once __DIR__ . '/src/db.php';
 
 $db = get_db_connection();
 global $db_users;

@@ -1,7 +1,7 @@
 <?php
-require_once 'db.php';
-require_once 'get_sessions.php';
-require_once 'db_limits.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/get_sessions.php';
+require_once __DIR__ . '/src/db_limits.php';
 
 $mergesession = filter_input(INPUT_POST, 'mergesession', FILTER_SANITIZE_NUMBER_INT) 
               ?? filter_input(INPUT_GET, 'mergesession', FILTER_SANITIZE_NUMBER_INT);
@@ -86,7 +86,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     header('Location: .?id=' . $newsession);
     exit;
 } elseif (isset($mergesession) && !empty($mergesession)) {
-    include 'head.php';
+    include_once __DIR__ . '/src/head.php';
 ?>
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">

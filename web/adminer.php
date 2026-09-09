@@ -21,8 +21,8 @@
  * @license GNU General Public License, version 2 (https://www.gnu.org/licenses/gpl-2.0.html)
  */namespace
 AdminNeo;
-require_once 'db.php';
-require_once 'auth_user.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/auth_user.php';
 
 if (!isset($_SESSION['admin'])){
     http_response_code(401);

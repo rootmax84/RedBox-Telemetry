@@ -46,8 +46,8 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 
 ### Installation standalone:
 1. Create database and user with all privileges on this database
-2. Rename ./web/creds.php.example to creds.php
-3. Open ./web/creds.php file
+2. Rename ./web/src/creds.php.example to creds.php
+3. Open ./web/src/creds.php file
 4. Fill MySQL settings and choose database engine (InnoDB or RocksDB if available)
 5. Change admin login if needed - $admin variable
 6. Create empty file with name 'install' in root folder of installation (Make sure web-server have write rights on folder)

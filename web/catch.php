@@ -14,7 +14,7 @@ if (isset($_GET['c'])) {
     http_response_code(204);
 }
 
-include 'head.php';
+include_once __DIR__ . '/src/head.php';
 ?>
 <body style="display:flex; justify-content:center; align-items:center; height:100vh">
     <div class="login login-form" id="login-form" style="width:fit-content; text-align:center">

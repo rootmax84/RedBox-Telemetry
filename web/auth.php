@@ -3,7 +3,7 @@ if (empty($_COOKIE['stream'])) {
     http_response_code(401);
 }
 
-require_once 'creds.php';
+require_once __DIR__ . '/src/creds.php';
 
 if (file_exists('maintenance')) {
     http_response_code(307);

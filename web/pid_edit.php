@@ -1,9 +1,9 @@
 <?php
 
-require_once 'db.php';
-require_once 'auth_user.php';
-require_once 'creds.php';
-require_once 'db_limits.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/auth_user.php';
+require_once __DIR__ . '/src/creds.php';
+require_once __DIR__ . '/src/db_limits.php';
 
 $excludedIds = ['kff1005', 'kff1006', 'kff1007'];
 $excludedIdsString = implode(',', array_map(fn($id) => "'$id'", $excludedIds));
@@ -16,7 +16,7 @@ $query = "SELECT id, description, units, populated, stream, favorite
 $keydata = $db->query($query)->fetch_all(MYSQLI_ASSOC);
 
 $db->close();
-include 'head.php';
+include_once __DIR__ . '/src/head.php';
 ?>
     <body>
     <script>

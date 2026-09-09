@@ -1,8 +1,8 @@
 <?php
-require_once 'db.php';
-require_once 'helpers.php';
-require_once 'timezone.php';
-include_once 'translations.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/helpers.php';
+require_once __DIR__ . '/timezone.php';
+include_once __DIR__ . '/translations.php';
 
 header('Content-Type: application/json');
 header('Cache-Control: no-cache');

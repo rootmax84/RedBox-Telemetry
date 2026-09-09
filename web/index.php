@@ -1,10 +1,16 @@
 <?php
-require_once 'db.php';
-require_once 'db_limits.php';
-require_once 'plot.php';
-require_once 'timezone.php';
-include_once 'translations.php';
-include_once 'helpers.php';
+
+//creds migration
+if (file_exists(__DIR__.'/creds.php')) {
+    rename(__DIR__.'/creds.php', __DIR__.'/src/creds.php');
+}
+
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/db_limits.php';
+require_once __DIR__ . '/plot.php';
+require_once __DIR__ . '/timezone.php';
+include_once __DIR__ . '/translations.php';
+include_once __DIR__ . '/src/helpers.php';
 
 $lang = $_COOKIE['lang'];
 setcookie("newsess", "");
@@ -195,7 +201,7 @@ if (isset($sids[0])) {
 
     $db->close();
 }
- include 'head.php';
+ include_once __DIR__ . '/src/head.php';
 ?>
     <body>
     <!-- Flot Local Javascript files -->
@@ -965,7 +971,7 @@ function uploadLogDialog() {
              <span class="label label-danger" id="log-msg-err"></span>
          </div>
          <div style="display:flex; justify-content:center;">
-             <form method="POST" action="redlog.php" style="display:contents" enctype="multipart/form-data">
+             <form method="POST" style="display:contents" enctype="multipart/form-data">
                  <input class="btn btn-default" style="border-radius:5px" type="file" multiple name="file[]" id="logFile" accept=".txt,.csv">
                  <input class="btn btn-default upload-log-btn" id="log-upload-btn" type="submit" value="">
              </form>
@@ -1228,8 +1234,8 @@ function uploadLogDialog() {
         }
 
         const endpoints = {
-            redlog: 'redlog.php',
-            torque: 'torque_log.php'
+            redlog: 'import_redlog.php',
+            torque: 'import_torque.php'
         };
 
         let finalMessage = '';

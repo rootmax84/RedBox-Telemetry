@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once __DIR__ . '/src/db.php';
 
 $qry = $db->execute_query("SELECT token, mcu_data FROM $db_users WHERE user=?", [$username])->fetch_row();
 [$token, $mcu_data] = $qry;
@@ -39,6 +39,5 @@ if ($isValid) {
     $data = implode(",", $dataArray);
 }
 
-include 'head.php';
-include 'remote_inc.php';
-?>
+include_once __DIR__ . '/src/head.php';
+include_once __DIR__ . '/src/remote_inc.php';

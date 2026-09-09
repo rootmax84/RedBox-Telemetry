@@ -1,7 +1,7 @@
 <?php
-require_once 'db.php';
-require_once 'db_limits.php';
-include_once 'translations.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/db_limits.php';
+include_once __DIR__ . '/translations.php';
 
 header('Content-Type: application/json');
 

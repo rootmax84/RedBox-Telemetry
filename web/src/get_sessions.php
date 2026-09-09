@@ -1,7 +1,7 @@
 <?php
-require_once 'helpers.php';
-require_once 'timezone.php';
-include_once 'translations.php';
+require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/../timezone.php';
+include_once __DIR__ . '/../translations.php';
 $lang = $_COOKIE['lang'] ?? 'en';
 
 function getFilterValue($postKey, $getKey, $default) {

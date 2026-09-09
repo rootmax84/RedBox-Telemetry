@@ -1,10 +1,10 @@
 <?php
 if (!isset($_SESSION['admin'])) { //admin not need db tables
-    require_once 'auth_user.php';
-    require_once 'del_session.php';
-    require_once 'get_sessions.php';
-    require_once 'get_columns.php';
-    require_once 'helpers.php';
+    require_once __DIR__ . '/auth_user.php';
+    require_once __DIR__ . '/../del_session.php';
+    require_once __DIR__ . '/get_sessions.php';
+    require_once __DIR__ . '/get_columns.php';
+    require_once __DIR__ . '/helpers.php';
 
     // Cache keys
     $db_limit_cache_key = "db_limit_{$db_table}";

@@ -1,6 +1,6 @@
 <?php
-include_once 'helpers.php';
-include_once 'translations.php';
+include_once __DIR__ . '/src/helpers.php';
+include_once __DIR__ . '/translations.php';
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With, Authorization, Content-Type');
@@ -44,7 +44,7 @@ if (empty($token)) {
 }
 
 $_SESSION['torque_logged_in'] = true;
-require_once 'db.php';
+require_once __DIR__ . '/src/db.php';
 
 $row = $db->execute_query("SELECT mcu_data, s FROM $db_users WHERE token=?", [$token])->fetch_assoc();
 

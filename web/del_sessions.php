@@ -1,7 +1,7 @@
 <?php
-require_once 'db.php';
-require_once 'get_sessions.php';
-require_once 'db_limits.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/get_sessions.php';
+require_once __DIR__ . '/src/db_limits.php';
 global $delsession;
 
 $delsession = filter_input(INPUT_POST, 'delsession', FILTER_SANITIZE_NUMBER_INT) 
@@ -31,7 +31,7 @@ if (isset($delsession)) {
         exit;
     }
 } else {
-    include 'head.php';
+    include_once __DIR__ . '/src/head.php';
 ?>
   <body>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
