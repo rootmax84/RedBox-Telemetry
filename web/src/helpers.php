@@ -583,6 +583,17 @@ function processSessionStartRecord($db, array $record, string $db_sessions_table
         }
     }
 
+    $isNewSessionStart = true;
+    $existing = $db->execute_query(
+        "SELECT profileName FROM $db_sessions_table WHERE session = ? FOR UPDATE",
+        [$sessuploadid]
+    );
+    if ($row = $existing->fetch_assoc()) {
+        if (!empty($row['profileName']) && $row['profileName'] !== 'Not Specified') {
+            $isNewSessionStart = false;
+        }
+    }
+
     $sesskeys[] = 'timeend';
     $sessvalues[] = $sesstime;
 
@@ -610,7 +621,7 @@ function processSessionStartRecord($db, array $record, string $db_sessions_table
         $db->execute_query($sql, $params);
     }
 
-    if (!empty($tg_token) && !empty($tg_chatid)) {
+    if ($isNewSessionStart && !empty($tg_token) && !empty($tg_chatid)) {
         $delay = time() - intval($sessuploadid / 1000);
         if ($delay > 10) {
             $formattedDelay = formatDuration((int)$sessuploadid, time() * 1000, $lang);
