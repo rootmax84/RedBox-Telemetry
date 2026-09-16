@@ -623,7 +623,7 @@ function processSessionStartRecord($db, array $record, string $db_sessions_table
 
     if ($isNewSessionStart && !empty($tg_token) && !empty($tg_chatid)) {
         $delay = time() - intval($sessuploadid / 1000);
-        if ($delay > 10) {
+        if ($delay > 30) {
             $formattedDelay = formatDuration((int)$sessuploadid, time() * 1000, $lang);
             $startTime = intval($sessuploadid / 1000);
             $formattedDate = date("d.m.Y", $startTime);
