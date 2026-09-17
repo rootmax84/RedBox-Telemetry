@@ -547,7 +547,12 @@ function insert_bulk_records(mysqli $db, string $db_table, array $records) {
         $db->query($sql);
     } catch (Exception $e) {
         cache_flush();
-        error_log("Bulk insert error: " . $e->getMessage());
+        error_log(sprintf(
+            "Bulk insert error: %s | columns=[%s] | first row=[%s]",
+            $e->getMessage(),
+            implode(',', $allKeys),
+            json_encode($rows[0] ?? null, JSON_UNESCAPED_UNICODE)
+        ));
     }
 }
 
@@ -563,8 +568,11 @@ function insert_bulk_records(mysqli $db, string $db_table, array $records) {
  * @param string $tg_chatid
  * @param string $tg_socks_proxy
  * @param array $translations
+ * @param string $clientIp
  */
-function processSessionStartRecord($db, array $record, string $db_sessions_table, string $lang, string $username, ?string $tg_token, ?string $tg_chatid, ?string $tg_socks_proxy, array $translations): void {
+function processSessionStartRecord($db, array $record, string $db_sessions_table, string $lang, string $username, ?string $tg_token, ?string $tg_chatid, ?string $tg_socks_proxy, array $translations, ?string $clientIp = null): void {
+    global $memcached, $memcached_connected;
+
     $sesskeys = [];
     $sessvalues = [];
     $spv = [];
@@ -572,7 +580,7 @@ function processSessionStartRecord($db, array $record, string $db_sessions_table
     $sesstime = $record['time'];
     $id = $record['id'] ?? '';
 
-    $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+    $ip = $clientIp ?? $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
     foreach ($record as $key => $value) {
         if (preg_match("/^profile/", $key) && in_array($key, ['profileName'], true)) {
@@ -634,7 +642,15 @@ function processSessionStartRecord($db, array $record, string $db_sessions_table
         }
         notify($message, $tg_token, $tg_chatid, $tg_socks_proxy);
     }
-    touch(sys_get_temp_dir() . '/' . $username);
+
+    if (!empty($GLOBALS['memcached_connected'])
+        && isset($GLOBALS['memcached'])) {
+        try {
+            $GLOBALS['memcached']->set("new_session_" . $username, 1, 300);
+        } catch (Throwable $e) {
+            error_log("Memcached error on new-session signal: " . $e->getMessage());
+        }
+    }
 }
 
 /**

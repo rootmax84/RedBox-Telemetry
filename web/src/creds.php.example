@@ -28,6 +28,18 @@ $def_limit = 100; //Default user db size limit MB
 $max_upload_requests_per_second = 100; //Upload rate limit
 $max_api_requests_per_second = 10; //API rate limit
 
+// --- Redis / Streams (async upload processing) ---
+$redis_enabled        = true;
+$redis_host           = 'redis';                // docker service name / IP
+$redis_port           = 6379;
+$redis_timeout        = 2.0;
+$redis_password       = '';
+$redis_db             = 0;
+$redis_stream_enabled = true;                   // Use Streams в ul.php
+$redis_stream_key     = 'telemetry:uploads';
+$redis_stream_group   = 'telemetry-workers';
+$redis_stream_maxlen  = 1000000;                // ~ MAXLEN, 0 = no limit
+
 $salt = ['cost' => 10]; //Password salt cost. Min/Max/Default 4/31/10. Higher value = more CPU usage on authorization process
 $admin = "admin";
 $admin_timeformat_12 = false; //Default 24 hours time format for admin

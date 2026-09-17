@@ -28,6 +28,42 @@ services:
             timeout: 5s
             retries: 10
 
+    #OPTIONAL
+    redis:
+        image: redis:7-alpine
+        container_name: ratel_redis
+        command:
+          - redis-server
+          - --appendonly
+          - "yes"
+          - --appendfsync
+          - everysec
+          - --auto-aof-rewrite-percentage
+          - "50"
+          - --auto-aof-rewrite-min-size
+          - "16mb"
+          - --no-appendfsync-on-rewrite
+          - "yes"
+          - --save
+          - "60 1000"
+          - --maxmemory
+          - 256mb
+          - --maxmemory-policy
+          - noeviction
+          # - --requirepass
+          # - "your_password"
+
+        volumes:
+            - ./redis-data:/data
+            - /etc/localtime:/etc/localtime:ro
+        restart: always
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 3s
+            retries: 5
+            start_period: 5s
+
     web:
         build: docker/web
         container_name: ratel_web
@@ -56,6 +92,8 @@ services:
         depends_on:
             mariadb:
                 condition: service_healthy
+            redis:
+                condition: service_healthy
         restart: always
         healthcheck:
             test:
@@ -69,6 +107,33 @@ services:
             start_period: 30s
 
     #OPTIONAL
+    #Consumes telemetry uploads from Redis Streams and persists them to MariaDB
+    worker:
+        build: docker/web
+        container_name: ratel_worker
+        command: ["php", "worker.php"]
+        working_dir: /var/www/html
+        volumes:
+            - ./web:/var/www/html:ro
+            - /etc/localtime:/etc/localtime:ro
+        environment:
+            DISABLE_NGINX: "1"
+            DISABLE_FPM: "1"
+            DB_HOST: mariadb
+            PHP_MEMORY_LIMIT: "512M"
+            PHP_MAX_EXECUTION_TIME: "0"
+            TZ: "UTC"
+        depends_on:
+            mariadb:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            memcached:
+                condition: service_healthy
+
+        restart: on-failure
+
+    #OPTIONAL
     memcached:
         image: memcached
         container_name: ratel_memcached
@@ -77,3 +142,9 @@ services:
           - --memory-limit=64
           - --threads=2
         restart: always
+        healthcheck:
+            test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/11211 && echo version >&3 && head -c 16 <&3 | grep -q VERSION'"]
+            interval: 5s
+            timeout: 3s
+            retries: 5
+            start_period: 3s

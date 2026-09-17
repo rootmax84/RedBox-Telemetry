@@ -2,19 +2,81 @@
 require_once __DIR__ . '/src/helpers.php';
 include_once __DIR__ . '/translations.php';
 require_once __DIR__ . '/src/methods.php';
+require_once __DIR__ . '/src/redis.php';
+require_once __DIR__ . '/src/upload_processor.php';
 
-//Allow CORS and JWT
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With,Authorization,Content-Type');
 header('Access-Control-Max-Age: 86400');
 
 allowMethods('GET', 'POST', 'OPTIONS');
 
-//Check if token header is present and non empty than go to database
+/* ────────────────────────────────────────────────────────────
+ * Ранний разбор запроса.
+ *
+ * Тело php://input читается один раз и сохраняется в $payload.
+ * Язык из payload нужен ДО проверки maintenance/overload,
+ * чтобы сообщения отдавались на языке устройства.
+ * ──────────────────────────────────────────────────────────── */
+$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+$isJson      = stripos($contentType, 'application/json') !== false;
+
+$kind      = null;   // 'bulk' | 'single' | null
+$payload   = null;
+$jsonError = false;
+
+if ($isJson) {
+    $records = json_decode(file_get_contents('php://input'), true);
+    if (is_array($records) && !empty($records)) {
+        $kind    = 'bulk';
+        $payload = $records;
+    } else {
+        $jsonError = true;
+    }
+} elseif (count($_REQUEST) > 0) {
+    $kind    = 'single';
+    $payload = $_REQUEST;
+}
+
+/* ────────────────────────────────────────────────────────────
+ * Resolve language, шаг 1 — из payload (RedManage шлёт lang
+ * внутри каждой записи bulk-массива, Torque — нет).
+ * ──────────────────────────────────────────────────────────── */
+if ($kind === 'bulk' && is_array($payload)) {
+    foreach ($payload as $record) {
+        if (is_array($record)
+            && isset($record['lang'])
+            && is_string($record['lang'])
+            && $record['lang'] !== '') {
+            $lang = $record['lang'];
+            break;   // все записи в батче обычно с одним языком
+        }
+    }
+} elseif ($kind === 'single'
+        && is_array($payload)
+        && !empty($payload['lang'])
+        && is_string($payload['lang'])) {
+    $lang = $payload['lang'];
+}
+
+/* ────────────────────────────────────────────────────────────
+ * Resolve language, шаг 2 — из POST/GET.
+ * Пустая строка превращается в null, чтобы шаг 3 (БД) сработал.
+ * ──────────────────────────────────────────────────────────── */
+if (empty($lang) || !is_string($lang)) {
+    $candidate = $_POST['lang'] ?? $_GET['lang'] ?? null;
+    if (is_string($candidate) && $candidate !== '') {
+        $lang = $candidate;
+    } else {
+        $lang = null;
+    }
+}
+
+/* ────────────────────────────────────────────────────────────
+ * Аутентификация по Bearer-токену.
+ * ──────────────────────────────────────────────────────────── */
 $token = getBearerToken();
 if (!empty($token)) {
-    $lang = $_POST['lang'] ?? $_GET['lang'] ?? null;
-
     if (file_exists('maintenance')) {
         http_response_code(423);
         die($translations[$lang ?? 'en']['maintenance']);
@@ -37,7 +99,10 @@ if (!empty($token)) {
     }
 
     if ($user_data === false) {
-        $userqry = $db->execute_query("SELECT user, s, tg_token, tg_chatid, lang FROM $db_users WHERE token=?", [$token]);
+        $userqry = $db->execute_query(
+            "SELECT user, s, tg_token, tg_chatid, lang FROM $db_users WHERE token=?",
+            [$token]
+        );
         if ($userqry->num_rows) {
             $access = 1;
             $user_data = $userqry->fetch_assoc();
@@ -54,40 +119,63 @@ if (!empty($token)) {
     }
 
     if ($user_data) {
-        $access = 1;
-        $username = $user_data['user'];
-        $limit = $user_data['s'];
-        $tg_token = $user_data['tg_token'];
+        $access    = 1;
+        $username  = $user_data['user'];
+        $limit     = $user_data['s'];
+        $tg_token  = $user_data['tg_token'];
         $tg_chatid = $user_data['tg_chatid'];
-        $lang = $lang ?? $user_data['lang'];
+
+        /* ────────────────────────────────────────────────────
+         * Resolve language, шаг 3 — из БД.
+         * Сработает только если payload и POST/GET пусты
+         * (типичный случай для Torque).
+         * ──────────────────────────────────────────────────── */
+        if (empty($lang)) {
+            $lang = $user_data['lang'] ?? null;
+        }
     }
 } else {
     $access = 0;
 }
 
+/* ────────────────────────────────────────────────────────────
+ * Resolve language, шаг 4 — финальный fallback.
+ * Пустой / невалидный / неизвестный код → 'en'.
+ * ──────────────────────────────────────────────────────────── */
+if (empty($lang)
+    || !is_string($lang)
+    || !isset($translations[$lang])) {
+    $lang = 'en';
+}
+
 if ($access != 1 || $limit == 0) {
     http_response_code(403);
-    die($translations[$lang ?? 'en']['denied']);
+    die($translations[$lang]['denied']);
 }
 
 $db_table = $username . $db_log_prefix;
 
 if (isset($_REQUEST['servertime'])) {
     $dt = new DateTime('now', new DateTimeZone('UTC'));
-    $timestamp = (int)($dt->format('Uu') / 1000);
-    echo $timestamp;
+    echo (int)($dt->format('Uu') / 1000);
     exit;
 }
 
+/* ────────────────────────────────────────────────────────────
+ * Проверка лимита БД.
+ * ──────────────────────────────────────────────────────────── */
 $db_limit_cache_key = "db_limit_" . $db_table;
 $db_limit = false;
-
 if ($memcached_connected) {
     $db_limit = $memcached->get($db_limit_cache_key);
 }
-
 if ($db_limit === false) {
-    $db_limit = $db->execute_query("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024) FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?", [$db_name, $db_table])->fetch_row()[0];
+    $db_limit = $db->execute_query(
+        "SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024)
+         FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?",
+        [$db_name, $db_table]
+    )->fetch_row()[0];
     if ($memcached_connected) {
         try {
             $memcached->set($db_limit_cache_key, $db_limit, 300);
@@ -103,32 +191,11 @@ if ($db_limit >= $limit && $limit != -1) {
 }
 
 $db_sessions_table = $username . $db_sessions_prefix;
-$db_pids_table = $username . $db_pids_prefix;
+$db_pids_table     = $username . $db_pids_prefix;
 
-$table_structure_cache_key = "table_structure_" . $db_table;
-$dbfields = false;
-
-if ($memcached_connected) {
-    $dbfields = $memcached->get($table_structure_cache_key);
-}
-
-if ($dbfields === false) {
-    $result = $db->query("SHOW COLUMNS FROM $db_table");
-    $dbfields = [];
-    if ($result->num_rows) {
-        while ($row = $result->fetch_assoc()) {
-            $dbfields[] = $row['Field'];
-        }
-    }
-    if ($memcached_connected) {
-        try {
-            $memcached->set($table_structure_cache_key, $dbfields, $db_memcached_ttl ?? 3600);
-        } catch (Exception $e) {
-            error_log("Memcached error on upload: " . $e->getMessage());
-        }
-    }
-}
-
+/* ────────────────────────────────────────────────────────────
+ * Rate limit на аплоады.
+ * ──────────────────────────────────────────────────────────── */
 $rate_limit_key = "rate_limit_" . $username;
 $max_upload_requests_per_second = $max_upload_requests_per_second ?? 100;
 
@@ -145,218 +212,82 @@ if ($memcached_connected) {
             http_response_code(429);
             error_log("Upload spammer detected: " . $username);
             die($translations[$lang]['upload.429']);
-        } else {
-            try {
-                $memcached->increment($rate_limit_key, 1);
-            } catch (Exception $e) {
-                error_log("Memcached error on upload: " . $e->getMessage());
-            }
+        }
+        try {
+            $memcached->increment($rate_limit_key, 1);
+        } catch (Exception $e) {
+            error_log("Memcached error on upload: " . $e->getMessage());
         }
     }
 }
 
-$allowedProfileFields = ['profileName'];
+/* ────────────────────────────────────────────────────────────
+ * Валидация payload (после auth, чтобы не палить структуру).
+ * ──────────────────────────────────────────────────────────── */
+if ($jsonError) {
+    http_response_code(400);
+    echo "Invalid JSON";
+    exit;
+}
 
-//RedManage bulk requests
-$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-if (stripos($contentType, 'application/json') !== false) {
-    $json = file_get_contents('php://input');
-    $records = json_decode($json, true);
+if ($kind === null || $payload === null) {
+    $db->close();
+    echo "OK!";
+    exit;
+}
 
-    if (is_array($records) && !empty($records)) {
-        if (count($records) > 100) {
-            http_response_code(400);
-            echo "Too many records";
-            exit;
-        }
+if ($kind === 'bulk' && count($payload) > 100) {
+    http_response_code(400);
+    echo "Too many records";
+    exit;
+}
 
-        $db->begin_transaction();
-        try {
-            $bulkRecords = [];
-            $sessionUpdates = [];
-            $sessionStartRecords = [];
+/* ────────────────────────────────────────────────────────────
+ * Fast path: положить в Redis Stream, ответить сразу.
+ * ──────────────────────────────────────────────────────────── */
+$ip = $_SERVER['HTTP_CLIENT_IP']
+    ?? $_SERVER['HTTP_X_FORWARDED_FOR']
+    ?? $_SERVER['REMOTE_ADDR'];
 
-            foreach ($records as $record) {
-                $isSessionStart = isset($record['profileName']) || !empty(array_filter(array_keys($record), fn($k) => strpos($k, 'profile') === 0));
+$streamed = false;
+if (!empty($redis_stream_enabled)) {
+    $streamed = redis_stream_push([
+        'user'     => $username,
+        'ip'       => $ip,
+        'lang'     => $lang,
+        'kind'     => $kind,
+        'payload'  => json_encode($payload, JSON_UNESCAPED_UNICODE),
+        'received' => (string)microtime(true),
+    ]);
+}
 
-                if ($isSessionStart) {
-                    $sessionStartRecords[] = $record;
-                    continue;
-                }
+/* ────────────────────────────────────────────────────────────
+ * Fallback: обработать inline (Redis недоступен или выключен).
+ * ──────────────────────────────────────────────────────────── */
+if (!$streamed) {
+    $ctx = [
+        'username'          => $username,
+        'db_table'          => $db_table,
+        'db_sessions_table' => $db_sessions_table,
+        'db_pids_table'     => $db_pids_table,
+        'lang'              => $lang,
+        'tg_token'          => $tg_token ?? null,
+        'tg_chatid'         => $tg_chatid ?? null,
+        'tg_socks_proxy'    => $tg_socks_proxy ?? '',
+        'translations'      => $translations,
+        'ip'                => $ip,
+    ];
 
-                $rawkeys = [];
-                $rawvalues = [];
-                $sesskeys = [];
-                $sessvalues = [];
-                $sessuploadid = '';
-                $sesstime = '0';
-                $id = '';
-
-                foreach ($record as $key => $value) {
-                    if (in_array($key, ["time", "session", "id"])) {
-                        if ($key == 'session') $sessuploadid = $value;
-                        if ($key == 'time') $sesstime = $value;
-                        if ($key == 'id') $id = $value;
-                        else {
-                            $sesskeys[] = $key;
-                            $sessvalues[] = $value;
-                        }
-                    } elseif (preg_match("/^k/", $key)) {
-                        $rawkeys[] = $key;
-                        $rawvalues[] = ($value == 'Infinity') ? -1 : $value;
-                    }
-                }
-
-                foreach ($rawkeys as $idx => $key) {
-                    if (!in_array($key, $dbfields) && preg_match('/^k[0-9a-fA-F]+$/', $key)) {
-                        $dataType = is_numeric($rawvalues[$idx]) ? "FLOAT" : "VARCHAR(255)";
-                        if (!column_exists($db, $db_table, $key)) {
-                            $sqlalter = "ALTER TABLE $db_table ADD COLUMN " . quote_name($key) . " $dataType NOT NULL DEFAULT '0'";
-                            $db->query($sqlalter);
-                        }
-                        $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite) VALUES (?,?,?,?,?)";
-                        $db->execute_query($sqlalterkey, [$key, $key, '1', '1', '0']);
-                        $dbfields[] = $key;
-                        cache_flush();
-                    }
-                }
-
-                $allRawKeys = array_merge($rawkeys, $sesskeys);
-                $allRawValues = array_merge($rawvalues, $sessvalues);
-                $bulkRecord = [];
-                foreach ($allRawKeys as $i => $key) {
-                    $bulkRecord[$key] = $allRawValues[$i];
-                }
-                $bulkRecords[] = $bulkRecord;
-
-                $sesskeys[] = 'timeend';
-                $sessvalues[] = $sesstime;
-                $sessionUpdates[] = [
-                    'keys' => $sesskeys,
-                    'values' => $sessvalues,
-                    'id' => $id,
-                    'sesstime' => $sesstime,
-                ];
-            }
-
-            if (!empty($bulkRecords)) {
-                insert_bulk_records($db, $db_table, $bulkRecords);
-            }
-
-            foreach ($sessionUpdates as $sess) {
-                $sessionqrystring = "INSERT INTO $db_sessions_table (" . quote_names($sess['keys']) . ") VALUES (" . quote_values($sess['values']) . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
-                $db->execute_query($sessionqrystring, [$sess['id'], $sess['sesstime']]);
-            }
-
-            foreach ($sessionStartRecords as $record) {
-                processSessionStartRecord($db, $record, $db_sessions_table, $lang, $username, $tg_token, $tg_chatid, $tg_socks_proxy ?? '', $translations);
-            }
-
-            $db->commit();
-            echo "OK!";
-            exit;
-        } catch (Exception $e) {
-            $db->rollback();
-            error_log("Bulk processing error: " . $e->getMessage());
-            http_response_code(500);
-            echo "Bulk error";
-            exit;
-        }
-    } else {
-        http_response_code(400);
-        echo "Invalid JSON";
+    try {
+        processUpload($db, $ctx, $kind, $payload);
+    } catch (Throwable $e) {
+        error_log("Upload processing error: " . $e->getMessage());
+        http_response_code(500);
+        $db->close();
+        echo "Error";
         exit;
     }
 }
 
-//Single requests
-if (sizeof($_REQUEST) > 0) {
-    $keys = [];
-    $values = [];
-    $sesskeys = [];
-    $sessvalues = [];
-    $spv = [];
-    $sessuploadid = "";
-    $sesstime = "0";
-    $submitval = 0;
-
-    foreach ($_REQUEST as $key => $value) {
-        if (in_array($key, ["time", "session", "id"])) {
-            if ($key == 'session') {
-                $sessuploadid = $value;
-            }
-            if ($key == 'time') {
-                $sesstime = $value;
-            }
-            if ($key == 'id') {
-                $id = $value;
-            } else {
-                $sesskeys[] = $key;
-                $sessvalues[] = $value;
-            }
-            $submitval = 1;
-        } elseif (preg_match("/^k/", $key)) {
-            $keys[] = $key;
-            $values[] = ($value == 'Infinity') ? -1 : $value;
-            $submitval = 1;
-        } elseif (in_array($key, ["notice", "noticeClass"])) {
-            $keys[] = $key;
-            $values[] = $value;
-            $submitval = 3;
-        } elseif (preg_match("/^profile/", $key)) {
-            if (in_array($key, $allowedProfileFields)) {
-                $spv[$key] = $value;
-                $submitval = 2;
-            }
-        } else {
-            $submitval = 0;
-        }
-
-        if (!in_array($key, $dbfields) && $submitval == 1 && preg_match('/^k[0-9a-fA-F]+$/', $key)) {
-            $dataType = is_numeric($value) ? "FLOAT" : "VARCHAR(255)";
-            if (!column_exists($db, $db_table, $key)) {
-                $sqlalter = "ALTER TABLE $db_table ADD COLUMN " . quote_name($key) . " $dataType NOT NULL DEFAULT '0'";
-                $db->query($sqlalter);
-            }
-            $sqlalterkey = "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite) VALUES (?,?,?,?,?)";
-            $db->execute_query($sqlalterkey, [$key, $key, '1', '1', '0']);
-            cache_flush();
-        }
-    }
-
-    if ($submitval == 2) {
-        $record = [];
-        foreach ($_REQUEST as $key => $value) {
-            if (in_array($key, ['session', 'time', 'id']) || preg_match("/^profile/", $key)) {
-                $record[$key] = $value;
-            }
-        }
-        $db->begin_transaction();
-        try {
-            processSessionStartRecord($db, $record, $db_sessions_table, $lang, $username, $tg_token, $tg_chatid, $tg_socks_proxy ?? '', $translations);
-            $db->commit();
-        } catch (Exception $e) {
-            $db->rollback();
-            error_log("Profile transaction error: " . $e->getMessage());
-        }
-    } else {
-        $rawkeys = array_merge($keys, $sesskeys);
-        $rawvalues = array_merge($values, $sessvalues);
-
-        if ((sizeof($rawkeys) === sizeof($rawvalues)) && sizeof($rawkeys) > 0 && (sizeof($sesskeys) === sizeof($sessvalues)) && sizeof($sesskeys) > 0) {
-            if ($submitval == 1) {
-                insert_single_record($db, $db_table, $rawkeys, $rawvalues);
-            }
-
-            $sesskeys[] = 'timeend';
-            $sessvalues[] = $sesstime;
-            $sessionqrystring = "INSERT INTO $db_sessions_table (" . quote_names($sesskeys) . ") VALUES (" . quote_values($sessvalues) . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
-            $db->execute_query($sessionqrystring, [$id ?? '', $sesstime]);
-        }
-    }
-}
-
 $db->close();
-
-// Return the response required by Torque/RedManage
 echo "OK!";

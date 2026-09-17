@@ -126,9 +126,11 @@ function cache_flush($token = null, $keyname = null) {
             return;
         }
 
+        $uid = $_SESSION['uid'] ?? null;
+
         $keys = $token !== null
             ? ["user_data_{$token}", "user_api_data_{$token}"]
-            : [
+            : array_filter([
                 "profiles_list_{$username}",
                 "years_list_{$username}",
                 "stream_lock_{$username}",
@@ -138,15 +140,15 @@ function cache_flush($token = null, $keyname = null) {
                 "user_status_{$username}",
                 "columns_data_{$db_pids_table}",
                 "pids_mapping_{$username}",
-                "share_data_{$_SESSION['uid']}",
-                "share_plot_{$_SESSION['uid']}",
+                $uid !== null ? "share_data_{$uid}" : null,
+                $uid !== null ? "share_plot_{$uid}" : null,
                 "fav_data_{$username}",
                 "stream_conv_{$username}",
                 "stream_pids_s_{$username}",
                 "stream_pids_d_{$username}",
                 "api_conv_{$username}",
-                "api_pids_{$username}"
-            ];
+                "api_pids_{$username}",
+        ]);
 
         if ($token === null) {
             $patterns = [

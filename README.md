@@ -35,6 +35,8 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - PHP8.2+
 - php-mysql extension
 - php-memcached (OPTIONAL)
+- php-redis (OPTIONAL)
+- redis (OPTIONAL)
 - memcached (OPTIONAL)
 - nginx with php-fpm(recommended) or Apache2 web-server(not tested) with proper SSL configuration
 - Database:
@@ -117,6 +119,16 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 | `$tg_socks_proxy` | SOCKS5 proxy for Telegram API | (empty) |
 | `$tg_api_url` | Custom Telegram API gateway URL | (empty) |
 | `$tg_api_id` | X-Connection-Id header for gateway auth | (empty) |
+| `$redis_enabled` | Master switch for Redis integration (required for Streams) | `false` |
+| `$redis_host` | Redis host address (redis for Docker) | `redis` |
+| `$redis_port` | Redis port | `6379` |
+| `$redis_timeout` | Redis connect timeout in seconds (lower = faster fallback) | `2.0` |
+| `$redis_password` | Redis AUTH password (empty = no auth) | (empty) |
+| `$redis_db` | Redis logical database index (0-15) | `0` |
+| `$redis_stream_enabled` | Use Redis Streams for async upload processing (requires worker) | `false` |
+| `$redis_stream_key` | Redis Stream key name | `telemetry:uploads` |
+| `$redis_stream_group` | Consumer group name for worker | `telemetry-workers` |
+| `$redis_stream_maxlen` | Max messages in Stream (~ MAXLEN, 0 = unlimited) | `1000000` |
 
 ### Typical nginx host configuration for standalone installation:
 ```

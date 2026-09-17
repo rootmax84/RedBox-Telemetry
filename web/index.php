@@ -11,6 +11,7 @@ require_once __DIR__ . '/plot.php';
 require_once __DIR__ . '/timezone.php';
 include_once __DIR__ . '/translations.php';
 include_once __DIR__ . '/src/helpers.php';
+require_once __DIR__ . '/src/redis.php';
 
 $lang = $_COOKIE['lang'];
 setcookie("newsess", "");
@@ -834,8 +835,71 @@ if ($r->num_rows > 0) {
 </tbody>
 </table>
 </div>
+<?php
+$redis_connected = false;
+$redis_stream_len = null;   // XLEN — оставим как справочный
+$redis_stream_lag = null;   // lag — главный индикатор
+$redis_pending    = null;
+
+if (!empty($redis_stream_enabled)) {
+    $__r = get_redis_connection();
+    if ($__r !== null) {
+        $redis_connected = true;
+        $streamKey = $redis_stream_key   ?? 'telemetry:uploads';
+        $groupName = $redis_stream_group ?? 'telemetry-workers';
+
+        try {
+            $redis_stream_len = (int)$__r->xLen($streamKey);
+
+            // lag + pending берём из XINFO GROUPS
+            $groups = $__r->xInfo('GROUPS', $streamKey);
+            if (is_array($groups)) {
+                foreach ($groups as $g) {
+                    if (($g['name'] ?? null) === $groupName) {
+                        $redis_stream_lag = isset($g['lag'])
+                            ? (int)$g['lag']
+                            : (int)($g['pending'] ?? 0);
+                        break;
+                    }
+                }
+            }
+
+            $pending = $__r->xPending($streamKey, $groupName);
+            $redis_pending = is_array($pending)
+                ? (int)($pending['pending'] ?? 0)
+                : null;
+        } catch (Throwable $e) {
+            // группа ещё не создана или redis недоступен — оставляем null
+        }
+    }
+}
+?>
 <p class="db-size">
-    <?= "Memcached: " . ($memcached_connected ? $translations[$lang]['btn.yes'] : $translations[$lang]['btn.no']) . " | " . $translations[$lang]['admin.db'] . ": " . round($res[1]) . $translations[$lang]['admin.mb'] ?>
+<?php
+    $yes = $translations[$lang]['btn.yes'];
+    $no  = $translations[$lang]['btn.no'];
+    $mb  = $translations[$lang]['admin.mb'];
+
+    $redis_part = "Redis: " . ($redis_connected ? $yes : $no);
+    if ($redis_connected && $redis_stream_lag !== null) {
+        $redis_part .= " (backlog: {$redis_stream_lag}";
+        if ($redis_pending !== null && $redis_pending > 0) {
+            $redis_part .= ", pending: {$redis_pending}";
+        }
+        if ($redis_stream_len !== null) {
+            $redis_part .= ", stream total: {$redis_stream_len}";
+        }
+        $redis_part .= ")";
+    } elseif ($redis_connected) {
+        $redis_part .= " (group not initialised)";
+    }
+
+    echo "Memcached: " . ($memcached_connected ? $yes : $no)
+       . " | "
+       . $redis_part
+       . " | "
+       . $translations[$lang]['admin.db'] . ": " . round($res[1]) . $mb;
+?>
 </p>
 <hr>
 <div class="pages">

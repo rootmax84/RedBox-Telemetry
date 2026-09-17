@@ -5,15 +5,28 @@ if (empty($_COOKIE['stream'])) {
 
 require_once __DIR__ . '/src/creds.php';
 require_once __DIR__ . '/src/methods.php';
+require_once __DIR__ . '/src/db.php';
 allowMethods('HEAD', 'POST');
 
 if (file_exists('maintenance')) {
     http_response_code(307);
 }
 
-if (file_exists(sys_get_temp_dir().'/'.$username)) {
+$newSessionSignalled = false;
+
+if (!empty($memcached_connected) && isset($memcached)) {
+    try {
+        if ($memcached->get("new_session_" . $username)) {
+            $memcached->delete("new_session_" . $username);
+            $newSessionSignalled = true;
+        }
+    } catch (Throwable $e) {
+        error_log("Memcached error on new-session check: " . $e->getMessage());
+    }
+}
+
+if ($newSessionSignalled) {
     setcookie("newsess", true);
-    unlink(sys_get_temp_dir().'/'.$username);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
