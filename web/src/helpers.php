@@ -551,7 +551,7 @@ function insert_bulk_records(mysqli $db, string $db_table, array $records) {
             "Bulk insert error: %s | columns=[%s] | first row=[%s]",
             $e->getMessage(),
             implode(',', $allKeys),
-            json_encode($rows[0] ?? null, JSON_UNESCAPED_UNICODE)
+            json_encode($records[0] ?? null, JSON_UNESCAPED_UNICODE)
         ));
     }
 }
@@ -591,54 +591,58 @@ function processSessionStartRecord($db, array $record, string $db_sessions_table
         }
     }
 
-    $isNewSessionStart = true;
-    $existing = $db->execute_query(
-        "SELECT profileName FROM $db_sessions_table WHERE session = ? FOR UPDATE",
-        [$sessuploadid]
-    );
-    if ($row = $existing->fetch_assoc()) {
-        if (!empty($row['profileName']) && $row['profileName'] !== 'Not Specified') {
-            $isNewSessionStart = false;
-        }
-    }
-
     $sesskeys[] = 'timeend';
     $sessvalues[] = $sesstime;
 
-    $sessionqrystring = "INSERT INTO $db_sessions_table (" . quote_names($sesskeys) . ") VALUES (" . quote_values($sessvalues) . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+    $sessionqrystring = "INSERT INTO $db_sessions_table ("
+        . quote_names($sesskeys) . ") VALUES ("
+        . quote_values($sessvalues)
+        . ") ON DUPLICATE KEY UPDATE id=?, timeend=GREATEST(timeend, ?), sessionsize=sessionsize+1";
     $db->execute_query($sessionqrystring, [$id, $sesstime]);
 
-    $updateFields = [];
-    $params = [];
-    foreach ($spv as $field => $value) {
-        if ($value !== '') {
-            $updateFields[] = "$field = ?";
-            $params[] = $value;
-        }
-    }
+    $isNewSessionStart = false;
 
-    if (!empty($updateFields)) {
-        $updateFields[] = "ip = ?";
-        $params[] = $ip;
-        $updateFields[] = "timeend = ?";
+    if (!empty($spv['profileName']) && $spv['profileName'] !== 'Not Specified') {
         $timeend = round(microtime(true) * 1000);
-        $params[] = $timeend;
 
-        $sql = "UPDATE $db_sessions_table SET " . implode(', ', $updateFields) . " WHERE session = ?";
-        $params[] = $sessuploadid;
-        $db->execute_query($sql, $params);
+        $db->execute_query(
+            "UPDATE $db_sessions_table
+                SET profileName = ?,
+                    ip          = ?,
+                    timeend     = GREATEST(timeend, ?)
+              WHERE session     = ?
+                AND profileName = 'Not Specified'",
+            [$spv['profileName'], $ip, $timeend, $sessuploadid]
+        );
+        $isNewSessionStart = ($db->affected_rows === 1);
+
+        if (!$isNewSessionStart) {
+            $db->execute_query(
+                "UPDATE $db_sessions_table
+                    SET profileName = ?,
+                        ip          = ?,
+                        timeend     = GREATEST(timeend, ?)
+                  WHERE session     = ?",
+                [$spv['profileName'], $ip, $timeend, $sessuploadid]
+            );
+        }
     }
 
     if ($isNewSessionStart && !empty($tg_token) && !empty($tg_chatid)) {
         $delay = time() - intval($sessuploadid / 1000);
         if ($delay > 30) {
             $formattedDelay = formatDuration((int)$sessuploadid, time() * 1000, $lang);
-            $startTime = intval($sessuploadid / 1000);
-            $formattedDate = date("d.m.Y", $startTime);
-            $formattedTime = date("H:i", $startTime);
-            $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']} ({$translations[$lang]['upload.delayed']} {$formattedDelay}, {$translations[$lang]['upload.start_time']} {$formattedDate} {$translations[$lang]['upload.at']} {$formattedTime})";
+            $startTime      = intval($sessuploadid / 1000);
+            $formattedDate  = date("d.m.Y", $startTime);
+            $formattedTime  = date("H:i", $startTime);
+            $message = "{$translations[$lang]['upload.start']} {$ip}. "
+                     . "{$translations[$lang]['sel.profile']}: {$spv['profileName']} "
+                     . "({$translations[$lang]['upload.delayed']} {$formattedDelay}, "
+                     . "{$translations[$lang]['upload.start_time']} {$formattedDate} "
+                     . "{$translations[$lang]['upload.at']} {$formattedTime})";
         } else {
-            $message = "{$translations[$lang]['upload.start']} {$ip}. {$translations[$lang]['sel.profile']}: {$spv['profileName']}";
+            $message = "{$translations[$lang]['upload.start']} {$ip}. "
+                     . "{$translations[$lang]['sel.profile']}: {$spv['profileName']}";
         }
         notify($message, $tg_token, $tg_chatid, $tg_socks_proxy);
     }

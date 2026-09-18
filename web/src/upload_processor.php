@@ -223,7 +223,7 @@ function processBulkRecords($db, array $ctx, array $records, array $dbfields): v
             $sql = "INSERT INTO $db_sessions_table ("
                  . quote_names($sess['keys']) . ") VALUES ("
                  . quote_values($sess['values'])
-                 . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+                 . ") ON DUPLICATE KEY UPDATE id=?, timeend=GREATEST(timeend, ?), sessionsize=sessionsize+1";
             $db->execute_query($sql, [$sess['id'], $sess['sesstime']]);
         }
 
@@ -370,6 +370,6 @@ function processSingleRequest($db, array $ctx, array $request, array $dbfields):
     $sql = "INSERT INTO $db_sessions_table ("
          . quote_names($sesskeys) . ") VALUES ("
          . quote_values($sessvalues)
-         . ") ON DUPLICATE KEY UPDATE id=?, timeend=?, sessionsize=sessionsize+1";
+         . ") ON DUPLICATE KEY UPDATE id=?, timeend=GREATEST(timeend, ?), sessionsize=sessionsize+1";
     $db->execute_query($sql, [$id, $sesstime]);
 }

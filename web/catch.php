@@ -2,6 +2,7 @@
 if (isset($_GET['c'])) {
     $http_code = match($_GET['c']) {
         'loginfailed', 'csrffailed' => 401,
+        'disabled' => 403,
         'dberror' => 503,
         'maintenance' => 423,
         'noshare' => 404,
