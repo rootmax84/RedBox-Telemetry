@@ -837,9 +837,9 @@ if ($r->num_rows > 0) {
 </div>
 <?php
 $redis_connected = false;
-$redis_stream_len = null;   // XLEN — оставим как справочный
 $redis_stream_lag = null;   // lag — главный индикатор
 $redis_pending    = null;
+$redis_workers_live = null;
 
 if (!empty($redis_stream_enabled)) {
     $__r = get_redis_connection();
@@ -849,8 +849,6 @@ if (!empty($redis_stream_enabled)) {
         $groupName = $redis_stream_group ?? 'telemetry-workers';
 
         try {
-            $redis_stream_len = (int)$__r->xLen($streamKey);
-
             // lag + pending берём из XINFO GROUPS
             $groups = $__r->xInfo('GROUPS', $streamKey);
             if (is_array($groups)) {
@@ -868,39 +866,65 @@ if (!empty($redis_stream_enabled)) {
             $redis_pending = is_array($pending)
                 ? (int)($pending['pending'] ?? 0)
                 : null;
+
+            // ─── Активные воркеры из XINFO CONSUMERS ───
+            $consumers = $__r->xInfo('CONSUMERS', $streamKey, $groupName);
+            if (is_array($consumers)) {
+                $live = 0;
+                foreach ($consumers as $c) {
+                    $idleMs = (int)($c['idle'] ?? PHP_INT_MAX);
+                    if ($idleMs < 30000) {
+                        $live++;
+                    }
+                }
+                $redis_workers_live = $live;
+            } else {
+                $redis_workers_live = 0;
+            }
         } catch (Throwable $e) {
             // группа ещё не создана или redis недоступен — оставляем null
         }
     }
 }
 ?>
-<p class="db-size">
+<div class="db-size">
 <?php
-    $yes = $translations[$lang]['btn.yes'];
-    $no  = $translations[$lang]['btn.no'];
+    $yes = "✔️";
+    $no  = "❌";
     $mb  = $translations[$lang]['admin.mb'];
 
     $redis_part = "Redis: " . ($redis_connected ? $yes : $no);
-    if ($redis_connected && $redis_stream_lag !== null) {
-        $redis_part .= " (backlog: {$redis_stream_lag}";
-        if ($redis_pending !== null && $redis_pending > 0) {
-            $redis_part .= ", pending: {$redis_pending}";
+    if ($redis_connected) {
+        if ($redis_stream_lag !== null) {
+            $redis_part .= " (backlog: {$redis_stream_lag}";
+            if ($redis_pending !== null && $redis_pending > 0) {
+                $redis_part .= ", pending: {$redis_pending}";
+            }
+            $redis_part .= ")";
+        } else {
+            $redis_part .= " (group not initialised)";
         }
-        if ($redis_stream_len !== null) {
-            $redis_part .= ", stream total: {$redis_stream_len}";
-        }
-        $redis_part .= ")";
-    } elseif ($redis_connected) {
-        $redis_part .= " (group not initialised)";
     }
 
-    echo "Memcached: " . ($memcached_connected ? $yes : $no)
-       . " | "
-       . $redis_part
-       . " | "
-       . $translations[$lang]['admin.db'] . ": " . round($res[1]) . $mb;
+    $worker_part = "Workers: ";
+    if (!$redis_connected || $redis_workers_live === null) {
+        $worker_part .= "n/a";
+    } elseif ($redis_workers_live === 0) {
+        $worker_part .= $no . " 0";
+    } elseif ($redis_stream_lag !== null && $redis_stream_lag > 0 && $redis_workers_live < 2) {
+        $worker_part .= "⚠️ {$redis_workers_live}";
+    } else {
+        $worker_part .= $yes . " {$redis_workers_live}";
+    }
+
+    echo "<ul style='margin:0'>"
+       . "<li>Memcached: " . ($memcached_connected ? $yes : $no) . "</li>"
+       . "<li>" . $redis_part . "</li>"
+       . "<li>" . $worker_part . "</li>"
+       . "<li>" . $translations[$lang]['admin.db'] . ": " . round($res[1]) . $mb . "</li>"
+       . "</ul>";
 ?>
-</p>
+</div>
 <hr>
 <div class="pages">
 <?php //Pagination with page count limit
