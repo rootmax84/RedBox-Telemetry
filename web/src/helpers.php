@@ -569,8 +569,9 @@ function insert_bulk_records(mysqli $db, string $db_table, array $records) {
  * @param string $tg_socks_proxy
  * @param array $translations
  * @param string $clientIp
+ * @return array|null message/tg_token/tg_chatid/tg_socks_proxy or null
  */
-function processSessionStartRecord($db, array $record, string $db_sessions_table, string $lang, string $username, ?string $tg_token, ?string $tg_chatid, ?string $tg_socks_proxy, array $translations, ?string $clientIp = null): void {
+function processSessionStartRecord($db, array $record, string $db_sessions_table, string $lang, string $username, ?string $tg_token, ?string $tg_chatid, ?string $tg_socks_proxy, array $translations, ?string $clientIp = null): ?array {
     global $memcached, $memcached_connected;
 
     $sesskeys = [];
@@ -628,13 +629,23 @@ function processSessionStartRecord($db, array $record, string $db_sessions_table
         }
     }
 
+    if (!empty($GLOBALS['memcached_connected']) && isset($GLOBALS['memcached'])) {
+        try {
+            $GLOBALS['memcached']->set("new_session_" . $username, 1, 300);
+        } catch (Throwable $e) {
+            error_log("Memcached error on new-session signal: " . $e->getMessage());
+        }
+    }
+
     if ($isNewSessionStart && !empty($tg_token) && !empty($tg_chatid)) {
         $delay = time() - intval($sessuploadid / 1000);
+
         if ($delay > 30) {
             $formattedDelay = formatDuration((int)$sessuploadid, time() * 1000, $lang);
             $startTime      = intval($sessuploadid / 1000);
             $formattedDate  = date("d.m.Y", $startTime);
             $formattedTime  = date("H:i", $startTime);
+
             $message = "{$translations[$lang]['upload.start']} {$ip}. "
                      . "{$translations[$lang]['sel.profile']}: {$spv['profileName']} "
                      . "({$translations[$lang]['upload.delayed']} {$formattedDelay}, "
@@ -644,15 +655,36 @@ function processSessionStartRecord($db, array $record, string $db_sessions_table
             $message = "{$translations[$lang]['upload.start']} {$ip}. "
                      . "{$translations[$lang]['sel.profile']}: {$spv['profileName']}";
         }
-        notify($message, $tg_token, $tg_chatid, $tg_socks_proxy);
+
+        return [
+            'message'        => $message,
+            'tg_token'       => $tg_token,
+            'tg_chatid'      => $tg_chatid,
+            'tg_socks_proxy' => $tg_socks_proxy,
+        ];
     }
 
-    if (!empty($GLOBALS['memcached_connected'])
-        && isset($GLOBALS['memcached'])) {
+    return null;
+}
+
+/**
+ * @param array $notifications payloads array from processSessionStartRecord()
+ */
+function sendPendingNotifications(array $notifications): void {
+    foreach ($notifications as $n) {
+        if (!is_array($n) || empty($n['message'])) {
+            continue;
+        }
+
         try {
-            $GLOBALS['memcached']->set("new_session_" . $username, 1, 300);
+            notify(
+                $n['message'],
+                $n['tg_token']       ?? null,
+                $n['tg_chatid']      ?? null,
+                $n['tg_socks_proxy'] ?? ''
+            );
         } catch (Throwable $e) {
-            error_log("Memcached error on new-session signal: " . $e->getMessage());
+            error_log("sendPendingNotifications: notify() error: " . $e->getMessage());
         }
     }
 }

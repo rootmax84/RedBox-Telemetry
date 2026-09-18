@@ -13,6 +13,7 @@
  */
 
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/redis.php';
 
 /**
  * Точка входа.
@@ -86,6 +87,9 @@ function get_db_fields($db, string $db_table): array
 /**
  * Гарантирует, что колонка `kXXXX` существует в таблице логов
  * и что соответствующая запись есть в таблице pids.
+ *
+ * При multi-worker использует Redis advisory lock, чтобы ALTER'ы
+ * одной и той же таблицы не выполнялись параллельно.
  */
 function ensureColumnAndPid(
     $db,
@@ -95,27 +99,137 @@ function ensureColumnAndPid(
     $value,
     array &$dbfields
 ): void {
+    // Fast path: колонка уже в локальном кэше воркера
     if (in_array($key, $dbfields, true) || !preg_match('/^k[0-9a-fA-F]+$/', $key)) {
         return;
     }
 
     $dataType = is_numeric($value) ? "FLOAT" : "VARCHAR(255)";
 
-    if (!column_exists($db, $db_table, $key)) {
-        $db->query(
-            "ALTER TABLE $db_table ADD COLUMN " . quote_name($key)
-            . " $dataType NOT NULL DEFAULT '0'"
+    // ─── Если колонка уже есть в БД — просто регистрируем PID и выходим ───
+    if (column_exists($db, $db_table, $key)) {
+        $db->execute_query(
+            "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite)
+             VALUES (?,?,?,?,?)",
+            [$key, $key, '1', '1', '0']
         );
+        $dbfields[] = $key;
+        cache_flush();
+        return;
     }
 
-    $db->execute_query(
-        "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite)
-         VALUES (?,?,?,?,?)",
-        [$key, $key, '1', '1', '0']
-    );
+    // ─── Пытаемся взять advisory lock (только если Redis доступен) ───
+    $redis   = get_redis_connection();
+    $lockKey = "lock:alter_col:" . $db_table;
+    $lockTtl = 30;
+    $gotLock = false;
 
-    $dbfields[] = $key;
-    cache_flush();
+    if ($redis !== null) {
+        try {
+            $gotLock = (bool)$redis->set($lockKey, (string)getmypid(), [
+                'nx',
+                'ex' => $lockTtl,
+            ]);
+        } catch (Throwable $e) {
+            error_log("[ensureColumnAndPid] Redis SET NX failed: " . $e->getMessage());
+            $gotLock = false;
+        }
+    } else {
+        // Redis недоступен — работаем как раньше, без lock
+        $gotLock = true;
+    }
+
+    $columnReady = false;
+
+    // ─── Ветка A: lock наш — делаем ALTER ───
+    if ($gotLock) {
+        try {
+            // Двойная проверка: пока ждали lock, другой воркер мог добавить колонку
+            if (column_exists($db, $db_table, $key)) {
+                $columnReady = true;
+            } else {
+                $db->query(
+                    "ALTER TABLE $db_table ADD COLUMN " . quote_name($key)
+                    . " $dataType NOT NULL DEFAULT '0'"
+                );
+                $columnReady = true;
+            }
+        } catch (Throwable $e) {
+            $msg = $e->getMessage();
+            if (stripos($msg, 'Duplicate column') !== false) {
+                // Кто-то параллельно успел создать
+                $columnReady = true;
+            } else {
+                error_log("[ensureColumnAndPid] ALTER failed: " . $msg);
+            }
+        } finally {
+            if ($redis !== null) {
+                try {
+                    $script = "if redis.call('GET', KEYS[1]) == ARGV[1] "
+                            . "then return redis.call('DEL', KEYS[1]) "
+                            . "else return 0 end";
+                    $redis->eval($script, [$lockKey, (string)getmypid()], 1);
+                } catch (Throwable $e) {
+                    error_log("[ensureColumnAndPid] Redis unlock failed: " . $e->getMessage());
+                }
+            }
+        }
+    }
+    // ─── Ветка B: lock занят — ждём появления колонки ───
+    else {
+        $waitUntil    = microtime(true) + 10;
+        $pollInterval = 200;   // ms
+
+        while (microtime(true) < $waitUntil) {
+            if (column_exists($db, $db_table, $key)) {
+                $columnReady = true;
+                break;
+            }
+            usleep($pollInterval * 1000);
+        }
+
+        // Не дождались — форсируем ALTER сами. MariaDB выстроит нас
+        // в очередь MDL за текущим ALTER'ом. Если держатель lock упал —
+        // мы подхватим работу.
+        if (!$columnReady) {
+            error_log(sprintf(
+                "[ensureColumnAndPid] Timeout waiting for column %s.%s, forcing ALTER",
+                $db_table, $key
+            ));
+            try {
+                $db->query(
+                    "ALTER TABLE $db_table ADD COLUMN " . quote_name($key)
+                    . " $dataType NOT NULL DEFAULT '0'"
+                );
+                $columnReady = true;
+            } catch (Throwable $e) {
+                $msg = $e->getMessage();
+                if (stripos($msg, 'Duplicate column') !== false) {
+                    $columnReady = true;
+                } else {
+                    error_log("[ensureColumnAndPid] Force ALTER failed: " . $msg);
+                }
+            }
+        }
+    }
+
+    // ─── Регистрация PID — только если колонка реально существует ───
+    if ($columnReady) {
+        $db->execute_query(
+            "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite)
+             VALUES (?,?,?,?,?)",
+            [$key, $key, '1', '1', '0']
+        );
+
+        $dbfields[] = $key;
+        cache_flush();
+    } else {
+        // Колонки нет — не портим $dbfields, следующий аплоад повторит попытку
+        error_log(sprintf(
+            "[ensureColumnAndPid] Column %s.%s still missing after all attempts; skipping registration",
+            $db_table, $key
+        ));
+    }
 }
 
 /* ───────────────────────── Bulk JSON ───────────────────────── */
@@ -133,6 +247,8 @@ function processBulkRecords($db, array $ctx, array $records, array $dbfields): v
     $db_pids_table     = $ctx['db_pids_table'];
     $lang              = $ctx['lang'];
     $translations      = $ctx['translations'];
+
+    $pendingNotifications = [];
 
     $db->begin_transaction();
     try {
@@ -228,7 +344,7 @@ function processBulkRecords($db, array $ctx, array $records, array $dbfields): v
         }
 
         foreach ($sessionStartRecords as $record) {
-            processSessionStartRecord(
+            $notif = processSessionStartRecord(
                 $db,
                 $record,
                 $db_sessions_table,
@@ -240,12 +356,21 @@ function processBulkRecords($db, array $ctx, array $records, array $dbfields): v
                 $translations,
                 $ctx['ip']             ?? null   // явная передача IP
             );
+
+            if ($notif !== null) {
+                $pendingNotifications[] = $notif;
+            }
         }
 
         $db->commit();
     } catch (Throwable $e) {
         $db->rollback();
         throw $e;
+    }
+
+    // Отправка уведомлений ПОСЛЕ commit'а
+    if (!empty($pendingNotifications)) {
+        sendPendingNotifications($pendingNotifications);
     }
 }
 
@@ -327,9 +452,10 @@ function processSingleRequest($db, array $ctx, array $request, array $dbfields):
             }
         }
 
+        $notif = null;
         $db->begin_transaction();
         try {
-            processSessionStartRecord(
+            $notif = processSessionStartRecord(
                 $db,
                 $record,
                 $db_sessions_table,
@@ -345,6 +471,10 @@ function processSingleRequest($db, array $ctx, array $request, array $dbfields):
         } catch (Throwable $e) {
             $db->rollback();
             throw $e;
+        }
+
+        if ($notif !== null) {
+            sendPendingNotifications([$notif]);
         }
         return;
     }
