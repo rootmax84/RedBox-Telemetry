@@ -128,6 +128,7 @@ function cache_flush($token = null, $keyname = null) {
 
         $uid = $_SESSION['uid'] ?? null;
 
+
         $keys = $token !== null
             ? ["user_data_{$token}", "user_api_data_{$token}"]
             : array_filter([
@@ -148,7 +149,8 @@ function cache_flush($token = null, $keyname = null) {
                 "stream_pids_d_{$username}",
                 "api_conv_{$username}",
                 "api_pids_{$username}",
-        ]);
+                "worker_user_{$username}",
+            ]);
 
         if ($token === null) {
             $patterns = [
