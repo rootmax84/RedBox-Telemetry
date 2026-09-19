@@ -165,20 +165,6 @@ $lastStatsAt    = 0;
 $processedCount = 0;
 
 while ($running) {
-    // ─── DB health check / reconnect ───
-    try {
-        $db->query('SELECT 1');
-    } catch (Throwable $e) {
-        error_log('[worker] DB ping failed, reconnecting: ' . $e->getMessage());
-        try {
-            $db = get_db_connection();
-        } catch (Throwable $e2) {
-            error_log('[worker] DB reconnect failed: ' . $e2->getMessage());
-            sleep(5);
-            continue;
-        }
-    }
-
     // ─── Redis health check / reconnect ───
     if (!is_object($redis)) {
         fwrite(STDERR, "[worker] Redis lost, reconnecting...\n");
@@ -212,10 +198,31 @@ while ($running) {
                     $redis->xAck($stream, $group, [$id]);
                     $processedCount++;
                     fwrite(STDOUT, "[worker] reclaimed {$id}\n");
+                } catch (mysqli_sql_exception $e) {
+                    $errno = (int)$e->getCode();
+                    if (in_array($errno, [2002, 2003, 2006, 2013, 1927, 1040], true)) {
+                        error_log(sprintf(
+                            '[worker] DB connection lost (%d) while reclaiming %s',
+                            $errno, $id
+                        ));
+                        try {
+                            $db = worker_reconnect_db($db);
+                            error_log('[worker] DB reconnected');
+                        } catch (Throwable $re) {
+                            error_log('[worker] DB reconnect failed: ' . $re->getMessage());
+                            sleep(5);
+                        }
+                        break;   // не ack — XAUTOCLAIM вернёт позже
+                    }
+                    error_log(sprintf(
+                        '[worker] reclaimed %s SQL error (%d): %s',
+                        $id, $errno, $e->getMessage()
+                    ));
+                    $redis->xAck($stream, $group, [$id]);
                 } catch (Throwable $e) {
                     error_log(sprintf(
-                        "[worker] reclaimed %s failed: %s\n%s",
-                        $id, $e->getMessage(), $e->getTraceAsString()
+                        '[worker] reclaimed %s failed: %s',
+                        $id, $e->getMessage()
                     ));
                     $redis->xAck($stream, $group, [$id]);
                 }
@@ -256,6 +263,28 @@ while ($running) {
                 processStreamMessage($db, $fields);
                 $redis->xAck($stream, $group, [$id]);
                 $processedCount++;
+            } catch (mysqli_sql_exception $e) {
+                $errno = (int)$e->getCode();
+                if (in_array($errno, [2002, 2003, 2006, 2013, 1927, 1040], true)) {
+                    error_log(sprintf(
+                        '[worker] DB connection lost (%d: %s); message %s left pending',
+                        $errno, $e->getMessage(), $id
+                    ));
+                    try {
+                        $db = worker_reconnect_db($db);
+                        error_log('[worker] DB reconnected');
+                    } catch (Throwable $re) {
+                        error_log('[worker] DB reconnect failed: ' . $re->getMessage());
+                        sleep(5);
+                    }
+                    break;   // не ack — сообщение останется в PEL для XAUTOCLAIM
+                }
+                // Не-connection ошибка SQL (битые данные, unknown column и т.п.)
+                error_log(sprintf(
+                    '[worker] message %s SQL error (%d): %s',
+                    $id, $errno, $e->getMessage()
+                ));
+                $redis->xAck($stream, $group, [$id]);
             } catch (Throwable $e) {
                 error_log(sprintf(
                     "[worker] message %s failed: %s\n%s",
@@ -396,4 +425,44 @@ function getUserData(string $username): ?array
     }
 
     return $row;
+}
+
+/**
+ * Переподключение к MariaDB с retry.
+ *
+ * Не использует get_db_connection(), потому что та делает exit() при
+ * ошибке соединения (см. auth_functions.php) — не подходит для
+ * long-running worker'а.
+ *
+ * @throws RuntimeException если не удалось переподключиться за ~60 секунд
+ */
+function worker_reconnect_db(?mysqli $oldDb): mysqli
+{
+    global $db_host, $db_user, $db_pass, $db_name, $db_port;
+
+    if ($oldDb !== null) {
+        try { $oldDb->close(); } catch (Throwable $e) {}
+    }
+
+    $maxAttempts = 12;   // ~60 секунд суммарно при sleep(5)
+    for ($i = 1; $i <= $maxAttempts; $i++) {
+        try {
+            $newDb = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
+            // Явная проверка, что соединение действительно работает
+            $newDb->query('SELECT 1');
+            return $newDb;
+        } catch (Throwable $e) {
+            error_log(sprintf(
+                '[worker] DB reconnect attempt %d/%d failed: %s',
+                $i, $maxAttempts, $e->getMessage()
+            ));
+            if ($i < $maxAttempts) {
+                sleep(5);
+            }
+        }
+    }
+
+    throw new RuntimeException(
+        'Cannot reconnect to DB after ' . $maxAttempts . ' attempts'
+    );
 }
