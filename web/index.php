@@ -379,7 +379,7 @@ if (isset($sids[0])) {
         </button>
       </li>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('./adminer.php?mysql=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('./adminer.php?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
           <span class="icon" id="adminer-img"></span>
           Adminer
         </button>
