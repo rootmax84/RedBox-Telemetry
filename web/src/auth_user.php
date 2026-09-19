@@ -25,6 +25,18 @@ if(isset($_POST) && !empty($_POST)){
         if (auth_user()) {
             perform_user_migration();
             $logged_in = true;
+
+            $loggedInUser = $_SESSION['torque_user'];
+            register_shutdown_function(function () use ($loggedInUser) {
+                global $memcached, $memcached_connected;
+                if (!empty($memcached_connected) && isset($memcached)) {
+                    try {
+                        $memcached->delete("new_session_" . $loggedInUser);
+                    } catch (Throwable $e) {
+                        error_log("Memcached cleanup on login failed: " . $e->getMessage());
+                    }
+                }
+            });
         } else {
             header('Location: catch.php?c=loginfailed');
             exit;
