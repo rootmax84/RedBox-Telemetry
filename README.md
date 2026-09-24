@@ -31,6 +31,69 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - Localized UI (EN/RU/ES/DE)
 - and more...
 
+### Architecture
+<details>
+  <summary>Show</summary>
+    
+## General
+
+```
+            ┌────────────────────────────────────────────┐
+            │                 Internet                   │
+            └───┬───────────────────────┬────────────┬───┘
+                │                       │            │
+                ▼                       ▼            ▼
+     ┌────────────────────────┐   ┌───────────┐  ┌──────────────┐
+     │  Devices               │   │  Browser  │  │ Telegram API │
+     │ (RedManage/Torque/etc) │   │           │  │              │
+     └──────┬─────────────── ─┘   └──────┬────┘  └──────▲───────┘
+            │                            │              │
+            ▼                            ▼              │
+   ╔═══════════════════════════════════════════════════════════════╗
+   ║                        ratel_ingress                          ║
+   ╚═══════════════════════════╤═══════════════════════════════════╝
+                               │
+   ┌───────────────────────────▼───────────────────────────────────┐
+   │                  ratel_web  (nginx + php-fpm)                 │
+   └───────┬───────────────┬───────────────────┬───────────────────┘
+           │               │                   │
+           ▼               ▼                   ▼
+   ╔═══════════════════════════════════════════════════════════════╗
+   ║                       ratel_network  (internal)               ║
+   ║                                                               ║
+   ║   ┌──────────────┐   ┌──────────────┐   ┌──────────────────┐  ║
+   ║   │    redis     │   │   mariadb    │   │    memcached     │  ║
+   ║   │  (Streams)   │   │  (RocksDB)   │   │ cache/rate-limit │  ║
+   ║   └──────▲───────┘   └──────▲───────┘   └────────▲─────────┘  ║
+   ║          │                  │                    │            ║
+   ║          │                  │                    │            ║
+   ║   ┌──────┴──────────────────┴────────────────────┴─────────┐  ║
+   ║   │                                                        │  ║
+   ║   │   ratel-worker-1   ratel-worker-2   ...  worker-N      │  ║
+   ║   │   (php worker.php — consume stream -> write to DB)     │  ║
+   ║   │                                                        │  ║
+   ║   └───────────────────────────────────────────────────── ──┘  ║
+   ╚═══════════════════════════════════════════════════════════════╝
+```
+
+## Fast path vs inline fallback
+
+```
+FAST PATH (Redis available):
+
+  Device ──POST/GET──▶ ul.php ──XADD──▶ Redis Stream ──XREADGROUP──▶ worker ──▶ MariaDB
+                     │
+                     └─◀── "OK!" (fast on high load rate)
+
+INLINE FALLBACK (Redis disabled or unavailable):
+
+  Device ──POST/GET──▶ ul.php ─────────────────────────────────────────────────▶ MariaDB
+                     │                                             (processUpload inline)
+                     └─◀── "OK!" (slow on high load rate)
+
+```
+</details>
+
 ### Standalone installation requirements:
 - PHP8.2+
 - php-mysql extension
