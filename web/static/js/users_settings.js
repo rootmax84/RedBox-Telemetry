@@ -60,6 +60,6 @@ function createChoices() {
 }
 
 $(document).ready(function () {
-    $("#lang").val(lang) || "en";
+    $("#lang").val(lang ?? "en");
     createChoices();
 });
