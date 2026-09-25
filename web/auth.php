@@ -5,12 +5,14 @@ if (empty($_COOKIE['stream'])) {
 
 require_once __DIR__ . '/src/creds.php';
 require_once __DIR__ . '/src/methods.php';
-require_once __DIR__ . '/src/db.php';
-allowMethods('HEAD', 'POST');
 
 if (file_exists('maintenance')) {
     http_response_code(307);
+    exit;
 }
+
+require_once __DIR__ . '/src/db.php';
+allowMethods('HEAD', 'POST');
 
 $newSessionSignalled = false;
 

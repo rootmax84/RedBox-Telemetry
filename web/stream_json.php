@@ -14,64 +14,80 @@
           "time": 1720767600011
         },
         ...
-      ],
+      ]
 */
 
 require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/methods.php';
 
-//Allow CORS
+// Allow CORS
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With,Authorization,Content-Type');
 header('Access-Control-Max-Age: 86400');
+header('Content-Type: application/json');
+header('Cache-Control: no-cache');
 
 allowMethods('GET');
 
-//Check if token header is present and non-empty then go to database
-$token = getBearerToken();
-if (!empty($token)) {
-
-    $_SESSION['torque_logged_in'] = true;
-    require_once __DIR__ . '/src/db.php';
-
-    header('Content-Type: application/json');
-    header('Cache-Control: no-cache');
-
-    $cache_key = "user_api_data_" . $token;
-    $user_data = false;
-
-    if ($memcached_connected) {
-        $user_data = $memcached->get($cache_key);
-    }
-
-    //Check auth via Bearer token
-    if ($user_data === false) {
-        $userqry = $db->execute_query("SELECT user, s, api_gps FROM $db_users WHERE token=?", [$token]);
-        if ($userqry->num_rows) {
-            $access = 1;
-            $user_data = $userqry->fetch_assoc();
-            if ($memcached_connected) {
-                try {
-                    $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
-                } catch (Exception $e) {
-                    error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
-                }
-            }
-        } else {
-            $access = 0;
-        }
-    }
-
-    if ($user_data) {
-        $user = $user_data["user"];
-        $limit = $user_data["s"];
-        $gps = $user_data["api_gps"];
-        $access = 1;
-    }
-} else {
-    $access = 0;
+// Maintenance check — before any DB or auth work
+if (file_exists('maintenance')) {
+    http_response_code(423);
+    echo json_encode(['error' => 'Server under maintenance']);
+    exit;
 }
 
+// Bearer token must be present
+$token = getBearerToken();
+if (empty($token)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied']);
+    exit;
+}
+
+$_SESSION['torque_logged_in'] = true;
+require_once __DIR__ . '/src/db.php';
+
+// Auth via Bearer token
+$cache_key = "user_api_data_" . $token;
+$user_data = false;
+
+if ($memcached_connected) {
+    $user_data = $memcached->get($cache_key);
+}
+
+if ($user_data === false) {
+    $userqry = $db->execute_query("SELECT user, s, api_gps FROM $db_users WHERE token=?", [$token]);
+    if ($userqry->num_rows) {
+        $user_data = $userqry->fetch_assoc();
+        if ($memcached_connected) {
+            try {
+                $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
+            } catch (Exception $e) {
+                error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+            }
+        }
+    }
+}
+
+$access = 0;
+if ($user_data) {
+    $user  = $user_data["user"];
+    $limit = $user_data["s"];
+    $gps   = $user_data["api_gps"];
+    $access = 1;
+}
+
+if ($access != 1 || $limit == 0) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied']);
+    exit;
+}
+
+$db_table          = $user . $db_log_prefix;
+$db_sessions_table = $user . $db_sessions_prefix;
+$db_pids_table     = $user . $db_pids_prefix;
+
+// Rate limit (only for valid users)
 $rate_limit_key = "api_rate_limit_" . $user;
 $max_api_requests_per_second = $max_api_requests_per_second ?? 10;
 
@@ -97,16 +113,6 @@ if ($memcached_connected) {
             }
         }
     }
-}
-
-if ($access != 1 || $limit == 0) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Access denied']);
-    exit;
-} else {
-    $db_table = $user.$db_log_prefix;
-    $db_sessions_table = $user.$db_sessions_prefix;
-    $db_pids_table = $user.$db_pids_prefix;
 }
 
 // Fetch the latest data record
@@ -173,43 +179,43 @@ if (!is_array($pids) && empty($pids)) {
 
 $pid = $des = $unit = [];
 foreach ($pids as $key) {
-    $pid[] = $key['id'];
-    $des[] = $key['description'];
+    $pid[]  = $key['id'];
+    $des[]  = $key['description'];
     $unit[] = $key['units'];
 }
 
 $unitMappings = [
-    'speed' => ['km to miles' => ['mph', 'miles'], 'miles to km' => ['km/h', 'km']],
-    'temp' => ['Celsius to Fahrenheit' => '°F', 'Fahrenheit to Celsius' => '°C'],
+    'speed'    => ['km to miles' => ['mph', 'miles'], 'miles to km' => ['km/h', 'km']],
+    'temp'     => ['Celsius to Fahrenheit' => '°F', 'Fahrenheit to Celsius' => '°C'],
     'pressure' => ['Psi to Bar' => 'Bar', 'Bar to Psi' => 'Psi'],
-    'boost' => ['Psi to Bar' => 'Bar', 'Bar to Psi' => 'Psi']
+    'boost'    => ['Psi to Bar' => 'Bar', 'Bar to Psi' => 'Psi']
 ];
 
 $data = [];
 $row = $r->fetch_assoc();
 
 for ($i = 0; $i < count($pid); $i++) {
-    $currentPid = $pid[$i];
-    $currentDes = $des[$i];
+    $currentPid  = $pid[$i];
+    $currentDes  = $des[$i];
     $currentUnit = $unit[$i];
 
-    $spd_unit = $unitMappings['speed'][$speed][0] ?? $currentUnit;
-    $trip_unit = $unitMappings['speed'][$speed][1] ?? $currentUnit;
-    $temp_unit = $unitMappings['temp'][$temp] ?? $currentUnit;
-    $press_unit = $unitMappings['pressure'][$pressure] ?? $currentUnit;
-    $boost_unit = $unitMappings['boost'][$boost] ?? $currentUnit;
+    $spd_unit   = $unitMappings['speed'][$speed][0]     ?? $currentUnit;
+    $trip_unit  = $unitMappings['speed'][$speed][1]     ?? $currentUnit;
+    $temp_unit  = $unitMappings['temp'][$temp]          ?? $currentUnit;
+    $press_unit = $unitMappings['pressure'][$pressure]  ?? $currentUnit;
+    $boost_unit = $unitMappings['boost'][$boost]        ?? $currentUnit;
 
     $value = $row[$currentPid] ?? '-';
 
     $formattedValue = formatValue($currentPid, $value, $currentDes, $speed, $temp, $pressure, $boost, $id);
-    $formattedUnit = formatUnit($currentPid, $currentDes, $spd_unit, $trip_unit, $temp_unit, $press_unit, $boost_unit, $currentUnit);
+    $formattedUnit  = formatUnit($currentPid, $currentDes, $spd_unit, $trip_unit, $temp_unit, $press_unit, $boost_unit, $currentUnit);
 
     $data[] = [
-        'id' => $currentPid,
+        'id'          => $currentPid,
         'description' => $currentDes,
-        'value' => (float) $formattedValue,
-        'unit' => $formattedUnit,
-        'time' => (int) $row['time']
+        'value'       => (float) $formattedValue,
+        'unit'        => $formattedUnit,
+        'time'        => (int) $row['time']
     ];
 }
 

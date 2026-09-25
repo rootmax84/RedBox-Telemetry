@@ -231,9 +231,6 @@ if (!empty($mergesession) && !empty($mergesess1)) {
                 if (!$number_of_result) {
             ?>
                 <h3 style='text-align:center' l10n="no.sess"></h3>
-                <script>
-                    document.getElementById('merge-btn').disabled = true;
-                </script>
             <?php } ?>
         </form>
         <div class="pages">
@@ -275,81 +272,15 @@ if (!empty($mergesession) && !empty($mergesess1)) {
             }
             ?>
     </div>
-        <script>
-            let total = 0;
-            $(document).ready(() => {
-                updateTotalDatapoints();
-
-                $(".session-checkbox").on("change", function() {
-                    updateTotalDatapoints();
-                });
-
-                function updateTotalDatapoints() {
-                    let sum = 0;
-                    $(".session-checkbox:checked").each(function() {
-                        sum += parseInt($(this).data("sessionsize"));
-                        total = sum;
-                    });
-                }
-
-                $("#merge-btn").on("click", (e) => {
-                    e.preventDefault();
-                    const checkedCount = $('input[type="checkbox"]:checked').length;
-                    if (checkedCount > 1) {
-                        mergeSession();
-                    } else {
-                        noSel();
-                    }
-                });
-                sortMergeDel();
-            });
-
-            function noSel() {
-             let dialogOpt = {
-                title: localization.key['dialog.confirm'],
-                btnClassSuccessText: "OK",
-                btnClassFail: "hidden",
-                message : localization.key['dialog.no.select']
-             };
-             redDialog.make(dialogOpt);
-            }
-
-            function mergeSession() {
-                const mergedSession = document.querySelector('input[type="checkbox"].session-checkbox[disabled]');
-                let msDate = "";
-                if (mergedSession) {
-                        const checkboxCell = mergedSession.closest('td');
-                        const nextCell = checkboxCell.nextElementSibling;
-                    if (nextCell) {
-                        msDate = nextCell.textContent.trim();
-                    } else {
-                        msDate = <?php echo $mergesession; ?>;
-                    }
-                }
-
-                if (!msDate.length) {
-                    serverError();
-                    return;
-                }
-
-                let maximum = <?php echo isset($merge_max) ? $merge_max : 50000; ?>;
-                let oversize = total > maximum;
-                let dialogOpt = {
-                    title : oversize ? localization.key['dialog.merge.big.title'] : localization.key['dialog.confirm'],
-                    message: oversize ? `${localization.key['dialog.merge.big.msg']} ${maximum/1000}k ${localization.key['dialog.merge.big.datapoints']}<br>${localization.key['dialog.merge.big.sel']} ${total/1000}k` : `${localization.key['dialog.merge.sessions']} (${msDate})?`,
-                    btnClassSuccessText: oversize ? "OK" : localization.key['btn.yes'],
-                    btnClassFailText: localization.key['btn.no'],
-                    btnClassFail: oversize ? "hidden" : "btn btn-info btn-sm",
-                    onResolve: function() {
-                        if (!oversize) {
-                            $("#wait_layout").show();
-                            document.getElementById("formmerge").submit();
-                        }
-                    }
-                };
-                redDialog.make(dialogOpt);
-            }
-        </script>
+    </div>
+    <script>
+    window.MERGE_CONFIG = <?php echo json_encode([
+        'mergesession' => (int)$mergesession,
+        'mergeMax'     => isset($merge_max) ? (int)$merge_max : 50000,
+        'noSessions'   => !$number_of_result,
+    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    </script>
+    <script src="<?php echo version_url('static/js/merge_sessions.js'); ?>"></script>
     </body>
 </html>
 <?php

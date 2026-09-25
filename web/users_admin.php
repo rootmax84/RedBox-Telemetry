@@ -87,7 +87,7 @@ include_once __DIR__ . '/src/head.php';
         </button>
       </li>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('./adminer.php?mysql=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('./adminer.php?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
           <span class="icon" id="adminer-img"></span>
           Adminer
         </button>
@@ -157,38 +157,6 @@ elseif ($_GET['action'] == "trunc") {
 
  </form>
 </div>
-
-<script>
-"use strict";
-function submitForm(el) {
-  const submitBtn = el.querySelector('button[type="submit"]');
-
-  if (submitBtn.disabled) {
-    return false;
-  }
-
-  submitBtn.disabled = true;
-
-  fetch(el.getAttribute("action"), {
-    method: el.method,
-    body: new FormData(el)
-  })
-  .then(response => response.text())
-  .then(responseText => {
-    xhrResponse(responseText);
-    setTimeout(() => {
-      submitBtn.disabled = false;
-    }, 1000);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    setTimeout(() => {
-      submitBtn.disabled = false;
-    }, 1000);
-  });
-
-  return false;
-}
-</script>
+<script src="<?php echo version_url('static/js/users_admin.js'); ?>"></script>
 </body>
 </html>

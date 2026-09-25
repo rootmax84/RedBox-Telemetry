@@ -1,26 +1,18 @@
+<?php
+require_once __DIR__ . '/helpers.php';
+
+// Extract cache-busting timestamp for localStorage key
+preg_match('/\d+/', version_url('translations.php'), $l10n_match);
+$l10n_time = $l10n_match[0] ?? '';
+
+// Username for document.title (skip admin)
+$head_username = (isset($username) && isset($admin) && $username != $admin)
+    ? $username
+    : '';
+?>
 <!DOCTYPE html>
 <html>
 <head>
-<?php require_once __DIR__ . '/helpers.php';
-
-function version_url($url) {
-    // If file exists use it modify time
-    $file_path = $_SERVER['DOCUMENT_ROOT'] . '/' . parse_url($url, PHP_URL_PATH);
-    if (file_exists($file_path)) {
-        $timestamp = filemtime($file_path);
-    } else {
-        // otherwise use container start time or current time
-        if (file_exists('/proc/1/stat')) {
-            $timestamp = filemtime('/proc/1/stat'); // Container start timr
-        } else {
-            $timestamp = time(); // Current time
-        }
-    }
-
-    // Add v param to url
-    return $url . (strpos($url, '?') !== false ? '&' : '?') . 'v=' . $timestamp;
-}
- ?>
 <script src="<?php echo version_url('static/js/localization.js'); ?>"></script>
 <meta property="og:title" content="RedBox Telemetry">
 <meta property="og:type" content="website">
@@ -62,125 +54,16 @@ function version_url($url) {
 <script src="<?php echo version_url('static/js/coords.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/nosleep.js'); ?>"></script>
 <script>
-    const l10n_time = "<?php preg_match('/\d+/', version_url('translations.php'), $m); echo $m[0]; ?>";
-    const l10n_saved = localStorage.getItem('l10n_time');
-
-    $(document).ready(function() {
-
-     localization = new Localization();
-     if (l10n_saved !== l10n_time) {
-        localization.clearCache();
-        localization.loadTranslations();
-        localStorage.setItem('l10n_time', l10n_time);
-     }
-     fetch(`translations.php?lang=${lang}`);
-
-     const visitortimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-     fetch("timezone.php?time=" + visitortimezone);
-      $("#theme-switch").click( function() {
-       toggle_dark();
-     });
-      let btn = $('#top-btn');
-      $(window).scroll(function() {
-       if ($(window).scrollTop() > 1000) {
-         btn.addClass('show');
-       } else {
-         btn.removeClass('show');
-       }
-     });
-
-     btn.on('click', function(e) {
-       e.preventDefault();
-       $('html, body').animate({scrollTop:0}, 500);
-     });
-
-    $(".navbar-brand").click(()=> {
-        $("#wait_layout").show();
-    });
-
-    $("#wait_layout").hide();
-    <?php if (!file_exists('maintenance') && isset($_SESSION['torque_user']) && !isset($_SESSION['admin'])) { ?> auth(); <?php } ?>
-    });
-
-function addCsrfTokenToForms() {
-    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    document.querySelectorAll('form').forEach(form => {
-        let input = form.querySelector('input[name="csrf_token"]');
-        if (input) {
-            input.value = token;
-        } else {
-            input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'csrf_token';
-            input.value = token;
-            form.appendChild(input);
-        }
-    });
-}
-
-<?php if (isset($_SESSION['torque_user'])) {?>
-function checkCSRFToken() {
-    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-    const expiryMeta = document.querySelector('meta[name="csrf-token-expiry"]');
-    const currentTime = Math.floor(Date.now() / 1000);
-
-    if (tokenMeta && expiryMeta) {
-        const expiryTime = parseInt(expiryMeta.content);
-
-        if (currentTime > expiryTime + 60) {
-                fetch('auth.php', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'update-csrf-token' })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    tokenMeta.content = data.token;
-                    expiryMeta.content = data.expiry;
-                    addCsrfTokenToForms();
-                    console.log('CSRF token updated');
-                })
-                .catch(error => console.error('Error updating CSRF token:', error));
-        }
-    }
-}
-setInterval(checkCSRFToken, 60000);
-<?php } ?>
-
-document.addEventListener('DOMContentLoaded', addCsrfTokenToForms);
-
-function auth() {
-  fetch("auth.php", {method: "HEAD"})
-    .then(resp => {
-        switch(resp.status) {
-            case 200:
-                $("#offline_layout").hide();
-                if (!$('#redDialogOverLay').length) {
-                    document.documentElement.style.overflow = '';
-                }
-            break;
-            case 401:
-                location.href='.?logout=true';
-            break;
-            case 307:
-                location.href='maintenance.php';
-            break;
-            default:
-                throw new Error('offline');
-            break;
-        }
-    }).catch(() => {
-        $("#offline_layout").show()
-        document.documentElement.style.overflow = 'hidden';
-    }).finally(() => setTimeout(auth, 5000));
-}
-
-const username = "<?php if (isset($username) && $username != $admin) echo $username; ?>";
-if (username.trim() !== "") {
-    document.title += ` - ${username}`;
-}
+window.HEAD_CONFIG = <?php echo json_encode([
+    'l10nTime'   => $l10n_time,
+    'username'   => $head_username,
+    'torqueUser' => isset($_SESSION['torque_user']),
+    'authPoll'   => !file_exists('maintenance')
+                    && isset($_SESSION['torque_user'])
+                    && !isset($_SESSION['admin']),
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 </script>
+<script src="<?php echo version_url('static/js/head.js'); ?>"></script>
 <script src="<?php echo version_url('static/js/helpers.js'); ?>"></script>
 <?php if (isset($_SESSION['torque_user'])) {?>
 <a id="top-btn"></a>

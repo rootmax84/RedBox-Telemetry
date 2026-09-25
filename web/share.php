@@ -147,107 +147,6 @@ include_once __DIR__ . '/src/head.php';
     <script src="<?php echo version_url('static/js/jquery.flot.resize.js'); ?>"></script>
     <script src="<?php echo version_url('static/js/Control.FullScreen.js'); ?>"></script>
     
-    <!-- Configure Jquery Flot graph and plot code -->
-    <script>
-        let streamBtn_svg = null
-        let stream = false;
-        sid = '<?php echo htmlspecialchars($session_id); ?>';
-        uid = '<?php echo htmlspecialchars($uid); ?>';
-        sig = '<?php echo htmlspecialchars($sig); ?>';
-        
-        $(document).ready(function(){
-            if (!document.getElementById('plot_data')) return;
-
-            let plotData = $('#plot_data');
-            let lastValue = plotData.val() || [];
-
-            let debounceTimer;
-            function handleChange() {
-                const newValue = plotDataChoices.getValue(true) || [];
-                if (JSON.stringify(newValue) !== JSON.stringify(lastValue)) {
-                    lastValue = newValue;
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
-                        updCharts();
-                    }, 1500);
-                }
-            }
-
-            const observer = new MutationObserver((mutations) => {
-                if (!lastValue.length && $('#placeholder')[0] != undefined) {
-                    updCharts();
-                }
-            });
-
-            const targetNode = $('#right-container')[0];
-
-            if (targetNode) {
-                observer.observe(targetNode, {childList: true, subtree: true});
-            }
-
-            plotDataChoices = new Choices('#plot_data', {
-                removeItemButton: true,
-                placeholder: true,
-                shouldSort: false,
-                itemSelectText: null,
-                maxItemCount: 10,
-                maxItemText: (maxItemCount) => {
-                return `${localization.key['overdata']} ${maxItemCount}`;
-                },
-                noResultsText: localization.key['vars.nores'] || 'Oops, nothing found!',
-                placeholderValue: localization.key['vars.placeholder'] || 'Choose data...',
-                classNames: {
-                    containerInner: ['choices__inner', 'choices__inner__plot'],
-                },
-            });
-
-            plotData.on('change', handleChange);
-            updCharts();
-            $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
-            resizeSplitter();
-
-            const langSwitch = document.getElementById('lang-switch');
-            const selectedLang = document.getElementById('selected-lang');
-            const langOptions = document.getElementById('lang-options');
-
-            function closeDropdown() {
-                langOptions.classList.remove('show');
-            }
-
-            selectedLang.addEventListener('click', function(event) {
-                event.stopPropagation();
-                if (langOptions.classList.contains('show')) {
-                  closeDropdown();
-                } else {
-                  langOptions.classList.add('show');
-                }
-            });
-
-            langOptions.querySelectorAll('li').forEach(option => {
-                option.addEventListener('click', function() {
-                  const selectedValue = this.getAttribute('data-value');
-                  const selectedText = this.textContent;
-                  closeDropdown();
-
-                  fetch(`translations.php?lang=${selectedValue}`)
-                    .then(() => {
-                        localization.setLang(selectedValue);
-                        location.reload();
-                    })
-                    .catch(error => {
-                      console.error('Error:', error);
-                    });
-                });
-            });
-
-            document.addEventListener('click', function(event) {
-                if (!langSwitch.contains(event.target)) {
-                  closeDropdown();
-                }
-            });
-        });
-    </script>
-    
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <div class="fetch-data"></div>
         <div class="container">
@@ -320,10 +219,6 @@ include_once __DIR__ . '/src/head.php';
             </div>
 
             <!-- slider -->
-            <script>
-                jsTimeMap = [<?php echo $itime; ?>].reverse(); //Session time array, reversed for silder
-                initSlider(jsTimeMap,jsTimeMap[0],jsTimeMap.at(-1));
-            </script>
             <div class="slider-container">
               <input type="text" id="slider-time" readonly>
               <div id="slider-range11"></div>
@@ -341,89 +236,15 @@ include_once __DIR__ . '/src/head.php';
             </div>
         <?php } ?>
     </div>
-    
-    <?php if(!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
-        <script>
-            const rawPath = [<?php echo $imapdata; ?>];
-
-            if (!rawPath.length) {
-                $('#map-div').hide();
-             } else {
-                const coordsOnly = rawPath.map(p => [p[0], p[1]]);
-                let validSegmentsWithIndices = extractValidSegmentsWithIndices(coordsOnly, {
-                    minPoints: Math.trunc(rawPath.length * 0.05)
-                });
-
-                if (!validSegmentsWithIndices.length) {
-                    const fallbackPoints = rawPath
-                        .map((p, idx) => ({
-                            coord: [p[0], p[1]],
-                            index: idx
-                        }))
-                        .filter(item => item.coord[0] !== 0 || item.coord[1] !== 0);
-
-                    if (fallbackPoints.length) {
-                        validSegmentsWithIndices = [fallbackPoints];
-                    }
-                }
-
-                const segmentsCoords = validSegmentsWithIndices.map(seg => seg.map(p => p.coord));
-                const flatCoords = segmentsCoords.flat();
-                const flatIndices = validSegmentsWithIndices.flat().map(p => p.index);
-
-                window.MapData = {
-                    segmentsCoords,
-                    segmentsIndices: validSegmentsWithIndices,
-                    flatCoords,
-                    flatIndices
-                };
-
-                window.MapData.rawPathLength = rawPath.length;
-
-                const origHeading = {};
-                rawPath.forEach((point, idx) => {
-                    if (point.length >= 3) {
-                        origHeading[idx] = point[2];
-                    }
-                });
-                window.MapData.origHeading = origHeading;
-
-                const origToFlat = {};
-                window.MapData.segmentsIndices.flat().forEach(({ index }) => {
-                    if (index >= 0 && !(index in origToFlat)) {
-                        origToFlat[index] = window.MapData.flatIndices.indexOf(index);
-                    }
-                });
-                window.MapData.origToFlat = origToFlat;
-
-                window.chartRangeStart = 0;
-                window.chartRangeEnd = 0;
-
-                initMap = initMapLeaflet;
-
-                const checkTranslationsCache = () => {
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const key = localStorage.key(i);
-                        if (key.startsWith('translations-cache-')) {
-                            return true;
-                        }
-                    }
-                    return false;
-                };
-
-                const initMapLogic = () => {
-                    jsCBinitMap = () => $(document).ready(initMap);
-                    jsCBinitMap();
-                };
-
-                const intervalId = setInterval(() => {
-                    if (checkTranslationsCache()) {
-                        clearInterval(intervalId);
-                        initMapLogic();
-                    }
-                }, 100);
-             }
-        </script>
-    <?php } ?>
+<script>
+window.SHARE_CONFIG = <?php echo json_encode([
+    'sessionId' => $session_id ?? '',
+    'uid'       => $uid ?? '',
+    'sig'       => $sig ?? '',
+    'itime'     => $itime ?? '',
+    'imapdata'  => $imapdata ?? '',
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+</script>
+<script src="<?php echo version_url('static/js/share.js'); ?>"></script>
 </body>
 </html>

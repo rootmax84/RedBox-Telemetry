@@ -712,3 +712,27 @@ function map(float $x, float $in_min, float $in_max, float $out_min, float $out_
         ? max($out_min, min($out_max, $result))
         : max($out_max, min($out_min, $result));
 }
+
+/**
+ * Add a cache-busting version parameter to a URL.
+ *
+ * Uses file mtime when the file exists, otherwise container start time,
+ * otherwise current time.
+ */
+function version_url(string $url): string {
+    // If file exists use its mtime
+    $file_path = $_SERVER['DOCUMENT_ROOT'] . '/' . parse_url($url, PHP_URL_PATH);
+    if (file_exists($file_path)) {
+        $timestamp = filemtime($file_path);
+    } else {
+        // otherwise use container start time or current time
+        if (file_exists('/proc/1/stat')) {
+            $timestamp = filemtime('/proc/1/stat');
+        } else {
+            $timestamp = time();
+        }
+    }
+
+    // Add v param to url
+    return $url . (strpos($url, '?') !== false ? '&' : '?') . 'v=' . $timestamp;
+}
