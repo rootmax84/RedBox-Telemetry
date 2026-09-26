@@ -228,6 +228,13 @@ function uploadLogDialog() {
         }
     });
 
+    function appendLogListItem(text) {
+        const li = document.createElement('li');
+        li.style.fontFamily = 'monospace';
+        li.textContent = text;
+        log_list.appendChild(li);
+    }
+
     document.getElementById('redDialogWrap').style.width = 'auto';
 
     const dropArea = document.getElementById('log');
@@ -417,7 +424,7 @@ function uploadLogDialog() {
                     msg_err.innerHTML = localization.key['import.broken.label'];
                     msg_ok.innerHTML = "";
                     up_btn.hide();
-                    log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${localization.key['import.broken.el']}</li>`;
+                    appendLogListItem(` ${file.name} ${localization.key['import.broken.el']}`);
                     return;
                 }
 
@@ -434,13 +441,13 @@ function uploadLogDialog() {
                 });
 
                 const typeLabel = logType === 'redlog' ? ' [RedManage]' : ' [Torque]';
-                log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${dateStr} ${typeLabel}</li>`;
+                appendLogListItem(` ${file.name} ${dateStr} ${typeLabel}`);
             } catch (e) {
                 msg_def.innerHTML = "";
                 msg_err.innerHTML = localization.key['import.broken.label'];
                 msg_ok.innerHTML = "";
                 up_btn.hide();
-                log_list.innerHTML += `<li style='font-family:monospace'> ${file.name} ${localization.key['import.broken.el']}</li>`;
+                appendLogListItem(` ${file.name} ${localization.key['import.broken.el']}`);
             }
         });
 
