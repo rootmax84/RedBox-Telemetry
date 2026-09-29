@@ -15,7 +15,10 @@
 // ────────────────────────────────────────────────────────────
 // CLI bootstrap
 // ────────────────────────────────────────────────────────────
-$_SESSION = ['torque_logged_in' => true];
+$_SESSION = [
+    'torque_logged_in' => true,
+    'admin'            => true,
+];
 $_SERVER['SCRIPT_FILENAME'] = __FILE__;
 $_SERVER['REQUEST_METHOD']  = 'CLI';
 

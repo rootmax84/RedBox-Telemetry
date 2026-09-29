@@ -62,7 +62,10 @@ if (isset($_GET['logout'])) {
     logout_user();
 }
 
-if (file_exists('maintenance') && !isset($_SESSION['admin'])) {
+if (PHP_SAPI !== 'cli'
+    && file_exists('maintenance')
+    && !isset($_SESSION['admin'])
+) {
     header("Refresh:0; url=maintenance.php");
     exit;
 }
