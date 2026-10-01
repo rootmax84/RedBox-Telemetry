@@ -17,39 +17,52 @@ $filtermonth = ($filtermonth === "ALL") ? "%" : $filtermonth;
 $filterprofile = getFilterValue("selprofile", "profile", "%%");
 $filterprofile = ($filterprofile === "ALL") ? "%%" : $filterprofile;
 
-$query = "SELECT time, timeend, session, profileName, ip, favorite
-          FROM sessions
-          WHERE user_id = ?";
-
+/* ─── Собираем фильтры отдельно ─── */
+$filter_conditions = [];
 $params = [current_user_id()];
 $types  = "i";
 
 // year filter
 if ($filteryear !== "%") {
-    $query .= " AND YEAR(FROM_UNIXTIME(session / 1000)) LIKE ?";
+    $filter_conditions[] = "YEAR(FROM_UNIXTIME(session / 1000)) LIKE ?";
     $params[] = $filteryear;
     $types .= "s";
 }
 
 // month filter
 if ($filtermonth !== "%") {
-    $query .= " AND MONTHNAME(FROM_UNIXTIME(session / 1000)) LIKE ?";
+    $filter_conditions[] = "MONTHNAME(FROM_UNIXTIME(session / 1000)) LIKE ?";
     $params[] = $filtermonth;
     $types .= "s";
 }
 
 // profile filter
 if ($filterprofile !== "%%") {
-    $query .= " AND profileName LIKE ?";
+    $filter_conditions[] = "profileName LIKE ?";
     $params[] = $filterprofile;
     $types .= "s";
 }
 
-// session id filter if presence
-if (isset($_GET['id'])) {
-    $query .= " AND session LIKE ?";
-    $params[] = $_GET['id'];
+$current_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+$query = "SELECT time, timeend, session, profileName, ip, favorite
+          FROM sessions
+          WHERE user_id = ?";
+
+/* ─── Если выбрана конкретная сессия — добавляем её к списку, ───
+ *     даже если она не попадает под фильтр года/месяца/профиля. ─── */
+if ($current_id > 0) {
+    $filter_sql = !empty($filter_conditions)
+        ? "(" . implode(" AND ", $filter_conditions) . ")"
+        : "1=1";
+
+    $query .= " AND ($filter_sql OR session = ?)";
+    $params[] = $current_id;
     $types .= "s";
+} else {
+    if (!empty($filter_conditions)) {
+        $query .= " AND " . implode(" AND ", $filter_conditions);
+    }
 }
 
 // Sort and group

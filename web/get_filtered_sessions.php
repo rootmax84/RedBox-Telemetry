@@ -17,7 +17,7 @@ if ($filteryear === "ALL" || $filteryear === "") $filteryear = "%";
 if ($filtermonth === "ALL" || $filtermonth === "") $filtermonth = "%";
 if ($filterprofile === "ALL" || $filterprofile === "") $filterprofile = "%%";
 
-$current_id = $_GET['current_id'] ?? '';
+$current_id = isset($_GET['current_id']) ? (int)$_GET['current_id'] : 0;
 
 $query = "SELECT time, timeend, session, profileName, ip, favorite
           FROM sessions
@@ -92,7 +92,7 @@ while ($row = $sessionqry->fetch_assoc()) {
         'ip' => $row["ip"],
         'active' => $session_active,
         'favorite' => (int)$row["favorite"],
-        'selected' => $current_id == $sid
+        'selected' => $current_id > 0 && (int)$sid === $current_id
     ];
 }
 
