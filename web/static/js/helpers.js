@@ -55,7 +55,6 @@ $(document).ready(function(){
     }
   }, 5000);
 
-  //new session notify
   function checkNewSession() {
     if (Cookies.get('newsess') !== undefined) {
         $('.new-session').css('display','block');
@@ -66,6 +65,11 @@ $(document).ready(function(){
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
         checkNewSession();
+        if (typeof syncUserTasksFromServer === 'function'
+            && typeof l10n_loaded !== 'undefined'
+            && l10n_loaded) {
+            syncUserTasksFromServer();
+        }
     }
   });
 
@@ -75,18 +79,6 @@ $(document).ready(function(){
 
   document.querySelectorAll('.clear-input__btn, .password-toggle__btn').forEach(el => {
     el.setAttribute('tabindex', '-1');
-  });
-
-  $(document).ready(resumePendingHeavyTasks);
-  syncUserTasksFromServer();
-  setInterval(syncUserTasksFromServer, 5000);
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        syncUserTasksFromServer();
-    }
-  });
-  document.addEventListener('l10n:loaded', function () {
-    heavyIndicatorUpdate();
   });
 });
 
@@ -3037,6 +3029,51 @@ function syncUserTasksFromServer() {
         heavySyncInFlight = false;
     });
 }
+
+/* ────────────────────────────────────────────────────────────
+ * Heavy tasks: bootstrap (localStorage resume + server sync)
+ *
+ * Запускается только после готовности переводов, чтобы индикатор
+ * сразу получил правильный язык.
+ * ──────────────────────────────────────────────────────────── */
+
+function heavyBootstrap() {
+    if (typeof HEAD_CONFIG === 'undefined' || !HEAD_CONFIG.torqueUser) {
+        return;   // login-страница и т.п.
+    }
+
+    // 1. Подхватить задачи, начатые в этом браузере до reload
+    if (typeof resumePendingHeavyTasks === 'function') {
+        resumePendingHeavyTasks();
+    }
+
+    // 2. Синхронизация со сервером — обнаруживает задачи из других браузеров
+    if (typeof syncUserTasksFromServer === 'function') {
+        syncUserTasksFromServer();
+        setInterval(syncUserTasksFromServer, 5000);
+    }
+
+    // 3. Перерисовка индикатора при догрузке/смене языка
+    document.addEventListener('l10n:loaded', function () {
+        if (typeof heavyIndicatorUpdate === 'function') {
+            heavyIndicatorUpdate();
+        }
+    });
+}
+
+$(document).ready(function () {
+    // Ждём l10n_loaded
+    if (typeof l10n_loaded !== 'undefined' && l10n_loaded) {
+        heavyBootstrap();
+    } else {
+        const iv = setInterval(() => {
+            if (typeof l10n_loaded !== 'undefined' && l10n_loaded) {
+                clearInterval(iv);
+                heavyBootstrap();
+            }
+        }, 200);
+    }
+});
 
 let redDialog = {
     options: {
