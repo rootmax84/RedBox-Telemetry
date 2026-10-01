@@ -110,8 +110,9 @@ services:
     #Consumes telemetry uploads from Redis Streams and persists them to MariaDB
     worker:
         build: docker/web
-        container_name: ratel_worker
         command: ["php", "worker.php"]
+        deploy:
+          replicas: 2
         working_dir: /var/www/html
         volumes:
             - ./web:/var/www/html:ro

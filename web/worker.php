@@ -1,15 +1,16 @@
 #!/usr/bin/env php
 <?php
 /**
- * Redis Streams consumer for telemetry uploads.
+ * Redis Streams consumer — телеметрия + тяжёлые задачи в одном воркере.
  *
- * Supports single-worker and multi-worker (horizontal scaling) modes.
- * Run as a long-running process under systemd / supervisord / docker.
+ * Обслуживает два стрима одним блокирующим XREADGROUP:
+ *   - $redis_stream_key       (telemetry:uploads)   — обычные аплоады
+ *   - $redis_heavy_stream_key (ratel:heavy_tasks)   — удаление сессий/юзера
+ *
+ * Оба стрима используют одну consumer group ($redis_stream_group).
+ * Масштабируется как раньше: docker compose up -d --scale worker=N
  *
  *   php worker.php
- *
- * Multi-worker with docker compose:
- *   docker compose up -d --scale worker=3
  */
 
 // ────────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@
 // ────────────────────────────────────────────────────────────
 $_SESSION = [
     'torque_logged_in' => true,
-    'admin'            => true,   // CLI-процесс не должен блокироваться maintenance
+    'admin'            => true,
 ];
 $_SERVER['SCRIPT_FILENAME'] = __FILE__;
 $_SERVER['REQUEST_METHOD']  = 'CLI';
@@ -26,18 +27,22 @@ require_once __DIR__ . '/src/redis.php';
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/translations.php';
 require_once __DIR__ . '/src/upload_processor.php';
+require_once __DIR__ . '/src/heavy_tasks.php';
 
 // ────────────────────────────────────────────────────────────
 // Config
 // ────────────────────────────────────────────────────────────
 $stream          = $redis_stream_key   ?? 'telemetry:uploads';
 $group           = $redis_stream_group ?? 'telemetry-workers';
+$heavyStream     = $redis_heavy_stream_key ?? 'ratel:heavy_tasks';
+$heavyEnabled    = !empty($heavy_tasks_enabled);
 $blockMs         = 5000;    // XREADGROUP blocking timeout (ms)
 $batchSize       = 20;      // messages per XREADGROUP call
 $reclaimMinIdle  = 60000;   // 60 sec — "stale" threshold for XAUTOCLAIM
 $reclaimBatch    = 10;      // messages per XAUTOCLAIM call
 $statsEvery      = 60;      // seconds between stats log lines
 $redisRetryDelay = 5;       // seconds between Redis reconnect attempts
+$heartbeatTtl    = 120;     // TTL heartbeat-ключа, сек
 
 // ────────────────────────────────────────────────────────────
 // Early exit if Redis is disabled in creds.php
@@ -90,14 +95,41 @@ function worker_connect_redis(): ?Redis
 }
 
 // ────────────────────────────────────────────────────────────
+// Список стримов, которые обслуживает воркер
+// ────────────────────────────────────────────────────────────
+$pollStreams = [$stream];
+if ($heavyEnabled && $heavyStream !== $stream) {
+    $pollStreams[] = $heavyStream;
+}
+
+// ────────────────────────────────────────────────────────────
 // Consumer name: unique per container/process
 // ────────────────────────────────────────────────────────────
 $consumer = gethostname() . '-' . getmypid();
 
 fwrite(STDOUT, sprintf(
-    "[worker] starting consumer=%s stream=%s group=%s\n",
-    $consumer, $stream, $group
+    "[worker] starting consumer=%s streams=[%s] group=%s\n",
+    $consumer, implode(', ', $pollStreams), $group
 ));
+
+// ────────────────────────────────────────────────────────────
+// Heartbeat callback
+//
+// Пока воркер жив, ключ worker:hb:<consumer> обновляется:
+//   - в начале каждой итерации главного цикла
+//   - на каждом чанке тяжёлого удаления (через heavy_tasks.php)
+// Админка считает живых воркеров по этим ключам, что устраняет
+// ложный "Workers: 0" во время долгих задач.
+// ────────────────────────────────────────────────────────────
+$GLOBALS['worker_heartbeat_cb'] = function () use (&$redis, $consumer, $heartbeatTtl) {
+    if ($redis instanceof Redis && $consumer !== '') {
+        try {
+            $redis->set("worker:hb:{$consumer}", (string)time(), ['EX' => (int)$heartbeatTtl]);
+        } catch (Throwable $e) {
+            /* не роняем воркер из-за heartbeat */
+        }
+    }
+};
 
 // ────────────────────────────────────────────────────────────
 // Connect to Redis (retry until success)
@@ -114,34 +146,40 @@ while ($redis === null) {
     }
 }
 
+// Первичный heartbeat сразу после подключения
+($GLOBALS['worker_heartbeat_cb'])();
+
 // ────────────────────────────────────────────────────────────
-// Ensure consumer group exists (idempotent) + log state
+// Ensure consumer groups exist for all streams (idempotent)
 // ────────────────────────────────────────────────────────────
-try {
-    $redis->xGroup('CREATE', $stream, $group, '0', true);
-    fwrite(STDOUT, "[worker] consumer group created\n");
-} catch (RedisException $e) {
-    if (strpos($e->getMessage(), 'BUSYGROUP') === false) {
-        throw $e;
-    }
+foreach ($pollStreams as $sKey) {
     try {
-        $info = $redis->xInfo('GROUPS', $stream);
-        if (is_array($info)) {
-            foreach ($info as $g) {
-                if (($g['name'] ?? null) === $group) {
-                    fwrite(STDOUT, sprintf(
-                        "[worker] group exists: consumers=%d pending=%d lag=%d last-delivered-id=%s\n",
-                        (int)($g['consumers'] ?? 0),
-                        (int)($g['pending'] ?? 0),
-                        (int)($g['lag'] ?? 0),
-                        $g['last-delivered-id'] ?? '?'
-                    ));
-                    break;
+        $redis->xGroup('CREATE', $sKey, $group, '0', true);
+        fwrite(STDOUT, "[worker] consumer group created for {$sKey}\n");
+    } catch (RedisException $e) {
+        if (strpos($e->getMessage(), 'BUSYGROUP') === false) {
+            throw $e;
+        }
+        try {
+            $info = $redis->xInfo('GROUPS', $sKey);
+            if (is_array($info)) {
+                foreach ($info as $g) {
+                    if (($g['name'] ?? null) === $group) {
+                        fwrite(STDOUT, sprintf(
+                            "[worker] group exists on %s: consumers=%d pending=%d lag=%d last-delivered-id=%s\n",
+                            $sKey,
+                            (int)($g['consumers'] ?? 0),
+                            (int)($g['pending']   ?? 0),
+                            (int)($g['lag']       ?? 0),
+                            $g['last-delivered-id'] ?? '?'
+                        ));
+                        break;
+                    }
                 }
             }
+        } catch (Throwable $e2) {
+            error_log("[worker] xInfo({$sKey}) failed: " . $e2->getMessage());
         }
-    } catch (Throwable $e2) {
-        error_log('[worker] xInfo failed: ' . $e2->getMessage());
     }
 }
 
@@ -182,31 +220,117 @@ while ($running) {
         fwrite(STDOUT, "[worker] Redis reconnected\n");
     }
 
+    // Обновляем heartbeat — мы живы
+    ($GLOBALS['worker_heartbeat_cb'])();
+
     // ─── Reclaim stale pending messages (XAUTOCLAIM) ───
-    // Runs every iteration; harmless in single-worker mode.
-    // Reclaims messages that a dead (or restarted) consumer
-    // left unacknowledged in PEL for > $reclaimMinIdle ms.
+    // XAUTOCLAIM принимает один ключ — идём циклом по всем стримам.
+    foreach ($pollStreams as $sKey) {
+        $dbLost = false;
+
+        try {
+            $claimed = $redis->xAutoClaim(
+                $sKey, $group, $consumer,
+                $reclaimMinIdle, '0-0', $reclaimBatch
+            );
+
+            if (!empty($claimed) && is_array($claimed)
+                && !empty($claimed[1]) && is_array($claimed[1])) {
+
+                foreach ($claimed[1] as $id => $fields) {
+                    try {
+                        worker_dispatch($db, $sKey, $fields, $redis);
+                        $redis->xAck($sKey, $group, [$id]);
+                        $processedCount++;
+                        fwrite(STDOUT, "[worker] reclaimed {$sKey}/{$id}\n");
+                    } catch (mysqli_sql_exception $e) {
+                        $errno = (int)$e->getCode();
+                        if (in_array($errno, [2002, 2003, 2006, 2013, 1927, 1040], true)) {
+                            error_log(sprintf(
+                                '[worker] DB connection lost (%d) while reclaiming %s/%s',
+                                $errno, $sKey, $id
+                            ));
+                            try {
+                                $db = worker_reconnect_db($db);
+                                error_log('[worker] DB reconnected');
+                            } catch (Throwable $re) {
+                                error_log('[worker] DB reconnect failed: ' . $re->getMessage());
+                                sleep(5);
+                            }
+                            $dbLost = true;
+                            break;
+                        }
+                        error_log(sprintf(
+                            '[worker] reclaimed %s/%s SQL error (%d): %s',
+                            $sKey, $id, $errno, $e->getMessage()
+                        ));
+                        $redis->xAck($sKey, $group, [$id]);
+                    } catch (Throwable $e) {
+                        error_log(sprintf(
+                            '[worker] reclaimed %s/%s failed: %s',
+                            $sKey, $id, $e->getMessage()
+                        ));
+                        $redis->xAck($sKey, $group, [$id]);
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            error_log("[worker] XAUTOCLAIM({$sKey}) error: " . $e->getMessage());
+            if (preg_match('/read error|went away|Connection/i', $e->getMessage())) {
+                $redis = null;
+                break;
+            }
+        }
+
+        if ($dbLost || $redis === null) {
+            break;
+        }
+    }
+
+    if ($redis === null) {
+        continue;
+    }
+
+    // ─── Read new messages из всех стримов одним вызовом ───
+    $readKeys = [];
+    foreach ($pollStreams as $sKey) {
+        $readKeys[$sKey] = '>';
+    }
+
     try {
-        $claimed = $redis->xAutoClaim(
-            $stream, $group, $consumer,
-            $reclaimMinIdle, '0-0', $reclaimBatch
+        $messages = $redis->xReadGroup(
+            $group, $consumer,
+            $readKeys,
+            $batchSize, $blockMs
         );
+    } catch (Throwable $e) {
+        error_log('[worker] XREADGROUP error: ' . $e->getMessage());
+        if (preg_match('/read error|went away|Connection/i', $e->getMessage())) {
+            $redis = null;
+            continue;
+        }
+        sleep(2);
+        continue;
+    }
 
-        if (!empty($claimed) && is_array($claimed)
-            && !empty($claimed[1]) && is_array($claimed[1])) {
+    if ($messages && is_array($messages)) {
+        foreach ($messages as $sKey => $items) {
+            if (!is_array($items)) continue;
 
-            foreach ($claimed[1] as $id => $fields) {
+            $breakOuter = false;
+
+            foreach ($items as $id => $fields) {
+                $retry = false;
+
                 try {
-                    processStreamMessage($db, $fields);
-                    $redis->xAck($stream, $group, [$id]);
+                    worker_dispatch($db, $sKey, $fields, $redis);
                     $processedCount++;
-                    fwrite(STDOUT, "[worker] reclaimed {$id}\n");
                 } catch (mysqli_sql_exception $e) {
                     $errno = (int)$e->getCode();
                     if (in_array($errno, [2002, 2003, 2006, 2013, 1927, 1040], true)) {
                         error_log(sprintf(
-                            '[worker] DB connection lost (%d) while reclaiming %s',
-                            $errno, $id
+                            '[worker] DB connection lost (%d: %s); message %s/%s left pending',
+                            $errno, $e->getMessage(), $sKey, $id
                         ));
                         try {
                             $db = worker_reconnect_db($db);
@@ -215,88 +339,29 @@ while ($running) {
                             error_log('[worker] DB reconnect failed: ' . $re->getMessage());
                             sleep(5);
                         }
-                        break;   // не ack — XAUTOCLAIM вернёт позже
+                        $retry = true;
+                    } else {
+                        error_log(sprintf(
+                            '[worker] message %s/%s SQL error (%d): %s',
+                            $sKey, $id, $errno, $e->getMessage()
+                        ));
                     }
-                    error_log(sprintf(
-                        '[worker] reclaimed %s SQL error (%d): %s',
-                        $id, $errno, $e->getMessage()
-                    ));
-                    $redis->xAck($stream, $group, [$id]);
                 } catch (Throwable $e) {
                     error_log(sprintf(
-                        '[worker] reclaimed %s failed: %s',
-                        $id, $e->getMessage()
+                        "[worker] message %s/%s failed: %s\n%s",
+                        $sKey, $id, $e->getMessage(), $e->getTraceAsString()
                     ));
-                    $redis->xAck($stream, $group, [$id]);
+                }
+
+                if (!$retry) {
+                    try { $redis->xAck($sKey, $group, [$id]); } catch (Throwable $e) {}
+                } else {
+                    $breakOuter = true;
+                    break;
                 }
             }
-        }
-    } catch (Throwable $e) {
-        error_log('[worker] XAUTOCLAIM error: ' . $e->getMessage());
-        if (stripos($e->getMessage(), 'read error') !== false
-            || stripos($e->getMessage(), 'went away') !== false
-            || stripos($e->getMessage(), 'Connection') !== false) {
-            $redis = null;
-            continue;
-        }
-    }
 
-    // ─── Read new messages (XREADGROUP) ───
-    try {
-        $messages = $redis->xReadGroup(
-            $group, $consumer,
-            [$stream => '>'],
-            $batchSize, $blockMs
-        );
-    } catch (Throwable $e) {
-        error_log('[worker] XREADGROUP error: ' . $e->getMessage());
-        if (stripos($e->getMessage(), 'read error') !== false
-            || stripos($e->getMessage(), 'went away') !== false
-            || stripos($e->getMessage(), 'Connection') !== false) {
-            $redis = null;
-            continue;
-        }
-        sleep(2);
-        continue;
-    }
-
-    if ($messages && isset($messages[$stream])) {
-        foreach ($messages[$stream] as $id => $fields) {
-            try {
-                processStreamMessage($db, $fields);
-                $redis->xAck($stream, $group, [$id]);
-                $processedCount++;
-            } catch (mysqli_sql_exception $e) {
-                $errno = (int)$e->getCode();
-                if (in_array($errno, [2002, 2003, 2006, 2013, 1927, 1040], true)) {
-                    error_log(sprintf(
-                        '[worker] DB connection lost (%d: %s); message %s left pending',
-                        $errno, $e->getMessage(), $id
-                    ));
-                    try {
-                        $db = worker_reconnect_db($db);
-                        error_log('[worker] DB reconnected');
-                    } catch (Throwable $re) {
-                        error_log('[worker] DB reconnect failed: ' . $re->getMessage());
-                        sleep(5);
-                    }
-                    break;   // не ack — сообщение останется в PEL для XAUTOCLAIM
-                }
-                // Не-connection ошибка SQL (битые данные, unknown column и т.п.)
-                error_log(sprintf(
-                    '[worker] message %s SQL error (%d): %s',
-                    $id, $errno, $e->getMessage()
-                ));
-                $redis->xAck($stream, $group, [$id]);
-            } catch (Throwable $e) {
-                error_log(sprintf(
-                    "[worker] message %s failed: %s\n%s",
-                    $id, $e->getMessage(), $e->getTraceAsString()
-                ));
-                // Ack on error to avoid poison-message lock-up.
-                // For production, push to a DLQ after N retries.
-                $redis->xAck($stream, $group, [$id]);
-            }
+            if ($breakOuter) break;
         }
     }
 
@@ -304,48 +369,72 @@ while ($running) {
     $now = time();
     if ($now - $lastStatsAt >= $statsEvery) {
         $lastStatsAt = $now;
-        try {
-            $len       = (int)$redis->xLen($stream);
-            $groups    = $redis->xInfo('GROUPS', $stream);
-            $lag       = null;
-            $pending   = null;
-            $consumers = null;
-            if (is_array($groups)) {
-                foreach ($groups as $g) {
-                    if (($g['name'] ?? null) === $group) {
-                        $lag       = (int)($g['lag'] ?? 0);
-                        $pending   = (int)($g['pending'] ?? 0);
-                        $consumers = (int)($g['consumers'] ?? 0);
-                        break;
+        $parts = [];
+        foreach ($pollStreams as $sKey) {
+            try {
+                $len    = (int)$redis->xLen($sKey);
+                $lag    = '?';
+                $pend   = '?';
+                $consum = '?';
+                $groups = $redis->xInfo('GROUPS', $sKey);
+                if (is_array($groups)) {
+                    foreach ($groups as $g) {
+                        if (($g['name'] ?? null) === $group) {
+                            $lag    = (int)($g['lag']       ?? 0);
+                            $pend   = (int)($g['pending']   ?? 0);
+                            $consum = (int)($g['consumers'] ?? 0);
+                            break;
+                        }
                     }
                 }
+                $parts[] = sprintf('%s[len=%d lag=%s pend=%s consumers=%s]',
+                    $sKey, $len, $lag, $pend, $consum);
+            } catch (Throwable $e) {
+                $parts[] = "{$sKey}[err]";
             }
-            fwrite(STDOUT, sprintf(
-                "[worker] stats: consumer=%s stream_len=%d lag=%s pending=%s consumers=%s processed_total=%d\n",
-                $consumer,
-                $len,
-                $lag === null ? '?' : $lag,
-                $pending === null ? '?' : $pending,
-                $consumers === null ? '?' : $consumers,
-                $processedCount
-            ));
-        } catch (Throwable $e) {
-            error_log('[worker] stats failed: ' . $e->getMessage());
         }
+        fwrite(STDOUT, sprintf(
+            "[worker] stats: consumer=%s %s processed_total=%d\n",
+            $consumer, implode(' ', $parts), $processedCount
+        ));
     }
 }
 
 // ────────────────────────────────────────────────────────────
 // Shutdown
 // ────────────────────────────────────────────────────────────
+try { $redis->del("worker:hb:{$consumer}"); } catch (Throwable $e) {}
 try { $db->close(); } catch (Throwable $e) {}
 fwrite(STDOUT, sprintf(
-    "[worker] stopped consumer=%s processed_total=%d\n",
-    $consumer, $processedCount
+    "[worker] stopped consumer=%s streams=[%s] processed_total=%d\n",
+    $consumer, implode(', ', $pollStreams), $processedCount
 ));
 
 /* ────────────────────────────────────────────────────────────
- * Stream message handler
+ * Stream dispatcher
+ * ──────────────────────────────────────────────────────────── */
+function worker_dispatch(mysqli $db, string $streamKey, array $fields, ?Redis $redis = null): void
+{
+    global $redis_stream_key, $redis_heavy_stream_key;
+
+    $uploadsKey = $redis_stream_key       ?? 'telemetry:uploads';
+    $heavyKey   = $redis_heavy_stream_key ?? 'ratel:heavy_tasks';
+
+    if ($streamKey === $heavyKey) {
+        heavy_process_task($db, $fields, $redis);
+        return;
+    }
+
+    if ($streamKey === $uploadsKey) {
+        processStreamMessage($db, $fields);
+        return;
+    }
+
+    throw new RuntimeException("Unknown stream: $streamKey");
+}
+
+/* ────────────────────────────────────────────────────────────
+ * Stream message handler (uploads)
  * ──────────────────────────────────────────────────────────── */
 function processStreamMessage(mysqli $db, array $fields): void
 {

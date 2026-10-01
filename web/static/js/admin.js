@@ -153,25 +153,74 @@ function adminUserDelete(username) {
         btnClassFailText: localization.key['btn.no'],
         btnClassFail: "btn btn-info btn-sm",
         message: `${localization.key['admin.del.title']} ${username}?`,
-        onResolve: function() {
-            $("#wait_layout").show();
+        onResolve: function () {
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
             const formData = new FormData();
             formData.append('del_login', username);
             formData.append('csrf_token', csrfToken);
 
-            fetch('users_handler.php', { method: 'POST', body: formData })
-                .then(response => response.text())
-                .then(text => {
-                    $("#wait_layout").hide();
-                    xhrResponse(text);
-                    const row = document.querySelector(`tr[data-username="${username}"]`);
-                    if (row) {
-                        row.style.pointerEvents = 'none';
-                        row.style.opacity = '0.5';
+            $(".fetch-data").css({
+                'display': 'block',
+                'background-color': 'red',
+            });
+
+            fetch('users_handler.php', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            })
+            .then(response => {
+                const ct = response.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                    return response.json().then(j => ({ json: j }));
+                }
+                return response.text().then(t => ({ text: t }));
+            })
+            .then(result => {
+                if (result.json) {
+                    const data = result.json;
+                    if (data.reload) { location.href = '.?logout=true'; return; }
+
+                    if (data.status === 'accepted' && data.task_id) {
+                        pollHeavyTask(data.task_id, {
+                            onDone: () => {
+                                xhrResponse(data.message || 'OK');
+                                const row = document.querySelector(`tr[data-username="${username}"]`);
+                                if (row) {
+                                    row.style.pointerEvents = 'none';
+                                    row.style.opacity = '0.5';
+                                }
+                            },
+                        });
+                        return;
                     }
-                })
-                .catch(error => serverError(error.message));
+                    $(".fetch-data").css({
+                        'display': 'none',
+                        'background-color': 'currentColor',
+                    });
+                    xhrResponse(data.message || data.error || 'OK');
+                    return;
+                }
+
+                $(".fetch-data").css({
+                    'display': 'none',
+                    'background-color': 'currentColor',
+                });
+                xhrResponse(result.text);
+                const row = document.querySelector(`tr[data-username="${username}"]`);
+                if (row) {
+                    row.style.pointerEvents = 'none';
+                    row.style.opacity = '0.5';
+                }
+            })
+            .catch(error => {
+                $(".fetch-data").css({
+                    'display': 'none',
+                    'background-color': 'currentColor',
+                });
+                serverError(error.message);
+            });
         }
     };
     redDialog.make(dialogOpt);

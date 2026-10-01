@@ -2699,6 +2699,89 @@ function rebuildMapFromRawPath() {
     }, 1000);
 }
 
+/* ────────────────────────────────────────────────────────────
+ * Heavy task polling
+ *   pollHeavyTask(taskId, { onDone(result), onFail(error), interval })
+ *
+ * Лоадер (по умолчанию .fetch-data) показывается с красным фоном
+ * сразу и восстанавливается на currentColor по завершении/ошибке.
+ * ──────────────────────────────────────────────────────────── */
+function pollHeavyTask(taskId, options) {
+    options = options || {};
+    const interval        = options.interval || 2000;
+    const maxAttempts     = options.maxAttempts || 900;   // ~30 минут
+    const loaderSelector  = options.loaderSelector || '.fetch-data';
+    const loaderColor     = options.loaderColor    || 'red';
+    let   attempts        = 0;
+    let   consecutiveErrs = 0;
+
+    $(loaderSelector).css({
+        'display': 'block',
+        'background-color': loaderColor,
+    });
+
+    function finish() {
+        $(loaderSelector).css({
+            'display': 'none',
+            'background-color': 'currentColor',
+        });
+    }
+
+    function tick() {
+        attempts++;
+        if (attempts > maxAttempts) {
+            finish();
+            serverError('Task timeout');
+            return;
+        }
+
+        fetch('task_status.php?id=' + encodeURIComponent(taskId), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+        .then(r => {
+            const ct = r.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) {
+                location.href = '.?logout=true';
+                throw new Error('unexpected response');
+            }
+            return r.json();
+        })
+        .then(data => {
+            consecutiveErrs = 0;
+
+            if (data.error && !data.status) {
+                finish();
+                serverError(data.error);
+                return;
+            }
+            if (data.status === 'done') {
+                finish();
+                if (options.onDone) options.onDone(data.result);
+                return;
+            }
+            if (data.status === 'failed') {
+                finish();
+                serverError(data.error || 'Task failed');
+                if (options.onFail) options.onFail(data.error);
+                return;
+            }
+            setTimeout(tick, interval);
+        })
+        .catch(err => {
+            consecutiveErrs++;
+            if (consecutiveErrs >= 5) {
+                finish();
+                serverError(err.message || 'Task polling failed');
+                return;
+            }
+            setTimeout(tick, interval);
+        });
+    }
+
+    tick();
+}
+
 let redDialog = {
     options: {
         zIndex: 10000,

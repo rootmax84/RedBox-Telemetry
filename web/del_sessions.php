@@ -2,30 +2,51 @@
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/get_sessions.php';
 require_once __DIR__ . '/src/db_limits.php';
+require_once __DIR__ . '/src/heavy_tasks.php';
 global $delsession;
 
-$delsession = filter_input(INPUT_POST, 'delsession', FILTER_SANITIZE_NUMBER_INT) 
-            ?? filter_input(INPUT_GET, 'delsession', FILTER_SANITIZE_NUMBER_INT);
+$delsession = filter_input(INPUT_POST, 'delsession', FILTER_SANITIZE_NUMBER_INT)
+            ?? filter_input(INPUT_GET,  'delsession', FILTER_SANITIZE_NUMBER_INT);
 
-$page = $_GET["page"] ?? 1;
+$page = $_GET["page"] ?? $_POST["page"] ?? 1;
 
-// Собираем session_id из ключей $_GET (кроме служебных)
+$is_ajax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest')
+        || (stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false);
+
+/* Собираем session_id из ключей POST/GET (кроме служебных) */
+$src = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' ? $_POST : $_GET;
 $sessionids = [];
-foreach ($_GET as $key => $value) {
+foreach ($src as $key => $value) {
     if (!in_array($key, ["delsession", "page", "csrf_token"], true)) {
         $sid = (int)$key;
-        if ($sid > 0) {
-            $sessionids[] = $sid;
-        }
+        if ($sid > 0) $sessionids[] = $sid;
     }
 }
 $sessionids = array_unique($sessionids);
 
 if (isset($delsession)) {
     if (!empty($sessionids)) {
-        // Один батч-DELETE вместо N отдельных — экономит время в N раз
-        $ph    = implode(',', array_fill(0, count($sessionids), '?'));
-        $uid   = current_user_id();
+
+        /* ── Пробуем поставить в очередь heavy-worker ── */
+        $task_id = heavy_task_push(
+            'delete_sessions',
+            [
+                'username'    => $username,
+                'session_ids' => array_values($sessionids),
+            ],
+            current_user_id()
+        );
+
+        if ($task_id !== null) {
+            header('Content-Type: application/json');
+            http_response_code(202);
+            echo json_encode(['status' => 'accepted', 'task_id' => $task_id]);
+            exit;
+        }
+
+        /* ── Fallback: inline (Redis выключен/недоступен) ── */
+        $ph     = implode(',', array_fill(0, count($sessionids), '?'));
+        $uid    = current_user_id();
         $params = array_merge([$uid], array_values($sessionids));
 
         $db->execute_query(
@@ -40,8 +61,16 @@ if (isset($delsession)) {
 
     cache_flush();
 
+    /* AJAX → JSON, чтобы JS не редиректился в HTML */
+    if ($is_ajax) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'done']);
+        exit;
+    }
+
     if (!empty($_SESSION["page"])) {
         header('Location: del_sessions.php?page=' . $_SESSION["page"]);
+        exit;
     } else {
         header('Location: del_sessions.php');
         exit;

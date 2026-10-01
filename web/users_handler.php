@@ -228,7 +228,6 @@ try {
             if (!$userqry->num_rows || mb_strlen($login) < 1) {
                 die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
             }
-
             if ($login == $admin) {
                 die($translations[$_COOKIE['lang']]['admin.del.admin']);
             }
@@ -237,34 +236,52 @@ try {
             $target_uid = (int)$row['id'];
             $token      = $row['token'] ?? null;
 
-            // ── Удалить все данные юзера из shared-таблиц ──
+            require_once __DIR__ . '/src/heavy_tasks.php';
+
+            $task_id = heavy_task_push(
+                'delete_user',
+                [
+                    'target_user_id'  => $target_uid,
+                    'target_username' => $login,
+                    'target_token'    => $token ?? '',
+                ],
+                (int)($_SESSION['uid'] ?? 0)
+            );
+
+            if ($task_id !== null) {
+                header('Content-Type: application/json');
+                http_response_code(202);
+                echo json_encode([
+                    'status'   => 'accepted',
+                    'task_id'  => $task_id,
+                    'message'  => $translations[$_COOKIE['lang']]['admin.del.ok'].$login,
+                    'username' => $login,
+                ]);
+                exit;
+            }
+
+            /* ── Fallback inline (Redis выключен/недоступен) ── */
             $db->execute_query("DELETE FROM logs     WHERE user_id = ?", [$target_uid]);
             $db->execute_query("DELETE FROM sessions WHERE user_id = ?", [$target_uid]);
             $db->execute_query("DELETE FROM pids     WHERE user_id = ?", [$target_uid]);
-
-            // ── Удалить самого юзера ──
-            $db->execute_query("DELETE FROM $db_users WHERE id = ?", [$target_uid]);
+            $db->execute_query("DELETE FROM $db_users WHERE id = ?",     [$target_uid]);
 
             $username = $login;
 
-            // Сбросить кэш удаляемого юзера.
-            $saved_uid = $_SESSION['uid'] ?? null;
+            $saved_uid     = $_SESSION['uid'] ?? null;
             $saved_user_id = $user_id;
 
             $_SESSION['uid'] = $target_uid;
-            $user_id = $target_uid;
+            $user_id         = $target_uid;
 
-            if (!empty($token)) {
-                cache_flush($token);
-            }
+            if (!empty($token)) cache_flush($token);
             cache_flush();
 
             $_SESSION['uid'] = $saved_uid;
-            $user_id = $saved_user_id;
+            $user_id         = $saved_user_id;
 
             $response = $translations[$_COOKIE['lang']]['admin.del.ok'].$login;
         }
-
         /* ── Truncate user data ── */
         elseif (isset($_POST['trunc_login'])) {
             $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['trunc_login']);

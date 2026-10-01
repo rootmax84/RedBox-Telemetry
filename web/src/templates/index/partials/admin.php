@@ -163,17 +163,35 @@ if (!empty($redis_stream_enabled)) {
                 ? (int)($pending['pending'] ?? 0)
                 : null;
 
-            $consumers = $__r->xInfo('CONSUMERS', $streamKey, $groupName);
-            if (is_array($consumers)) {
-                $live = 0;
-                foreach ($consumers as $c) {
-                    $idleMs = (int)($c['idle'] ?? PHP_INT_MAX);
-                    if ($idleMs < 30000) $live++;
+            $live = 0;
+
+            try {
+                $hb_count = 0;
+                $it = null;
+                while (true) {
+                    $keys = $__r->scan($it, 'worker:hb:*', 100);
+                    if ($keys === false) break;
+                    $hb_count += count($keys);
+                    if ((int)$it === 0) break;
                 }
-                $redis_workers_live = $live;
-            } else {
-                $redis_workers_live = 0;
+
+                if ($hb_count > 0) {
+                    $live = $hb_count;
+                } else {
+                    $consumers = $__r->xInfo('CONSUMERS', $streamKey, $groupName);
+                        if (is_array($consumers)) {
+                            foreach ($consumers as $c) {
+                                $idleMs = (int)($c['idle'] ?? PHP_INT_MAX);
+                            if ($idleMs < 30000) $live++;
+                        }
+                    }
+                }
+            } catch (Throwable $e) {
+                // Не валим страницу из-за проблем с Redis
+                $live = $redis_workers_live ?? 0;
             }
+
+            $redis_workers_live = $live;
         } catch (Throwable $e) {
             // группа ещё не создана или redis недоступен
         }

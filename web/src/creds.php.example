@@ -39,6 +39,14 @@ $redis_stream_key     = 'telemetry:uploads';
 $redis_stream_group   = 'telemetry-workers';
 $redis_stream_maxlen  = 50000;                // ~ MAXLEN, 0 = no limit
 
+// --- Heavy tasks (async delete, обслуживается тем же worker.php) ---
+$heavy_tasks_enabled       = true;
+$redis_heavy_stream_key    = 'ratel:heavy_tasks';
+$redis_heavy_stream_maxlen = 10000;   // ~ MAXLEN, 0 = без лимита
+$heavy_task_ttl            = 86400;   // TTL статуса задачи, сек
+$heavy_chunk_size          = 5000;    // строк за один чанк DELETE
+$heavy_chunk_pause_us      = 100000;  // 100ms пауза между чанками
+
 $salt = ['cost' => 10]; //Password salt cost. Min/Max/Default 4/31/10. Higher value = more CPU usage on authorization process
 $admin = "admin";
 $admin_timeformat_12 = false; //Default 24 hours time format for admin

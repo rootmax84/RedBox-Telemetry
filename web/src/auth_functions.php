@@ -38,7 +38,6 @@ function get_user()
     return $user;
 }
 
-
 //Get Password from Browser-Request
 function get_pass()
 {
@@ -60,7 +59,7 @@ function check_login_attempts($user) {
     $db = get_db_connection();
     global $db_users;
 
-    // Clean install
+    // Clean install — таблица users ещё не создана
     if (!check_table_exists($db, $db_users)) {
         return true;
     }
@@ -109,6 +108,10 @@ function auth_user()
         }
     }
 
+    // ── Clean install: файл `install` создаётся startup-скриптом контейнера,
+    //    удаляется после первого успешного захода на страницу логина.
+    //    Гарантирует, что таблица users + admin существуют.
+    //    Идемпотентно (CREATE TABLE IF NOT EXISTS + INSERT при пустой таблице).
     if (file_exists('install')) {
         create_users_table();
         unlink('install');
@@ -156,128 +159,52 @@ function auth_user()
     }
 }
 
+/**
+ * Clean install: создать таблицу users (IF NOT EXISTS) и завести админа,
+ * если таблица пуста. Вызывается из auth_user() при наличии файла `install`.
+ *
+ * Для уже работающей инсталляции ALTER-ы новых колонок выполняет migrate.php
+ * (не эта функция). Здесь — только базовый набор колонок.
+ */
 function create_users_table()
 {
- $db = get_db_connection();
- global $db_users, $db_engine, $admin, $salt;
-
-  $is_empty = "SELECT * FROM $db_users LIMIT 1";
-
-  $table = "CREATE TABLE IF NOT EXISTS " . $db_users . " (
-	id bigint unsigned NOT NULL AUTO_INCREMENT,
-	s mediumint NOT NULL DEFAULT 100,
-	user varchar(128) COLLATE utf8mb4_bin NOT NULL,
-	pass char(60) NOT NULL,
-	token char(64) NULL,
-	tg_token varchar(50) NULL,
-	tg_chatid bigint(20) NULL,
-	share_secret char(32) NULL,
-	speed enum('No conversion','km to miles','miles to km') NOT NULL DEFAULT 'No conversion',
-	temp enum('No conversion','Celsius to Fahrenheit','Fahrenheit to Celsius') NOT NULL DEFAULT 'No conversion',
-	pressure enum('No conversion','Psi to Bar','Bar to Psi') NOT NULL DEFAULT 'No conversion',
-	boost enum('No conversion','Psi to Bar','Bar to Psi') NOT NULL DEFAULT 'No conversion',
-	time enum('24','12') NOT NULL DEFAULT '24',
-	gap enum('5000','10000','20000','30000','60000') NOT NULL DEFAULT '5000',
-	lang enum('en','ru','es','de') NOT NULL DEFAULT 'en',
-	stream_lock tinyint(1) NOT NULL DEFAULT 0,
-	sessions_filter tinyint(1) NOT NULL DEFAULT 1,
-	api_gps tinyint(1) NOT NULL DEFAULT 0,
-	mcu_data varchar(2048) NULL,
-	login_attempts tinyint UNSIGNED DEFAULT 0,
-	last_attempt DATETIME,
-	PRIMARY KEY (id),
-	UNIQUE KEY user (user),
-	UNIQUE KEY token (token))
-	ENGINE=".$db_engine." DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-
-  $db->query($table);
-  if (!$db->query($is_empty)->num_rows) $db->execute_query("INSERT INTO $db_users (s, user, pass) VALUES (?,?,?)", [0, $admin, password_hash('admin', PASSWORD_DEFAULT, $salt)]);
-  $db->close();
-}
-
-function create_shared_tables($db)
-{
-    global $db_engine;
-
-    $ddl = [
-        "CREATE TABLE IF NOT EXISTS pids (
-            user_id     BIGINT UNSIGNED  NOT NULL,
-            id          VARCHAR(16)      NOT NULL,
-            description VARCHAR(255)     DEFAULT NULL,
-            units       VARCHAR(64)      DEFAULT NULL,
-            populated   TINYINT(1)       NOT NULL DEFAULT 0,
-            stream      TINYINT(1)       NOT NULL DEFAULT 0,
-            favorite    TINYINT(1)       NOT NULL DEFAULT 0,
-            PRIMARY KEY (user_id, id)
-        ) ENGINE={$db_engine} DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-
-        "CREATE TABLE IF NOT EXISTS sessions (
-            user_id     BIGINT UNSIGNED      NOT NULL,
-            id          VARCHAR(32)          NOT NULL DEFAULT '-',
-            profileName VARCHAR(128)         NOT NULL DEFAULT 'Not Specified',
-            description VARCHAR(128)         NOT NULL DEFAULT '-',
-            ip          CHAR(15)             NOT NULL DEFAULT '0.0.0.0',
-            sessionsize MEDIUMINT UNSIGNED   NOT NULL DEFAULT 0,
-            session     BIGINT UNSIGNED      NOT NULL,
-            time        BIGINT UNSIGNED      NOT NULL,
-            timeend     BIGINT UNSIGNED      NOT NULL,
-            favorite    TINYINT(1) UNSIGNED  NOT NULL DEFAULT 0,
-            PRIMARY KEY (user_id, session),
-            KEY timeend_index  (user_id, timeend),
-            KEY favorite_index (user_id, favorite)
-        ) ENGINE={$db_engine} DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-
-        "CREATE TABLE IF NOT EXISTS logs (
-            user_id BIGINT UNSIGNED NOT NULL,
-            session BIGINT UNSIGNED NOT NULL,
-            time    BIGINT UNSIGNED NOT NULL,
-            data    LONGTEXT        NOT NULL,
-            PRIMARY KEY (user_id, time),
-            KEY session_time (user_id, session, time)
-        ) ENGINE={$db_engine} DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ];
-
-    foreach ($ddl as $sql) {
-        $db->query($sql);
-    }
-}
-
-function perform_migration() {
     $db = get_db_connection();
-    global $db_users, $db_table;
+    global $db_users, $db_engine, $admin, $salt;
 
-    create_shared_tables($db);
+    $is_empty = "SELECT * FROM $db_users LIMIT 1";
 
-    if (!check_table_exists($db, $db_users)) {
-        return;
+    $table = "CREATE TABLE IF NOT EXISTS " . $db_users . " (
+        id bigint unsigned NOT NULL AUTO_INCREMENT,
+        s mediumint NOT NULL DEFAULT 100,
+        user varchar(128) COLLATE utf8mb4_bin NOT NULL,
+        pass char(60) NOT NULL,
+        token char(64) NULL,
+        tg_token varchar(50) NULL,
+        tg_chatid bigint(20) NULL,
+        share_secret char(32) NULL,
+        speed enum('No conversion','km to miles','miles to km') NOT NULL DEFAULT 'No conversion',
+        temp enum('No conversion','Celsius to Fahrenheit','Fahrenheit to Celsius') NOT NULL DEFAULT 'No conversion',
+        pressure enum('No conversion','Psi to Bar','Bar to Psi') NOT NULL DEFAULT 'No conversion',
+        boost enum('No conversion','Psi to Bar','Bar to Psi') NOT NULL DEFAULT 'No conversion',
+        time enum('24','12') NOT NULL DEFAULT '24',
+        gap enum('5000','10000','20000','30000','60000') NOT NULL DEFAULT '5000',
+        lang enum('en','ru','es','de') NOT NULL DEFAULT 'en',
+        stream_lock tinyint(1) NOT NULL DEFAULT 0,
+        sessions_filter tinyint(1) NOT NULL DEFAULT 1,
+        api_gps tinyint(1) NOT NULL DEFAULT 0,
+        mcu_data varchar(2048) NULL,
+        login_attempts tinyint UNSIGNED DEFAULT 0,
+        last_attempt DATETIME,
+        PRIMARY KEY (id),
+        UNIQUE KEY user (user),
+        UNIQUE KEY token (token))
+        ENGINE=".$db_engine." DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    $db->query($table);
+    if (!$db->query($is_empty)->num_rows) {
+        $db->execute_query("INSERT INTO $db_users (s, user, pass) VALUES (?,?,?)", [0, $admin, password_hash('admin', PASSWORD_DEFAULT, $salt)]);
     }
-
-    $migrations = [
-        'stream_lock'     => "ALTER TABLE $db_users ADD COLUMN stream_lock TINYINT(1) NOT NULL DEFAULT 0",
-        'sessions_filter' => "ALTER TABLE $db_users ADD COLUMN sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
-        'share_secret'    => "ALTER TABLE $db_users ADD COLUMN share_secret CHAR(32)",
-        'login_attempts'  => "ALTER TABLE $db_users ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
-        'last_attempt'    => "ALTER TABLE $db_users ADD COLUMN last_attempt DATETIME",
-        'api_gps'         => "ALTER TABLE $db_users ADD COLUMN api_gps TINYINT(1) NOT NULL DEFAULT 0",
-        'lang'            => "ALTER TABLE $db_users ADD COLUMN lang enum('en','ru','es','de') NOT NULL DEFAULT 'en' AFTER gap",
-        'mcu_data'        => "ALTER TABLE $db_users ADD COLUMN mcu_data VARCHAR(2048) NULL AFTER sessions_filter",
-    ];
-
-    foreach ($migrations as $migration => $query) {
-        if (!column_exists($db, $db_users, $migration)) {
-            $db->query($query);
-        }
-    }
-
-    $index_name = 'indexes';
-    if (index_exists($db, $db_users, $index_name)) {
-        $db->query("DROP INDEX `$index_name` ON $db_users");
-    }
-}
-
-function perform_user_migration() {
-    // not used anymore
-    return;
+    $db->close();
 }
 
 function check_table_exists($db, $table_name) {

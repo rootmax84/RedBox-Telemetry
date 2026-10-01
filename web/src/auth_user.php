@@ -33,12 +33,10 @@ if(isset($_POST) && !empty($_POST)){
     }
 
     if (!$logged_in) {
-        perform_migration();
         if (!check_login_attempts(get_user())) {
             $auth_fail('toomanyattempts', 429, 'toomanyattempts');
         }
         if (auth_user()) {
-            perform_user_migration();
             $logged_in = true;
 
             $loggedInUser = $_SESSION['torque_user'];
