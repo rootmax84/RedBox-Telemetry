@@ -159,6 +159,8 @@ INLINE FALLBACK (Redis disabled or unavailable):
   </tr>
 </table>
 
+### creds.php variables:
+
 | Variable | Description | Default |
 |----------|-------------|---------|
 | $username | Current username (from session) | from session |
