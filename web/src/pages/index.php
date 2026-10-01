@@ -7,7 +7,7 @@
  * Returns an array of view data for src/templates/index/page.php.
  */
 
-$lang = $_COOKIE['lang'];
+$lang = $_COOKIE['lang'] ?? 'en';
 setcookie("newsess", "");
 
 // Capture the session ID if one has been chosen already
@@ -42,7 +42,7 @@ if (isset($sids[0])) {
     }
 
     $cached_timestamp = null;
-    $current_timestamp = getLastUpdateTimestamp($db, $session_id, $db_sessions_table);
+    $current_timestamp = getLastUpdateTimestamp($db, (int)current_user_id(), $session_id);
 
     // Years
     $years_cache_key = "years_list_" . $username;
@@ -56,10 +56,14 @@ if (isset($sids[0])) {
     }
 
     if ($yeararray === false || $cached_timestamp !== $current_timestamp) {
-        $yearquery = $db->query("SELECT YEAR(FROM_UNIXTIME(session/1000)) as 'year'
-            FROM $db_sessions_table WHERE session <> ''
-            GROUP BY YEAR(FROM_UNIXTIME(session/1000))
-            ORDER BY YEAR(FROM_UNIXTIME(session/1000)) DESC");
+        $yearquery = $db->execute_query(
+            "SELECT YEAR(FROM_UNIXTIME(session/1000)) as 'year'
+             FROM sessions
+             WHERE user_id = ? AND session <> ''
+             GROUP BY YEAR(FROM_UNIXTIME(session/1000))
+             ORDER BY YEAR(FROM_UNIXTIME(session/1000)) DESC",
+            [current_user_id()]
+        );
         $yeararray = [];
         while($row = $yearquery->fetch_assoc()) {
             $yeararray[] = $row['year'];
@@ -86,7 +90,11 @@ if (isset($sids[0])) {
     }
 
     if ($profilearray === false || $cached_timestamp !== $current_timestamp) {
-        $profilequery = $db->query("SELECT distinct profileName FROM $db_sessions_table ORDER BY profileName asc");
+        $profilequery = $db->execute_query(
+            "SELECT DISTINCT profileName FROM sessions
+              WHERE user_id = ? ORDER BY profileName ASC",
+            [current_user_id()]
+        );
         $profilearray = [];
         while($row = $profilequery->fetch_assoc()) {
             $profilearray[] = $row['profileName'] === 'Not Specified' ? $translations[$lang]['profile.ns'] : $row['profileName'];
@@ -102,7 +110,7 @@ if (isset($sids[0])) {
     }
 
     // GPS data
-    $gps_cache_key = "gps_data_" . $username . "_" . $session_id;
+    $gps_cache_key = cache_var_key("gps_data_{$session_id}");
     $gps_data = false;
 
     if ($memcached_connected) {
@@ -113,7 +121,7 @@ if (isset($sids[0])) {
     }
 
     if ($gps_data === false || $cached_timestamp !== $current_timestamp) {
-        $gpsQuery = getFilteredGpsQuery($db_table, $_SESSION['sessions_filter']);
+        $gpsQuery = getFilteredGpsQuery((int)current_user_id(), (int)$_SESSION['sessions_filter']);
         $gps_time_data = $db->execute_query($gpsQuery, [$session_id]);
         $geolocs = [];
         $timearray = [];
@@ -183,7 +191,10 @@ if (isset($sids[0])) {
     }
 
     if ($id === false || $cached_timestamp !== $current_timestamp) {
-        $id = $db->execute_query("SELECT id FROM $db_sessions_table WHERE session=?", [$session_id])->fetch_row()[0];
+        $id = $db->execute_query(
+            "SELECT id FROM sessions WHERE user_id = ? AND session = ?",
+            [current_user_id(), $session_id]
+        )->fetch_row()[0] ?? null;
         if ($memcached_connected) {
             try {
                 $memcached->set($session_id_cache_key, [$id, $current_timestamp], $db_memcached_ttl ?? 3600);
@@ -193,8 +204,6 @@ if (isset($sids[0])) {
             }
         }
     }
-
-    $db->close();
 }
 
 return [

@@ -1,5 +1,7 @@
 <?php
-$columns_cache_key = "columns_data_{$db_pids_table}";
+require_once __DIR__ . '/helpers.php';
+
+$columns_cache_key = "columns_data_pids_{$username}";
 
 $coldata = [];
 if ($memcached_connected) {
@@ -10,7 +12,12 @@ if ($memcached_connected) {
 }
 
 if (empty($coldata)) {
-    $colqry = $db->query("SELECT id, description, favorite FROM $db_pids_table WHERE populated = 1 ORDER BY description");
+    $colqry = $db->execute_query(
+        "SELECT id, description, favorite FROM pids
+          WHERE user_id = ? AND populated = 1
+          ORDER BY description",
+        [current_user_id()]
+    );
     while ($x = $colqry->fetch_assoc()) {
         $coldata[] = [
             "colname" => $x['id'],

@@ -25,10 +25,22 @@ function submitForm(form) {
 
     fetch(form.getAttribute("action"), {
         method: form.method,
-        body: formData
+        body: formData,
+        redirect: 'manual'
     })
-    .then(response => response.text())
+    .then(response => {
+        if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+            location.href = '.?logout=true';
+            return null;
+        }
+        if (response.status === 401 || response.status === 419 || response.status === 403) {
+            location.href = '.?logout=true';
+            return null;
+        }
+        return response.text();
+    })
     .then(responseText => {
+        if (responseText === null) return;
         xhrResponse(responseText);
         if (submitBtn) {
             setTimeout(() => {

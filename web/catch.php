@@ -1,6 +1,8 @@
 <?php
-if (isset($_GET['c'])) {
-    $http_code = match($_GET['c']) {
+$c = $_GET['c'] ?? '';
+
+if ($c !== '') {
+    $http_code = match($c) {
         'loginfailed', 'csrffailed' => 401,
         'disabled' => 403,
         'dberror' => 503,
@@ -20,47 +22,47 @@ include_once __DIR__ . '/src/head.php';
 <body style="display:flex; justify-content:center; align-items:center; height:100vh">
     <div class="login login-form" id="login-form" style="width:fit-content; text-align:center">
     <?php
-        if ($_GET['c'] == "disabled") { ?>
+        if ($c == "disabled") { ?>
             <script>setTimeout(()=>{location.href='.?logout=true'}, 5000);</script>
             <h4 l10n='catch.disabled'></h4>
         <?php
         }
-        elseif ($_GET['c'] == "loginfailed") { ?>
+        elseif ($c == "loginfailed") { ?>
             <script>setTimeout(()=>{location.href='.'}, 2000);</script>
             <h4 l10n='catch.loginfailed'></h4>
         <?php
         }
-        elseif ($_GET['c'] == "csrffailed") { ?>
+        elseif ($c == "csrffailed") { ?>
             <script>setTimeout(()=>{location.href='.'}, 2000);</script>
             <h4 l10n='catch.csrf'></h4>
         <?php
         }
-        elseif ($_GET['c'] == "toomanyattempts") { ?>
+        elseif ($c == "toomanyattempts") { ?>
             <script>setTimeout(()=>{location.href='.'}, 5000);</script>
             <h4 style="line-height:1.5" l10n='catch.banned'></h4>
         <?php
         }
-        elseif ($_GET['c'] == "dberror") { ?>
+        elseif ($c == "dberror") { ?>
             <script>setTimeout(()=>{location.href='.'}, 10000);</script>
             <h4 l10n='catch.dberror'></h4>
         <?php
         }
-        elseif ($_GET['c'] == "maintenance") { ?>
+        elseif ($c == "maintenance") { ?>
             <script>setTimeout(()=>{location.href='.'}, 10000);</script>
             <h4 style="line-height:1.5" l10n='catch.maintenance'></h4>
         <?php
         }
-        elseif ($_GET['c'] == "noshare") { ?>
+        elseif ($c == "noshare") { ?>
             <script>setTimeout(()=>{location.href='.?logout=true'}, 5000);</script>
             <h4 l10n='catch.noshare'></h4>
         <?php
         }
-        elseif ($_GET['c'] == "block") { ?>
+        elseif ($c == "block") { ?>
             <script>setTimeout(()=>{location.href='.'}, 10000);</script>
             <h4 style="line-height:1.5" l10n='catch.block'></h4>
         <?php
         }
-        elseif ($_GET['c'] == "error") { ?>
+        elseif ($c == "error") { ?>
             <script>setTimeout(()=>{location.href='.'}, 2000);</script>
             <h4 style="line-height:1.5" l10n='catch.error'></h4>
         <?php

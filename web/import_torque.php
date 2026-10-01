@@ -34,11 +34,9 @@ try {
         die;
     }
 
-    $db_limit = $db->execute_query(
-        "SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024)
-         FROM information_schema.TABLES
-         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?",
-        [$db_name, $db_table]
+    $session_count = (int)$db->execute_query(
+        "SELECT COUNT(*) FROM sessions WHERE user_id = ?",
+        [$user_id]
     )->fetch_row()[0];
 
     $totalOk = 0;   // всего успешных сессий
@@ -65,12 +63,6 @@ try {
             http_response_code(406);
             echo htmlspecialchars($fileInfo['name']) . " " . $translations[$_COOKIE['lang']]['redlog.warn.size'];
             die;
-        }
-
-        if ($db_limit >= $limit || $data_size >= $limit || ($db_limit + $data_size) >= $limit) {
-            unlink($target_file);
-            http_response_code(406);
-            die($translations[$_COOKIE['lang']]['redlog.nospace']);
         }
 
         // Разбиение на блоки
@@ -107,7 +99,10 @@ try {
 
         $fileOk = 0; // успешных блоков в этом файле
 
-        $pidRes = $db->query("SELECT id, description FROM $db_pids_table");
+        $pidRes = $db->execute_query(
+            "SELECT id, description FROM pids WHERE user_id = ?",
+            [$user_id]
+        );
         $pids = [];
         while ($row = $pidRes->fetch_assoc()) {
             $pids[] = $row;
@@ -171,7 +166,7 @@ try {
                             return strlen($b['description']) - strlen($a['description']);
                         });
                         $best = $candidates[0];
-                        if (!in_array($best['id'], $colMap)) {
+                        if (!empty($best['id']) && !in_array($best['id'], $colMap, true)) {
                             $colMap[$idx] = $best['id'];
                         }
                     }
@@ -189,12 +184,12 @@ try {
                 $tsMs = parseDeviceTime($deviceTimeStr);
                 if ($tsMs === false) continue;
                 $timestampsMs[] = $tsMs;
-                $rowValues = [];
+                $row_pids = [];
                 foreach ($colMap as $csvIdx => $pidId) {
                     $val = $cols[$csvIdx] ?? 0;
-                    $rowValues[] = is_numeric($val) ? floatval($val) : 0;
+                    $row_pids[$pidId] = is_numeric($val) ? floatval($val) : 0;
                 }
-                $rows[] = ['time' => $tsMs, 'values' => $rowValues];
+                $rows[] = ['time' => $tsMs, 'pids' => $row_pids];
             }
 
             if (empty($rows)) continue;
@@ -204,12 +199,18 @@ try {
             $lastTime  = end($timestampsMs);
             $rowCount  = count($rows);
 
+            if ($limit != -1 && $session_count >= $limit) {
+                unlink($target_file);
+                http_response_code(507);
+                die($translations[$_COOKIE['lang']]['redlog.nospace']);
+            }
+
             try {
                 $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
                 $db->execute_query(
-                    "INSERT INTO $db_sessions_table (id, session, time, profileName, timeend, sessionsize, ip)
-                     VALUES (?,?,?,?,?,?,?)",
-                    ['TorqueLog', $sessionId, $firstTime, 'Torque-Log', $lastTime, $rowCount, $ip]
+                    "INSERT INTO sessions (user_id, id, session, time, profileName, timeend, sessionsize, ip)
+                     VALUES (?,?,?,?,?,?,?,?)",
+                    [$user_id, 'TorqueLog', $sessionId, $firstTime, 'Torque-Log', $lastTime, $rowCount, $ip]
                 );
             } catch (Exception $e) {
                 unlink($target_file);
@@ -218,35 +219,50 @@ try {
                 die;
             }
 
-            // Автодобавление столбцов
+            // Регистрация PID'ов у этого юзера (INSERT IGNORE, идемпотентно)
             $pidIdsOrdered = array_values($colMap);
+            $existing_pids = [];
+            $__r = $db->execute_query("SELECT id FROM pids WHERE user_id = ?", [$user_id]);
+            while ($__row = $__r->fetch_assoc()) {
+                $existing_pids[$__row['id']] = true;
+            }
             foreach ($pidIdsOrdered as $pidId) {
-                if (!column_exists($db, $db_table, $pidId)) {
-                    $db->query("ALTER TABLE $db_table ADD COLUMN `$pidId` FLOAT NOT NULL DEFAULT 0");
+                if (!isset($existing_pids[$pidId])) {
+                    $db->execute_query(
+                        "INSERT IGNORE INTO pids (user_id, id, description, populated, stream, favorite) 
+                         VALUES (?,?,?,1,1,0)",
+                        [$user_id, $pidId, $pidId]
+                    );
+                    $existing_pids[$pidId] = true;
+                    $pids[] = ['id' => $pidId, 'description' => $pidId];
                 }
             }
 
             // Вставка данных
-            $allColumns = array_merge(['session', 'time'], $pidIdsOrdered);
             $batch = [];
             $batchSize = 500;
 
             try {
                 $db->begin_transaction();
                 foreach ($rows as $row) {
-                    $batch[] = array_merge([$sessionId, $row['time']], $row['values']);
+                    $batch[] = [
+                        'session' => $sessionId,
+                        'time'    => $row['time'],
+                        'pids'    => $row['pids'],
+                    ];
                     if (count($batch) >= $batchSize) {
-                        bulkInsertIgnore($db, $db_table, $allColumns, $batch);
+                        insert_log_rows_bulk($db, (int)$user_id, $batch);
                         $batch = [];
                     }
                 }
                 if ($batch) {
-                    bulkInsertIgnore($db, $db_table, $allColumns, $batch);
+                    insert_log_rows_bulk($db, (int)$user_id, $batch);
                 }
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
-                $db->execute_query("DELETE FROM $db_sessions_table WHERE id='TorqueLog' AND session=?", [$sessionId]);
+                $db->execute_query("DELETE FROM logs     WHERE user_id = ? AND session = ?", [$user_id, $sessionId]);
+                $db->execute_query("DELETE FROM sessions WHERE user_id = ? AND session = ?", [$user_id, $sessionId]);
                 unlink($target_file);
                 http_response_code(406);
                 echo htmlspecialchars($fileInfo['name']) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
@@ -254,6 +270,7 @@ try {
             }
 
             $fileOk++;
+            $session_count++;
         }
 
         unlink($target_file);
@@ -315,15 +332,4 @@ function parseDeviceTime($str) {
         return $ts * 1000;
     }
     return false;
-}
-
-function bulkInsertIgnore($db, $table, $columns, $rows) {
-    $placeholders = [];
-    $values = [];
-    foreach ($rows as $row) {
-        $placeholders[] = '(' . implode(',', array_fill(0, count($columns), '?')) . ')';
-        $values = array_merge($values, $row);
-    }
-    $sql = "INSERT IGNORE INTO $table (`" . implode('`,`', $columns) . "`) VALUES " . implode(',', $placeholders);
-    $db->execute_query($sql, $values);
 }

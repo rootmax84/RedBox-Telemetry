@@ -30,6 +30,10 @@ if (empty($user) || empty($pass)) {
     exit;
 }
 
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
 $_SESSION['torque_logged_in'] = true;
 require_once __DIR__ . '/src/auth_functions.php';
 require_once __DIR__ . '/src/db.php';

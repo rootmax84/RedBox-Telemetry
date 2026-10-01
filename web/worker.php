@@ -17,7 +17,7 @@
 // ────────────────────────────────────────────────────────────
 $_SESSION = [
     'torque_logged_in' => true,
-    'admin'            => true,
+    'admin'            => true,   // CLI-процесс не должен блокироваться maintenance
 ];
 $_SERVER['SCRIPT_FILENAME'] = __FILE__;
 $_SERVER['REQUEST_METHOD']  = 'CLI';
@@ -349,8 +349,7 @@ fwrite(STDOUT, sprintf(
  * ──────────────────────────────────────────────────────────── */
 function processStreamMessage(mysqli $db, array $fields): void
 {
-    global $translations, $db_log_prefix, $db_sessions_prefix,
-           $db_pids_prefix, $tg_socks_proxy;
+    global $translations, $tg_socks_proxy;
 
     $username   = $fields['user']    ?? null;
     $kind       = $fields['kind']    ?? null;
@@ -381,17 +380,34 @@ function processStreamMessage(mysqli $db, array $fields): void
         throw new RuntimeException("User $username not found");
     }
 
+    // user_id: сначала из payload (ul.php шлёт его явно),
+    // иначе fallback — из БД через getUserData().
+    $payload_uid = isset($fields['user_id']) && $fields['user_id'] !== ''
+        ? (int)$fields['user_id']
+        : 0;
+
+    $user_id = $payload_uid > 0
+        ? $payload_uid
+        : (int)($userData['id'] ?? 0);
+
+    // Защита: никогда не пишем в user_id = 0.
+    if ($user_id <= 0) {
+        throw new RuntimeException("Cannot resolve user_id for $username");
+    }
+
+    // Зафиксировать в глобале — на случай, если где-то внутри
+    // helpers.php вызовется current_user_id().
+    $GLOBALS['user_id'] = $user_id;
+
     $ctx = [
-        'username'          => $username,
-        'db_table'          => $username . $db_log_prefix,
-        'db_sessions_table' => $username . $db_sessions_prefix,
-        'db_pids_table'     => $username . $db_pids_prefix,
-        'lang'              => $lang,
-        'tg_token'          => $userData['tg_token']  ?? null,
-        'tg_chatid'         => $userData['tg_chatid'] ?? null,
-        'tg_socks_proxy'    => $tg_socks_proxy ?? '',
-        'translations'      => $translations,
-        'ip'                => $ip,
+        'username'       => $username,
+        'user_id'        => $user_id,
+        'lang'           => $lang,
+        'tg_token'       => $userData['tg_token']  ?? null,
+        'tg_chatid'      => $userData['tg_chatid'] ?? null,
+        'tg_socks_proxy' => $tg_socks_proxy ?? '',
+        'translations'   => $translations,
+        'ip'             => $ip,
     ];
 
     processUpload($db, $ctx, $kind, $payload);
@@ -414,7 +430,7 @@ function getUserData(string $username): ?array
     }
 
     $row = $db->execute_query(
-        "SELECT user, s, tg_token, tg_chatid, lang FROM $db_users WHERE user=?",
+        "SELECT id, user, s, tg_token, tg_chatid, lang FROM $db_users WHERE user=?",
         [$username]
     )->fetch_assoc();
 

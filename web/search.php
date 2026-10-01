@@ -4,7 +4,11 @@ require_once __DIR__ . '/src/db_limits.php';
 include_once __DIR__ . '/translations.php';
 
 $pids = [];
-$pidQuery = $db->query("SELECT id, description FROM $db_pids_table ORDER BY description ASC");
+$pidQuery = $db->execute_query(
+    "SELECT id, description FROM pids
+      WHERE user_id = ? ORDER BY description ASC",
+    [current_user_id()]
+);
 if ($pidQuery) {
     while ($row = $pidQuery->fetch_assoc()) {
         $pids[] = $row;
@@ -103,36 +107,46 @@ include_once __DIR__ . '/src/head.php';
 
         <div class="row center-block" style="max-width:720px;">
             <form id="searchForm" class="form-horizontal">
-                <table style="width:100%">
-                    <tr>
-                        <td style="width:10%">
-                            <select id="pidSelect" name="pid" class="form-control choices-select" required>
-                                <option value="" disabled selected><?= $translations[$lang]['search.select_pid'] ?></option>
-                                <?php foreach ($pids as $pid): ?>
-                                    <option value="<?= htmlspecialchars($pid['id']) ?>"><?= htmlspecialchars($pid['description']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </td>
-                        <td style="width:.5%"></td>
-                        <td style="width:1%">
-                            <select id="operatorSelect" name="operator" class="form-control choices-select">
-                                <option value="=" selected>=</option>
-                                <option value=">">></option>
-                                <option value="<"><</option>
-                                <option value=">=">>=</option>
-                                <option value="<="><=</option>
-                            </select>
-                        </td>
-                        <td style="width:.5%"></td>
-                        <td style="width:5%">
-                            <input type="number" style="text-align:center" step="any" class="form-control" id="valueInput" name="value" l10n-placeholder="stream.val" required>
-                        </td>
-                        <td style="width:.5%"></td>
-                        <td style="width:0%">
-                            <button type="submit" class="btn btn-info btn-sm"><?= $translations[$lang]['search.find'] ?></button>
-                        </td>
-                    </tr>
-                </table>
+                <div class="search-form-row">
+
+                    <div class="search-field search-field--range">
+                        <select id="rangeSelect" name="range" class="form-control choices-select">
+                            <option value="" disabled><?= $translations[$lang]['search.range.label'] ?></option>
+                            <option value="day"><?= $translations[$lang]['search.range.day'] ?></option>
+                            <option value="month" selected><?= $translations[$lang]['search.range.month'] ?></option>
+                            <option value="year"><?= $translations[$lang]['search.range.year'] ?></option>
+                            <option value="all"><?= $translations[$lang]['search.range.all'] ?></option>
+                        </select>
+                    </div>
+
+                    <div class="search-field search-field--pid">
+                        <select id="pidSelect" name="pid" class="form-control choices-select" required>
+                            <option value="" disabled selected><?= $translations[$lang]['search.select_pid'] ?></option>
+                            <?php foreach ($pids as $pid): ?>
+                                <option value="<?= htmlspecialchars($pid['id']) ?>"><?= htmlspecialchars($pid['description']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="search-field search-field--operator">
+                        <select id="operatorSelect" name="operator" class="form-control choices-select">
+                            <option value="=" selected>=</option>
+                            <option value=">">></option>
+                            <option value="<"><</option>
+                            <option value=">=">>=</option>
+                            <option value="<="><=</option>
+                        </select>
+                    </div>
+
+                    <div class="search-field search-field--value">
+                        <input type="number" style="text-align:center" step="any" class="form-control" id="valueInput" name="value" l10n-placeholder="stream.val" required>
+                    </div>
+
+                    <div class="search-field search-field--submit">
+                        <button type="submit" class="btn btn-info btn-sm"><?= $translations[$lang]['search.find'] ?></button>
+                    </div>
+
+                </div>
             </form>
         </div>
 

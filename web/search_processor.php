@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/db_limits.php';
+require_once __DIR__ . '/src/helpers.php';
 include_once __DIR__ . '/translations.php';
 require_once __DIR__ . '/src/methods.php';
 allowMethods('POST');
@@ -12,25 +13,51 @@ if (!isset($translations[$lang])) {
     $lang = 'en';
 }
 
-$pid = $_POST['pid'] ?? '';
+$pid      = $_POST['pid']      ?? '';
 $operator = $_POST['operator'] ?? '=';
-$value = $_POST['value'] ?? '';
-$page = isset($_POST['page']) ? (int)$_POST['page'] : 1;
-$perPage = 50;
+$value    = $_POST['value']    ?? '';
+$range    = $_POST['range']    ?? 'month';
+$page     = isset($_POST['page']) ? (int)$_POST['page'] : 1;
+$perPage  = 50;
 
-$checkStmt = $db->prepare("SELECT id FROM $db_pids_table WHERE id = ? LIMIT 1");
-if (!$checkStmt) {
+/* ─── Диапазон дат ─── */
+$rangeMap = [
+    'day'   => 86400,      // 24 часа
+    'month' => 2592000,    // 30 дней
+    'year'  => 31536000,   // 365 дней
+    'all'   => null,
+];
+if (!array_key_exists($range, $rangeMap)) {
+    $range = 'month';
+}
+$rangeSeconds = $rangeMap[$range];
+
+// time в logs хранится в миллисекундах
+$timeFrom = $rangeSeconds === null ? 0 : (time() - $rangeSeconds) * 1000;
+
+$user_id = current_user_id();
+
+if ($user_id === null) {
     echo json_encode(['error' => $translations[$lang]['search.error_query']]);
     exit;
 }
-$checkStmt->bind_param('s', $pid);
+
+/* ─── Валидация PID ─── */
+
+$checkStmt = $db->prepare("SELECT id FROM pids WHERE user_id = ? AND id = ? LIMIT 1");
+if ($checkStmt === false) {
+    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
+    exit;
+}
+$checkStmt->bind_param('is', $user_id, $pid);
 $checkStmt->execute();
-$checkResult = $checkStmt->get_result();
-if ($checkResult->num_rows === 0) {
+if ($checkStmt->get_result()->num_rows === 0) {
     echo json_encode(['error' => $translations[$lang]['search.error_query']]);
     exit;
 }
 $checkStmt->close();
+
+/* ─── Валидация оператора ─── */
 
 $operatorMap = ['=' => '=', '>' => '>', '<' => '<', '>=' => '>=', '<=' => '<='];
 if (!isset($operatorMap[$operator])) {
@@ -45,32 +72,42 @@ if (!is_numeric($value)) {
 }
 $valueFloat = (float)$value;
 
-$page = max(1, $page);
+$page   = max(1, $page);
 $offset = ($page - 1) * $perPage;
 
-$column = "`" . $pid . "`";
+/* ─── COUNT ─── */
 
-$countSql = "SELECT COUNT(DISTINCT session) AS total FROM $db_table WHERE $column $operator ?";
+$countSql = "SELECT COUNT(DISTINCT session) AS total
+             FROM logs
+             WHERE user_id = ?
+               AND time >= ?
+               AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.{$pid}')) AS DECIMAL(20,6)) $operator ?";
+
 try {
     $countStmt = $db->prepare($countSql);
-    $countStmt->bind_param('d', $valueFloat);
+    if ($countStmt === false) {
+        throw new mysqli_sql_exception($db->error, $db->errno);
+    }
+    $countStmt->bind_param('iid', $user_id, $timeFrom, $valueFloat);
     $countStmt->execute();
 } catch (mysqli_sql_exception $e) {
-    if ($e->getCode() === 1054) {
+    // Unknown column / invalid JSON path
+    if (in_array((int)$e->getCode(), [1054, 1064, 3141], true)) {
         echo json_encode([
-            'data' => [],
-            'total' => 0,
+            'data'    => [],
+            'total'   => 0,
             'hasMore' => false,
-            'page' => $page
+            'page'    => $page,
         ]);
     } else {
         echo json_encode(['error' => $translations[$lang]['search.error_query']]);
     }
     exit;
 }
+
 $countResult = $countStmt->get_result();
-$totalRow = $countResult->fetch_assoc();
-$total = (int)$totalRow['total'];
+$totalRow    = $countResult->fetch_assoc();
+$total       = (int)$totalRow['total'];
 $countStmt->close();
 
 if ($total === 0) {
@@ -78,13 +115,21 @@ if ($total === 0) {
     exit;
 }
 
-$sqlSessions = "SELECT DISTINCT session FROM $db_table WHERE $column $operator ? LIMIT ? OFFSET ?";
+/* ─── Session IDs ─── */
+
+$sqlSessions = "SELECT DISTINCT session
+                FROM logs
+                WHERE user_id = ?
+                  AND time >= ?
+                  AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.{$pid}')) AS DECIMAL(20,6)) $operator ?
+                LIMIT ? OFFSET ?";
+
 $stmtSessions = $db->prepare($sqlSessions);
-if (!$stmtSessions) {
+if ($stmtSessions === false) {
     echo json_encode(['error' => $translations[$lang]['search.error_query']]);
     exit;
 }
-$stmtSessions->bind_param('dii', $valueFloat, $perPage, $offset);
+$stmtSessions->bind_param('iidii', $user_id, $timeFrom, $valueFloat, $perPage, $offset);
 if (!$stmtSessions->execute()) {
     echo json_encode(['error' => $translations[$lang]['search.error_query']]);
     exit;
@@ -101,19 +146,25 @@ if (empty($sessionIds)) {
     exit;
 }
 
+/* ─── Данные сессий ─── */
+
 $placeholders = implode(',', array_fill(0, count($sessionIds), '?'));
-$types = str_repeat('s', count($sessionIds));
+$types        = 'i' . str_repeat('i', count($sessionIds));
+
 $sqlData = "SELECT session, time, timeend, profileName, sessionsize
-            FROM $db_sessions_table
-            WHERE session IN ($placeholders)
+            FROM sessions
+            WHERE user_id = ? AND session IN ($placeholders)
             ORDER BY session DESC";
 
 $stmtData = $db->prepare($sqlData);
-if (!$stmtData) {
+if ($stmtData === false) {
     echo json_encode(['error' => $translations[$lang]['search.error_query']]);
     exit;
 }
-$stmtData->bind_param($types, ...$sessionIds);
+
+$bindParams = array_merge([$user_id], $sessionIds);
+$stmtData->bind_param($types, ...$bindParams);
+
 if (!$stmtData->execute()) {
     echo json_encode(['error' => $translations[$lang]['search.error_query']]);
     exit;
@@ -128,8 +179,8 @@ $stmtData->close();
 $hasMore = ($page * $perPage) < $total;
 
 echo json_encode([
-    'data' => $data,
-    'total' => $total,
+    'data'    => $data,
+    'total'   => $total,
     'hasMore' => $hasMore,
-    'page' => $page
+    'page'    => $page,
 ]);

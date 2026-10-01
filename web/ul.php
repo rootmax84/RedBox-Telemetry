@@ -82,6 +82,10 @@ if (!empty($token)) {
         die($translations[$lang ?? 'en']['maintenance']);
     }
 
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+
     $_SESSION['torque_logged_in'] = true;
     require_once __DIR__ . '/src/db.php';
 
@@ -100,7 +104,7 @@ if (!empty($token)) {
 
     if ($user_data === false) {
         $userqry = $db->execute_query(
-            "SELECT user, s, tg_token, tg_chatid, lang FROM $db_users WHERE token=?",
+            "SELECT id, user, s, tg_token, tg_chatid, lang FROM $db_users WHERE token=?",
             [$token]
         );
         if ($userqry->num_rows) {
@@ -124,6 +128,7 @@ if (!empty($token)) {
         $limit     = $user_data['s'];
         $tg_token  = $user_data['tg_token'];
         $tg_chatid = $user_data['tg_chatid'];
+        $user_id = (int)$user_data['id'];
 
         /* ────────────────────────────────────────────────────
          * Resolve language, шаг 3 — из БД.
@@ -153,8 +158,6 @@ if ($access != 1 || $limit == 0) {
     die($translations[$lang]['denied']);
 }
 
-$db_table = $username . $db_log_prefix;
-
 if (isset($_REQUEST['servertime'])) {
     $dt = new DateTime('now', new DateTimeZone('UTC'));
     echo (int)($dt->format('Uu') / 1000);
@@ -162,36 +165,31 @@ if (isset($_REQUEST['servertime'])) {
 }
 
 /* ────────────────────────────────────────────────────────────
- * Проверка лимита БД.
+ * Проверка лимита сессий.
  * ──────────────────────────────────────────────────────────── */
-$db_limit_cache_key = "db_limit_" . $db_table;
-$db_limit = false;
+$session_count_cache_key = "session_count_" . $user_id;
+$session_count = false;
 if ($memcached_connected) {
-    $db_limit = $memcached->get($db_limit_cache_key);
+    $session_count = $memcached->get($session_count_cache_key);
 }
-if ($db_limit === false) {
-    $db_limit = $db->execute_query(
-        "SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024)
-         FROM information_schema.TABLES
-         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?",
-        [$db_name, $db_table]
+if ($session_count === false) {
+    $session_count = (int)$db->execute_query(
+        "SELECT COUNT(*) FROM sessions WHERE user_id = ?",
+        [$user_id]
     )->fetch_row()[0];
     if ($memcached_connected) {
         try {
-            $memcached->set($db_limit_cache_key, $db_limit, 300);
+            $memcached->set($session_count_cache_key, $session_count, 60);
         } catch (Exception $e) {
             error_log("Memcached error on upload: " . $e->getMessage());
         }
     }
 }
 
-if ($db_limit >= $limit && $limit != -1) {
+if ($session_count >= $limit && $limit != -1) {
     http_response_code(507);
     die($translations[$lang]['no_space']);
 }
-
-$db_sessions_table = $username . $db_sessions_prefix;
-$db_pids_table     = $username . $db_pids_prefix;
 
 /* ────────────────────────────────────────────────────────────
  * Rate limit на аплоады.
@@ -253,6 +251,7 @@ $streamed = false;
 if (!empty($redis_stream_enabled)) {
     $streamed = redis_stream_push([
         'user'     => $username,
+        'user_id'  => (string)$user_id,
         'ip'       => $ip,
         'lang'     => $lang,
         'kind'     => $kind,
@@ -266,16 +265,14 @@ if (!empty($redis_stream_enabled)) {
  * ──────────────────────────────────────────────────────────── */
 if (!$streamed) {
     $ctx = [
-        'username'          => $username,
-        'db_table'          => $db_table,
-        'db_sessions_table' => $db_sessions_table,
-        'db_pids_table'     => $db_pids_table,
-        'lang'              => $lang,
-        'tg_token'          => $tg_token ?? null,
-        'tg_chatid'         => $tg_chatid ?? null,
-        'tg_socks_proxy'    => $tg_socks_proxy ?? '',
-        'translations'      => $translations,
-        'ip'                => $ip,
+        'username'       => $username,
+        'user_id'        => (int)$user_id,
+        'lang'           => $lang,
+        'tg_token'       => $tg_token ?? null,
+        'tg_chatid'      => $tg_chatid ?? null,
+        'tg_socks_proxy' => $tg_socks_proxy ?? '',
+        'translations'   => $translations,
+        'ip'             => $ip,
     ];
 
     try {

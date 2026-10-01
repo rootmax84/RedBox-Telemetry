@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/methods.php';
 allowMethods('POST', 'DELETE', 'PUT');
@@ -22,8 +23,9 @@ try {
             }
 
             $db->execute_query(
-                "UPDATE $username"."$db_sessions_prefix SET description = ? WHERE session = ?",
-                [$update['description'], $update['id']]
+                "UPDATE sessions SET description = ?
+                  WHERE user_id = ? AND session = ?",
+                [$update['description'], current_user_id(), $update['id']]
             );
             $updatedCount++;
         }
@@ -50,8 +52,9 @@ try {
     $action = $_SERVER['REQUEST_METHOD'] === 'POST' ? 'added' : 'deleted';
 
     $db->execute_query(
-        "UPDATE $username"."$db_sessions_prefix SET description = '-', favorite = ? WHERE session = ?",
-        [$favorite_value, $session_id]
+        "UPDATE sessions SET description = '-', favorite = ?
+          WHERE user_id = ? AND session = ?",
+        [$favorite_value, current_user_id(), $session_id]
     );
 
     echo json_encode([

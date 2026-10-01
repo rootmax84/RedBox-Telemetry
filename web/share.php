@@ -25,7 +25,10 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     }
 
     if ($user_data === false) {
-        $userqry = $db->execute_query("SELECT user, sessions_filter, time, gap, share_secret FROM $db_users WHERE id=?", [$uid]);
+        $userqry = $db->execute_query(
+            "SELECT id, user, sessions_filter, time, gap, share_secret FROM $db_users WHERE id=?",
+            [$uid]
+        );
         if ($userqry->num_rows) {
             $user_data = $userqry->fetch_assoc();
             if ($memcached_connected) {
@@ -42,11 +45,12 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     }
 
     if ($user_data) {
-        $username = $user_data['user'];
-        $share_secret = $user_data['share_secret'];
-        $user_time = $user_data['time'];
-        $user_filter = $user_data['sessions_filter'];
-        $gap = $user_data['gap'];
+        $username            = $user_data['user'];
+        $share_secret        = $user_data['share_secret'];
+        $user_time           = $user_data['time'];
+        $user_filter         = $user_data['sessions_filter'];
+        $gap                 = $user_data['gap'];
+        $GLOBALS['user_id']  = (int)$user_data['id'];
     }
 
     $_SESSION['sessions_filter'] = $user_filter;
@@ -61,13 +65,11 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     exit;
 }
 
-$db_table = $username.$db_log_prefix;
-$db_sessions_table = $username.$db_sessions_prefix;
-$db_pids_table = $username.$db_pids_prefix;
+$user_id = current_user_id();
 
 if ($username) {
     $cached_timestamp = null;
-    $current_timestamp = getLastUpdateTimestamp($db, $session_id, $db_sessions_table);
+    $current_timestamp = getLastUpdateTimestamp($db, (int)$user_id, $session_id);
 
     if (!$current_timestamp || !hash_equals($expected_sig, $sig)) {
         header('Location: catch.php?c=noshare');
@@ -78,7 +80,7 @@ if ($username) {
     }
 
     // GPS data
-    $gps_cache_key = "gps_data_" . $username . "_" . $session_id;
+    $gps_cache_key = cache_var_key("gps_data_{$session_id}");
     $gps_data = false;
 
     if ($memcached_connected) {
@@ -89,12 +91,12 @@ if ($username) {
     }
 
     if ($gps_data === false || $cached_timestamp !== $current_timestamp) {
-        $gpsQuery = getFilteredGpsQuery($db_table, $_SESSION['sessions_filter']);
+        $gpsQuery = getFilteredGpsQuery((int)$user_id, (int)$_SESSION['sessions_filter']);
         $gps_time_data = $db->execute_query($gpsQuery, [$session_id]);
         $geolocs = [];
         $timearray = [];
         $i = 0;
-        while($row = $gps_time_data->fetch_row()) {
+        while ($row = $gps_time_data->fetch_row()) {
             if (($row[0] != 0) && ($row[1] != 0)) {
                 $geolocs[] = ["lat" => $row[0], "lon" => $row[1], "heading" => $row[2]];
             }
@@ -106,21 +108,18 @@ if ($username) {
             try {
                 $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
-                error_log($errorMessage);
+                error_log(sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
             }
         }
     }
 
-    $geolocs = $gps_data['geolocs'];
+    $geolocs   = $gps_data['geolocs'];
     $timearray = $gps_data['timearray'];
+    $itime     = implode(",", $timearray);
 
-    $itime = implode(",", $timearray);
-
-    // Create array of Latitude/Longitude strings in leafletjs JavaScript format
     $mapdata = [];
-    foreach($geolocs as $d) {
-        $mapdata[] = "[".sprintf("%.14f",$d['lat']).",".sprintf("%.14f",$d['lon']).",".sprintf("%.14f",$d['heading'])."]";
+    foreach ($geolocs as $d) {
+        $mapdata[] = "[" . sprintf("%.14f", $d['lat']) . "," . sprintf("%.14f", $d['lon']) . "," . sprintf("%.14f", $d['heading']) . "]";
     }
     $imapdata = implode(",", $mapdata);
 
@@ -202,8 +201,8 @@ include_once __DIR__ . '/src/head.php';
                 <div <?php if($imapdata) { ?> class="pure-u-md-1-2 pane left" <?php } ?>>
                     <!-- Chart Block -->
                     <div id="Chart-Container" class="row center-block" style="z-index:1;position:relative;">
-                            <div style="display:flex; justify-content:center;">
-                                <h5><span class="label label-warning">. . .</span></h5>
+                            <div class="chart-label">
+                                <span class="label label-warning">. . .</span>
                             </div>
                     </div>
                 </div>

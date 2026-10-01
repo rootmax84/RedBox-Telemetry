@@ -1,5 +1,5 @@
 <?php
-
+require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/auth_user.php';
 require_once __DIR__ . '/src/creds.php';
@@ -8,12 +8,13 @@ require_once __DIR__ . '/src/db_limits.php';
 $excludedIds = ['kff1005', 'kff1006', 'kff1007'];
 $excludedIdsString = implode(',', array_map(fn($id) => "'$id'", $excludedIds));
 
-$query = "SELECT id, description, units, populated, stream, favorite 
-          FROM $db_pids_table 
-          WHERE id NOT IN ($excludedIdsString) 
-          ORDER BY description";
-
-$keydata = $db->query($query)->fetch_all(MYSQLI_ASSOC);
+$keydata = $db->execute_query(
+    "SELECT id, description, units, populated, stream, favorite
+       FROM pids
+      WHERE user_id = ? AND id NOT IN ($excludedIdsString)
+      ORDER BY description",
+    [current_user_id()]
+)->fetch_all(MYSQLI_ASSOC);
 
 $db->close();
 include_once __DIR__ . '/src/head.php';

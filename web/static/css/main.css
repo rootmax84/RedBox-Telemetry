@@ -1667,3 +1667,36 @@ input[type="text"] {
 [role="none"] {
   margin: 0 8px;
 }
+
+.search-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.search-form-row .search-field {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.search-form-row .search-field--range    { flex: 0 0 120px; }
+.search-form-row .search-field--pid      { flex: 1 1 220px; }
+.search-form-row .search-field--operator { flex: 0 0 70px; }
+.search-form-row .search-field--value    { flex: 0 0 110px; }
+.search-form-row .search-field--submit   { flex: 0 0 auto; }
+
+.search-form-row .form-control,
+.search-form-row .btn {
+    width: 100%;
+}
+
+@media (max-width: 640px) {
+    .search-form-row .search-field--range    { flex: 1 1 calc(50% - 4px); }
+    .search-form-row .search-field--pid      { flex: 1 1 100%; }
+    .search-form-row .search-field--operator { flex: 1 1 calc(30% - 4px); }
+    .search-form-row .search-field--value    { flex: 1 1 calc(70% - 4px); }
+    .search-form-row .search-field--submit   { flex: 1 1 100%; }
+}

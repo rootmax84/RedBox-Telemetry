@@ -9,24 +9,40 @@ $delsession = filter_input(INPUT_POST, 'delsession', FILTER_SANITIZE_NUMBER_INT)
 
 $page = $_GET["page"] ?? 1;
 
+// Собираем session_id из ключей $_GET (кроме служебных)
 $sessionids = [];
-
 foreach ($_GET as $key => $value) {
-    if (!in_array($key, ["delsession", "page", "csrf_token"])) {
-        array_push($sessionids, $key);
+    if (!in_array($key, ["delsession", "page", "csrf_token"], true)) {
+        $sid = (int)$key;
+        if ($sid > 0) {
+            $sessionids[] = $sid;
+        }
     }
 }
+$sessionids = array_unique($sessionids);
 
 if (isset($delsession)) {
-    foreach ($sessionids as $value) {
-	if ($value != "delsession") {
-	    $db->execute_query("DELETE FROM $db_table WHERE session = ?", [$value]);
-	    $db->execute_query("DELETE FROM $db_sessions_table WHERE session = ?", [$value]);
-	}
+    if (!empty($sessionids)) {
+        // Один батч-DELETE вместо N отдельных — экономит время в N раз
+        $ph    = implode(',', array_fill(0, count($sessionids), '?'));
+        $uid   = current_user_id();
+        $params = array_merge([$uid], array_values($sessionids));
+
+        $db->execute_query(
+            "DELETE FROM logs WHERE user_id = ? AND session IN ($ph)",
+            $params
+        );
+        $db->execute_query(
+            "DELETE FROM sessions WHERE user_id = ? AND session IN ($ph)",
+            $params
+        );
     }
+
     cache_flush();
-    if (!empty($_SESSION["page"])) header('Location: del_sessions.php?page='.$_SESSION["page"]);
-    else {
+
+    if (!empty($_SESSION["page"])) {
+        header('Location: del_sessions.php?page=' . $_SESSION["page"]);
+    } else {
         header('Location: del_sessions.php');
         exit;
     }
@@ -42,7 +58,7 @@ if (isset($delsession)) {
       <div class="container">
        <div id="theme-switch"></div>
         <div class="navbar-header">
-	    <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+        <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
         </div>
       </div>
     </div>
@@ -134,10 +150,24 @@ if (isset($delsession)) {
         <tbody>
 <?php
  $page_first_result = ($page-1) * $results_per_page;
- $sessqry = $db->query("SELECT COUNT(*) FROM $db_sessions_table");
+
+ // COUNT — только для своего юзера
+ $sessqry = $db->execute_query(
+     "SELECT COUNT(*) FROM sessions WHERE user_id = ?",
+     [current_user_id()]
+ );
  $number_of_result = $sessqry->fetch_row()[0];
- $number_of_page = ceil ($number_of_result / $results_per_page);
- $sessqry = $db->query("SELECT time, timeend, session, profileName, sessionsize FROM $db_sessions_table ORDER BY session desc LIMIT " . $page_first_result . "," . $results_per_page);
+ $number_of_page = ceil($number_of_result / $results_per_page);
+
+ // Список — только для своего юзера
+ $sessqry = $db->execute_query(
+     "SELECT time, timeend, session, profileName, sessionsize
+        FROM sessions
+       WHERE user_id = ?
+       ORDER BY session DESC
+       LIMIT " . (int)$page_first_result . "," . (int)$results_per_page,
+     [current_user_id()]
+ );
 
     $i = 0;
     while ($x = $sessqry->fetch_array()) {

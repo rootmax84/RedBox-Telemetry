@@ -97,6 +97,7 @@ function loadPage(page) {
     params.append('pid', currentParams.pid);
     params.append('operator', currentParams.operator);
     params.append('value', currentParams.value);
+    params.append('range', currentParams.range || 'month');
     params.append('page', page);
 
     fetch('search_processor.php', {
@@ -150,12 +151,15 @@ function loadPage(page) {
     });
 }
 
+const rangeSelect = document.getElementById('rangeSelect');
+
 form.addEventListener('submit', function (e) {
     e.preventDefault();
 
-    const pid = pidSelect.value;
+    const pid      = pidSelect.value;
     const operator = operatorSelect.value;
-    const value = valueInput.value.trim();
+    const value    = valueInput.value.trim();
+    const range    = rangeSelect ? rangeSelect.value : 'month';
 
     if (!pid) {
         showError(SEARCH_CONFIG.errorNoPid);
@@ -166,7 +170,7 @@ form.addEventListener('submit', function (e) {
         return;
     }
 
-    currentParams = { pid, operator, value };
+    currentParams = { pid, operator, value, range };
 
     clearResults();
 
@@ -191,6 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof Choices !== 'undefined') {
         document.querySelectorAll('.choices-select').forEach(el => new Choices(el, {
             searchEnabled: true,
+            shouldSort: false,
             searchFloor: 2,
             itemSelectText: ''
         }));

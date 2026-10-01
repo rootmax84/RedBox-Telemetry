@@ -1,46 +1,33 @@
 <?php
 /**
- * Upload processor — общая логика записи аплоадов в БД.
+ * Upload processor — запись аплоадов в shared-таблицы.
  *
  * Используется:
- *   - ul.php       (inline fallback, когда Redis недоступен/выключен)
- *   - worker.php   (основной путь: читает из Redis Stream и вызывает processUpload)
+ *   - ul.php       (inline fallback, Redis недоступен)
+ *   - worker.php   (основной путь через Redis Stream)
  *
- * Вход: нормализованный контекст $ctx (см. ниже) + $kind + $payload.
- * Контекст:
- *   username, db_table, db_sessions_table, db_pids_table,
- *   lang, tg_token, tg_chatid, tg_socks_proxy, translations, ip
+ * Контекст $ctx:
+ *   username, user_id, lang, tg_token, tg_chatid, tg_socks_proxy,
+ *   translations, ip
  */
 
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/redis.php';
 
-/**
- * Точка входа.
- *
- * @param mysqli $db
- * @param array  $ctx     Контекст пользователя
- * @param string $kind    'bulk' | 'single'
- * @param mixed  $payload Для 'bulk' — массив записей, для 'single' — $_REQUEST-подобный массив
- */
-function processUpload($db, array $ctx, string $kind, $payload): void
+function processUpload(mysqli $db, array $ctx, string $kind, $payload): void
 {
-    // helpers.php использует $GLOBALS['username'], $GLOBALS['db_table'] и т.д.
-    // внутри cache_flush(), processSessionStartRecord(), insert_*_record().
-    $GLOBALS['username']          = $ctx['username'];
-    $GLOBALS['db_table']          = $ctx['db_table'];
-    $GLOBALS['db_sessions_table'] = $ctx['db_sessions_table'];
-    $GLOBALS['db_pids_table']     = $ctx['db_pids_table'];
-
-    $dbfields = get_db_fields($db, $ctx['db_table']);
+    // helpers.php использует $GLOBALS['username'] / $GLOBALS['user_id']
+    // внутри cache_flush(), processSessionStartRecord(), insert_log_*.
+    $GLOBALS['username'] = $ctx['username'];
+    $GLOBALS['user_id']  = $ctx['user_id'];
 
     switch ($kind) {
         case 'bulk':
-            processBulkRecords($db, $ctx, $payload, $dbfields);
+            processBulkRecords($db, $ctx, $payload);
             break;
 
         case 'single':
-            processSingleRequest($db, $ctx, $payload, $dbfields);
+            processSingleRequest($db, $ctx, $payload);
             break;
 
         default:
@@ -48,313 +35,108 @@ function processUpload($db, array $ctx, string $kind, $payload): void
     }
 }
 
-/* ───────────────────────── Вспомогательное ───────────────────────── */
+/* ───────────────────────── Bulk (RedManage JSON) ───────────────────────── */
 
-/**
- * Список колонок таблицы логов. Кэшируется в Memcached.
- */
-function get_db_fields($db, string $db_table): array
+function processBulkRecords(mysqli $db, array $ctx, array $records): void
 {
-    global $memcached, $memcached_connected, $db_memcached_ttl;
-
-    $cache_key = "table_structure_" . $db_table;
-    $dbfields  = false;
-
-    if ($memcached_connected) {
-        $dbfields = $memcached->get($cache_key);
-    }
-
-    if (!is_array($dbfields)) {
-        $dbfields = [];
-        $result = $db->query("SHOW COLUMNS FROM $db_table");
-        if ($result && $result->num_rows) {
-            while ($row = $result->fetch_assoc()) {
-                $dbfields[] = $row['Field'];
-            }
-        }
-        if ($memcached_connected) {
-            try {
-                $memcached->set($cache_key, $dbfields, $db_memcached_ttl ?? 3600);
-            } catch (Throwable $e) {
-                error_log("Memcached error in get_db_fields: " . $e->getMessage());
-            }
-        }
-    }
-
-    return $dbfields;
-}
-
-/**
- * Гарантирует, что колонка `kXXXX` существует в таблице логов
- * и что соответствующая запись есть в таблице pids.
- *
- * При multi-worker использует Redis advisory lock, чтобы ALTER'ы
- * одной и той же таблицы не выполнялись параллельно.
- */
-function ensureColumnAndPid(
-    $db,
-    string $db_table,
-    string $db_pids_table,
-    string $key,
-    $value,
-    array &$dbfields
-): void {
-    // Fast path: колонка уже в локальном кэше воркера
-    if (in_array($key, $dbfields, true) || !preg_match('/^k[0-9a-fA-F]+$/', $key)) {
-        return;
-    }
-
-    $dataType = is_numeric($value) ? "FLOAT" : "VARCHAR(255)";
-
-    // ─── Если колонка уже есть в БД — просто регистрируем PID и выходим ───
-    if (column_exists($db, $db_table, $key)) {
-        $db->execute_query(
-            "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite)
-             VALUES (?,?,?,?,?)",
-            [$key, $key, '1', '1', '0']
-        );
-        $dbfields[] = $key;
-        cache_flush();
-        return;
-    }
-
-    // ─── Пытаемся взять advisory lock (только если Redis доступен) ───
-    $redis   = get_redis_connection();
-    $lockKey = "lock:alter_col:" . $db_table;
-    $lockTtl = 30;
-    $gotLock = false;
-
-    if ($redis !== null) {
-        try {
-            $gotLock = (bool)$redis->set($lockKey, (string)getmypid(), [
-                'nx',
-                'ex' => $lockTtl,
-            ]);
-        } catch (Throwable $e) {
-            error_log("[ensureColumnAndPid] Redis SET NX failed: " . $e->getMessage());
-            $gotLock = false;
-        }
-    } else {
-        // Redis недоступен — работаем как раньше, без lock
-        $gotLock = true;
-    }
-
-    $columnReady = false;
-
-    // ─── Ветка A: lock наш — делаем ALTER ───
-    if ($gotLock) {
-        try {
-            // Двойная проверка: пока ждали lock, другой воркер мог добавить колонку
-            if (column_exists($db, $db_table, $key)) {
-                $columnReady = true;
-            } else {
-                $db->query(
-                    "ALTER TABLE $db_table ADD COLUMN " . quote_name($key)
-                    . " $dataType NOT NULL DEFAULT '0'"
-                );
-                $columnReady = true;
-            }
-        } catch (Throwable $e) {
-            $msg = $e->getMessage();
-            if (stripos($msg, 'Duplicate column') !== false) {
-                // Кто-то параллельно успел создать
-                $columnReady = true;
-            } else {
-                error_log("[ensureColumnAndPid] ALTER failed: " . $msg);
-            }
-        } finally {
-            if ($redis !== null) {
-                try {
-                    $script = "if redis.call('GET', KEYS[1]) == ARGV[1] "
-                            . "then return redis.call('DEL', KEYS[1]) "
-                            . "else return 0 end";
-                    $redis->eval($script, [$lockKey, (string)getmypid()], 1);
-                } catch (Throwable $e) {
-                    error_log("[ensureColumnAndPid] Redis unlock failed: " . $e->getMessage());
-                }
-            }
-        }
-    }
-    // ─── Ветка B: lock занят — ждём появления колонки ───
-    else {
-        $waitUntil    = microtime(true) + 10;
-        $pollInterval = 200;   // ms
-
-        while (microtime(true) < $waitUntil) {
-            if (column_exists($db, $db_table, $key)) {
-                $columnReady = true;
-                break;
-            }
-            usleep($pollInterval * 1000);
-        }
-
-        // Не дождались — форсируем ALTER сами. MariaDB выстроит нас
-        // в очередь MDL за текущим ALTER'ом. Если держатель lock упал —
-        // мы подхватим работу.
-        if (!$columnReady) {
-            error_log(sprintf(
-                "[ensureColumnAndPid] Timeout waiting for column %s.%s, forcing ALTER",
-                $db_table, $key
-            ));
-            try {
-                $db->query(
-                    "ALTER TABLE $db_table ADD COLUMN " . quote_name($key)
-                    . " $dataType NOT NULL DEFAULT '0'"
-                );
-                $columnReady = true;
-            } catch (Throwable $e) {
-                $msg = $e->getMessage();
-                if (stripos($msg, 'Duplicate column') !== false) {
-                    $columnReady = true;
-                } else {
-                    error_log("[ensureColumnAndPid] Force ALTER failed: " . $msg);
-                }
-            }
-        }
-    }
-
-    // ─── Регистрация PID — только если колонка реально существует ───
-    if ($columnReady) {
-        $db->execute_query(
-            "INSERT IGNORE INTO $db_pids_table (id, description, populated, stream, favorite)
-             VALUES (?,?,?,?,?)",
-            [$key, $key, '1', '1', '0']
-        );
-
-        $dbfields[] = $key;
-        cache_flush();
-    } else {
-        // Колонки нет — не портим $dbfields, следующий аплоад повторит попытку
-        error_log(sprintf(
-            "[ensureColumnAndPid] Column %s.%s still missing after all attempts; skipping registration",
-            $db_table, $key
-        ));
-    }
-}
-
-/* ───────────────────────── Bulk JSON ───────────────────────── */
-
-/**
- * Обработка массива записей (application/json от RedManage).
- *
- * Запись с ключом 'profileName' (или начинающимся с 'profile') считается
- * маркером старта сессии.
- */
-function processBulkRecords($db, array $ctx, array $records, array $dbfields): void
-{
-    $db_table          = $ctx['db_table'];
-    $db_sessions_table = $ctx['db_sessions_table'];
-    $db_pids_table     = $ctx['db_pids_table'];
-    $lang              = $ctx['lang'];
-    $translations      = $ctx['translations'];
+    $user_id      = (int)$ctx['user_id'];
+    $lang         = $ctx['lang'];
+    $translations = $ctx['translations'];
 
     $pendingNotifications = [];
 
     $db->begin_transaction();
     try {
-        $bulkRecords         = [];  // обычные datapoint'ы
-        $sessionUpdates      = [];  // UPSERT-апдейты сессий
+        $log_rows            = [];  // для insert_log_rows_bulk
+        $sessionUpserts      = [];  // UPSERT-и в sessions
         $sessionStartRecords = [];  // записи с profileName
+        $all_pids            = [];  // уникальные PID-ключи для ensure_pids_exist
 
         foreach ($records as $record) {
-            if (!is_array($record)) {
-                continue;
-            }
+            if (!is_array($record)) continue;
 
-            $isSessionStart = isset($record['profileName'])
+            $isSessionStart =
+                   isset($record['profileName'])
                 || !empty(array_filter(
-                    array_keys($record),
-                    fn($k) => strpos((string)$k, 'profile') === 0
-                ));
+                       array_keys($record),
+                       fn($k) => strpos((string)$k, 'profile') === 0
+                   ));
 
             if ($isSessionStart) {
                 $sessionStartRecords[] = $record;
                 continue;
             }
 
-            $rawkeys      = [];
-            $rawvalues    = [];
-            $sesskeys     = [];
-            $sessvalues   = [];
-            $sessuploadid = '';
-            $sesstime     = '0';
-            $id           = '';
+            $session = 0;
+            $time    = 0;
+            $id      = '';
+            $pids    = [];
 
-            // ВАЖНО: повторяем поведение оригинала ul.php.
-            // Ключ 'id' перехватывается отдельно и НЕ попадает в $sesskeys.
-            // Ключи 'session' и 'time' идут и в $sesskeys, и в отдельные переменные.
             foreach ($record as $key => $value) {
-                if (in_array($key, ['time', 'session', 'id'], true)) {
-                    if ($key === 'session') {
-                        $sessuploadid = $value;
-                    }
-                    if ($key === 'time') {
-                        $sesstime = $value;
-                    }
-                    if ($key === 'id') {
-                        $id = $value;
-                    } else {
-                        $sesskeys[]   = $key;
-                        $sessvalues[] = $value;
-                    }
-                } elseif (preg_match('/^k/', (string)$key)) {
-                    $rawkeys[]   = $key;
-                    $rawvalues[] = ($value == 'Infinity') ? -1 : $value;
+                if ($key === 'session') {
+                    $session = (int)$value;
+                } elseif ($key === 'time') {
+                    $time = (int)$value;
+                } elseif ($key === 'id') {
+                    $id = (string)$value;
+                } elseif (strpos((string)$key, 'k') === 0) {
+                    $pids[$key] = ($value === 'Infinity') ? -1 : $value;
+                    $all_pids[$key] = true;
                 }
             }
 
-            // Автодобавление колонок/PID'ов
-            foreach ($rawkeys as $idx => $key) {
-                ensureColumnAndPid(
-                    $db, $db_table, $db_pids_table,
-                    $key, $rawvalues[$idx], $dbfields
-                );
+            if ($session > 0 && $time > 0) {
+                $log_rows[] = [
+                    'session' => $session,
+                    'time'    => $time,
+                    'pids'    => $pids,
+                ];
             }
 
-            $allRawKeys   = array_merge($rawkeys, $sesskeys);
-            $allRawValues = array_merge($rawvalues, $sessvalues);
-
-            $bulkRecord = [];
-            foreach ($allRawKeys as $i => $key) {
-                $bulkRecord[$key] = $allRawValues[$i];
+            if ($session > 0) {
+                $sessionUpserts[] = [
+                    'id'      => $id,
+                    'session' => $session,
+                    'time'    => $time,
+                    'timeend' => $time,
+                ];
             }
-            $bulkRecords[] = $bulkRecord;
-
-            $sesskeys[]   = 'timeend';
-            $sessvalues[] = $sesstime;
-
-            $sessionUpdates[] = [
-                'keys'     => $sesskeys,
-                'values'   => $sessvalues,
-                'id'       => $id,
-                'sesstime' => $sesstime,
-            ];
         }
 
-        if (!empty($bulkRecords)) {
-            insert_bulk_records($db, $db_table, $bulkRecords);
+        // ─── Авто-регистрация новых PID'ов ───
+        if (!empty($all_pids)) {
+            ensure_pids_exist($db, $user_id, array_keys($all_pids));
         }
 
-        foreach ($sessionUpdates as $sess) {
-            $sql = "INSERT INTO $db_sessions_table ("
-                 . quote_names($sess['keys']) . ") VALUES ("
-                 . quote_values($sess['values'])
-                 . ") ON DUPLICATE KEY UPDATE id=?, timeend=GREATEST(timeend, ?), sessionsize=sessionsize+1";
-            $db->execute_query($sql, [$sess['id'], $sess['sesstime']]);
+        if (!empty($log_rows)) {
+            insert_log_rows_bulk($db, $user_id, $log_rows);
+        }
+
+        foreach ($sessionUpserts as $s) {
+            $db->execute_query(
+                "INSERT INTO sessions (user_id, id, session, time, timeend, sessionsize)
+                 VALUES (?,?,?,?,?,1)
+                 ON DUPLICATE KEY UPDATE
+                    id          = VALUES(id),
+                    timeend     = GREATEST(timeend, VALUES(timeend)),
+                    sessionsize = sessionsize + 1",
+                [$user_id, $s['id'], $s['session'], $s['time'], $s['timeend']]
+            );
         }
 
         foreach ($sessionStartRecords as $record) {
             $notif = processSessionStartRecord(
                 $db,
                 $record,
-                $db_sessions_table,
+                'sessions',
                 $lang,
                 $ctx['username'],
                 $ctx['tg_token']       ?? null,
                 $ctx['tg_chatid']      ?? null,
                 $ctx['tg_socks_proxy'] ?? '',
                 $translations,
-                $ctx['ip']             ?? null   // явная передача IP
+                $ctx['ip']             ?? null,
+                $user_id
             );
 
             if ($notif !== null) {
@@ -368,86 +150,49 @@ function processBulkRecords($db, array $ctx, array $records, array $dbfields): v
         throw $e;
     }
 
-    // Отправка уведомлений ПОСЛЕ commit'а
     if (!empty($pendingNotifications)) {
         sendPendingNotifications($pendingNotifications);
     }
 }
 
-/* ───────────────────────── Single request ───────────────────────── */
+/* ───────────────────────── Single (form-urlencoded) ───────────────────────── */
 
-/**
- * Обработка одиночного запроса (application/x-www-form-urlencoded).
- */
-function processSingleRequest($db, array $ctx, array $request, array $dbfields): void
+function processSingleRequest(mysqli $db, array $ctx, array $request): void
 {
-    $db_table          = $ctx['db_table'];
-    $db_sessions_table = $ctx['db_sessions_table'];
-    $db_pids_table     = $ctx['db_pids_table'];
-    $lang              = $ctx['lang'];
-    $translations      = $ctx['translations'];
+    $user_id      = (int)$ctx['user_id'];
+    $lang         = $ctx['lang'];
+    $translations = $ctx['translations'];
 
-    $allowedProfileFields = ['profileName'];
+    $session        = 0;
+    $time           = 0;
+    $id             = '';
+    $pids           = [];
+    $isSessionStart = false;
+    $isNotice       = false;
+    $hasKData       = false;
 
-    $keys       = [];   // k-колонки
-    $values     = [];
-    $sesskeys   = [];
-    $sessvalues = [];
-    $spv        = [];   // profile values
-    $sesstime   = '0';
-    $id         = '';
-    $submitval  = 0;
-
-    // ВАЖНО: та же логика, что и в bulk — 'id' перехватывается,
-    // 'session' и 'time' идут в $sesskeys.
     foreach ($request as $key => $value) {
-        if (in_array($key, ['time', 'session', 'id'], true)) {
-            if ($key === 'session') {
-                // значение не используется дальше, но оставлено для совместимости
-            }
-            if ($key === 'time') {
-                $sesstime = $value;
-            }
-            if ($key === 'id') {
-                $id = $value;
-            } else {
-                $sesskeys[]   = $key;
-                $sessvalues[] = $value;
-            }
-            $submitval = 1;
-        } elseif (preg_match('/^k/', (string)$key)) {
-            $keys[]    = $key;
-            $values[]  = ($value == 'Infinity') ? -1 : $value;
-            $submitval = 1;
-        } elseif (in_array($key, ['notice', 'noticeClass'], true)) {
-            $keys[]    = $key;
-            $values[]  = $value;
-            $submitval = 3;
-        } elseif (preg_match('/^profile/', (string)$key)) {
-            if (in_array($key, $allowedProfileFields, true)) {
-                $spv[$key] = $value;
-                $submitval = 2;
-            }
-        } else {
-            $submitval = 0;
-        }
-
-        if (!in_array($key, $dbfields, true)
-            && $submitval == 1
-            && preg_match('/^k[0-9a-fA-F]+$/', $key)) {
-            ensureColumnAndPid(
-                $db, $db_table, $db_pids_table,
-                $key, $value, $dbfields
-            );
+        if ($key === 'session') {
+            $session = (int)$value;
+        } elseif ($key === 'time') {
+            $time = (int)$value;
+        } elseif ($key === 'id') {
+            $id = (string)$value;
+        } elseif ($key === 'profileName') {
+            $isSessionStart = true;
+        } elseif ($key === 'notice' || $key === 'noticeClass') {
+            $isNotice = true;
+        } elseif (strpos((string)$key, 'k') === 0) {
+            $pids[$key] = ($value === 'Infinity') ? -1 : $value;
+            $hasKData = true;
         }
     }
 
-    // Случай 1: это старт сессии (пришёл profileName)
-    if ($submitval == 2) {
+    /* Случай 1: session start */
+    if ($isSessionStart) {
         $record = [];
         foreach ($request as $key => $value) {
-            if (in_array($key, ['session', 'time', 'id'], true)
-                || preg_match('/^profile/', $key)) {
+            if (in_array($key, ['session', 'time', 'id', 'profileName'], true)) {
                 $record[$key] = $value;
             }
         }
@@ -458,14 +203,15 @@ function processSingleRequest($db, array $ctx, array $request, array $dbfields):
             $notif = processSessionStartRecord(
                 $db,
                 $record,
-                $db_sessions_table,
+                'sessions',
                 $lang,
                 $ctx['username'],
                 $ctx['tg_token']       ?? null,
                 $ctx['tg_chatid']      ?? null,
                 $ctx['tg_socks_proxy'] ?? '',
                 $translations,
-                $ctx['ip']             ?? null
+                $ctx['ip']             ?? null,
+                $user_id
             );
             $db->commit();
         } catch (Throwable $e) {
@@ -479,27 +225,33 @@ function processSingleRequest($db, array $ctx, array $request, array $dbfields):
         return;
     }
 
-    // Случай 2: обычный datapoint
-    $rawkeys   = array_merge($keys, $sesskeys);
-    $rawvalues = array_merge($values, $sessvalues);
-
-    if (count($rawkeys) !== count($rawvalues)
-        || count($rawkeys) === 0
-        || count($sesskeys) !== count($sessvalues)
-        || count($sesskeys) === 0) {
+    /* Случай 2: обычный datapoint */
+    if ($session <= 0 || $time <= 0) {
+        return;
+    }
+    if (!$hasKData && !$isNotice) {
         return;
     }
 
-    if ($submitval == 1) {
-        insert_single_record($db, $db_table, $rawkeys, $rawvalues);
+    if ($isNotice) {
+        if (isset($request['notice']))      $pids['notice']      = $request['notice'];
+        if (isset($request['noticeClass'])) $pids['noticeClass'] = $request['noticeClass'];
     }
 
-    $sesskeys[]   = 'timeend';
-    $sessvalues[] = $sesstime;
+    // ─── Авто-регистрация новых PID'ов ───
+    if (!empty($pids)) {
+        ensure_pids_exist($db, $user_id, array_keys($pids));
+    }
 
-    $sql = "INSERT INTO $db_sessions_table ("
-         . quote_names($sesskeys) . ") VALUES ("
-         . quote_values($sessvalues)
-         . ") ON DUPLICATE KEY UPDATE id=?, timeend=GREATEST(timeend, ?), sessionsize=sessionsize+1";
-    $db->execute_query($sql, [$id, $sesstime]);
+    insert_log_row($db, $user_id, $session, $time, $pids);
+
+    $db->execute_query(
+        "INSERT INTO sessions (user_id, id, session, time, timeend, sessionsize)
+         VALUES (?,?,?,?,?,1)
+         ON DUPLICATE KEY UPDATE
+            id          = VALUES(id),
+            timeend     = GREATEST(timeend, VALUES(timeend)),
+            sessionsize = sessionsize + 1",
+        [$user_id, $id, $session, $time, $time]
+    );
 }

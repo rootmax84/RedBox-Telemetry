@@ -7,7 +7,7 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
     require_once __DIR__ . '/helpers.php';
 
     // Cache keys
-    $db_limit_cache_key = "db_limit_{$db_table}";
+    $db_limit_cache_key    = "session_count_{$user_id}";
     $user_status_cache_key = "user_status_{$username}";
 
     $db_limit = false;
@@ -16,10 +16,14 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
     }
 
     if ($db_limit === false) {
-        $db_limit = $db->execute_query("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024) FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?", [$db_name, $db_table])->fetch_row()[0];
+        $db_limit = (int)$db->execute_query(
+            "SELECT COUNT(*) FROM sessions WHERE user_id = ?",
+            [$user_id]
+        )->fetch_row()[0];
         if ($memcached_connected) {
             try {
-                $memcached->set($db_limit_cache_key, $db_limit, 300);
+                // короткий TTL — счётчик меняется на каждой загрузке
+                $memcached->set($db_limit_cache_key, $db_limit, 60);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -48,7 +52,8 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
     $_SESSION['torque_limit'] = $user_status;
 
     //send used space to frontend
-    $db_used = $limit == -1 ? 0 : round(map($db_limit, 0, $limit, 0, 100));
+//    $db_used = $limit == -1 ? 0 : round(map($db_limit, 0, $limit, 0, 100));
+    $db_used = $limit == -1 ? 0 : $db_limit . '/' . $limit;
 
     if (!headers_sent()) {
         setcookie("storage_usage", $db_used, 0, "/");

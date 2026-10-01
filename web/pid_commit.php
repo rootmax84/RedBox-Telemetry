@@ -1,5 +1,5 @@
 <?php
-
+require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/auth_user.php';
 require_once __DIR__ . '/translations.php';
@@ -22,6 +22,10 @@ try {
 
         if (count($parts) === 2) {
             [$field_name, $id] = $parts;
+            $allowed_fields = ['description', 'units', 'populated', 'stream', 'favorite'];
+            if (!in_array($field_name, $allowed_fields, true)) {
+                continue;
+            }
         } else {
             continue;
         }
@@ -34,14 +38,14 @@ try {
             $val = ($val === 'true') ? 1 : 0;
         }
 
-        $db->execute_query("UPDATE $db_pids_table SET " . quote_name($field_name) . " = ? WHERE id = ?", [$val, $id]);
+        $db->execute_query(
+            "UPDATE pids SET " . quote_name($field_name) . " = ? WHERE user_id = ? AND id = ?",
+            [$val, current_user_id(), $id]
+        );
     }
   } else {
         $pid = $_POST["delete"];
-        $db->execute_query("DELETE FROM $db_pids_table WHERE id = ?", [$pid]);
-        if (column_exists($db, $db_table, $pid)) {
-            $db->query("ALTER TABLE $db_table DROP COLUMN " . quote_name($pid));
-        }
+        $db->execute_query("DELETE FROM pids WHERE user_id = ? AND id = ?", [current_user_id(), $pid]);
   }
 
     $db->commit();

@@ -17,14 +17,12 @@ $filtermonth = ($filtermonth === "ALL") ? "%" : $filtermonth;
 $filterprofile = getFilterValue("selprofile", "profile", "%%");
 $filterprofile = ($filterprofile === "ALL") ? "%%" : $filterprofile;
 
-// array for prepared query params
-$params = [];
-$types = ""; // Types for bind_param (example, 's' for strings)
-
-// Build SQL-query with prepared expressions
 $query = "SELECT time, timeend, session, profileName, ip, favorite
-          FROM $db_sessions_table
-          WHERE 1=1";
+          FROM sessions
+          WHERE user_id = ?";
+
+$params = [current_user_id()];
+$types  = "i";
 
 // year filter
 if ($filteryear !== "%") {
@@ -49,7 +47,7 @@ if ($filterprofile !== "%%") {
 
 // session id filter if presence
 if (isset($_GET['id'])) {
-    $query .= " OR session LIKE ?";
+    $query .= " AND session LIKE ?";
     $params[] = $_GET['id'];
     $types .= "s";
 }
@@ -67,13 +65,15 @@ $sessionqry = $stmt->get_result();
 
 // If nothing found pull last 20 sessions
 if ($sessionqry->num_rows == 0) {
-    $query = "SELECT time, timeend, session, profileName, ip, favorite
-              FROM $db_sessions_table
-              GROUP BY session, profileName, time, timeend
-              ORDER BY session DESC
-              LIMIT 20";
-
-    $sessionqry = $db->query($query);
+    $sessionqry = $db->execute_query(
+        "SELECT time, timeend, session, profileName, ip, favorite
+         FROM sessions
+         WHERE user_id = ?
+         GROUP BY session, profileName, time, timeend
+         ORDER BY session DESC
+         LIMIT 20",
+        [current_user_id()]
+    );
 }
 
 $seshdates = [];
@@ -82,6 +82,7 @@ $seshprofile = [];
 $seship = [];
 $sesactive = [];
 $sesfavorite = [];
+$sids = [];
 
 while ($row = $sessionqry->fetch_assoc()) {
     $row["timeend"] = !$row["timeend"] ? $row["time"] : $row["timeend"];

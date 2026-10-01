@@ -20,11 +20,11 @@ if ($filterprofile === "ALL" || $filterprofile === "") $filterprofile = "%%";
 $current_id = $_GET['current_id'] ?? '';
 
 $query = "SELECT time, timeend, session, profileName, ip, favorite
-          FROM $db_sessions_table
-          WHERE 1=1";
+          FROM sessions
+          WHERE user_id = ?";
 
-$params = [];
-$types = "";
+$params = [current_user_id()];
+$types  = "i";
 
 if ($filteryear !== "%") {
     $query .= " AND YEAR(FROM_UNIXTIME(session / 1000)) LIKE ?";

@@ -71,7 +71,7 @@ $(document).ready(function(){
 
   PasswordToggle.initAll();
   ClearInput.initAll();
-  document.querySelector('.storage-usage-img')?.addEventListener('click', () => xhrResponse(`${localization.key['stor.usage']} ${Cookies.get('storage_usage')}%`));
+  document.querySelector('.storage-usage-img')?.addEventListener('click', () => xhrResponse(`${localization.key['stor.usage']} ${Cookies.get('storage_usage')}`));
 
   document.querySelectorAll('.clear-input__btn, .password-toggle__btn').forEach(el => {
     el.setAttribute('tabindex', '-1');
@@ -2294,13 +2294,20 @@ function serverError(msg = '') {
 }
 
 function xhrResponse(text) {
- let dialogOpt = {
-    title: localization.key['dialog.result'],
-    message : text,
-    btnClassSuccessText: "OK",
-    btnClassFail: "hidden",
- };
- redDialog.make(dialogOpt);
+    const s = String(text ?? '').trim();
+    if (/^<!DOCTYPE/i.test(s) || /^<html[\s>]/i.test(s)) {
+        $("#wait_layout").hide();
+        location.href = '.?logout=true';
+        return;
+    }
+
+    let dialogOpt = {
+        title: localization.key['dialog.result'],
+        message : text,
+        btnClassSuccessText: "OK",
+        btnClassFail: "hidden",
+    };
+    redDialog.make(dialogOpt);
 }
 
 let isToggleInProgress = false;

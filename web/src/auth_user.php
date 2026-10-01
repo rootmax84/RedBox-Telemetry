@@ -8,19 +8,34 @@ $csrf_exempt_scripts = ['get_token.php', 'ul.php', 'adminer.php', 'remote.php', 
 
 $logged_in = isset($_SESSION['torque_logged_in']) && $_SESSION['torque_logged_in'];
 
+/* Определяем AJAX/JSON-запрос один раз — чтобы различать HTML-редирект и API-ответ */
+$is_ajax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest')
+        || (stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false)
+        || (stripos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false);
+
+/* Хелпер: для AJAX — 401 JSON, для обычного запроса — редирект на catch.php */
+$auth_fail = function (string $reason, int $http_code = 401, ?string $catch = null) use ($is_ajax) {
+    if ($is_ajax) {
+        http_response_code($http_code);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => $reason, 'reload' => true]);
+        exit;
+    }
+    header('Location: catch.php?c=' . ($catch ?? $reason));
+    exit;
+};
+
 if(isset($_POST) && !empty($_POST)){
     if (!in_array($current_script, $csrf_exempt_scripts)) {
         if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
-            header('Location: catch.php?c=csrffailed');
-            exit;
+            $auth_fail('csrffailed', 401, 'csrffailed');
         }
     }
 
     if (!$logged_in) {
         perform_migration();
         if (!check_login_attempts(get_user())) {
-            header('Location: catch.php?c=toomanyattempts');
-            exit;
+            $auth_fail('toomanyattempts', 429, 'toomanyattempts');
         }
         if (auth_user()) {
             perform_user_migration();
@@ -38,8 +53,7 @@ if(isset($_POST) && !empty($_POST)){
                 }
             });
         } else {
-            header('Location: catch.php?c=loginfailed');
-            exit;
+            $auth_fail('loginfailed', 401, 'loginfailed');
         }
     }
 }

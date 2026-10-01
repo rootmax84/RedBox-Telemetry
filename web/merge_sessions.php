@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/get_sessions.php';
 require_once __DIR__ . '/src/db_limits.php';
@@ -28,12 +29,12 @@ $mergesess1 = !empty($mergesess) ? $mergesess[0] : null;
 
 if (!empty($mergesession) && !empty($mergesess1)) {
 
-    $profileQuery = "SELECT profileName, description, favorite, ip FROM $db_sessions_table WHERE session = ?";
-    $stmt = $db->prepare($profileQuery);
-    $stmt->bind_param('i', $mergesession);
-    $stmt->execute();
-    $profileResult = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
+    $profileResult = $db->execute_query(
+        "SELECT profileName, description, favorite, ip
+           FROM sessions
+          WHERE user_id = ? AND session = ?",
+        [current_user_id(), $mergesession]
+    )->fetch_assoc();
 
     $profileName = $profileResult['profileName'];
     $profileFavorite = $profileResult['favorite'];
@@ -41,14 +42,16 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     $profileIp = $profileResult['ip'];
 
     $allSessions = array_values($sessionids);
-    $placeholders = implode(',', array_fill(0, count($allSessions), '?'));
-    $qrystr = "SELECT MIN(time) as time, MAX(timeend) as timeend, MIN(session) as session, SUM(sessionsize) as sessionsize 
-               FROM $db_sessions_table 
-               WHERE session IN ($placeholders)";
-
-    $stmt = $db->prepare($qrystr);
-    $types = str_repeat('i', count($allSessions));
-    $stmt->bind_param($types, ...$allSessions);
+    $ph       = implode(',', array_fill(0, count($allSessions), '?'));
+    $params   = array_merge([current_user_id()], $allSessions);
+    $types    = 'i' . str_repeat('i', count($allSessions));
+    $stmt = $db->prepare(
+        "SELECT MIN(time) AS time, MAX(timeend) AS timeend,
+                MIN(session) AS session, SUM(sessionsize) AS sessionsize
+           FROM sessions
+          WHERE user_id = ? AND session IN ($ph)"
+    );
+    $stmt->bind_param($types, ...$params);
     $stmt->execute();
     $mergerow = $stmt->get_result()->fetch_assoc();
     $stmt->close();
@@ -58,24 +61,30 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     $newtimeend = $mergerow['timeend'];
     $newsessionsize = $mergerow['sessionsize'];
 
-    $updateMain = "UPDATE $db_sessions_table 
-                   SET time = ?, timeend = ?, sessionsize = ?, profileName = ?, favorite = ?, description = ?, ip = ? 
-                   WHERE session = ?";
-    $stmt = $db->prepare($updateMain);
-    $stmt->bind_param('iiissssi', $newtimestart, $newtimeend, $newsessionsize, $profileName, $profileFavorite, $profileDesc, $profileIp, $newsession);
+    $stmt = $db->prepare(
+        "UPDATE sessions
+            SET time = ?, timeend = ?, sessionsize = ?, profileName = ?,
+                favorite = ?, description = ?, ip = ?
+          WHERE user_id = ? AND session = ?"
+    );
+    $stmt->bind_param('iiissssii',
+        $newtimestart, $newtimeend, $newsessionsize,
+        $profileName, $profileFavorite, $profileDesc, $profileIp,
+        current_user_id(), $newsession
+    );
     $stmt->execute();
     $stmt->close();
 
     foreach ($allSessions as $sid) {
         if ($sid == $newsession) continue;
 
-        $delStmt = $db->prepare("DELETE FROM $db_sessions_table WHERE session = ?");
-        $delStmt->bind_param('i', $sid);
+        $delStmt = $db->prepare("DELETE FROM sessions WHERE user_id = ? AND session = ?");
+        $delStmt->bind_param('ii', current_user_id(), $sid);
         $delStmt->execute();
         $delStmt->close();
 
-        $updDataStmt = $db->prepare("UPDATE $db_table SET session = ? WHERE session = ?");
-        $updDataStmt->bind_param('ii', $newsession, $sid);
+        $updDataStmt = $db->prepare("UPDATE logs SET session = ? WHERE user_id = ? AND session = ?");
+        $updDataStmt->bind_param('iii', $newsession, current_user_id(), $sid);
         $updDataStmt->execute();
         $updDataStmt->close();
     }
@@ -185,10 +194,17 @@ if (!empty($mergesession) && !empty($mergesess1)) {
                 <tbody>
                     <?php
                     $page_first_result = ($page - 1) * $results_per_page;
-                    $sessqry = $db->query("SELECT COUNT(*) FROM $db_sessions_table");
+                    $sessqry = $db->execute_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?", [current_user_id()]);
                     $number_of_result = $sessqry->fetch_row()[0];
                     $number_of_page = ceil($number_of_result / $results_per_page);
-                    $sessqry = $db->query("SELECT time, timeend, session, profileName, sessionsize FROM $db_sessions_table ORDER BY session desc LIMIT " . $page_first_result . "," . $results_per_page);
+                    $sessqry = $db->execute_query(
+                        "SELECT time, timeend, session, profileName, sessionsize
+                           FROM sessions
+                          WHERE user_id = ?
+                          ORDER BY session DESC
+                          LIMIT " . (int)$page_first_result . "," . (int)$results_per_page,
+                        [current_user_id()]
+                    );
 
                     while ($x = $sessqry->fetch_array()) {
                     ?>

@@ -44,8 +44,40 @@ set_exception_handler(function($exception) {
 
     error_log($log);
 
-    session_destroy();
-    header('Location: catch.php?c=error');
+    // Сессия может быть не активна (API-эндпоинты) — не вызываем destroy()
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        @session_destroy();
+    }
+
+    // Для CLI — только лог
+    if (PHP_SAPI === 'cli') {
+        exit(1);
+    }
+
+    // Если это API-эндпоинт (JSON в Accept или uri /api/ или /stream_json) —
+    // отдаём JSON-ответ, а не редирект
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    $is_api = (
+        stripos($uri, 'stream_json') !== false ||
+        stripos($uri, 'ul.php') !== false ||
+        stripos($uri, 'remote.php') !== false ||
+        stripos($uri, 'get_token.php') !== false ||
+        stripos($uri, 'search_processor.php') !== false
+    );
+
+    if ($is_api) {
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
+        http_response_code(500);
+        echo json_encode(['error' => 'Internal server error']);
+        exit;
+    }
+
+    // Обычные страницы — редирект, но только если headers не отправлены
+    if (!headers_sent()) {
+        header('Location: catch.php?c=error');
+    }
     exit;
 });
 
@@ -109,14 +141,59 @@ function quote_values($values) {
     return implode(", ", array_map('quote_value', $values));
 }
 
-function cache_flush($token = null, $keyname = null) {
-    global $memcached, $memcached_connected, $username, $db_table, $db_pids_table;
+/**
+ * Ключ для переменных per-user кэшей (session_data_*, gps_data_*).
+ *
+ * Формат: u{$uid}_vv{$version}_{$suffix}
+ *
+ * Версия читается из memcached один раз на запрос и кэшируется в static.
+ * При cache_flush() инкрементируется → все старые ключи становятся
+ * недостижимы, истекают по TTL сами.
+ *
+ * Если $uid невозможно определить — возвращает "guest_{$suffix}".
+ */
+function cache_var_key(string $suffix): string
+{
+    global $memcached, $memcached_connected;
+
+    $uid = (int)($GLOBALS['user_id'] ?? $_SESSION['uid'] ?? 0);
+    if ($uid <= 0) {
+        return "guest_{$suffix}";
+    }
+
+    static $versions = [];
+
+    if (!isset($versions[$uid])) {
+        $versions[$uid] = 1;
+        if ($memcached_connected) {
+            try {
+                $v = $memcached->get("u{$uid}_varver");
+                if ($v !== false && $v !== null) {
+                    $versions[$uid] = (int)$v;
+                }
+            } catch (Throwable $e) {
+                error_log("cache_var_key get version failed: " . $e->getMessage());
+            }
+        }
+    }
+
+    return "u{$uid}_vv{$versions[$uid]}_{$suffix}";
+}
+
+function cache_flush($token = null, $keyname = null)
+{
+    global $memcached, $memcached_connected, $username, $user_id;
 
     if (!$memcached_connected) {
         return;
     }
 
     try {
+        /* ─── Точечная инвалидация по префиксу/имени ───
+         * Используется редко (только для явного сброса одного ключа
+         * или группы). Перебирает ключи через getAllKeys — приемлемо,
+         * т.к. вызывается не на каждом запросе.
+         */
         if ($keyname !== null) {
             $allKeys = $memcached->getAllKeys();
             if ($allKeys !== false) {
@@ -129,58 +206,62 @@ function cache_flush($token = null, $keyname = null) {
             return;
         }
 
-        $uid = $_SESSION['uid'] ?? null;
-
-
-        $keys = $token !== null
-            ? ["user_data_{$token}", "user_api_data_{$token}"]
-            : array_filter([
-                "profiles_list_{$username}",
-                "years_list_{$username}",
-                "stream_lock_{$username}",
-                "user_settings_{$username}",
-                "db_limit_{$db_table}",
-                "table_structure_{$db_table}",
-                "user_status_{$username}",
-                "columns_data_{$db_pids_table}",
-                "pids_mapping_{$username}",
-                $uid !== null ? "share_data_{$uid}" : null,
-                $uid !== null ? "share_plot_{$uid}" : null,
-                "fav_data_{$username}",
-                "stream_conv_{$username}",
-                "stream_pids_s_{$username}",
-                "stream_pids_d_{$username}",
-                "api_conv_{$username}",
-                "api_pids_{$username}",
-                "worker_user_{$username}",
-            ]);
-
-        if ($token === null) {
-            $patterns = [
-                "gps_data_{$username}_",
-                "session_data_{$username}_"
-            ];
-
-            $allKeys = $memcached->getAllKeys();
-            if ($allKeys !== false) {
-                foreach ($patterns as $pattern) {
-                    foreach ($allKeys as $key) {
-                        if (strpos($key, $pattern) === 0) {
-                            $keys[] = $key;
-                        }
-                    }
-                }
-            }
+        /* ─── Token-специфичные ключи (не per-user) ─── */
+        if ($token !== null) {
+            $memcached->delete("user_data_{$token}");
+            $memcached->delete("user_api_data_{$token}");
+            return;
         }
 
-        foreach (array_unique($keys) as $key) {
+        /* ─── Полный сброс per-user кэшей ─── */
+        $uid = (int)($_SESSION['uid'] ?? $user_id ?? 0);
+
+        // 1. Фиксированные ключи — удаляем явно по именам.
+        //    Их имена заранее известны.
+        $fixed_keys = [
+            "profiles_list_{$username}",
+            "years_list_{$username}",
+            "stream_lock_{$username}",
+            "user_settings_{$username}",
+            "user_status_{$username}",
+            "pids_mapping_{$username}",
+            "fav_data_{$username}",
+            "stream_conv_{$username}",
+            "stream_pids_s_{$username}",
+            "stream_pids_d_{$username}",
+            "api_conv_{$username}",
+            "api_pids_{$username}",
+            "worker_user_{$username}",
+            "columns_data_pids_{$username}",
+        ];
+
+        if ($uid > 0) {
+            $fixed_keys[] = "pids_known_{$uid}";
+            $fixed_keys[] = "session_count_{$uid}";
+            $fixed_keys[] = "share_data_{$uid}";
+            $fixed_keys[] = "share_plot_{$uid}";
+        }
+
+        foreach (array_unique($fixed_keys) as $key) {
             $memcached->delete($key);
+        }
+
+        // 2. Переменные ключи (session_data_*, gps_data_*) — инкремент
+        //    версии. Все новые чтения получат новую версию, старые ключи
+        //    недостижимы и истекут по TTL сами.
+        if ($uid > 0) {
+            // ВАЖНО: не используем increment() — php-memcached не создаёт
+            // ключ, если его нет (NOT_FOUND → false), и версия не растёт.
+            // Делаем get + set вручную.
+            $cur = $memcached->get("u{$uid}_varver");
+            $cur = is_numeric($cur) ? (int)$cur : 0;
+            $memcached->set("u{$uid}_varver", $cur + 1, 0);
         }
 
     } catch (Exception $e) {
         error_log(sprintf(
             "Memcached error for user %s: %s (Code: %d)",
-            $username,
+            $username ?? '?',
             $e->getMessage(),
             $e->getCode()
         ));

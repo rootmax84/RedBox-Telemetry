@@ -1,48 +1,101 @@
 <?php
-$deletesession = filter_input(INPUT_POST, 'deletesession', FILTER_SANITIZE_NUMBER_INT) 
+require_once __DIR__ . '/src/helpers.php';
+
+$deletesession = filter_input(INPUT_POST, 'deletesession', FILTER_SANITIZE_NUMBER_INT)
                ?? filter_input(INPUT_GET, 'deletesession', FILTER_SANITIZE_NUMBER_INT);
 
 $cut_start = filter_input(INPUT_GET, 'cutstart', FILTER_SANITIZE_NUMBER_INT);
-$cut_end = filter_input(INPUT_GET, 'cutend', FILTER_SANITIZE_NUMBER_INT);
+$cut_end   = filter_input(INPUT_GET, 'cutend',   FILTER_SANITIZE_NUMBER_INT);
 
 if ($deletesession !== '' && $deletesession !== false && $deletesession !== null) {
-    // Check if we need to delete only a part of the session or the entire session
-    if ($cut_start !== null && $cut_start !== false && $cut_start !== '' && 
-        $cut_end !== null && $cut_end !== false && $cut_end !== '') {
-        // Delete only part of the session within the specified time range
-        $db->execute_query(
-            "DELETE FROM $db_table WHERE session=? AND time BETWEEN ? AND ?", 
-            [$deletesession, $cut_start, $cut_end]
-        );
 
-        // Get new values for sessionsize, time (start) and timeend (end)
-        $stats_query = "SELECT 
-                          COUNT(*) as count,
-                          MIN(time) as session_start,
-                          MAX(time) as session_end
-                        FROM $db_table 
-                        WHERE session=?";
+    /* ────────────────────────────────────────────────────────
+     * Частичное удаление: только диапазон внутри сессии.
+     * ──────────────────────────────────────────────────────── */
+    if ($cut_start !== null && $cut_start !== false && $cut_start !== '' &&
+        $cut_end   !== null && $cut_end   !== false && $cut_end   !== '') {
 
-        $stats_result = $db->execute_query($stats_query, [$deletesession]);
-        $stats = $stats_result->fetch_assoc();
+        $db->begin_transaction();
 
-        $new_size = $stats['count'];
-        $new_start = $stats['session_start'];
-        $new_end = $stats['session_end'];
+        try {
+            // 1. Удаляем точки в указанном диапазоне
+            $db->execute_query(
+                "DELETE FROM logs
+                  WHERE user_id = ? AND session = ? AND time BETWEEN ? AND ?",
+                [current_user_id(), $deletesession, $cut_start, $cut_end]
+            );
 
-        // Update session size and timestamps in the sessions table
-        $db->execute_query(
-            "UPDATE $db_sessions_table SET sessionsize=?, time=?, timeend=? WHERE session=?",
-            [$new_size, $new_start, $new_end, $deletesession]
-        );
+            // 2. Пересчитываем статистику по остатку
+            $stats_result = $db->execute_query(
+                "SELECT
+                    COUNT(*)  AS count,
+                    MIN(time) AS session_start,
+                    MAX(time) AS session_end
+                 FROM logs
+                 WHERE user_id = ? AND session = ?",
+                [current_user_id(), $deletesession]
+            );
+            $stats = $stats_result->fetch_assoc();
+
+            $new_size  = (int)($stats['count'] ?? 0);
+            $new_start = $stats['session_start'] ?? null;
+            $new_end   = $stats['session_end']   ?? null;
+
+            // 3. Если вырезали всё — удаляем сессию целиком
+            if ($new_size === 0 || $new_start === null || $new_end === null) {
+                $db->execute_query(
+                    "DELETE FROM sessions WHERE user_id = ? AND session = ?",
+                    [current_user_id(), $deletesession]
+                );
+            } else {
+                // 4. Иначе обновляем метаданные сессии
+                $db->execute_query(
+                    "UPDATE sessions SET sessionsize = ?, time = ?, timeend = ?
+                      WHERE user_id = ? AND session = ?",
+                    [$new_size, $new_start, $new_end, current_user_id(), $deletesession]
+                );
+            }
+
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
 
         cache_flush();
-        header("Location: .?id=" . $deletesession);
+
+        // Если сессия исчезла — на главную, иначе — обратно в неё
+        if ($new_size === 0) {
+            header("Location: .");
+        } else {
+            header("Location: .?id=" . $deletesession);
+        }
         exit;
+
+    /* ────────────────────────────────────────────────────────
+     * Полное удаление сессии.
+     * ──────────────────────────────────────────────────────── */
     } else {
-        // Delete the entire session
-        $db->execute_query("DELETE FROM $db_table WHERE session=?", [$deletesession]);
-        $db->execute_query("DELETE FROM $db_sessions_table WHERE session=?", [$deletesession]);
+
+        $db->begin_transaction();
+
+        try {
+            $db->execute_query(
+                "DELETE FROM logs WHERE user_id = ? AND session = ?",
+                [current_user_id(), $deletesession]
+            );
+
+            $db->execute_query(
+                "DELETE FROM sessions WHERE user_id = ? AND session = ?",
+                [current_user_id(), $deletesession]
+            );
+
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
+
         cache_flush();
         header("Location: .");
         exit;

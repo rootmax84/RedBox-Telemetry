@@ -84,8 +84,16 @@ if (HEAD_CONFIG.torqueUser) {
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({action: 'update-csrf-token'})
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (response.status === 401) {
+                        // сессия мертва — уходим на логин
+                        location.href = '.?logout=true';
+                        return null;
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    if (data === null) return;
                     tokenMeta.content = data.token;
                     expiryMeta.content = data.expiry;
                     addCsrfTokenToForms();

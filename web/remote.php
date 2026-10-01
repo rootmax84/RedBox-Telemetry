@@ -24,7 +24,10 @@ if (empty($_POST) || empty($data)) {
     exit;
 }
 
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
 $token = getBearerToken() ?? $_SESSION['remote_token'];
 if (empty($token)) {
     http_response_code(403);

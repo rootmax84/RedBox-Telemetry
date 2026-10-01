@@ -17,10 +17,27 @@ function submitForm(el) {
             return fetch(el.getAttribute("action"), {
                 method: el.method,
                 body: new FormData(el),
+                redirect: 'manual'
             });
         })
-        .then(response => response.text())
+        .then(response => {
+            // 302/303/307 на catch.php — сессия/CSRF протухли
+            if (response.type === 'opaqueredirect'
+                || (response.status >= 300 && response.status < 400)) {
+                location.href = '.?logout=true';
+                return null;
+            }
+            // 401 (CSRF/login), 419 (Laravel-style), 403 (disabled/denied)
+            if (response.status === 401
+                || response.status === 419
+                || response.status === 403) {
+                location.href = '.?logout=true';
+                return null;
+            }
+            return response.text();
+        })
         .then(responseText => {
+            if (responseText === null) return;
             xhrResponse(responseText);
             setTimeout(() => {
                 submitBtn.disabled = false;

@@ -59,8 +59,7 @@ window.HEAD_CONFIG = <?php echo json_encode([
     'username'   => $head_username,
     'torqueUser' => isset($_SESSION['torque_user']),
     'authPoll'   => !file_exists('maintenance')
-                    && isset($_SESSION['torque_user'])
-                    && !isset($_SESSION['admin']),
+                    && isset($_SESSION['torque_user']),
 ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 </script>
 <script src="<?php echo version_url('static/js/head.js'); ?>"></script>

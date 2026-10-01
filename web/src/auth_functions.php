@@ -195,11 +195,59 @@ function create_users_table()
   $db->close();
 }
 
+function create_shared_tables($db)
+{
+    global $db_engine;
+
+    $ddl = [
+        "CREATE TABLE IF NOT EXISTS pids (
+            user_id     BIGINT UNSIGNED  NOT NULL,
+            id          VARCHAR(16)      NOT NULL,
+            description VARCHAR(255)     DEFAULT NULL,
+            units       VARCHAR(64)      DEFAULT NULL,
+            populated   TINYINT(1)       NOT NULL DEFAULT 0,
+            stream      TINYINT(1)       NOT NULL DEFAULT 0,
+            favorite    TINYINT(1)       NOT NULL DEFAULT 0,
+            PRIMARY KEY (user_id, id)
+        ) ENGINE={$db_engine} DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS sessions (
+            user_id     BIGINT UNSIGNED      NOT NULL,
+            id          VARCHAR(32)          NOT NULL DEFAULT '-',
+            profileName VARCHAR(128)         NOT NULL DEFAULT 'Not Specified',
+            description VARCHAR(128)         NOT NULL DEFAULT '-',
+            ip          CHAR(15)             NOT NULL DEFAULT '0.0.0.0',
+            sessionsize MEDIUMINT UNSIGNED   NOT NULL DEFAULT 0,
+            session     BIGINT UNSIGNED      NOT NULL,
+            time        BIGINT UNSIGNED      NOT NULL,
+            timeend     BIGINT UNSIGNED      NOT NULL,
+            favorite    TINYINT(1) UNSIGNED  NOT NULL DEFAULT 0,
+            PRIMARY KEY (user_id, session),
+            KEY timeend_index  (user_id, timeend),
+            KEY favorite_index (user_id, favorite)
+        ) ENGINE={$db_engine} DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS logs (
+            user_id BIGINT UNSIGNED NOT NULL,
+            session BIGINT UNSIGNED NOT NULL,
+            time    BIGINT UNSIGNED NOT NULL,
+            data    LONGTEXT        NOT NULL,
+            PRIMARY KEY (user_id, time),
+            KEY session_time (user_id, session, time)
+        ) ENGINE={$db_engine} DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    ];
+
+    foreach ($ddl as $sql) {
+        $db->query($sql);
+    }
+}
+
 function perform_migration() {
     $db = get_db_connection();
     global $db_users, $db_table;
 
-    // Clean install
+    create_shared_tables($db);
+
     if (!check_table_exists($db, $db_users)) {
         return;
     }
@@ -228,39 +276,8 @@ function perform_migration() {
 }
 
 function perform_user_migration() {
-    $db = get_db_connection();
-    global $username, $admin, $db_sessions_table, $db_table;
-
-    if ($username == $admin) {
-        return;
-    }
-
-    $migrations = [
-        'favorite'     => "ALTER TABLE $db_sessions_table ADD COLUMN favorite TINYINT(1) NOT NULL DEFAULT 0",
-        'description'  => "ALTER TABLE $db_sessions_table ADD COLUMN description VARCHAR(128) NOT NULL DEFAULT '-' AFTER profileName",
-    ];
-
-    foreach ($migrations as $migration => $query) {
-        if (!column_exists($db, $db_sessions_table, $migration)) {
-            $db->query($query);
-        }
-    }
-
-    $index_name = 'favorite_index';
-    if (!index_exists($db, $db_sessions_table, $index_name)) {
-        $db->query("ALTER TABLE $db_sessions_table ADD INDEX `$index_name` (`favorite`)");
-    }
-
-    $old_index = 'session_gps';
-    $new_index = 'session_time_gps';
-
-    if (index_exists($db, $db_table, $old_index)) {
-        $db->query("DROP INDEX `$old_index` ON $db_table");
-    }
-
-    if (!index_exists($db, $db_table, $new_index)) {
-        $db->query("CREATE INDEX `$new_index` ON $db_table (`session`, `time`, `kff1006`, `kff1005`, `kff1007`)");
-    }
+    // not used anymore
+    return;
 }
 
 function check_table_exists($db, $table_name) {

@@ -13,11 +13,13 @@ if ($memcached_connected) {
 }
 
 if ($fav_data === false) {
-    $query = "SELECT session, profileName, description, time, timeend
-          FROM $db_sessions_table
-          WHERE favorite = 1
-          ORDER BY session DESC";
-    $keydata = $db->query($query);
+    $keydata = $db->execute_query(
+        "SELECT session, profileName, description, time, timeend
+           FROM sessions
+          WHERE user_id = ? AND favorite = 1
+          ORDER BY session DESC",
+        [current_user_id()]
+    );
     if ($keydata->num_rows) {
         $fav_data = $keydata->fetch_all(MYSQLI_ASSOC);
         if ($memcached_connected) {
