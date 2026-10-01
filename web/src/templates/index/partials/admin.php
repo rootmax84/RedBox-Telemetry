@@ -263,23 +263,25 @@ if (!empty($redis_stream_enabled)) {
         $worker_part .= $yes . " {$redis_workers_live}";
     }
 
-    $tasks_part = "DB Tasks: ";
-    if (!$redis_connected || $redis_heavy_total === null) {
-        $tasks_part .= "n/a";
-    } else {
-        $tasks_part .= $redis_heavy_total;
-
+    $db_tasks_value = "n/a";
+    if ($redis_connected && $redis_heavy_total !== null) {
+        $db_tasks_value = (string)$redis_heavy_total;
         if ($redis_heavy_pending > 0) {
-            $tasks_part .= " ({$redis_heavy_pending} running)";
+            $db_tasks_value .= " ({$redis_heavy_pending} "
+                         . $translations[$lang]['admin.db.running'] . ")";
         }
     }
 
-    echo "<ul style='margin:0'>"
+    echo "<ul style='margin:0;list-style:disc'>"
        . "<li>Memcached: " . ($memcached_connected ? $yes : $no) . "</li>"
        . "<li>" . $redis_part . "</li>"
        . "<li>" . $worker_part . "</li>"
-       . "<li>" . $tasks_part . "</li>"
-       . "<li>" . $translations[$lang]['admin.db'] . ": " . round($res[1]) . $mb . "</li>"
+       . "<li>" . $translations[$lang]['admin.db.title']
+        . "<ul style='margin:0;padding-left:18px;list-style:\"- \"'>"
+            . "<li>" . $translations[$lang]['admin.db.tasks'] . ": " . $db_tasks_value . "</li>"
+            . "<li>" . $translations[$lang]['admin.db.size']  . ": " . round($res[1]) . $mb . "</li>"
+        . "</ul>"
+       . "</li>"
        . "</ul>";
 ?>
 </div>
