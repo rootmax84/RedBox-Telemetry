@@ -23,8 +23,14 @@ if (empty($_GET["sid"])) {
     exit;
 }
 
-$session_id = $_GET['sid'];
+$session_id = preg_replace('/[^0-9]/', '', $_GET['sid'] ?? '');
 $filetype   = $_GET["filetype"] ?? '';
+
+if ($session_id === '') {
+    header('Location: .');
+    $db->close();
+    exit;
+}
 
 // Streaming
 while (ob_get_level()) ob_end_clean();
