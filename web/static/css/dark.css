@@ -113,3 +113,7 @@ input:checked + .slider {
 .menu-overlay {
   background: #ffffffc7;
 }
+
+#heavyTaskIndicator {
+  filter: invert(1) hue-rotate(180deg);
+}

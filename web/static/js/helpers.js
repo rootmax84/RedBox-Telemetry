@@ -76,6 +76,18 @@ $(document).ready(function(){
   document.querySelectorAll('.clear-input__btn, .password-toggle__btn').forEach(el => {
     el.setAttribute('tabindex', '-1');
   });
+
+  $(document).ready(resumePendingHeavyTasks);
+  syncUserTasksFromServer();
+  setInterval(syncUserTasksFromServer, 5000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        syncUserTasksFromServer();
+    }
+  });
+  document.addEventListener('l10n:loaded', function () {
+    heavyIndicatorUpdate();
+  });
 });
 
 let lastPlotUpdateTime = 0;
@@ -2700,38 +2712,194 @@ function rebuildMapFromRawPath() {
 }
 
 /* ────────────────────────────────────────────────────────────
- * Heavy task polling
- *   pollHeavyTask(taskId, { onDone(result), onFail(error), interval })
- *
- * Лоадер (по умолчанию .fetch-data) показывается с красным фоном
- * сразу и восстанавливается на currentColor по завершении/ошибке.
+ * Heavy task polling + localStorage persistence + отдельный
+ * динамический индикатор (не пересекается с .fetch-data).
  * ──────────────────────────────────────────────────────────── */
+
+const HEAVY_TASKS_LS_KEY     = 'heavy_tasks_pending';
+const HEAVY_TASKS_TTL_MS     = 24 * 3600 * 1000;   // 24ч — как TTL в Redis
+const HEAVY_INDICATOR_ID     = 'heavyTaskIndicator';
+
+// Состояние индикатора: refcount + метаданные активных задач
+let heavyTasksActiveCount = 0;
+const heavyTasksMeta = new Map();   // taskId → { type }
+
+/* ── Индикатор ─────────────────────────────────────────────── */
+
+function heavyIndicatorEnsure() {
+    let el = document.getElementById(HEAVY_INDICATOR_ID);
+    if (el) return el;
+
+    el = document.createElement('div');
+    el.id = HEAVY_INDICATOR_ID;
+    el.setAttribute('role', 'status');
+    el.style.cssText = [
+        'position: fixed',
+        'bottom: 20px',
+        'left: 20px',
+        'z-index: 999',
+        'background: #961911',
+        'color: #fff',
+        'font-size: 13px',
+        'line-height: 1',
+        'padding: 9px 14px',
+        'border-radius: 6px',
+        'display: flex',
+        'align-items: center',
+        'gap: 9px',
+        'pointer-events: none',
+        'user-select: none',
+        'transition: opacity .2s ease',
+    ].join(';');
+
+    el.innerHTML = `
+        <span style="
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: heavyTaskSpin .9s linear infinite;
+        "></span>
+        <span data-role="text"></span>
+    `;
+
+    // keyframes — один раз на страницу
+    if (!document.getElementById('heavyTaskSpinStyle')) {
+        const style = document.createElement('style');
+        style.id = 'heavyTaskSpinStyle';
+        style.textContent = '@keyframes heavyTaskSpin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(el);
+    return el;
+}
+
+function heavyIndicatorLabel(type) {
+    const t = (typeof localization !== 'undefined' && localization.key) || {};
+    switch (type) {
+        case 'delete_sessions':
+            return t['heavy.delete_sessions'] || 'Deleting sessions...';
+        case 'delete_user':
+            return t['heavy.delete_user'] || 'Deleting user...';
+        default:
+            return t['heavy.running'] || 'Running...';
+    }
+}
+
+function heavyIndicatorMultiLabel(n) {
+    const t = (typeof localization !== 'undefined' && localization.key) || {};
+    const tmpl = t['heavy.multi'] || '{n} tasks running...';
+    return tmpl.replace('{n}', n);
+}
+
+function heavyIndicatorUpdate() {
+    let el = document.getElementById(HEAVY_INDICATOR_ID);
+
+    if (heavyTasksActiveCount <= 0) {
+        if (el) el.remove();
+        return;
+    }
+
+    // ── вот тут была ошибка: не переприсваивали el ──
+    el = heavyIndicatorEnsure();
+
+    const types = Array.from(heavyTasksMeta.values()).map(m => m.type);
+    const text  = types.length === 1
+        ? heavyIndicatorLabel(types[0])
+        : heavyIndicatorMultiLabel(types.length);
+
+    const textEl = el.querySelector('[data-role="text"]');
+    if (textEl) textEl.textContent = text;
+}
+
+function heavyIndicatorShow(taskId, type) {
+    if (heavyTasksMeta.has(taskId)) return;   // защита от двойного вызова
+
+    heavyTasksMeta.set(taskId, { type: type || null });
+    heavyTasksActiveCount++;
+    heavyIndicatorUpdate();
+}
+
+function heavyIndicatorHide(taskId) {
+    if (heavyTasksMeta.has(taskId)) {
+        heavyTasksMeta.delete(taskId);
+        heavyTasksActiveCount = Math.max(0, heavyTasksActiveCount - 1);
+    }
+    heavyIndicatorUpdate();
+}
+
+/* ── localStorage persistence ─────────────────────────────── */
+
+function heavyTasksGetPending() {
+    try {
+        const raw = localStorage.getItem(HEAVY_TASKS_LS_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function heavyTasksSetPending(list) {
+    try {
+        if (!list || list.length === 0) {
+            localStorage.removeItem(HEAVY_TASKS_LS_KEY);
+        } else {
+            localStorage.setItem(HEAVY_TASKS_LS_KEY, JSON.stringify(list));
+        }
+    } catch (e) {
+        // localStorage может быть отключён — молча игнорируем
+    }
+}
+
+function heavyTaskTrack(taskId, meta) {
+    const pending = heavyTasksGetPending();
+    if (pending.some(t => t.task_id === taskId)) return;
+
+    pending.push({
+        task_id:    taskId,
+        type:       (meta && meta.type)   || null,
+        origin:     (meta && meta.origin) || (window.location.pathname + window.location.search),
+        started_at: Date.now(),
+    });
+    heavyTasksSetPending(pending);
+}
+
+function heavyTaskUntrack(taskId) {
+    const pending = heavyTasksGetPending().filter(t => t.task_id !== taskId);
+    heavyTasksSetPending(pending);
+}
+
+/* ── Основной polling ─────────────────────────────────────── */
+
 function pollHeavyTask(taskId, options) {
     options = options || {};
-    const interval        = options.interval || 2000;
-    const maxAttempts     = options.maxAttempts || 900;   // ~30 минут
-    const loaderSelector  = options.loaderSelector || '.fetch-data';
-    const loaderColor     = options.loaderColor    || 'red';
-    let   attempts        = 0;
-    let   consecutiveErrs = 0;
+    const interval    = options.interval    || 2000;
+    const maxAttempts = options.maxAttempts || 900;   // ~30 минут
 
-    $(loaderSelector).css({
-        'display': 'block',
-        'background-color': loaderColor,
-    });
+    heavyTaskTrack(taskId, { type: options.taskType });
+    heavyIndicatorShow(taskId, options.taskType);
 
-    function finish() {
-        $(loaderSelector).css({
-            'display': 'none',
-            'background-color': 'currentColor',
-        });
+    let attempts        = 0;
+    let consecutiveErrs = 0;
+    let finished        = false;
+
+    function finish(callback) {
+        if (finished) return;
+        finished = true;
+        heavyTaskUntrack(taskId);
+        heavyIndicatorHide(taskId);
+        if (typeof callback === 'function') callback();
     }
 
     function tick() {
         attempts++;
         if (attempts > maxAttempts) {
-            finish();
-            serverError('Task timeout');
+            finish(() => serverError('Task timeout'));
             return;
         }
 
@@ -2745,25 +2913,34 @@ function pollHeavyTask(taskId, options) {
                 location.href = '.?logout=true';
                 throw new Error('unexpected response');
             }
-            return r.json();
+            return r.json().then(data => ({ status: r.status, data }));
         })
-        .then(data => {
+        .then(({ status, data }) => {
             consecutiveErrs = 0;
 
-            if (data.error && !data.status) {
+            if (status === 404) {
+                // Задача истекла по TTL Redis или её никогда не было
+                finish(() => { if (options.onDone) options.onDone(null); });
+                return;
+            }
+            if (status === 403 || status === 400) {
+                // Чужая задача / мусорный task_id — просто снимаем
                 finish();
-                serverError(data.error);
+                return;
+            }
+            if (data.error && !data.status) {
+                finish(() => serverError(data.error));
                 return;
             }
             if (data.status === 'done') {
-                finish();
-                if (options.onDone) options.onDone(data.result);
+                finish(() => { if (options.onDone) options.onDone(data.result); });
                 return;
             }
             if (data.status === 'failed') {
-                finish();
-                serverError(data.error || 'Task failed');
-                if (options.onFail) options.onFail(data.error);
+                finish(() => {
+                    serverError(data.error || 'Task failed');
+                    if (options.onFail) options.onFail(data.error);
+                });
                 return;
             }
             setTimeout(tick, interval);
@@ -2771,8 +2948,7 @@ function pollHeavyTask(taskId, options) {
         .catch(err => {
             consecutiveErrs++;
             if (consecutiveErrs >= 5) {
-                finish();
-                serverError(err.message || 'Task polling failed');
+                finish(() => serverError(err.message || 'Task polling failed'));
                 return;
             }
             setTimeout(tick, interval);
@@ -2780,6 +2956,86 @@ function pollHeavyTask(taskId, options) {
     }
 
     tick();
+}
+
+/* ── Resume после reload ──────────────────────────────────── */
+
+function resumePendingHeavyTasks() {
+    // На странице логина / без сессии не запускаем polling — иначе
+    // получим бесконечный редирект на catch.php.
+    if (typeof HEAD_CONFIG === 'undefined' || !HEAD_CONFIG.torqueUser) {
+        return;
+    }
+
+    const now = Date.now();
+    const pending = heavyTasksGetPending();
+    const fresh = [];
+
+    for (const t of pending) {
+        if (!t || !t.task_id) continue;
+        if (now - (t.started_at || 0) > HEAVY_TASKS_TTL_MS) continue;   // TTL истёк
+
+        fresh.push(t);
+
+        const sameOrigin = t.origin === (window.location.pathname + window.location.search);
+
+        pollHeavyTask(t.task_id, {
+            taskType: t.type,
+            onDone: () => {
+                if (sameOrigin) location.reload();
+            },
+        });
+    }
+
+    heavyTasksSetPending(fresh);
+}
+
+/* ────────────────────────────────────────────────────────────
+ * Server-side sync: обнаружение задач, запущенных в другой
+ * вкладке/браузере того же пользователя.
+ *
+ * user_tasks.php возвращает активные task_id для $_SESSION['uid'].
+ * Для тех, что у нас ещё нет в heavyTasksMeta, запускаем pollHeavyTask
+ * без автоперезагрузки (origin у них чужой).
+ * ──────────────────────────────────────────────────────────── */
+
+let heavySyncInFlight = false;
+
+function syncUserTasksFromServer() {
+    if (typeof HEAD_CONFIG === 'undefined' || !HEAD_CONFIG.torqueUser) return;
+    if (document.visibilityState !== 'visible') return;
+    if (heavySyncInFlight) return;
+
+    heavySyncInFlight = true;
+
+    fetch('user_tasks.php', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+    })
+    .then(r => {
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) return null;
+        return r.json();
+    })
+    .then(data => {
+        heavySyncInFlight = false;
+        if (!data || !Array.isArray(data.tasks)) return;
+
+        for (const t of data.tasks) {
+            if (!t || !t.task_id) continue;
+            // Уже поллим — пропускаем
+            if (heavyTasksMeta.has(t.task_id)) continue;
+
+            // Запускаем без reload по завершении — задача «чужая» для этого браузера
+            pollHeavyTask(t.task_id, {
+                taskType: t.type,
+                onDone:   () => { /* индикатор гаснет сам */ },
+            });
+        }
+    })
+    .catch(() => {
+        heavySyncInFlight = false;
+    });
 }
 
 let redDialog = {

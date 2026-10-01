@@ -159,11 +159,7 @@ function adminUserDelete(username) {
             formData.append('del_login', username);
             formData.append('csrf_token', csrfToken);
 
-            $(".fetch-data").css({
-                'display': 'block',
-                'background-color': 'red',
-            });
-
+            // .fetch-data больше НЕ трогаем — индикатор создаст pollHeavyTask
             fetch('users_handler.php', {
                 method: 'POST',
                 body: formData,
@@ -184,6 +180,7 @@ function adminUserDelete(username) {
 
                     if (data.status === 'accepted' && data.task_id) {
                         pollHeavyTask(data.task_id, {
+                            taskType: 'delete_user',
                             onDone: () => {
                                 xhrResponse(data.message || 'OK');
                                 const row = document.querySelector(`tr[data-username="${username}"]`);
@@ -195,18 +192,11 @@ function adminUserDelete(username) {
                         });
                         return;
                     }
-                    $(".fetch-data").css({
-                        'display': 'none',
-                        'background-color': 'currentColor',
-                    });
                     xhrResponse(data.message || data.error || 'OK');
                     return;
                 }
 
-                $(".fetch-data").css({
-                    'display': 'none',
-                    'background-color': 'currentColor',
-                });
+                // Fallback: HTML/plain-текст
                 xhrResponse(result.text);
                 const row = document.querySelector(`tr[data-username="${username}"]`);
                 if (row) {
@@ -215,10 +205,6 @@ function adminUserDelete(username) {
                 }
             })
             .catch(error => {
-                $(".fetch-data").css({
-                    'display': 'none',
-                    'background-color': 'currentColor',
-                });
                 serverError(error.message);
             });
         }

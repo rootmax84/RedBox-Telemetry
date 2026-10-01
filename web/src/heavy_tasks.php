@@ -78,6 +78,10 @@ function heavy_task_push(string $type, array $payload, ?int $owner_user_id,
             try { $redis->del($hash); } catch (Throwable $e) {}
             return null;
         }
+
+        // Индексируем задачу для пользователя — чтобы её увидели все его вкладки
+        heavy_user_tasks_add((int)($owner_user_id ?? 0), $task_id, $redis);
+
         return $task_id;
     } catch (Throwable $e) {
         error_log('heavy_task_push: ' . $e->getMessage());
@@ -105,6 +109,18 @@ function heavy_task_update(string $task_id, string $status,
 
         $redis->hMSet($hash, $update);
         $redis->expire($hash, (int)$heavy_task_ttl);
+
+        // Снимаем задачу с индекса пользователя при завершении
+        if ($status === 'done' || $status === 'failed') {
+            try {
+                $owner = (int)($redis->hGet($hash, 'owner_user_id') ?: 0);
+                if ($owner > 0) {
+                    heavy_user_tasks_remove($owner, $task_id, $redis);
+                }
+            } catch (Throwable $e) {
+                error_log('heavy_task_update: remove from user index: ' . $e->getMessage());
+            }
+        }
     } catch (Throwable $e) {
         error_log('heavy_task_update: ' . $e->getMessage());
     }
@@ -369,5 +385,97 @@ function heavy_do_delete_user(mysqli $db, array $payload): array
         ];
     } finally {
         $restore();
+    }
+}
+
+/* ────────────────────────────────────────────────────────────
+ * Индекс активных задач пользователя
+ *
+ * ZSET ratel:user_tasks:<uid> — score = время истечения (unix).
+ * Позволяет узнать «какие тяжёлые задачи сейчас идут у юзера»
+ * независимо от браузера/устройства.
+ * ──────────────────────────────────────────────────────────── */
+
+function heavy_user_tasks_key(int $user_id): string
+{
+    return 'ratel:user_tasks:' . $user_id;
+}
+
+function heavy_user_tasks_add(int $user_id, string $task_id, ?Redis $redis = null): void
+{
+    global $heavy_task_ttl;
+
+    if ($user_id <= 0) return;
+    if ($redis === null) $redis = get_redis_connection();
+    if ($redis === null) return;
+
+    try {
+        $key    = heavy_user_tasks_key($user_id);
+        $expiry = time() + (int)$heavy_task_ttl;
+        $redis->zAdd($key, $expiry, $task_id);
+        $redis->expire($key, (int)$heavy_task_ttl + 60);
+    } catch (Throwable $e) {
+        error_log('heavy_user_tasks_add: ' . $e->getMessage());
+    }
+}
+
+function heavy_user_tasks_remove(int $user_id, string $task_id, ?Redis $redis = null): void
+{
+    if ($user_id <= 0) return;
+    if ($redis === null) $redis = get_redis_connection();
+    if ($redis === null) return;
+
+    try {
+        $redis->zRem(heavy_user_tasks_key($user_id), $task_id);
+    } catch (Throwable $e) {
+        error_log('heavy_user_tasks_remove: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Список активных задач пользователя.
+ * Чистит истёкшие и уже завершённые записи на лету.
+ *
+ * @return array<int, array{task_id:string, type:?string, started_at:?int}>
+ */
+function heavy_user_tasks_list(int $user_id, ?Redis $redis = null): array
+{
+    if ($user_id <= 0) return [];
+    if ($redis === null) $redis = get_redis_connection();
+    if ($redis === null) return [];
+
+    try {
+        $key = heavy_user_tasks_key($user_id);
+        $now = time();
+
+        // Чистим истёкшие по score
+        $redis->zRemRangeByScore($key, '-inf', (string)$now);
+
+        $ids = $redis->zRange($key, 0, -1);
+        if (!is_array($ids) || empty($ids)) return [];
+
+        $out = [];
+        foreach ($ids as $task_id) {
+            $data = heavy_task_get($task_id, $redis);
+            if (!$data) {
+                // Задача уже исчезла (TTL Redis хэша) — убираем из индекса
+                $redis->zRem($key, $task_id);
+                continue;
+            }
+            $status = $data['status'] ?? '';
+            if ($status === 'done' || $status === 'failed') {
+                $redis->zRem($key, $task_id);
+                continue;
+            }
+            $out[] = [
+                'task_id'    => $task_id,
+                'type'       => $data['type'] ?? null,
+                'started_at' => isset($data['started_at']) ? (int)$data['started_at'] : null,
+            ];
+        }
+        return $out;
+    } catch (Throwable $e) {
+        error_log('heavy_user_tasks_list: ' . $e->getMessage());
+        return [];
     }
 }

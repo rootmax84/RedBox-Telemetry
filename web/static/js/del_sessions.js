@@ -37,12 +37,6 @@ function delSessions() {
             });
             if (!fd.has('delsession')) fd.append('delsession', '1');
 
-            // Показать лоадер красным до POST
-            $(".fetch-data").css({
-                'display': 'block',
-                'background-color': 'red',
-            });
-
             fetch('del_sessions.php', {
                 method: 'POST',
                 body: fd,
@@ -62,38 +56,24 @@ function delSessions() {
                     if (data.reload) { location.href = '.?logout=true'; return; }
 
                     if (data.status === 'accepted' && data.task_id) {
-                        // pollHeavyTask сам переключит лоадер (display:block + red)
+                        // pollHeavyTask сам поднимет свой индикатор
                         pollHeavyTask(data.task_id, {
+                            taskType: 'delete_sessions',
                             onDone: () => location.reload(),
                         });
                         return;
                     }
                     if (data.status === 'done') {
-                        $(".fetch-data").css({
-                            'display': 'none',
-                            'background-color': 'currentColor',
-                        });
                         location.reload();
                         return;
                     }
-                    $(".fetch-data").css({
-                        'display': 'none',
-                        'background-color': 'currentColor',
-                    });
                     serverError(data.error || 'Unknown response');
                     return;
                 }
-                $(".fetch-data").css({
-                    'display': 'none',
-                    'background-color': 'currentColor',
-                });
+                // Fallback: сервер отдал HTML → перезагружаемся
                 location.reload();
             })
             .catch(err => {
-                $(".fetch-data").css({
-                    'display': 'none',
-                    'background-color': 'currentColor',
-                });
                 serverError(err.message);
             });
         }

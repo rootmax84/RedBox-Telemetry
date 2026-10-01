@@ -501,6 +501,10 @@ $translations = [
         'search.range.month' => 'Last 30 days',
         'search.range.year'  => 'Last year',
         'search.range.all'   => 'All time',
+        'heavy.delete_sessions' => 'Deleting sessions...',
+        'heavy.delete_user' => 'Deleting user...',
+        'heavy.running' => 'Running...',
+        'heavy.multi' => '{n} tasks running...',
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -1002,6 +1006,10 @@ $translations = [
         'search.range.month' => 'За 30 дней',
         'search.range.year'  => 'За год',
         'search.range.all'   => 'За всё время',
+        'heavy.delete_sessions' => 'Удаление сессий...',
+        'heavy.delete_user' => 'Удаление пользователя...',
+        'heavy.running' => 'Выполняется...',
+        'heavy.multi' => 'Выполняется задач: {n}...',
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -1504,6 +1512,10 @@ $translations = [
         'search.range.month' => 'Últimos 30 días',
         'search.range.year'  => 'Último año',
         'search.range.all'   => 'Todo el tiempo',
+        'heavy.delete_sessions' => 'Eliminando sesiones...',
+        'heavy.delete_user' => 'Eliminando usuario...',
+        'heavy.running' => 'En progreso...',
+        'heavy.multi' => '{n} tareas en progreso...',
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -2005,6 +2017,10 @@ $translations = [
         'search.range.month' => 'Letzte 30 Tage',
         'search.range.year'  => 'Letztes Jahr',
         'search.range.all'   => 'Alle Zeit',
+        'heavy.delete_sessions' => 'Sitzungen werden gelöscht...',
+        'heavy.delete_user' => 'Benutzer wird gelöscht...',
+        'heavy.running' => 'Wird ausgeführt...',
+        'heavy.multi' => '{n} Aufgaben werden ausgeführt...',
     ],
 ];
 

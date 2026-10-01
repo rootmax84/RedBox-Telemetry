@@ -80,6 +80,7 @@ if (isset($delsession)) {
 ?>
   <body>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+    <div class="fetch-data"></div>
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
      <div class="new-session"><a href='.' l10n='sess.new'></a></div>
      <div class="storage-usage-img"></div>
