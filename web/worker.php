@@ -67,7 +67,7 @@ function worker_connect_redis(): ?Redis
 
     try {
         $r = new Redis();
-        $ok = $r->connect(
+        $ok = @$r->connect(
             $redis_host ?? 'redis',
             (int)($redis_port ?? 6379),
             (float)($redis_timeout ?? 2.0)

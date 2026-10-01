@@ -193,6 +193,39 @@ if (!empty($redis_stream_enabled)) {
             }
 
             $redis_workers_live = $live;
+
+            // ── Heavy tasks queue stats (ratel:heavy_tasks) ──
+            $redis_heavy_lag     = null;
+            $redis_heavy_pending = null;
+            $redis_heavy_total   = null;
+
+            $heavyStreamKey = $redis_heavy_stream_key ?? 'ratel:heavy_tasks';
+
+            try {
+                // Стрим может ещё не существовать — ни одной задачи не было
+                if ($__r->exists($heavyStreamKey)) {
+                    $heavyGroups = $__r->xInfo('GROUPS', $heavyStreamKey);
+                    if (is_array($heavyGroups)) {
+                        foreach ($heavyGroups as $hg) {
+                            if (($hg['name'] ?? null) === $groupName) {
+                                $redis_heavy_lag     = isset($hg['lag'])
+                                    ? (int)$hg['lag']
+                                    : (int)($hg['pending'] ?? 0);
+                                $redis_heavy_pending = (int)($hg['pending'] ?? 0);
+                                $redis_heavy_total   = $redis_heavy_lag + $redis_heavy_pending;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    // Стрима нет — задач 0
+                    $redis_heavy_lag     = 0;
+                    $redis_heavy_pending = 0;
+                    $redis_heavy_total   = 0;
+                }
+            } catch (Throwable $e) {
+                // не валим страницу из-за проблем с Redis
+            }
         } catch (Throwable $e) {
             // группа ещё не создана или redis недоступен
         }
@@ -230,10 +263,22 @@ if (!empty($redis_stream_enabled)) {
         $worker_part .= $yes . " {$redis_workers_live}";
     }
 
+    $tasks_part = "DB Tasks: ";
+    if (!$redis_connected || $redis_heavy_total === null) {
+        $tasks_part .= "n/a";
+    } else {
+        $tasks_part .= $redis_heavy_total;
+
+        if ($redis_heavy_pending > 0) {
+            $tasks_part .= " ({$redis_heavy_pending} running)";
+        }
+    }
+
     echo "<ul style='margin:0'>"
        . "<li>Memcached: " . ($memcached_connected ? $yes : $no) . "</li>"
        . "<li>" . $redis_part . "</li>"
        . "<li>" . $worker_part . "</li>"
+       . "<li>" . $tasks_part . "</li>"
        . "<li>" . $translations[$lang]['admin.db'] . ": " . round($res[1]) . $mb . "</li>"
        . "</ul>";
 ?>

@@ -40,7 +40,7 @@ function get_redis_connection()
 
     try {
         $redis = new Redis();
-        $ok = $redis->connect(
+        $ok = @$redis->connect(
             $redis_host ?? 'redis',
             (int)($redis_port ?? 6379),
             (float)($redis_timeout ?? 2.0)
