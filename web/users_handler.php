@@ -254,6 +254,7 @@ try {
                 echo json_encode([
                     'status'   => 'accepted',
                     'task_id'  => $task_id,
+                    'type'     => 'delete_user',
                     'message'  => $translations[$_COOKIE['lang']]['admin.del.ok'].$login,
                     'username' => $login,
                 ]);
@@ -291,7 +292,6 @@ try {
             if (!$userqry->num_rows || mb_strlen($login) < 1) {
                 die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
             }
-
             if ($login == $admin) {
                 die($translations[$_COOKIE['lang']]['admin.trunc.admin']);
             }
@@ -300,27 +300,44 @@ try {
             $target_uid = (int)$row['id'];
             $token      = $row['token'] ?? null;
 
-            // ── Удалить данные из shared-таблиц ──
+            require_once __DIR__ . '/src/heavy_tasks.php';
+
+            $task_id = heavy_task_push(
+                'truncate_user',
+                [
+                    'target_user_id'  => $target_uid,
+                    'target_username' => $login,
+                    'target_token'    => $token ?? '',
+                ],
+                (int)($_SESSION['uid'] ?? 0)
+            );
+
+            if ($task_id !== null) {
+                header('Content-Type: application/json');
+                http_response_code(202);
+                echo json_encode([
+                    'status'   => 'accepted',
+                    'task_id'  => $task_id,
+                    'type'     => 'truncate_user',
+                    'message'  => $translations[$_COOKIE['lang']]['admin.trunc'].$login,
+                    'username' => $login,
+                ]);
+                exit;
+            }
+
+            /* ── Fallback inline (Redis выключен/недоступен) ── */
             $db->execute_query("DELETE FROM logs     WHERE user_id = ?", [$target_uid]);
             $db->execute_query("DELETE FROM sessions WHERE user_id = ?", [$target_uid]);
-
-            // ── Сбросить pids к дефолтному набору ──
-            // Legacy не восстанавливаем: если юзер их использовал, они появятся
-            // автоматически при следующем импорте (INSERT IGNORE в import_torque.php)
-            $db->execute_query("DELETE FROM pids WHERE user_id = ?", [$target_uid]);
+            $db->execute_query("DELETE FROM pids     WHERE user_id = ?", [$target_uid]);
             seed_default_pids($db, $target_uid, false);
 
             $username = $login;
 
-            // Сбросить кэш целевого юзера (не админа).
-            // cache_flush() определяет uid через $_SESSION['uid'] — временно
-            // подменяем, чтобы очистить session_count_, pids_known_,
-            // share_data_, share_plot_ именно для target_uid.
-            $saved_uid = $_SESSION['uid'] ?? null;
+            $saved_uid     = $_SESSION['uid'] ?? null;
             $saved_user_id = $user_id;
 
             $_SESSION['uid'] = $target_uid;
-            $user_id = $target_uid;
+            $user_id         = $target_uid;
 
             if (!empty($token)) {
                 cache_flush($token);
@@ -328,11 +345,10 @@ try {
             cache_flush();
 
             $_SESSION['uid'] = $saved_uid;
-            $user_id = $saved_user_id;
+            $user_id         = $saved_user_id;
 
             $response = $translations[$_COOKIE['lang']]['admin.trunc'].$login;
         }
-
         /* ── Invalid admin request ── */
         else {
             http_response_code(403);

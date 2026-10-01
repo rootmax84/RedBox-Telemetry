@@ -290,6 +290,9 @@ function heavy_process_task(mysqli $db, array $fields, ?Redis $redis = null): vo
             case 'delete_user':
                 $result = heavy_do_delete_user($db, $payload);
                 break;
+            case 'truncate_user':
+                $result = heavy_do_truncate_user($db, $payload);
+                break;
             default:
                 throw new RuntimeException("Unknown heavy task type: $type");
         }
@@ -378,6 +381,58 @@ function heavy_do_delete_user(mysqli $db, array $payload): array
 
         return [
             'deleted'          => $user_deleted,
+            'target_username'  => $target_name,
+            'logs_deleted'     => $logs_deleted,
+            'sessions_deleted' => $sessions_deleted,
+            'pids_deleted'     => $pids_deleted,
+        ];
+    } finally {
+        $restore();
+    }
+}
+
+function heavy_do_truncate_user(mysqli $db, array $payload): array
+{
+    global $db_users;
+
+    $target_uid  = (int)($payload['target_user_id']     ?? 0);
+    $target_name = (string)($payload['target_username'] ?? '');
+    $token       = (string)($payload['target_token']    ?? '');
+
+    if ($target_uid <= 0) throw new RuntimeException('Missing target_user_id');
+
+    if ($target_name === '') {
+        $row = $db->execute_query(
+            "SELECT user, token FROM $db_users WHERE id = ?",
+            [$target_uid]
+        )->fetch_assoc();
+        if (!$row) return ['truncated' => false, 'reason' => 'user_not_found'];
+        $target_name = (string)$row['user'];
+        $token       = (string)($row['token'] ?? '');
+    }
+
+    $restore = heavy_with_user_context($target_name, $target_uid);
+
+    try {
+        // Чанковое удаление logs — основная тяжесть
+        $logs_deleted = heavy_delete_logs_by_user($db, $target_uid);
+
+        $db->execute_query("DELETE FROM sessions WHERE user_id = ?", [$target_uid]);
+        $sessions_deleted = $db->affected_rows;
+
+        $db->execute_query("DELETE FROM pids WHERE user_id = ?", [$target_uid]);
+        $pids_deleted = $db->affected_rows;
+
+        // Пересоздаём дефолтный набор PID'ов.
+        // Legacy не восстанавливаем — при следующем импорте Torque
+        // они появятся автоматически (INSERT IGNORE в import_torque.php).
+        seed_default_pids($db, $target_uid, false);
+
+        if ($token !== '') cache_flush($token);
+        cache_flush();
+
+        return [
+            'truncated'        => true,
             'target_username'  => $target_name,
             'logs_deleted'     => $logs_deleted,
             'sessions_deleted' => $sessions_deleted,

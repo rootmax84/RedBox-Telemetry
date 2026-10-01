@@ -82,7 +82,7 @@ if ($r->num_rows > 0) {
         $lastActivity = "-";
         if (!$isAdmin) {
             $lastTime = $db->execute_query(
-                "SELECT MAX(time) FROM logs WHERE user_id = ?",
+                "SELECT MAX(timeend) FROM sessions WHERE user_id = ?",
                 [$uid]
             )->fetch_row()[0];
             if ($lastTime) {

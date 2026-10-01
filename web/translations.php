@@ -505,6 +505,7 @@ $translations = [
         'heavy.delete_user' => 'Deleting user...',
         'heavy.running' => 'Running...',
         'heavy.multi' => '{n} tasks running...',
+        'heavy.truncate_user' => 'Truncating user data...',
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -1010,6 +1011,7 @@ $translations = [
         'heavy.delete_user' => 'Удаление пользователя...',
         'heavy.running' => 'Выполняется...',
         'heavy.multi' => 'Выполняется задач: {n}...',
+        'heavy.truncate_user' => 'Очистка данных пользователя...',
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -1516,6 +1518,7 @@ $translations = [
         'heavy.delete_user' => 'Eliminando usuario...',
         'heavy.running' => 'En progreso...',
         'heavy.multi' => '{n} tareas en progreso...',
+        'heavy.truncate_user' => 'Truncando datos del usuario...',
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -2021,6 +2024,7 @@ $translations = [
         'heavy.delete_user' => 'Benutzer wird gelöscht...',
         'heavy.running' => 'Wird ausgeführt...',
         'heavy.multi' => '{n} Aufgaben werden ausgeführt...',
+        'heavy.truncate_user' => 'Benutzerdaten werden geleert...',
     ],
 ];
 

@@ -2775,7 +2775,9 @@ function heavyIndicatorLabel(type) {
         case 'delete_sessions':
             return t['heavy.delete_sessions'] || 'Deleting sessions...';
         case 'delete_user':
-            return t['heavy.delete_user'] || 'Deleting user...';
+            return t['heavy.delete_user']     || 'Deleting user...';
+        case 'truncate_user':
+            return t['heavy.truncate_user']   || 'Truncating user data...';
         default:
             return t['heavy.running'] || 'Running...';
     }
