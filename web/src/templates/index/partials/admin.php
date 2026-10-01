@@ -31,12 +31,17 @@ $res = $db->query(
 )->fetch_array();
 
 // Счётчики сессий по всем юзерам одним запросом — быстрее, чем N COUNT'ов в цикле
-$session_counts = [];
-$cnt_r = $db->query("SELECT user_id, COUNT(*) AS c FROM sessions GROUP BY user_id");
-if ($cnt_r) {
-    while ($cr = $cnt_r->fetch_assoc()) {
-        $session_counts[(int)$cr['user_id']] = (int)$cr['c'];
-    }
+$session_stats = [];
+$cnt_r = $db->query(
+    "SELECT user_id, COUNT(*) AS c, MAX(timeend) AS last_time
+       FROM sessions
+      GROUP BY user_id"
+);
+while ($cr = $cnt_r->fetch_assoc()) {
+    $session_stats[(int)$cr['user_id']] = [
+        'count' => (int)$cr['c'],
+        'last'  => (int)$cr['last_time'],
+    ];
 }
 
 $r = $db->query(
@@ -59,7 +64,7 @@ if ($r->num_rows > 0) {
         $sessionsDisplay = "-";
         $sessionsStyle   = "";
         if (!$isAdmin) {
-            $session_count = $session_counts[$uid] ?? 0;
+            $session_count = $session_stats[$uid]['count'] ?? 0;
 
             if ($isUnlimited) {
                 $sessionsDisplay = $session_count . " / ∞";
@@ -78,15 +83,11 @@ if ($r->num_rows > 0) {
             }
         }
 
-        // Last activity — MAX(time) по logs для юзера.
         $lastActivity = "-";
         if (!$isAdmin) {
-            $lastTime = $db->execute_query(
-                "SELECT MAX(timeend) FROM sessions WHERE user_id = ?",
-                [$uid]
-            )->fetch_row()[0];
-            if ($lastTime) {
-                $seconds = intval($lastTime / 1000);
+            $stats = $session_stats[$uid] ?? null;
+            if ($stats && $stats['last'] > 0) {
+                $seconds = intval($stats['last'] / 1000);
                 $timeFormat = $admin_timeformat_12 ? "Y-m-d h:i:sa" : "Y-m-d H:i:s";
                 $lastActivity = date($timeFormat, $seconds);
             }
