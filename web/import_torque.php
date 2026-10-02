@@ -1,6 +1,59 @@
 <?php
+// ────────────────────────────────────────────────────────────
+// Streaming (NDJSON) — включается заголовком X-Stream: 1
+// ────────────────────────────────────────────────────────────
+$streaming = ($_SERVER['HTTP_X_STREAM'] ?? '') === '1';
+
+if ($streaming) {
+    while (ob_get_level()) ob_end_clean();
+    ob_implicit_flush(true);
+    set_time_limit(0);
+    ini_set('zlib.output_compression', 'Off');
+    header('X-Accel-Buffering: no');
+    header('Content-Type: application/x-ndjson; charset=utf-8');
+    header('Cache-Control: no-cache');
+}
+
+/** Отправить NDJSON-событие (только в streaming-режиме). */
+function stream_emit(array $event): void {
+    global $streaming;
+    if (!$streaming) return;
+    echo json_encode($event, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
+    @flush();
+}
+
+/** Ошибка одного файла в streaming-режиме (без exit). */
+function stream_file_error(string $file, string $message): void {
+    global $streaming;
+    if (!$streaming) return;
+    stream_emit([
+        'type'    => 'file_done',
+        'file'    => $file,
+        'status'  => 'error',
+        'message' => $message,
+    ]);
+}
+
+/** Фатальная ошибка в streaming-режиме (с exit). */
+function stream_fail(string $message, ?mysqli $db = null): void {
+    global $streaming;
+    if (!$streaming) return;
+    stream_emit([
+        'type'    => 'summary',
+        'message' => $message,
+        'error'   => true,
+    ]);
+    if ($db) { try { $db->close(); } catch (Throwable $e) {} }
+    exit;
+}
+
 try {
     if (!$_COOKIE['stream']) {
+        if ($streaming) {
+            http_response_code(401);
+            stream_emit(['type' => 'error', 'message' => 'unauthorized']);
+            exit;
+        }
         http_response_code(401);
         die;
     }
@@ -17,8 +70,13 @@ try {
     }
 
     if (!isset($_FILES['file'])) {
+        $msg = $translations[$_COOKIE['lang']]['redlog.post.max'];
+        if ($streaming) {
+            http_response_code(406);
+            stream_fail($msg, $db);
+        }
         http_response_code(406);
-        die($translations[$_COOKIE['lang']]['redlog.post.max']);
+        die($msg);
     }
 
     $files = [];
@@ -29,8 +87,13 @@ try {
     }
 
     if (count($files) > 10) {
+        $msg = $translations[$_COOKIE['lang']]['redlog.warn.count'];
+        if ($streaming) {
+            http_response_code(406);
+            stream_fail($msg, $db);
+        }
         http_response_code(406);
-        echo $translations[$_COOKIE['lang']]['redlog.warn.count'];
+        echo $msg;
         die;
     }
 
@@ -39,20 +102,46 @@ try {
         [$user_id]
     )->fetch_row()[0];
 
-    $totalOk = 0;   // всего успешных сессий
-    $filesOk = 0;   // количество файлов с хотя бы одной успешной сессией
+    $totalOk = 0;
+    $filesOk = 0;
+    $filesTotal = count($files);
 
     foreach ($files as $index => $fileInfo) {
+
+        $fileName = $fileInfo['name'];
+
+        if ($streaming && connection_aborted()) {
+            $db->close();
+            exit;
+        }
+
+        stream_emit([
+            'type'  => 'file_start',
+            'file'  => $fileName,
+            'index' => $index + 1,
+            'total' => $filesTotal,
+        ]);
+
         $tmp_dir = sys_get_temp_dir();
         $target_file = tempnam($tmp_dir, 'torque_');
         if (!$target_file) {
+            $msg = $translations[$_COOKIE['lang']]['redlog.err'];
+            if ($streaming) {
+                stream_file_error($fileName, $msg);
+                continue;
+            }
             http_response_code(500);
-            die($translations[$_COOKIE['lang']]['redlog.err']);
+            die($msg);
         }
 
         if (!move_uploaded_file($fileInfo['tmp_name'], $target_file)) {
+            $msg = $translations[$_COOKIE['lang']]['redlog.err'];
+            if ($streaming) {
+                stream_file_error($fileName, $msg);
+                continue;
+            }
             http_response_code(406);
-            die($translations[$_COOKIE['lang']]['redlog.err']);
+            die($msg);
         }
 
         $data_raw = file_get_contents($target_file);
@@ -60,8 +149,13 @@ try {
 
         if ($data_size > 15) {
             unlink($target_file);
+            $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.warn.size'];
+            if ($streaming) {
+                stream_file_error($fileName, $msg);
+                continue;
+            }
             http_response_code(406);
-            echo htmlspecialchars($fileInfo['name']) . " " . $translations[$_COOKIE['lang']]['redlog.warn.size'];
+            echo $msg;
             die;
         }
 
@@ -92,12 +186,17 @@ try {
 
         if (empty($blocks)) {
             unlink($target_file);
+            $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+            if ($streaming) {
+                stream_file_error($fileName, $msg);
+                continue;
+            }
             http_response_code(406);
-            echo htmlspecialchars($fileInfo['name']) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+            echo $msg;
             die;
         }
 
-        $fileOk = 0; // успешных блоков в этом файле
+        $fileOk = 0;
 
         $pidRes = $db->execute_query(
             "SELECT id, description FROM pids WHERE user_id = ?",
@@ -127,6 +226,9 @@ try {
             if (strpos($pidNoSpaces, $colNoSpaces) !== false || strpos($colNoSpaces, $pidNoSpaces) !== false) return true;
             return false;
         };
+
+        // Флаг — прерывание обработки этого файла (переход к следующему)
+        $skipFile = false;
 
         foreach ($blocks as $block) {
             $headerLine = $block['header'];
@@ -201,8 +303,14 @@ try {
 
             if ($limit != -1 && $session_count >= $limit) {
                 unlink($target_file);
+                $msg = $translations[$_COOKIE['lang']]['redlog.nospace'];
+                if ($streaming) {
+                    stream_file_error($fileName, $msg);
+                    $skipFile = true;
+                    break;
+                }
                 http_response_code(507);
-                die($translations[$_COOKIE['lang']]['redlog.nospace']);
+                die($msg);
             }
 
             try {
@@ -214,12 +322,17 @@ try {
                 );
             } catch (Exception $e) {
                 unlink($target_file);
+                $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.dup'];
+                if ($streaming) {
+                    stream_file_error($fileName, $msg);
+                    $skipFile = true;
+                    break;
+                }
                 http_response_code(406);
-                echo htmlspecialchars($fileInfo['name']) . " " . $translations[$_COOKIE['lang']]['redlog.dup'];
+                echo $msg;
                 die;
             }
 
-            // Регистрация PID'ов у этого юзера (INSERT IGNORE, идемпотентно)
             $pidIdsOrdered = array_values($colMap);
             $existing_pids = [];
             $__r = $db->execute_query("SELECT id FROM pids WHERE user_id = ?", [$user_id]);
@@ -238,7 +351,6 @@ try {
                 }
             }
 
-            // Вставка данных
             $batch = [];
             $batchSize = 500;
 
@@ -264,8 +376,14 @@ try {
                 $db->execute_query("DELETE FROM logs     WHERE user_id = ? AND session = ?", [$user_id, $sessionId]);
                 $db->execute_query("DELETE FROM sessions WHERE user_id = ? AND session = ?", [$user_id, $sessionId]);
                 unlink($target_file);
+                $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+                if ($streaming) {
+                    stream_file_error($fileName, $msg);
+                    $skipFile = true;
+                    break;
+                }
                 http_response_code(406);
-                echo htmlspecialchars($fileInfo['name']) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+                echo $msg;
                 die;
             }
 
@@ -273,16 +391,33 @@ try {
             $session_count++;
         }
 
+        // Если прервали обработку этого файла — идём к следующему
+        if ($skipFile) {
+            continue;
+        }
+
         unlink($target_file);
 
         if ($fileOk === 0) {
+            $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['nodata'];
+            if ($streaming) {
+                stream_file_error($fileName, $msg);
+                continue;
+            }
             http_response_code(406);
-            echo htmlspecialchars($fileInfo['name']) . " " . $translations[$_COOKIE['lang']]['nodata'];
+            echo $msg;
             die;
         }
 
         $filesOk++;
         $totalOk += $fileOk;
+
+        stream_emit([
+            'type'     => 'file_done',
+            'file'     => $fileName,
+            'status'   => 'ok',
+            'sessions' => $fileOk,
+        ]);
     }
 
     cache_flush();
@@ -290,16 +425,44 @@ try {
     if ($_COOKIE['lang'] === 'ru') {
         $fileWord = getPluralForm($filesOk, $translations[$_COOKIE['lang']]['redlog.file']);
         $sessionWord = getPluralForm($totalOk, $translations[$_COOKIE['lang']]['redlog.session']);
-        echo "$filesOk $fileWord ($totalOk $sessionWord) успешно загружено [Torque]";
+        $finalMsg = "$filesOk $fileWord ($totalOk $sessionWord) успешно загружено [Torque]";
     } else {
-        echo "$filesOk file(s) ($totalOk session(s)) successfully uploaded [Torque]";
+        $finalMsg = "$filesOk file(s) ($totalOk session(s)) successfully uploaded [Torque]";
     }
 
+    if ($streaming) {
+        $filesFailed = $filesTotal - $filesOk;
+        stream_emit([
+            'type'         => 'summary',
+            'files_ok'     => $filesOk,
+            'files_failed' => $filesFailed,
+            'sessions_ok'  => $totalOk,
+            'message'      => $finalMsg,
+            'error'        => $filesFailed > 0,
+        ]);
+        $db->close();
+        exit;
+    }
+
+    echo $finalMsg;
     $db->close();
 
 } catch (TypeError $e) {
+    $fileName = $files[$index]['name'] ?? '?';
+    $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+
+    if ($streaming) {
+        stream_emit([
+            'type'    => 'summary',
+            'message' => $msg,
+            'error'   => true,
+        ]);
+        try { $db->close(); } catch (Throwable $e2) {}
+        exit;
+    }
+
     http_response_code(406);
-    echo htmlspecialchars($files[$f]['name'] ?? '') . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+    echo $msg;
     die;
 }
 

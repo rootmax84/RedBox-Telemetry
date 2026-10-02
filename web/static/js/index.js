@@ -208,7 +208,7 @@ function uploadLogDialog() {
              <span class="label label-danger" id="log-msg-err"></span>
          </div>
          <div style="display:flex; justify-content:center;">
-             <form method="POST" style="display:contents" enctype="multipart/form-data">
+             <form method="POST" style="display:contents" enctype="multipart/form-data" onsubmit="return false">
                  <input class="btn btn-default" style="border-radius:5px" type="file" multiple name="file[]" id="logFile" accept=".txt,.csv">
                  <input class="btn btn-default upload-log-btn" id="log-upload-btn" type="submit" value="">
              </form>
@@ -233,6 +233,11 @@ function uploadLogDialog() {
         li.style.fontFamily = 'monospace';
         li.textContent = text;
         log_list.appendChild(li);
+    }
+
+    function appendLogSeparator() {
+        const hr = document.createElement('hr');
+        log_list.appendChild(hr);
     }
 
     document.getElementById('redDialogWrap').style.width = 'auto';
@@ -470,6 +475,9 @@ function uploadLogDialog() {
         msg_ok.classList.add("wait");
         msg_ok.innerHTML = localization.key['import.upload'];
         logFile.setAttribute("disabled", "");
+        logFile.setAttribute("disabled", "");
+
+        appendLogSeparator();
 
         const groups = {};
         for (const item of window.processedFiles) {
@@ -482,10 +490,84 @@ function uploadLogDialog() {
             torque: 'import_torque.php'
         };
 
-        let finalMessage = '';
         let hasErrors = false;
+        const summaryMessages = [];
 
-        const uploadPromises = Object.keys(groups).map(async (type) => {
+        // ────────────────────────────────────────────────────────
+        // Обработка одного NDJSON-потока от import_*.php
+        // ────────────────────────────────────────────────────────
+        async function consumeStream(type, response) {
+            const reader  = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                let lines = buffer.split('\n');
+                buffer = lines.pop();   // неполная строка — оставляем
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+                    let evt;
+                    try {
+                        evt = JSON.parse(trimmed);
+                    } catch (e) {
+                        console.warn('Bad NDJSON line:', trimmed);
+                        continue;
+                    }
+                    handleEvent(type, evt);
+                }
+            }
+
+            // Остаток без завершающего \n
+            if (buffer.trim()) {
+                try {
+                    handleEvent(type, JSON.parse(buffer.trim()));
+                } catch (e) { /* ignore */ }
+            }
+        }
+
+        function handleEvent(type, evt) {
+            const typeLabel = type === 'redlog' ? '[RedManage]' : '[Torque]';
+
+            switch (evt.type) {
+                case 'error':
+                    hasErrors = true;
+                    msg_err.innerHTML = evt.message || 'Error';
+                    break;
+
+                case 'file_start':
+                    appendLogListItem(` ${evt.file} — ${localization.key['import.end']}`);
+                    break;
+
+                case 'file_done':
+                    if (evt.status === 'ok') {
+                        const sessionsStr = evt.sessions ? ` (${evt.sessions})` : '';
+                        appendLogListItem(` ✓ ${evt.file}${sessionsStr} ${typeLabel}`);
+                    } else {
+                        hasErrors = true;
+                        appendLogListItem(` ✗ ${evt.file} — ${evt.message || 'error'}`);
+                    }
+                    break;
+
+                case 'summary':
+                    if (evt.message) summaryMessages.push(evt.message);
+                    if (evt.files_failed && evt.files_failed > 0) {
+                        hasErrors = true;
+                    }
+                    break;
+            }
+        }
+
+        // ────────────────────────────────────────────────────────
+        // Запуск обоих потоков параллельно
+        // ────────────────────────────────────────────────────────
+        const streamPromises = Object.keys(groups).map(async (type) => {
             const formData = new FormData();
             groups[type].forEach(file => {
                 formData.append('file[]', file, file.name);
@@ -494,39 +576,47 @@ function uploadLogDialog() {
             try {
                 const response = await fetch(endpoints[type], {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    headers: { 'X-Stream': '1' }
                 });
+
+                const contentType = response.headers.get('content-type') || '';
+
+                // Streaming-путь
+                if (contentType.includes('application/x-ndjson')
+                    && response.body
+                    && typeof response.body.getReader === 'function'
+                ) {
+                    await consumeStream(type, response);
+                    return;
+                }
+
+                // Fallback: сервер не поддержал streaming (старый nginx, PHP-ошибка до header())
+                // или ответ не OK — читаем как текст.
                 const text = await response.text();
                 if (response.ok) {
-                    return { type, success: true, message: text };
+                    summaryMessages.push(text);
+                    appendLogListItem(` ${type}: ${text}`);
                 } else {
-                    return { type, success: false, message: text || 'Unknown error' };
+                    hasErrors = true;
+                    appendLogListItem(` ✗ ${type}: ${text || ('HTTP ' + response.status)}`);
                 }
             } catch (error) {
-                return { type, success: false, message: error.message };
-            }
-        });
-
-        const results = await Promise.all(uploadPromises);
-
-        let successCount = 0;
-        let errorMessages = [];
-        results.forEach(r => {
-            if (r.success) {
-                successCount++;
-                if (finalMessage) finalMessage += ' ';
-                finalMessage += r.message + '<br>';
-            } else {
                 hasErrors = true;
-                errorMessages.push(r.type + ': ' + r.message);
+                appendLogListItem(` ✗ ${type}: ${error.message}`);
             }
         });
+
+        await Promise.all(streamPromises);
 
         if (hasErrors) {
             msg_ok.innerHTML = '';
-            msg_err.innerHTML = errorMessages.join('<br>');
+            // msg_err уже заполнен через handleEvent('error') или fallback
+            if (!msg_err.innerHTML.trim()) {
+                msg_err.innerHTML = localization.key['import.broken.label'];
+            }
         } else {
-            msg_ok.innerHTML = finalMessage || 'OK';
+            msg_ok.innerHTML = summaryMessages.join('<br>') || 'OK';
             reload_sw = true;
         }
 
@@ -534,6 +624,7 @@ function uploadLogDialog() {
         logFile.removeAttribute("disabled");
     }
 
+    // ── вешаем обработчики ──
     const form = document.querySelector('#redDialogWrap form');
     if (form) {
         form.addEventListener('submit', submitLog);

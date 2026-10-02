@@ -562,6 +562,8 @@ img {
   margin: 10px auto 0;
   text-align: left;
   padding-inline-start: 15px;
+  max-height: 300px;
+  overflow: overlay;
 }
 
 .upload-log-btn {
