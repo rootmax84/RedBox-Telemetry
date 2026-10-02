@@ -271,11 +271,17 @@ PHP;
 /* ══════════════════════════════════════════════════════════
  * Phase 1.4: добавить недостающие параметры в creds.php
  *
- * Вставляет блок heavy_tasks, если в файле нет $redis_heavy_stream_key.
- * Позиция вставки (по убыванию приоритета):
- *   1) сразу после последней строки $redis_stream_maxlen = ...;
- *   2) перед $salt = ...;
- *   3) в конец файла.
+ * Идемпотентно вставляет два блока:
+ *   1. Redis / Streams     (если нет $redis_enabled)
+ *   2. Heavy tasks         (если нет $redis_heavy_stream_key)
+ *
+ * Порядок важен: сначала Redis-блок, потом heavy_tasks —
+ * heavy вставляется после $redis_stream_maxlen, а эта переменная
+ * появляется вместе с Redis-блоком.
+ *
+ * Якоря вставки (по убыванию приоритета):
+ *   Redis-блок:  после $max_api_requests_per_second; иначе перед $salt; иначе в конец.
+ *   Heavy:       после $redis_stream_maxlen;            иначе перед $salt; иначе в конец.
  *
  * @return array{status:string, backup:?string, matched:array<string>}
  *   status: 'updated' | 'already' | 'error'
@@ -296,41 +302,83 @@ function migrate_creds_params(string $path, bool $dry_run, bool $no_backup): arr
         return $result;
     }
 
-    $orig = $src;
+    $orig  = $src;
+    $added = [];
 
-    /* ── Heavy tasks блок ── */
-    if (strpos($src, '$redis_heavy_stream_key') === false) {
-        $heavy_block = "\n// --- Heavy tasks (async delete, обслуживается тем же worker.php) ---\n"
-                     . "\$heavy_tasks_enabled       = true;\n"
-                     . "\$redis_heavy_stream_key    = 'ratel:heavy_tasks';\n"
-                     . "\$redis_heavy_stream_maxlen = 10000;   // ~ MAXLEN, 0 = без лимита\n"
-                     . "\$heavy_task_ttl            = 86400;   // TTL статуса задачи, сек\n"
-                     . "\$heavy_chunk_size          = 5000;    // строк за один чанк DELETE\n"
-                     . "\$heavy_chunk_pause_us      = 100000;  // 100ms пауза между чанками\n";
+    /* ──────────────────────────────────────────────────────
+     * 1. Redis / Streams
+     * ────────────────────────────────────────────────────── */
+    if (!preg_match('/^\$redis_enabled\b/m', $src)) {
+        $redis_block =
+              "\n// --- Redis / Streams (async upload processing) ---\n"
+            . "\$redis_enabled        = true;\n"
+            . "\$redis_host           = 'redis';                // docker service name / IP\n"
+            . "\$redis_port           = 6379;\n"
+            . "\$redis_timeout        = 2.0;\n"
+            . "\$redis_password       = '';\n"
+            . "\$redis_db             = 0;\n"
+            . "\$redis_stream_enabled = true;                   // Use Streams в ul.php\n"
+            . "\$redis_stream_key     = 'telemetry:uploads';\n"
+            . "\$redis_stream_group   = 'telemetry-workers';\n"
+            . "\$redis_stream_maxlen  = 50000;                  // ~ MAXLEN, 0 = no limit\n";
 
-        if (preg_match('/^(\$redis_stream_maxlen\s*=\s*[^;]+;.*)$/m', $src, $m)) {
-            $src = str_replace($m[0], $m[0] . "\n" . $heavy_block, $src);
-            $result['matched'][] = 'heavy_tasks after $redis_stream_maxlen';
+        if (preg_match('/^(\$max_api_requests_per_second\s*=\s*[^;]+;.*)$/m', $src, $m)) {
+            $src = str_replace($m[0], $m[0] . "\n" . $redis_block, $src);
+            $added[] = 'redis block after $max_api_requests_per_second';
         } elseif (preg_match('/^(\$salt\s*=)/m', $src, $m)) {
-            $src = str_replace($m[0], $heavy_block . "\n" . $m[0], $src);
-            $result['matched'][] = 'heavy_tasks before $salt';
+            $src = str_replace($m[0], $redis_block . "\n" . $m[0], $src);
+            $added[] = 'redis block before $salt';
         } else {
-            $src .= $heavy_block;
-            $result['matched'][] = 'heavy_tasks appended';
+            $src .= $redis_block;
+            $added[] = 'redis block appended';
         }
     }
 
-    if ($src === $orig) {
+    /* ──────────────────────────────────────────────────────
+     * 2. Heavy tasks
+     *    Проверка по уникальной строке $redis_heavy_stream_key —
+     *    она не содержится в Redis-блоке, так что strpos безопасен.
+     * ────────────────────────────────────────────────────── */
+    if (strpos($src, '$redis_heavy_stream_key') === false) {
+        $heavy_block =
+              "\n// --- Heavy tasks (async delete, обслуживается тем же worker.php) ---\n"
+            . "\$heavy_tasks_enabled       = true;\n"
+            . "\$redis_heavy_stream_key    = 'ratel:heavy_tasks';\n"
+            . "\$redis_heavy_stream_maxlen = 10000;   // ~ MAXLEN, 0 = без лимита\n"
+            . "\$heavy_task_ttl            = 86400;   // TTL статуса задачи, сек\n"
+            . "\$heavy_chunk_size          = 5000;    // строк за один чанк DELETE\n"
+            . "\$heavy_chunk_pause_us      = 100000;  // 100ms пауза между чанками\n";
+
+        if (preg_match('/^(\$redis_stream_maxlen\s*=\s*[^;]+;.*)$/m', $src, $m)) {
+            $src = str_replace($m[0], $m[0] . "\n" . $heavy_block, $src);
+            $added[] = 'heavy_tasks after $redis_stream_maxlen';
+        } elseif (preg_match('/^(\$salt\s*=)/m', $src, $m)) {
+            $src = str_replace($m[0], $heavy_block . "\n" . $m[0], $src);
+            $added[] = 'heavy_tasks before $salt';
+        } else {
+            $src .= $heavy_block;
+            $added[] = 'heavy_tasks appended';
+        }
+    }
+
+    /* ──────────────────────────────────────────────────────
+     * Ничего не менялось?
+     * ────────────────────────────────────────────────────── */
+    if (empty($added) || $src === $orig) {
         $result['status'] = 'already';
         return $result;
     }
+
+    $result['matched'] = $added;
 
     if ($dry_run) {
         $result['status'] = 'updated';
         return $result;
     }
 
-    // Backup
+    /* ──────────────────────────────────────────────────────
+     * Backup
+     * ────────────────────────────────────────────────────── */
     if (!$no_backup) {
         $backup = $path . '.params.bak.' . date('Ymd_His');
         if (!@copy($path, $backup)) {
