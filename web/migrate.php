@@ -357,6 +357,18 @@ function migrate_creds_params(string $path, bool $dry_run, bool $no_backup): arr
 
 function create_tables(mysqli $db, bool $dry_run): void
 {
+    global $db_engine;
+
+    // Fallback на случай, если creds.php не определяет движок
+    $engine = !empty($db_engine) ? (string)$db_engine : 'ROCKSDB';
+
+    // Разрешаем только известные движки — защита от подстановки произвольного SQL
+    $allowed_engines = ['ROCKSDB', 'INNODB'];
+    if (!in_array(strtoupper($engine), $allowed_engines, true)) {
+        err("[ddl] unknown engine '{$engine}', falling back to ROCKSDB");
+        $engine = 'ROCKSDB';
+    }
+
     $ddl = [
         'pids' => "
 CREATE TABLE IF NOT EXISTS pids (
@@ -368,7 +380,7 @@ CREATE TABLE IF NOT EXISTS pids (
     stream      TINYINT(1)       NOT NULL DEFAULT 0,
     favorite    TINYINT(1)       NOT NULL DEFAULT 0,
     PRIMARY KEY (user_id, id)
-) ENGINE=ROCKSDB DEFAULT CHARSET=utf8mb4",
+) ENGINE={$engine} DEFAULT CHARSET=utf8mb4",
 
         'sessions' => "
 CREATE TABLE IF NOT EXISTS sessions (
@@ -385,7 +397,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     PRIMARY KEY (user_id, session),
     KEY timeend_index  (user_id, timeend),
     KEY favorite_index (user_id, favorite)
-) ENGINE=ROCKSDB DEFAULT CHARSET=utf8mb4",
+) ENGINE={$engine} DEFAULT CHARSET=utf8mb4",
 
         'logs' => "
 CREATE TABLE IF NOT EXISTS logs (
@@ -395,10 +407,11 @@ CREATE TABLE IF NOT EXISTS logs (
     data    LONGTEXT        NOT NULL,
     PRIMARY KEY (user_id, time),
     KEY session_time (user_id, session, time)
-) ENGINE=ROCKSDB DEFAULT CHARSET=utf8mb4",
+) ENGINE={$engine} DEFAULT CHARSET=utf8mb4",
     ];
 
     if ($dry_run) {
+        out("[ddl] engine: {$engine}");
         out("[ddl] would CREATE TABLE IF NOT EXISTS: " . implode(', ', array_keys($ddl)));
         return;
     }
@@ -411,7 +424,7 @@ CREATE TABLE IF NOT EXISTS logs (
             exit(1);
         }
     }
-    info("[ddl] shared tables ready: pids, sessions, logs");
+    info("[ddl] shared tables ready ({$engine}): pids, sessions, logs");
 }
 
 /* ══════════════════════════════════════════════════════════
