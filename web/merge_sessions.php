@@ -3,32 +3,58 @@ require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/get_sessions.php';
 require_once __DIR__ . '/src/db_limits.php';
+require_once __DIR__ . '/src/heavy_tasks.php';
 
-$mergesession = filter_input(INPUT_POST, 'mergesession', FILTER_SANITIZE_NUMBER_INT) 
-              ?? filter_input(INPUT_GET, 'mergesession', FILTER_SANITIZE_NUMBER_INT);
+$mergesession = filter_input(INPUT_POST, 'mergesession', FILTER_SANITIZE_NUMBER_INT)
+              ?? filter_input(INPUT_GET,  'mergesession', FILTER_SANITIZE_NUMBER_INT);
 
-$page = $_GET["page"] ?? 1;
+$page = $_GET["page"] ?? $_POST["page"] ?? 1;
+
+$is_ajax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest');
+
+// Читаем параметры из POST для AJAX, иначе из GET (как раньше)
+$src = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' ? $_POST : $_GET;
 
 $sessionids = [];
-$mergesess = [];
+$mergesess  = [];
 
-foreach ($_GET as $key => $value) {
+foreach ($src as $key => $value) {
     if (!in_array($key, ["mergesession", "page", "csrf_token"])) {
         $sid = (int)$key;
         if ($sid > 0) {
             $sessionids[] = $sid;
-            $mergesess[] = $sid;
+            $mergesess[]  = $sid;
         }
     } elseif ($key === "mergesession" && !empty($value)) {
         $sessionids[] = (int)$value;
     }
 }
 
-$sessionids = array_unique($sessionids);
-$mergesess1 = !empty($mergesess) ? $mergesess[0] : null;
+$sessionids  = array_unique($sessionids);
+$mergesess1  = !empty($mergesess) ? $mergesess[0] : null;
 
 if (!empty($mergesession) && !empty($mergesess1)) {
 
+    // ── Fast path: поставить в очередь heavy worker ──
+    $task_id = heavy_task_push(
+        'merge_sessions',
+        [
+            'username'       => $username,
+            'session_ids'    => array_values($sessionids),
+            'target_session' => (int)$mergesession,
+        ],
+        current_user_id()
+    );
+
+    if ($task_id !== null) {
+        header('Content-Type: application/json');
+        http_response_code(202);
+        echo json_encode(['status' => 'accepted', 'task_id' => $task_id]);
+        exit;
+    }
+
+    // ── Fallback inline (Redis недоступен) ──
+    // (то же самое, что делает heavy_do_merge_sessions, но синхронно)
     $profileResult = $db->execute_query(
         "SELECT profileName, description, favorite, ip
            FROM sessions
@@ -36,15 +62,16 @@ if (!empty($mergesession) && !empty($mergesess1)) {
         [current_user_id(), $mergesession]
     )->fetch_assoc();
 
-    $profileName = $profileResult['profileName'];
+    $profileName     = $profileResult['profileName'];
     $profileFavorite = $profileResult['favorite'];
-    $profileDesc = $profileResult['description'];
-    $profileIp = $profileResult['ip'];
+    $profileDesc     = $profileResult['description'];
+    $profileIp       = $profileResult['ip'];
 
     $allSessions = array_values($sessionids);
-    $ph       = implode(',', array_fill(0, count($allSessions), '?'));
-    $params   = array_merge([current_user_id()], $allSessions);
-    $types    = 'i' . str_repeat('i', count($allSessions));
+    $ph          = implode(',', array_fill(0, count($allSessions), '?'));
+    $params      = array_merge([current_user_id()], $allSessions);
+    $types       = 'i' . str_repeat('i', count($allSessions));
+
     $stmt = $db->prepare(
         "SELECT MIN(time) AS time, MAX(timeend) AS timeend,
                 MIN(session) AS session, SUM(sessionsize) AS sessionsize
@@ -56,9 +83,9 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     $mergerow = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    $newsession = $mergerow['session'];
-    $newtimestart = $mergerow['time'];
-    $newtimeend = $mergerow['timeend'];
+    $newsession     = $mergerow['session'];
+    $newtimestart   = $mergerow['time'];
+    $newtimeend     = $mergerow['timeend'];
     $newsessionsize = $mergerow['sessionsize'];
 
     $stmt = $db->prepare(
@@ -91,9 +118,18 @@ if (!empty($mergesession) && !empty($mergesess1)) {
 
     cache_flush();
 
-    //Show merged session
+    if ($is_ajax) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status'      => 'done',
+            'new_session' => (int)$newsession,
+        ]);
+        exit;
+    }
+
     header('Location: .?id=' . $newsession);
     exit;
+
 } elseif (isset($mergesession) && !empty($mergesession)) {
     include_once __DIR__ . '/src/head.php';
 ?>

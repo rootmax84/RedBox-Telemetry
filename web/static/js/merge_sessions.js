@@ -74,10 +74,77 @@ $(document).ready(() => {
             btnClassFailText: localization.key['btn.no'],
             btnClassFail: oversize ? "hidden" : "btn btn-info btn-sm",
             onResolve: function () {
-                if (!oversize) {
-                    $("#wait_layout").show();
-                    document.getElementById("formmerge").submit();
-                }
+                if (oversize) return;
+
+                const form = document.getElementById("formmerge");
+                const fd   = new FormData();
+
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                if (csrfMeta) fd.append('csrf_token', csrfMeta.content);
+
+                form.querySelectorAll('input').forEach(inp => {
+                    if (!inp.name) return;
+                    if (inp.type === 'checkbox') {
+                        if (inp.checked) fd.append(inp.name, '1');
+                    } else if (inp.type === 'radio') {
+                        if (inp.checked) fd.append(inp.name, inp.value);
+                    } else if (inp.value !== '') {
+                        fd.append(inp.name, inp.value);
+                    }
+                });
+                if (!fd.has('mergesession')) fd.append('mergesession', '1');
+
+                fetch('merge_sessions.php', {
+                    method: 'POST',
+                    body: fd,
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                .then(r => {
+                    const ct = r.headers.get('content-type') || '';
+                    if (ct.includes('application/json')) {
+                        return r.json().then(j => ({ json: j }));
+                    }
+                    // Не JSON — например, редирект на catch.php (сессия истекла)
+                    return r.text().then(t => ({ text: t }));
+                })
+                .then(result => {
+                    if (result.json) {
+                        const data = result.json;
+                        if (data.reload) { location.href = '.?logout=true'; return; }
+
+                        // Heavy path: задача ушла в воркер
+                        if (data.status === 'accepted' && data.task_id) {
+                            pollHeavyTask(data.task_id, {
+                                taskType: 'merge_sessions',
+                                onDone: (res) => {
+                                    const newId = (res && res.new_session) ? res.new_session : null;
+                                    if (newId) {
+                                        location.href = '.?id=' + encodeURIComponent(newId);
+                                    } else {
+                                        location.reload();
+                                    }
+                                },
+                            });
+                            return;
+                        }
+
+                        // Inline path: сервер сам всё сделал (Redis был недоступен)
+                        if (data.status === 'done' && data.new_session) {
+                            location.href = '.?id=' + encodeURIComponent(data.new_session);
+                            return;
+                        }
+
+                        serverError(data.error || 'Unknown response');
+                        return;
+                    }
+
+                    // Fallback на совсем крайний случай (не должно случиться)
+                    location.reload();
+                })
+                .catch(err => {
+                    serverError(err.message);
+                });
             }
         };
         redDialog.make(dialogOpt);

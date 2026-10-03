@@ -2778,6 +2778,8 @@ function heavyIndicatorLabel(type) {
             return t['heavy.delete_user']     || 'Deleting user...';
         case 'truncate_user':
             return t['heavy.truncate_user']   || 'Truncating user data...';
+        case 'merge_sessions':
+            return t['heavy.merge_sessions'] || 'Merging sessions...';
         default:
             return t['heavy.running'] || 'Running...';
     }

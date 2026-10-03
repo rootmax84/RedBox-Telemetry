@@ -140,6 +140,63 @@ function heavy_task_get(string $task_id, ?Redis $redis = null): ?array
     }
 }
 
+/**
+ * Чанковый UPDATE logs SET session = ? WHERE user_id AND session IN (...)
+ *
+ * Работает порциями по time (PRIMARY KEY), чтобы не держать долгие
+ * блокировки. Используется при merge — переписать session у всех
+ * датапоинтов объединяемых сессий.
+ *
+ * @return int количество перемещённых строк
+ */
+function heavy_update_logs_session_chunked(mysqli $db, int $user_id,
+                                           array $old_sessions, int $new_session): int
+{
+    global $heavy_chunk_size, $heavy_chunk_pause_us;
+
+    if (empty($old_sessions)) return 0;
+
+    $chunk_size = max(100, (int)$heavy_chunk_size);
+    $pause_us   = max(0,   (int)$heavy_chunk_pause_us);
+
+    $ph     = implode(',', array_fill(0, count($old_sessions), '?'));
+    $params = array_merge([$user_id], array_values($old_sessions));
+
+    $total = 0;
+
+    while (true) {
+        heavy_heartbeat();
+
+        $rows = $db->execute_query(
+            "SELECT time FROM logs
+              WHERE user_id = ? AND session IN ($ph)
+              LIMIT $chunk_size",
+            $params
+        );
+        if (!$rows || $rows->num_rows === 0) break;
+
+        $times = [];
+        while ($r = $rows->fetch_row()) $times[] = (int)$r[0];
+        $rows->free();
+        if (empty($times)) break;
+
+        $time_ph = implode(',', array_fill(0, count($times), '?'));
+        $db->execute_query(
+            "UPDATE logs SET session = ?
+              WHERE user_id = ? AND time IN ($time_ph)",
+            array_merge([$new_session, $user_id], $times)
+        );
+
+        $total += count($times);
+        heavy_heartbeat();
+
+        if (count($times) < $chunk_size) break;
+        if ($pause_us > 0) usleep($pause_us);
+    }
+
+    return $total;
+}
+
 /* ────────────────────────────────────────────────────────────
  * Chunked deletion
  *
@@ -293,6 +350,9 @@ function heavy_process_task(mysqli $db, array $fields, ?Redis $redis = null): vo
             case 'truncate_user':
                 $result = heavy_do_truncate_user($db, $payload);
                 break;
+            case 'merge_sessions':
+                $result = heavy_do_merge_sessions($db, $owner_user_id, $payload);
+                break;
             default:
                 throw new RuntimeException("Unknown heavy task type: $type");
         }
@@ -301,6 +361,114 @@ function heavy_process_task(mysqli $db, array $fields, ?Redis $redis = null): vo
     } catch (Throwable $e) {
         heavy_task_update($task_id, 'failed', null, $e->getMessage(), $redis);
         throw $e;
+    }
+}
+
+function heavy_do_merge_sessions(mysqli $db, int $user_id, array $payload): array
+{
+    $session_ids    = $payload['session_ids']    ?? [];
+    $target_session = (int)($payload['target_session'] ?? 0);
+    $username       = (string)($payload['username'] ?? '');
+
+    if (!is_array($session_ids) || empty($session_ids)) {
+        throw new RuntimeException('No sessions to merge');
+    }
+    if ($target_session <= 0) {
+        throw new RuntimeException('Missing target_session');
+    }
+
+    $session_ids = array_values(array_unique(array_filter(
+        array_map('intval', $session_ids), fn($v) => $v > 0
+    )));
+    if (count($session_ids) < 2) {
+        throw new RuntimeException('Need at least 2 sessions to merge');
+    }
+    if (!in_array($target_session, $session_ids, true)) {
+        $session_ids[] = $target_session;
+    }
+
+    $restore = heavy_with_user_context($username, $user_id);
+
+    try {
+        // 1. Метаданные главной сессии
+        $profileResult = $db->execute_query(
+            "SELECT profileName, description, favorite, ip
+               FROM sessions
+              WHERE user_id = ? AND session = ?",
+            [$user_id, $target_session]
+        )->fetch_assoc();
+
+        if (!$profileResult) {
+            throw new RuntimeException('Target session not found');
+        }
+
+        // 2. Агрегаты по всем выбранным сессиям
+        $ph     = implode(',', array_fill(0, count($session_ids), '?'));
+        $params = array_merge([$user_id], $session_ids);
+
+        $mergerow = $db->execute_query(
+            "SELECT MIN(time) AS time, MAX(timeend) AS timeend,
+                    MIN(session) AS session, SUM(sessionsize) AS sessionsize
+               FROM sessions
+              WHERE user_id = ? AND session IN ($ph)",
+            $params
+        )->fetch_assoc();
+
+        if (!$mergerow || $mergerow['session'] === null) {
+            throw new RuntimeException('Aggregate query returned nothing');
+        }
+
+        $new_session      = (int)$mergerow['session'];
+        $new_time_start   = (int)$mergerow['time'];
+        $new_time_end     = (int)$mergerow['timeend'];
+        $new_session_size = (int)$mergerow['sessionsize'];
+
+        // 3. Обновить метаданные «новой» сессии (это одна из существующих —
+        //    та, у которой минимальный session id)
+        $db->execute_query(
+            "UPDATE sessions
+                SET time = ?, timeend = ?, sessionsize = ?,
+                    profileName = ?, favorite = ?, description = ?, ip = ?
+              WHERE user_id = ? AND session = ?",
+            [
+                $new_time_start, $new_time_end, $new_session_size,
+                $profileResult['profileName'], $profileResult['favorite'],
+                $profileResult['description'], $profileResult['ip'],
+                $user_id, $new_session,
+            ]
+        );
+
+        // 4. Собрать «чужие» сессии — те, что не newsession
+        $other_sessions = [];
+        foreach ($session_ids as $sid) {
+            if ($sid !== $new_session) $other_sessions[] = $sid;
+        }
+
+        // 5. Удалить чужие sessions (метаданные; логи переносим ниже)
+        $sessions_deleted = 0;
+        if (!empty($other_sessions)) {
+            $del_ph = implode(',', array_fill(0, count($other_sessions), '?'));
+            $db->execute_query(
+                "DELETE FROM sessions WHERE user_id = ? AND session IN ($del_ph)",
+                array_merge([$user_id], $other_sessions)
+            );
+            $sessions_deleted = $db->affected_rows;
+        }
+
+        // 6. Перевести логи чужих сессий на новую (чанками)
+        $logs_moved = heavy_update_logs_session_chunked(
+            $db, $user_id, $other_sessions, $new_session
+        );
+
+        cache_flush();
+
+        return [
+            'new_session'      => $new_session,
+            'logs_moved'       => $logs_moved,
+            'sessions_deleted' => $sessions_deleted,
+        ];
+    } finally {
+        $restore();
     }
 }
 
