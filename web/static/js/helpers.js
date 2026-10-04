@@ -355,10 +355,6 @@ function updateSummaryTable() {
 }
 
 function doPlot(position) {
-    // Reset map indexes
-    mapIndexStart = 0;
-    mapIndexEnd = jsTimeMap.length - 1;
-
     //Remove plot presence
     if (plot) {
         $("#placeholder").unbind("plothover plottouchmove plotselected");
@@ -514,10 +510,6 @@ let updCharts = (last = false)=>{
     const seshidtagValue = seshidtagChoices?.getValue(true) ?? sid;
 
     if (plotDataSelected.length === 0) {
-        // Reset map indexes
-        mapIndexStart = 0;
-        mapIndexEnd = jsTimeMap.length - 1;
-
         const noChart = $('<div>',{class:'chart-label'}).append($('<span>',{class:'label label-warning'}).html(localization.key['novar'] ?? 'No Variables Selected to Plot'));
         if ($('#placeholder')[0]!=undefined) {//clean our plot if it exists
             flotData = [];
