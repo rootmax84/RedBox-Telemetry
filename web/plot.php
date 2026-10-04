@@ -78,6 +78,12 @@ if (isset($_GET["id"])) {
     $cached_timestamp = null;
     $current_timestamp = getLastUpdateTimestamp($db, (int)$user_id, $session_id);
 
+    if ($current_timestamp === null && empty($_SESSION['share'])) {
+        $db->close();
+        header('Location: .');
+        exit;
+    }
+
     // id (RedManage / TorqueLog / etc.)
     $cache_key_id = "session_id_{$session_id}";
     $id = false;
