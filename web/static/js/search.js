@@ -9,10 +9,10 @@ const resultsTable = document.getElementById('results-table');
 const noMore = document.getElementById('no-more');
 const noResults = document.getElementById('no-results');
 
-let currentPage = 1;
-let totalResults = 0;
+let lastSession = 0;      // keyset-курсор: последний показанный session
 let hasMore = false;
 let isLoading = false;
+let isFirstPage = true;
 let currentParams = null;
 
 function formatSessionDate(timestampMs, lang) {
@@ -73,9 +73,9 @@ function clearResults() {
     resultsTable.style.display = 'none';
     noMore.style.display = 'none';
     noResults.style.display = 'none';
-    currentPage = 1;
+    lastSession = 0;
     hasMore = false;
-    totalResults = 0;
+    isFirstPage = true;
 }
 
 function showError(msg) {
@@ -86,9 +86,9 @@ function isPageScrollable() {
     return document.documentElement.scrollHeight > window.innerHeight;
 }
 
-function loadPage(page) {
+function loadPage() {
     if (isLoading) return;
-    if (page > 1 && !hasMore) return;
+    if (!isFirstPage && !hasMore) return;
 
     isLoading = true;
     $('.fetch-data').css('display', 'block');
@@ -97,8 +97,8 @@ function loadPage(page) {
     params.append('pid', currentParams.pid);
     params.append('operator', currentParams.operator);
     params.append('value', currentParams.value);
-    params.append('range', currentParams.range || 'month');
-    params.append('page', page);
+    params.append('range', currentParams.range || 'day');
+    params.append('last_session', lastSession);
 
     fetch('search_processor.php', {
         method: 'POST',
@@ -115,33 +115,35 @@ function loadPage(page) {
             return;
         }
 
-        if (page === 1 && data.total === 0) {
+        // Пусто на первой странице — "no results"
+        if (isFirstPage && (!data.data || data.data.length === 0)) {
             noResults.style.display = 'block';
             resultsTable.style.display = 'none';
             return;
         }
 
-        if (page === 1) {
+        if (isFirstPage) {
             resultsTable.style.display = 'table';
+            isFirstPage = false;
         }
 
         if (data.data && data.data.length) {
             renderRows(data.data);
+            // Обновляем keyset-курсор: последняя строка = самая старая показанная
+            lastSession = data.data[data.data.length - 1].session;
         }
 
-        totalResults = data.total;
-        hasMore = data.hasMore;
+        hasMore = !!data.hasMore;
 
-        if (!hasMore && totalResults > 0) {
+        if (!hasMore && lastSession) {
             noMore.style.display = 'block';
         } else {
             noMore.style.display = 'none';
         }
 
-        currentPage = page;
-
+        // Если страница ещё не заполнила экран — догружаем
         if (hasMore && !isPageScrollable()) {
-            loadPage(currentPage + 1);
+            loadPage();
         }
     })
     .catch(err => {
@@ -159,7 +161,7 @@ form.addEventListener('submit', function (e) {
     const pid      = pidSelect.value;
     const operator = operatorSelect.value;
     const value    = valueInput.value.trim();
-    const range    = rangeSelect ? rangeSelect.value : 'month';
+    const range    = rangeSelect ? rangeSelect.value : 'day';
 
     if (!pid) {
         showError(SEARCH_CONFIG.errorNoPid);
@@ -174,13 +176,13 @@ form.addEventListener('submit', function (e) {
 
     clearResults();
 
-    loadPage(1);
+    loadPage();
 });
 
 const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting && !isLoading && hasMore) {
-            loadPage(currentPage + 1);
+            loadPage();
         }
     });
 }, { rootMargin: '0px 0px 100px 0px' });

@@ -16,24 +16,39 @@ if (!isset($translations[$lang])) {
 $pid      = $_POST['pid']      ?? '';
 $operator = $_POST['operator'] ?? '=';
 $value    = $_POST['value']    ?? '';
-$range    = $_POST['range']    ?? 'month';
-$page     = isset($_POST['page']) ? (int)$_POST['page'] : 1;
+$range    = $_POST['range']    ?? 'day';
 $perPage  = 50;
+
+/* ─── Keyset-пагинация: последний показанный session ─── */
+$lastSession = isset($_POST['last_session']) ? (int)$_POST['last_session'] : 0;
+if ($lastSession < 0) {
+    $lastSession = 0;
+}
 
 /* ─── Диапазон дат ─── */
 $rangeMap = [
-    'day'   => 86400,      // 24 часа
-    'month' => 2592000,    // 30 дней
-    'year'  => 31536000,   // 365 дней
-    'all'   => null,
+    'day'   => 86400,
+    'month' => 2592000,
 ];
-if (!array_key_exists($range, $rangeMap)) {
-    $range = 'month';
-}
-$rangeSeconds = $rangeMap[$range];
 
-// time в logs хранится в миллисекундах
-$timeFrom = $rangeSeconds === null ? 0 : (time() - $rangeSeconds) * 1000;
+$timeFrom = null;
+$timeTo   = null;
+
+if (is_string($range) && preg_match('/^(\d{4})$/', $range, $m)) {
+    $year     = (int)$m[1];
+    $timeFrom = gmmktime(0, 0, 0, 1, 1, $year) * 1000;
+    $timeTo   = gmmktime(23, 59, 59, 12, 31, $year) * 1000;
+} elseif (array_key_exists($range, $rangeMap)) {
+    $timeFrom = (time() - $rangeMap[$range]) * 1000;
+} else {
+    $range    = 'month';
+    $timeFrom = (time() - $rangeMap[$range]) * 1000;
+}
+
+// Для day/month верхняя граница пользователем не задаётся ($timeTo === null).
+// Чтобы не дублировать SQL двумя ветками, подставляем заведомо большое
+// значение — оно всегда истинно и не влияет на выборку.
+$timeToBound = $timeTo ?? 9999999999999;
 
 $user_id = current_user_id();
 
@@ -72,115 +87,149 @@ if (!is_numeric($value)) {
 }
 $valueFloat = (float)$value;
 
-$page   = max(1, $page);
-$offset = ($page - 1) * $perPage;
+/* ────────────────────────────────────────────────────────────────
+   Шаг 1. Кандидаты из sessions
+   При keyset добавляем  AND session < lastSession
+   ──────────────────────────────────────────────────────────────── */
 
-/* ─── COUNT ─── */
+if ($lastSession > 0) {
+    $sqlCandidates = "SELECT session, time, timeend, profileName, sessionsize
+                      FROM sessions
+                      WHERE user_id = ?
+                        AND session < ?
+                        AND time <= ?
+                        AND (timeend >= ? OR timeend IS NULL OR timeend = 0)
+                      ORDER BY session DESC";
+} else {
+    $sqlCandidates = "SELECT session, time, timeend, profileName, sessionsize
+                      FROM sessions
+                      WHERE user_id = ?
+                        AND time <= ?
+                        AND (timeend >= ? OR timeend IS NULL OR timeend = 0)
+                      ORDER BY session DESC";
+}
 
-$countSql = "SELECT COUNT(DISTINCT session) AS total
-             FROM logs
-             WHERE user_id = ?
-               AND time >= ?
-               AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.{$pid}')) AS DECIMAL(20,6)) $operator ?";
+$stmtCand = $db->prepare($sqlCandidates);
+if ($stmtCand === false) {
+    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
+    exit;
+}
 
-try {
-    $countStmt = $db->prepare($countSql);
-    if ($countStmt === false) {
-        throw new mysqli_sql_exception($db->error, $db->errno);
+if ($lastSession > 0) {
+    $stmtCand->bind_param('iiii', $user_id, $lastSession, $timeToBound, $timeFrom);
+} else {
+    $stmtCand->bind_param('iii', $user_id, $timeToBound, $timeFrom);
+}
+
+if (!$stmtCand->execute()) {
+    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
+    exit;
+}
+$resultCand = $stmtCand->get_result();
+$candidates = [];
+while ($row = $resultCand->fetch_assoc()) {
+    $candidates[] = $row;
+}
+$stmtCand->close();
+
+if (empty($candidates)) {
+    echo json_encode(['data' => [], 'total' => 0, 'hasMore' => false]);
+    exit;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Шаг 2. Батч-проверка в logs + ранний выход
+   Останавливаемся, как только набрали perPage + 1 совпадение.
+   ──────────────────────────────────────────────────────────────── */
+
+$needUntil = $perPage + 1;
+$matched   = [];
+$batchSize = 100;
+$nCand     = count($candidates);
+
+for ($i = 0; $i < $nCand; $i += $batchSize) {
+    $batch = array_slice($candidates, $i, $batchSize);
+    $ids   = [];
+    foreach ($batch as $b) {
+        $ids[] = (int)$b['session'];
     }
-    $countStmt->bind_param('iid', $user_id, $timeFrom, $valueFloat);
-    $countStmt->execute();
-} catch (mysqli_sql_exception $e) {
-    // Unknown column / invalid JSON path
-    if (in_array((int)$e->getCode(), [1054, 1064, 3141], true)) {
-        echo json_encode([
-            'data'    => [],
-            'total'   => 0,
-            'hasMore' => false,
-            'page'    => $page,
-        ]);
-    } else {
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+    $sql = "SELECT DISTINCT session
+            FROM logs
+            WHERE user_id = ?
+              AND session IN ($placeholders)
+              AND time >= ?
+              AND time <= ?
+              AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.{$pid}')) AS DECIMAL(20,6)) $operator ?";
+
+    $types  = 'i' . str_repeat('i', count($ids)) . 'iid';
+    $params = array_merge([$user_id], $ids, [$timeFrom, $timeToBound, $valueFloat]);
+
+    try {
+        $stmt = $db->prepare($sql);
+        if ($stmt === false) {
+            throw new mysqli_sql_exception($db->error, $db->errno);
+        }
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
+            $matched[(int)$row['session']] = true;
+        }
+        $stmt->close();
+    } catch (mysqli_sql_exception $e) {
+        if (in_array((int)$e->getCode(), [1054, 1064, 3141], true)) {
+            echo json_encode(['data' => [], 'total' => 0, 'hasMore' => false]);
+            exit;
+        }
         echo json_encode(['error' => $translations[$lang]['search.error_query']]);
+        exit;
     }
+
+    // Ранний выход: уже набрали всё, что нужно для страницы
+    if (count($matched) >= $needUntil) {
+        break;
+    }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Шаг 3. Собираем страницу в исходном порядке (session DESC)
+   ──────────────────────────────────────────────────────────────── */
+
+$pageSessions = [];
+foreach ($candidates as $cand) {
+    if (isset($matched[(int)$cand['session']])) {
+        $pageSessions[] = $cand;
+        if (count($pageSessions) >= $needUntil) {
+            break;
+        }
+    }
+}
+
+if (empty($pageSessions)) {
+    echo json_encode(['data' => [], 'total' => 0, 'hasMore' => false]);
     exit;
 }
 
-$countResult = $countStmt->get_result();
-$totalRow    = $countResult->fetch_assoc();
-$total       = (int)$totalRow['total'];
-$countStmt->close();
-
-if ($total === 0) {
-    echo json_encode(['data' => [], 'total' => 0, 'hasMore' => false, 'page' => $page]);
-    exit;
+$hasMore = count($pageSessions) > $perPage;
+if ($hasMore) {
+    array_pop($pageSessions); // убираем "лишний" пробный элемент
 }
 
-/* ─── Session IDs ─── */
-
-$sqlSessions = "SELECT DISTINCT session
-                FROM logs
-                WHERE user_id = ?
-                  AND time >= ?
-                  AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.{$pid}')) AS DECIMAL(20,6)) $operator ?
-                LIMIT ? OFFSET ?";
-
-$stmtSessions = $db->prepare($sqlSessions);
-if ($stmtSessions === false) {
-    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
-    exit;
-}
-$stmtSessions->bind_param('iidii', $user_id, $timeFrom, $valueFloat, $perPage, $offset);
-if (!$stmtSessions->execute()) {
-    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
-    exit;
-}
-$resultSessions = $stmtSessions->get_result();
-$sessionIds = [];
-while ($row = $resultSessions->fetch_assoc()) {
-    $sessionIds[] = $row['session'];
-}
-$stmtSessions->close();
-
-if (empty($sessionIds)) {
-    echo json_encode(['data' => [], 'total' => $total, 'hasMore' => false, 'page' => $page]);
-    exit;
-}
-
-/* ─── Данные сессий ─── */
-
-$placeholders = implode(',', array_fill(0, count($sessionIds), '?'));
-$types        = 'i' . str_repeat('i', count($sessionIds));
-
-$sqlData = "SELECT session, time, timeend, profileName, sessionsize
-            FROM sessions
-            WHERE user_id = ? AND session IN ($placeholders)
-            ORDER BY session DESC";
-
-$stmtData = $db->prepare($sqlData);
-if ($stmtData === false) {
-    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
-    exit;
-}
-
-$bindParams = array_merge([$user_id], $sessionIds);
-$stmtData->bind_param($types, ...$bindParams);
-
-if (!$stmtData->execute()) {
-    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
-    exit;
-}
-$resultData = $stmtData->get_result();
 $data = [];
-while ($row = $resultData->fetch_assoc()) {
-    $data[] = $row;
+foreach ($pageSessions as $row) {
+    $data[] = [
+        'session'     => $row['session'],
+        'time'        => $row['time'],
+        'timeend'     => $row['timeend'],
+        'profileName' => $row['profileName'],
+        'sessionsize' => $row['sessionsize'],
+    ];
 }
-$stmtData->close();
-
-$hasMore = ($page * $perPage) < $total;
 
 echo json_encode([
     'data'    => $data,
-    'total'   => $total,
+    'total'   => count($data),
     'hasMore' => $hasMore,
-    'page'    => $page,
 ]);

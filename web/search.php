@@ -14,6 +14,24 @@ if ($pidQuery) {
         $pids[] = $row;
     }
 }
+
+/* ─── Список годов, в которых есть сессии ─── */
+$years = [];
+$yearQuery = $db->execute_query(
+    "SELECT DISTINCT YEAR(FROM_UNIXTIME(time / 1000)) AS y
+       FROM sessions
+      WHERE user_id = ? AND time > 0
+      ORDER BY y DESC",
+    [current_user_id()]
+);
+if ($yearQuery) {
+    while ($row = $yearQuery->fetch_assoc()) {
+        if (!empty($row['y'])) {
+            $years[] = (int)$row['y'];
+        }
+    }
+}
+
 $db->close();
 
 include_once __DIR__ . '/src/head.php';
@@ -112,10 +130,11 @@ include_once __DIR__ . '/src/head.php';
                     <div class="search-field search-field--range">
                         <select id="rangeSelect" name="range" class="form-control choices-select">
                             <option value="" disabled><?= $translations[$lang]['search.range.label'] ?></option>
-                            <option value="day"><?= $translations[$lang]['search.range.day'] ?></option>
-                            <option value="month" selected><?= $translations[$lang]['search.range.month'] ?></option>
-                            <option value="year"><?= $translations[$lang]['search.range.year'] ?></option>
-                            <option value="all"><?= $translations[$lang]['search.range.all'] ?></option>
+                            <option value="day" selected><?= $translations[$lang]['search.range.day'] ?></option>
+                            <option value="month"><?= $translations[$lang]['search.range.month'] ?></option>
+                            <?php foreach ($years as $y): ?>
+                                <option value="<?= $y ?>"><?= $y ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
 
