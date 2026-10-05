@@ -1,4 +1,3 @@
-#!/usr/bin/env php
 <?php
 /**
  * Redis Streams consumer — телеметрия + тяжёлые задачи в одном воркере.
@@ -12,6 +11,11 @@
  *
  *   php worker.php
  */
+
+if (PHP_SAPI !== 'cli') {
+    header('Location: .');
+    exit;
+}
 
 // ────────────────────────────────────────────────────────────
 // CLI bootstrap

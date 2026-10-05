@@ -273,7 +273,6 @@ if (!empty($redis_stream_enabled)) {
     }
 
     echo "<ul style='margin:0;list-style:disc'>"
-       . "<li>Memcached: " . ($memcached_connected ? $yes : $no) . "</li>"
        . "<li>" . $redis_part . "</li>"
        . "<li>" . $worker_part . "</li>"
        . "<li>" . $translations[$lang]['admin.db.title']

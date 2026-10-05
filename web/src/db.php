@@ -102,20 +102,13 @@ if (PHP_SAPI !== 'cli'
     exit;
 }
 
-// Check Memcached presence
-$memcached_available = class_exists('Memcached');
-$memcached_connected = false;
+// Cache layer — Memcached-совместимая обёртка над Redis.
+// Переиспользует то же соединение, что streams и heavy-tasks.
+require_once __DIR__ . '/cache.php';
+require_once __DIR__ . '/redis.php';
 
-if ($memcached_available) {
-    try {
-        $memcached = new Memcached();
-        $memcached->addServer($db_memcached, 11211);
-        $memcached_connected = !empty($memcached->getStats());
-
-    } catch (Exception $e) {
-        $memcached_connected = false;
-    }
-}
+$memcached = new RatelCache(get_redis_connection());
+$memcached_connected = $memcached->isConnected();
 
 $db = get_db_connection();
 
@@ -195,14 +188,9 @@ function cache_flush($token = null, $keyname = null)
          * т.к. вызывается не на каждом запросе.
          */
         if ($keyname !== null) {
-            $allKeys = $memcached->getAllKeys();
-            if ($allKeys !== false) {
-                foreach ($allKeys as $key) {
-                    if (strpos($key, $keyname) === 0) {
-                        $memcached->delete($key);
-                    }
-                }
-            }
+            // Все текущие вызовы передают точный ключ, а не префикс.
+            // Удаляем напрямую — без SCAN/KEYS.
+            $memcached->delete($keyname);
             return;
         }
 

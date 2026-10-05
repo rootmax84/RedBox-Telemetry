@@ -85,12 +85,12 @@ if (isset($_GET["id"])) {
     }
 
     // id (RedManage / TorqueLog / etc.)
-    $cache_key_id = "session_id_{$session_id}";
+    $cache_key_id = cache_var_key("session_id_{$session_id}");
     $id = false;
 
     if ($memcached_connected) {
         $cached_id_data = $memcached->get($cache_key_id);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($cached_id_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($cached_id_data)) {
             list($id, $cached_timestamp) = $cached_id_data;
         }
     }
@@ -116,7 +116,7 @@ if (isset($_GET["id"])) {
 
     if ($memcached_connected) {
         $cached_settings_data = $memcached->get($cache_key_settings);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($cached_settings_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($cached_settings_data)) {
             list($setqry, $cached_timestamp) = $cached_settings_data;
         }
     }
@@ -147,7 +147,7 @@ if (isset($_GET["id"])) {
 
     if ($memcached_connected) {
         $cached_pids_data = $memcached->get($cache_key_pids);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($cached_pids_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($cached_pids_data)) {
             list($keyarr, $cached_timestamp) = $cached_pids_data;
         }
     }
@@ -194,7 +194,7 @@ if (isset($_GET["id"])) {
 
     if ($memcached_connected) {
         $cached_data = $memcached->get($cache_key);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($cached_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($cached_data)) {
             list($session_data, $cached_timestamp) = $cached_data;
         }
     }

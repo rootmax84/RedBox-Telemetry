@@ -85,7 +85,7 @@ if ($username) {
 
     if ($memcached_connected) {
         $g_cached_data = $memcached->get($gps_cache_key);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($g_cached_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($g_cached_data)) {
             list($gps_data, $cached_timestamp) = $g_cached_data;
         }
     }

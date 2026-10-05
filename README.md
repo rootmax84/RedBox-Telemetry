@@ -38,42 +38,40 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 ## General
 
 ```
-            ┌────────────────────────────────────────────┐
-            │                 Internet                   │
-            └───┬───────────────────────┬────────────┬───┘
-                │                       │            │
-                ▼                       ▼            ▼
-     ┌────────────────────────┐   ┌───────────┐  ┌──────────────┐
-     │  Devices               │   │  Browser  │  │ Telegram API │
-     │ (RedManage/Torque/etc) │   │           │  │              │
-     └──────┬─────────────── ─┘   └──────┬────┘  └──────▲───────┘
-            │                            │              │
-            ▼                            ▼              │
-   ╔═══════════════════════════════════════════════════════════════╗
-   ║                        ratel_ingress                          ║
-   ╚═══════════════════════════╤═══════════════════════════════════╝
-                               │
-   ┌───────────────────────────▼───────────────────────────────────┐
-   │                  ratel_web  (nginx + php-fpm)                 │
-   └───────┬───────────────┬───────────────────┬───────────────────┘
-           │               │                   │
-           ▼               ▼                   ▼
-   ╔═══════════════════════════════════════════════════════════════╗
-   ║                       ratel_network  (internal)               ║
-   ║                                                               ║
-   ║   ┌──────────────┐   ┌──────────────┐   ┌──────────────────┐  ║
-   ║   │    redis     │   │   mariadb    │   │    memcached     │  ║
-   ║   │  (Streams)   │   │  (RocksDB)   │   │ cache/rate-limit │  ║
-   ║   └──────▲───────┘   └──────▲───────┘   └────────▲─────────┘  ║
-   ║          │                  │                    │            ║
-   ║          │                  │                    │            ║
-   ║   ┌──────┴──────────────────┴────────────────────┴─────────┐  ║
-   ║   │                                                        │  ║
-   ║   │   ratel-worker-1   ratel-worker-2   ...  worker-N      │  ║
-   ║   │   (php worker.php — consume stream -> write to DB)     │  ║
-   ║   │                                                        │  ║
-   ║   └───────────────────────────────────────────────────── ──┘  ║
-   ╚═══════════════════════════════════════════════════════════════╝
+                    ┌──────────────┐
+   Devices -------> │              │
+   (Torque,         │   Internet   │
+    RedManage,      |              |
+    etc)            │              │
+                    └──────┬───────┘
+   Browser ────────────────┤
+                           │
+                           ▼
+                 ┌───────────────────┐
+                 │     ratel_web     │
+                 │  nginx + php-fpm  │
+                 └─────────┬─────────┘
+                           │
+                           ▼
+        ╔══════════════════════════════════╗
+        ║         ratel_network            ║
+        ║                                  ║
+        ║   ┌──────────┐   ┌────────────┐  ║
+        ║   │  Redis   │   │  MariaDB   │  ║
+        ║   │          │   │ (RocksDB)  │  ║
+        ║   │ • cache  │   │            │  ║
+        ║   │ • streams│   │  users     │  ║
+        ║   │ • heavy  │   │  sessions  │  ║
+        ║   │ • rate   │   │  logs      │  ║
+        ║   │   limit  │   │  pids      │  ║
+        ║   └────▲─────┘   └─────▲──────┘  ║
+        ║        │               │         ║
+        ║        │               │         ║
+        ║   ┌────┴───────────────┴─────┐   ║
+        ║   │      worker.php × N      │   ║
+        ║   │  (streams → MariaDB)     │   ║
+        ║   └──────────────────────────┘   ║
+        ╚══════════════════════════════════╝
 ```
 
 ## Fast path vs inline fallback
@@ -97,10 +95,8 @@ INLINE FALLBACK (Redis disabled or unavailable):
 ### Standalone installation requirements:
 - PHP8.2+
 - php-mysql extension
-- php-memcached (OPTIONAL)
 - php-redis (OPTIONAL)
 - redis (OPTIONAL)
-- memcached (OPTIONAL)
 - nginx with php-fpm(recommended) or Apache2 web-server(not tested) with proper SSL configuration
 - Database:
   - MySQL 8.0+
@@ -177,8 +173,7 @@ INLINE FALLBACK (Redis disabled or unavailable):
 | $user_id | Current user ID (from session) | $_SESSION['uid'] ?? null |
 | $db_engine | Table engine (ROCKSDB or INNODB) | ROCKSDB |
 | $db_innodb_compression | Enable row compression for InnoDB | false |
-| $db_memcached | Memcached host address (memcached for Docker) | memcached |
-| $db_memcached_ttl | Memcached TTL in seconds | 3600 |
+| $db_memcached_ttl | Redis cache TTL in seconds | 3600 |
 | $db_users | Users table name | users |
 | $def_limit | Default user database size limit (session count) | 100 |
 | $max_upload_requests_per_second | Upload rate limit (requests/sec) | 100 |

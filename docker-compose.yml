@@ -123,29 +123,10 @@ services:
             DB_HOST: mariadb
             PHP_MEMORY_LIMIT: "512M"
             PHP_MAX_EXECUTION_TIME: "0"
-            TZ: "UTC"
+            TZ: "UTC" #https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
         depends_on:
             mariadb:
                 condition: service_healthy
             redis:
                 condition: service_healthy
-            memcached:
-                condition: service_healthy
-
         restart: on-failure
-
-    #OPTIONAL
-    memcached:
-        image: memcached
-        container_name: ratel_memcached
-        command:
-          - --conn-limit=1024
-          - --memory-limit=64
-          - --threads=2
-        restart: always
-        healthcheck:
-            test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/11211 && echo version >&3 && head -c 16 <&3 | grep -q VERSION'"]
-            interval: 5s
-            timeout: 3s
-            retries: 5
-            start_period: 3s

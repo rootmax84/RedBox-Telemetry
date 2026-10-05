@@ -50,7 +50,7 @@ if (isset($sids[0])) {
 
     if ($memcached_connected) {
         $y_cached_data = $memcached->get($years_cache_key);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($y_cached_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($y_cached_data)) {
             list($yeararray, $cached_timestamp) = $y_cached_data;
         }
     }
@@ -84,7 +84,7 @@ if (isset($sids[0])) {
 
     if ($memcached_connected) {
         $p_cached_data = $memcached->get($profiles_cache_key);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($p_cached_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($p_cached_data)) {
             list($profilearray, $cached_timestamp) = $p_cached_data;
         }
     }
@@ -115,7 +115,7 @@ if (isset($sids[0])) {
 
     if ($memcached_connected) {
         $g_cached_data = $memcached->get($gps_cache_key);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($g_cached_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($g_cached_data)) {
             list($gps_data, $cached_timestamp) = $g_cached_data;
         }
     }
@@ -162,7 +162,7 @@ if (isset($sids[0])) {
 
     if ($memcached_connected) {
         $s_cached_data = $memcached->get($stream_lock_cache_key);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($s_cached_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($s_cached_data)) {
             list($stream_lock, $cached_timestamp) = $s_cached_data;
         }
     }
@@ -180,12 +180,12 @@ if (isset($sids[0])) {
     }
 
     // id
-    $session_id_cache_key = "session_id_" . $session_id;
+    $session_id_cache_key = cache_var_key("session_id_{$session_id}");
     $id = false;
 
     if ($memcached_connected) {
         $i_cached_data = $memcached->get($session_id_cache_key);
-        if ($memcached->getResultCode() === Memcached::RES_SUCCESS && is_array($i_cached_data)) {
+        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($i_cached_data)) {
             list($id, $cached_timestamp) = $i_cached_data;
         }
     }

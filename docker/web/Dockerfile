@@ -1,7 +1,7 @@
 FROM shinsenter/php:8.5-fpm-nginx
 
 # Prepare
-RUN phpaddmod mysqli memcached redis
+RUN phpaddmod mysqli redis
 
 # ── Startup: greeting + permissions + creds.php bootstrap ──
 RUN printf '%s\n' \

@@ -6,7 +6,7 @@ $columns_cache_key = "columns_data_pids_{$username}";
 $coldata = [];
 if ($memcached_connected) {
     $coldata = $memcached->get($columns_cache_key);
-    if ($memcached->getResultCode() !== Memcached::RES_SUCCESS) {
+    if ($memcached->getResultCode() !== RatelCache::RES_SUCCESS) {
         $coldata = [];
     }
 }

@@ -20,7 +20,6 @@ $db_table           = $db_log_table;
 $user_id            = $_SESSION['uid'] ?? null;
 $db_engine = 'ROCKSDB'; //Or INNODB. Engine for database tables (Recommended ROCKSDB). Applies to newly created users
 $db_innodb_compression = false; //Use row compression with innodb engine. Applies to newly created users
-$db_memcached = 'memcached'; //Address of memcached host. Type memcached if use docker (OPTIONAL)
 $db_memcached_ttl = 3600;
 $db_users = 'users';
 $def_limit = 100; //Default user db size in sessions count

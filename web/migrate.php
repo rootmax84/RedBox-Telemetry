@@ -1,4 +1,3 @@
-#!/usr/bin/env php
 <?php
 /**
  * RedBox Telemetry — migrations runner.
@@ -53,6 +52,11 @@
  *   - Все обращения к БД обёрнуты в try/catch для mysqli_sql_exception,
  *     т.к. в PHP 8.1+ mysqli по умолчанию работает в strict-режиме.
  */
+
+if (PHP_SAPI !== 'cli') {
+    header('Location: .');
+    exit;
+}
 
 // ────────────────────────────────────────────────────────────
 // CLI bootstrap: имитируем сессию и запрос, как это делают
