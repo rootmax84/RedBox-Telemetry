@@ -57,20 +57,40 @@ if ($user_id === null) {
     exit;
 }
 
-/* ─── Валидация PID ─── */
-
-$checkStmt = $db->prepare("SELECT id FROM pids WHERE user_id = ? AND id = ? LIMIT 1");
+/* ─── Валидация PID + units ─── */
+$checkStmt = $db->prepare("SELECT units FROM pids WHERE user_id = ? AND id = ? LIMIT 1");
 if ($checkStmt === false) {
     echo json_encode(['error' => $translations[$lang]['search.error_query']]);
     exit;
 }
 $checkStmt->bind_param('is', $user_id, $pid);
 $checkStmt->execute();
-if ($checkStmt->get_result()->num_rows === 0) {
+$pidRow = $checkStmt->get_result()->fetch_assoc();
+$checkStmt->close();
+
+if ($pidRow === null) {
     echo json_encode(['error' => $translations[$lang]['search.error_query']]);
     exit;
 }
-$checkStmt->close();
+$pidUnits = $pidRow['units'] ?? '';
+
+/* ─── Настройки конвертации пользователя ─── */
+$setStmt = $db->prepare(
+    "SELECT pressure, boost, temp, speed FROM users WHERE id = ? LIMIT 1"
+);
+if ($setStmt === false) {
+    echo json_encode(['error' => $translations[$lang]['search.error_query']]);
+    exit;
+}
+$setStmt->bind_param('i', $user_id);
+$setStmt->execute();
+$userSettings = $setStmt->get_result()->fetch_assoc() ?: [];
+$setStmt->close();
+
+$boostSetting    = $userSettings['boost']    ?? 'No conversion';
+$pressureSetting = $userSettings['pressure'] ?? 'No conversion';
+$tempSetting     = $userSettings['temp']     ?? 'No conversion';
+$speedSetting    = $userSettings['speed']    ?? 'No conversion';
 
 /* ─── Валидация оператора ─── */
 
@@ -88,12 +108,92 @@ if (!is_numeric($value)) {
 $valueFloat = (float)$value;
 
 /* ────────────────────────────────────────────────────────────────
+ * Определяем, какая конвертация применима к выбранному PID.
+ * Логика зеркалит helpers.php: pressure_conv / temp_conv / speed_conv.
+ * kff1202 (Boost) использует users.boost, остальные давления —
+ * users.pressure.
+ * ──────────────────────────────────────────────────────────────── */
+if ($pid === 'kff1202') {
+    $convSetting = $boostSetting;
+    $convType    = 'pressure';
+} elseif (in_array($pidUnits, ['Bar', 'PSI', 'Psi', 'psi', 'bar'], true)) {
+    $convSetting = $pressureSetting;
+    $convType    = 'pressure';
+} elseif (in_array($pidUnits, ['°C', '°F', 'C', 'F'], true)) {
+    $convSetting = $tempSetting;
+    $convType    = 'temp';
+} elseif (in_array($pidUnits, ['km/h', 'mph'], true)) {
+    $convSetting = $speedSetting;
+    $convType    = 'speed';
+} else {
+    $convSetting = 'No conversion';
+    $convType    = null;
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * SQL-выражения: сырое значение + два варианта конвертации.
+ *
+ * $rmExpr — для сессий, у которых sessions.id = 'RedManage';
+ * $otExpr — для всех остальных (Torque, живой стрим и т.п.).
+ *
+ * ВНИМАНИЕ: поведение зеркалит helpers.php, включая тот факт, что
+ * ветки «Bar to Psi», «Celsius to Fahrenheit», «km to miles»
+ * применяются безусловно (без проверки $id).
+ * ──────────────────────────────────────────────────────────────── */
+$rawExpr = "CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.{$pid}')) AS DECIMAL(20,6))";
+$rmExpr  = $rawExpr;
+$otExpr  = $rawExpr;
+
+switch ($convType) {
+    case 'pressure':
+        switch ($convSetting) {
+            case 'Psi to Bar':
+                // id !== 'RedManage' → /14.504
+                $otExpr = "($rawExpr / 14.504)";
+                break;
+            case 'Bar to Psi':
+                $rmExpr = "($rawExpr * 14.504)";
+                $otExpr = "($rawExpr * 14.504)";
+                break;
+        }
+        break;
+
+    case 'temp':
+        switch ($convSetting) {
+            case 'Celsius to Fahrenheit':
+                $rmExpr = "($rawExpr * 9.0 / 5.0 + 32.0)";
+                $otExpr = $rmExpr;
+                break;
+            case 'Fahrenheit to Celsius':
+                // id !== 'RedManage' → (v - 32) * 5 / 9
+                $otExpr = "(($rawExpr - 32.0) * 5.0 / 9.0)";
+                break;
+        }
+        break;
+
+    case 'speed':
+        switch ($convSetting) {
+            case 'km to miles':
+                $rmExpr = "($rawExpr * 0.621371)";
+                $otExpr = $rmExpr;
+                break;
+            case 'miles to km':
+                // id !== 'RedManage' → * 1.609344
+                $otExpr = "($rawExpr * 1.609344)";
+                break;
+        }
+        break;
+}
+
+$hasConversion = ($convType !== null) && ($convSetting !== 'No conversion');
+
+/* ────────────────────────────────────────────────────────────────
    Шаг 1. Кандидаты из sessions
    При keyset добавляем  AND session < lastSession
    ──────────────────────────────────────────────────────────────── */
 
 if ($lastSession > 0) {
-    $sqlCandidates = "SELECT session, time, timeend, profileName, sessionsize
+    $sqlCandidates = "SELECT session, time, timeend, profileName, sessionsize, id
                       FROM sessions
                       WHERE user_id = ?
                         AND session < ?
@@ -101,7 +201,7 @@ if ($lastSession > 0) {
                         AND (timeend >= ? OR timeend IS NULL OR timeend = 0)
                       ORDER BY session DESC";
 } else {
-    $sqlCandidates = "SELECT session, time, timeend, profileName, sessionsize
+    $sqlCandidates = "SELECT session, time, timeend, profileName, sessionsize, id
                       FROM sessions
                       WHERE user_id = ?
                         AND time <= ?
@@ -150,21 +250,54 @@ $nCand     = count($candidates);
 for ($i = 0; $i < $nCand; $i += $batchSize) {
     $batch = array_slice($candidates, $i, $batchSize);
     $ids   = [];
+    $rmIds = [];
+
     foreach ($batch as $b) {
-        $ids[] = (int)$b['session'];
+        $sid = (int)$b['session'];
+        $ids[] = $sid;
+        if (($b['id'] ?? '') === 'RedManage') {
+            $rmIds[] = $sid;
+        }
     }
+
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
-    $sql = "SELECT DISTINCT session
-            FROM logs
-            WHERE user_id = ?
-              AND session IN ($placeholders)
-              AND time >= ?
-              AND time <= ?
-              AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.{$pid}')) AS DECIMAL(20,6)) $operator ?";
+    if ($hasConversion) {
+        // CASE WHEN session ∈ RedManage-набор → $rmExpr, иначе → $otExpr
+        $convertedExpr = "CASE WHEN FIND_IN_SET(session, ?) > 0 "
+                       . "THEN {$rmExpr} ELSE {$otExpr} END";
+        $rmCsv = empty($rmIds) ? '0' : implode(',', $rmIds);
 
-    $types  = 'i' . str_repeat('i', count($ids)) . 'iid';
-    $params = array_merge([$user_id], $ids, [$timeFrom, $timeToBound, $valueFloat]);
+        $sql = "SELECT DISTINCT session
+                FROM logs
+                WHERE user_id = ?
+                  AND session IN ($placeholders)
+                  AND time >= ?
+                  AND time <= ?
+                  AND {$convertedExpr} $operator ?";
+
+        $types  = 'i' . str_repeat('i', count($ids)) . 'iisd';
+        $params = array_merge(
+            [$user_id],
+            $ids,
+            [$timeFrom, $timeToBound, $rmCsv, $valueFloat]
+        );
+    } else {
+        $sql = "SELECT DISTINCT session
+                FROM logs
+                WHERE user_id = ?
+                  AND session IN ($placeholders)
+                  AND time >= ?
+                  AND time <= ?
+                  AND {$rawExpr} $operator ?";
+
+        $types  = 'i' . str_repeat('i', count($ids)) . 'iid';
+        $params = array_merge(
+            [$user_id],
+            $ids,
+            [$timeFrom, $timeToBound, $valueFloat]
+        );
+    }
 
     try {
         $stmt = $db->prepare($sql);
@@ -225,6 +358,7 @@ foreach ($pageSessions as $row) {
         'timeend'     => $row['timeend'],
         'profileName' => $row['profileName'],
         'sessionsize' => $row['sessionsize'],
+        'id'          => $row['id'] ?? '',
     ];
 }
 
