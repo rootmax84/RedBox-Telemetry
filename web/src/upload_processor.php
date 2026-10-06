@@ -129,30 +129,33 @@ function processBulkRecords(mysqli $db, array $ctx, array $records): void
         }
 
         foreach ($sessionAgg as $session => $s) {
-            // Метаданные сессии — без sessionsize.
             $db->execute_query(
                 "INSERT INTO sessions (user_id, id, session, time, timeend)
                  VALUES (?,?,?,?,?)
-                 ON DUPLICATE KEY UPDATE
-                    id      = VALUES(id),
-                    timeend = GREATEST(timeend, VALUES(timeend))",
+                    ON DUPLICATE KEY UPDATE
+                        id      = VALUES(id),
+                        time    = LEAST(time, VALUES(time)),
+                        timeend = GREATEST(timeend, VALUES(timeend))",
                 [$user_id, $s['id'], $session, $s['time'], $s['timeend']]
             );
+        }
 
-            // sessionsize = количество датапоинтов в logs для этой сессии.
-            // Пересчитываем из фактического COUNT, а не инкрементим:
-            // повторные аплоады (INSERT IGNORE в logs) не должны
-            // завышать счётчик, а батч может содержать как новые
-            // точки, так и дубликаты — не зная поштучно, кто из них
-            // вставился, безопаснее посчитать COUNT.
+        // Один batch-апдейт sessionsize на все сессии из батча
+        if (!empty($sessionAgg)) {
+            $sessionIds = array_keys($sessionAgg);
+            $ph         = implode(',', array_fill(0, count($sessionIds), '?'));
+
             $db->execute_query(
-                "UPDATE sessions
-                    SET sessionsize = (
-                        SELECT COUNT(*) FROM logs
-                         WHERE user_id = ? AND session = ?
-                    )
-                  WHERE user_id = ? AND session = ?",
-                [$user_id, $session, $user_id, $session]
+                "UPDATE sessions s
+                   JOIN (
+                       SELECT session, COUNT(*) AS cnt
+                         FROM logs
+                        WHERE user_id = ? AND session IN ($ph)
+                        GROUP BY session
+                   ) l ON l.session = s.session
+                    SET s.sessionsize = l.cnt
+                  WHERE s.user_id = ? AND s.session IN ($ph)",
+                array_merge([$user_id], $sessionIds, [$user_id], $sessionIds)
             );
         }
 
@@ -294,9 +297,10 @@ function processSingleRequest(mysqli $db, array $ctx, array $request): void
         $db->execute_query(
             "INSERT INTO sessions (user_id, id, session, time, timeend)
              VALUES (?,?,?,?,?)
-             ON DUPLICATE KEY UPDATE
-                id      = VALUES(id),
-                timeend = GREATEST(timeend, VALUES(timeend))",
+                ON DUPLICATE KEY UPDATE
+                    id      = VALUES(id),
+                    time    = LEAST(time, VALUES(time)),
+                    timeend = GREATEST(timeend, VALUES(timeend))",
             [$user_id, $id, $session, $time, $time]
         );
 

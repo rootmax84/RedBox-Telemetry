@@ -123,7 +123,7 @@ if ($filetype == "csv") {
     // Header
     $header = ['session', 'time'];
     foreach ($pids_list as $pid) $header[] = $pid;
-    echo '"' . implode('","', $header) . '",' . "\n";
+    echo '"' . implode('","', $header) . '"' . "\n";
     flush();
 
     while ($stmt->fetch()) {
@@ -132,7 +132,7 @@ if ($filetype == "csv") {
         foreach ($pids_list as $pid) {
             $row[] = $d[$pid] ?? 0;
         }
-        echo '"' . implode('","', $row) . '",' . "\n";
+        echo '"' . implode('","', $row)  . '"' . "\n";
         flush();
     }
 

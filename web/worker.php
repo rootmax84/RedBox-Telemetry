@@ -185,7 +185,7 @@ function worker_dlq_push(
     array $fields,
     string $error,
     int $dlqMaxlen
-): void {
+): bool {
     $dlq = $fields;
     $dlq['_src_stream'] = $srcStream;
     $dlq['_src_id']     = $srcId;
@@ -193,7 +193,6 @@ function worker_dlq_push(
     $dlq['_failed_at']  = (string)time();
     $dlq['_consumer']   = gethostname() . '-' . getmypid();
 
-    // XADD принимает только скаляры. null → '', массив → json.
     foreach ($dlq as $k => $v) {
         if ($v === null) {
             $dlq[$k] = '';
@@ -203,9 +202,11 @@ function worker_dlq_push(
     }
 
     try {
-        $redis->xAdd($dlqKey, '*', $dlq, $dlqMaxlen, true);
+        $id = $redis->xAdd($dlqKey, '*', $dlq, $dlqMaxlen, true);
+        return $id !== false;
     } catch (Throwable $e) {
         error_log('[worker] DLQ push failed: ' . $e->getMessage());
+        return false;
     }
 }
 
@@ -303,7 +304,18 @@ function worker_process_message(
     }
 
     if ($toDlq) {
-        worker_dlq_push($redis, $dlqKey, $sKey, $id, $fields, $errMsg, $dlqMaxlen);
+        $pushed = worker_dlq_push($redis, $dlqKey, $sKey, $id, $fields, $errMsg, $dlqMaxlen);
+
+        if (!$pushed) {
+            // DLQ недоступен. НЕ ACK-аем — сообщение остаётся pending
+            // и через reclaimMinIdle секунд попадёт под XAUTOCLAIM.
+            error_log(sprintf(
+                '[worker] %s/%s [%s] DLQ push failed, left pending',
+                $sKey, $id, $src
+            ));
+            return 'pending';
+        }
+
         try { $redis->xAck($sKey, $group, [$id]); } catch (Throwable $e) {}
         worker_attempts_clear($redis, $sKey, $id);
         error_log(sprintf('[worker] %s/%s [%s] → DLQ', $sKey, $id, $src));

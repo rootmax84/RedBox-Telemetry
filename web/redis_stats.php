@@ -1087,11 +1087,13 @@ body {
                 <form method="post" style="display:inline"
                       onsubmit="return confirm('Replay all DLQ messages back to their source streams?');">
                     <input type="hidden" name="action" value="replay_dlq">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
                     <button type="submit" class="rs-btn">↻ Replay all</button>
                 </form>
                 <form method="post" style="display:inline"
                       onsubmit="return confirm('Permanently DELETE all DLQ messages? This cannot be undone.');">
                     <input type="hidden" name="action" value="purge_dlq">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
                     <button type="submit" class="rs-btn rs-btn-danger">✖ Purge DLQ</button>
                 </form>
                 <form method="get" class="rs-filter">
@@ -1155,6 +1157,7 @@ body {
                 <form method="post"
                       onsubmit="return confirm('Delete <?= (int)$stats['consumers_dead'] ?> dead consumer(s)? Only consumers with pending=0 and idle > <?= RS_DEAD_IDLE_SECONDS ?>s will be removed.');">
                     <input type="hidden" name="action" value="kill_dead_consumers">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
                     <button type="submit" class="rs-btn rs-btn-small rs-btn-danger">
                         ✖ Kill dead consumers (<?= (int)$stats['consumers_dead'] ?>)
                     </button>

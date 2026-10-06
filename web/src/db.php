@@ -54,16 +54,17 @@ set_exception_handler(function($exception) {
         exit(1);
     }
 
-    // Если это API-эндпоинт (JSON в Accept или uri /api/ или /stream_json) —
-    // отдаём JSON-ответ, а не редирект
-    $uri = $_SERVER['REQUEST_URI'] ?? '';
-    $is_api = (
-        stripos($uri, 'stream_json') !== false ||
-        stripos($uri, 'ul.php') !== false ||
-        stripos($uri, 'remote.php') !== false ||
-        stripos($uri, 'get_token.php') !== false ||
-        stripos($uri, 'search_processor.php') !== false
-    );
+    // Определяем API-эндпоинт по имени исполняемого скрипта,
+    // а не по REQUEST_URI — иначе /upload (nginx try_files → ul.php)
+    // не детектился бы как API.
+    $script = basename($_SERVER['SCRIPT_FILENAME'] ?? '');
+    $is_api = in_array($script, [
+        'stream_json.php',
+        'ul.php',
+        'remote.php',
+        'get_token.php',
+        'search_processor.php',
+    ], true);
 
     if ($is_api) {
         if (!headers_sent()) {
@@ -135,34 +136,55 @@ function quote_values($values) {
 }
 
 /**
+ * Единый источник правды: какой uid использовать для per-user кэша.
+ *
+ * Приоритет:
+ *   1) $GLOBALS['user_id'] — используется в share.php / plot.php / worker.php,
+ *      где контекст принадлежит не залогиненному, а целевому юзеру.
+ *   2) $_SESSION['uid']    — обычный залогиненный пользователь.
+ *   3) 0                    — гость / аноним.
+ *
+ * ВАЖНО: и cache_var_key(), и cache_flush() должны использовать эту функцию,
+ * иначе они будут инвалидировать разные пространства ключей.
+ */
+function cache_current_uid(): int
+{
+    return (int)($GLOBALS['user_id'] ?? $_SESSION['uid'] ?? 0);
+}
+
+/**
  * Ключ для переменных per-user кэшей (session_data_*, gps_data_*).
  *
  * Формат: u{$uid}_vv{$version}_{$suffix}
  *
- * Версия читается из memcached один раз на запрос и кэшируется в static.
- * При cache_flush() инкрементируется → все старые ключи становятся
- * недостижимы, истекают по TTL сами.
+ * Версия читается из Redis один раз на запрос и кэшируется в
+ * $GLOBALS['__ratel_varver']. При cache_flush() версия инкрементируется
+ * в Redis, а локальный кэш сбрасывается → следующее чтение подхватит
+ * новую версию. Старые ключи становятся недостижимыми и истекают
+ * по TTL сами.
  *
- * Если $uid невозможно определить — возвращает "guest_{$suffix}".
+ * Если uid невозможно определить — возвращает "guest_{$suffix}".
  */
 function cache_var_key(string $suffix): string
 {
     global $memcached, $memcached_connected;
 
-    $uid = (int)($GLOBALS['user_id'] ?? $_SESSION['uid'] ?? 0);
+    $uid = cache_current_uid();
     if ($uid <= 0) {
         return "guest_{$suffix}";
     }
 
-    static $versions = [];
+    if (!isset($GLOBALS['__ratel_varver'])) {
+        $GLOBALS['__ratel_varver'] = [];
+    }
 
-    if (!isset($versions[$uid])) {
-        $versions[$uid] = 1;
+    if (!isset($GLOBALS['__ratel_varver'][$uid])) {
+        $GLOBALS['__ratel_varver'][$uid] = 1;
         if ($memcached_connected) {
             try {
                 $v = $memcached->get("u{$uid}_varver");
                 if ($v !== false && $v !== null) {
-                    $versions[$uid] = (int)$v;
+                    $GLOBALS['__ratel_varver'][$uid] = (int)$v;
                 }
             } catch (Throwable $e) {
                 error_log("cache_var_key get version failed: " . $e->getMessage());
@@ -170,19 +192,21 @@ function cache_var_key(string $suffix): string
         }
     }
 
-    return "u{$uid}_vv{$versions[$uid]}_{$suffix}";
+    return "u{$uid}_vv{$GLOBALS['__ratel_varver'][$uid]}_{$suffix}";
 }
 
 function cache_flush($token = null, $keyname = null)
 {
-    global $memcached, $memcached_connected, $username, $user_id;
+    // $user_id в global не нужен: uid резолвится через cache_current_uid()
+    // из $GLOBALS['user_id'] / $_SESSION['uid'].
+    global $memcached, $memcached_connected, $username;
 
     if (!$memcached_connected) {
         return;
     }
 
     try {
-        /* ─── Точечная инвалидация по префиксу/имени ───
+        /* ─── Точечная инвалидация по имени ключа ───
          * Используется редко (только для явного сброса одного ключа
          * или группы). Перебирает ключи через getAllKeys — приемлемо,
          * т.к. вызывается не на каждом запросе.
@@ -201,8 +225,12 @@ function cache_flush($token = null, $keyname = null)
             return;
         }
 
-        /* ─── Полный сброс per-user кэшей ─── */
-        $uid = (int)($_SESSION['uid'] ?? $user_id ?? 0);
+        /* ─── Полный сброс per-user кэшей ───
+         * uid резолвится той же функцией, что и в cache_var_key() —
+         * единый источник правды, чтобы cache_flush и cache_var_key
+         * никогда не разъехались по разным пространствам ключей.
+         */
+        $uid = cache_current_uid();
 
         // 1. Фиксированные ключи — удаляем явно по именам.
         //    Их имена заранее известны.
@@ -244,6 +272,11 @@ function cache_flush($token = null, $keyname = null)
             $cur = $memcached->get("u{$uid}_varver");
             $cur = is_numeric($cur) ? (int)$cur : 0;
             $memcached->set("u{$uid}_varver", $cur + 1, 0);
+
+            // Сбросить локальный кэш версии: если в этом же запросе
+            // после flush кто-то вызовет cache_var_key(), он должен
+            // получить НОВУЮ версию из Redis, а не залипшую старую.
+            unset($GLOBALS['__ratel_varver'][$uid]);
         }
 
     } catch (Exception $e) {

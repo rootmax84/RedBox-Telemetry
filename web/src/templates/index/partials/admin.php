@@ -23,11 +23,12 @@ $number_of_result = $usrqry->fetch_row()[0];
 $number_of_page = ceil($number_of_result / $results_per_page);
 
 // Общий размер БД — используется в сводке ниже (DB total).
+$db_name_esc = $db->real_escape_string($db_name);
 $res = $db->query(
-    "SELECT TABLE_SCHEMA AS '$db_name',
-            ROUND(SUM(DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) AS 'Size (MB)'
+    "SELECT TABLE_SCHEMA AS `schema`,
+            ROUND(SUM(DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) AS `size_mb`
        FROM information_schema.TABLES
-      WHERE TABLE_SCHEMA = '$db_name'"
+      WHERE TABLE_SCHEMA = '$db_name_esc'"
 )->fetch_array();
 
 // Счётчики сессий по всем юзерам одним запросом — быстрее, чем N COUNT'ов в цикле

@@ -6,6 +6,12 @@ let fp_sensor = null;
 let map_limit = null;
 let cfg_data = [];
 
+function mapRange(x, in_min, in_max, out_min, out_max) {
+    const constrainedX = Math.min(Math.max(x, in_min), in_max);
+    if (in_min === in_max) return out_min;
+    return (constrainedX - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
 function createChoices() {
     document.querySelectorAll('select').forEach(select => {
         if (select._choices) {
@@ -1164,7 +1170,7 @@ function fillData() {
        pg0_a_value = pg0_a_value - 40;
       }
       else if (pg0_a_var == 7) {
-       pg0_a_value = Math.round(map(pg0_a_value,0,147,0,100));
+       pg0_a_value = Math.round(mapRange(pg0_a_value,0,147,0,100));
       }
       else if (pg0_a_var == 20) {
        pg0_a_value = pg0_a_value / 60;
@@ -1178,7 +1184,7 @@ function fillData() {
        pg0_b_value = pg0_b_value - 40;
       }
       else if (pg0_b_var == 7) {
-       pg0_b_value = Math.round(map(pg0_b_value,0,147,0,100));
+       pg0_b_value = Math.round(mapRange(pg0_b_value,0,147,0,100));
       }
       else if (pg0_b_var == 20) {
        pg0_b_value = pg0_b_value / 60;
@@ -1247,7 +1253,7 @@ function fillData() {
        pg1_a_value = pg1_a_value - 40;
       }
       else if (pg1_a_var == 7) {
-       pg1_a_value = Math.round(map(pg1_a_value,0,147,0,100));
+       pg1_a_value = Math.round(mapRange(pg1_a_value,0,147,0,100));
       }
       else if (pg1_a_var == 20) {
        pg1_a_value = pg1_a_value / 60;
@@ -1261,7 +1267,7 @@ function fillData() {
        pg1_b_value = pg1_b_value - 40;
       }
       else if (pg1_b_var == 7) {
-       pg1_b_value = Math.round(map(pg1_b_value,0,147,0,100));
+       pg1_b_value = Math.round(mapRange(pg1_b_value,0,147,0,100));
       }
       else if (pg1_b_var == 20) {
        pg1_b_value = pg1_b_value / 60;
@@ -1703,7 +1709,7 @@ function otherSetBtn() {
 const calcVal = (pgVar, selector) => {
     const varInt = parseInt(pgVar), value = $(selector).val();
     return varInt > 0 && varInt <= 6 ? parseInt(value) + 40 :
-           varInt === 7 ? map(parseInt(value), 0, 100, 0, 147) :
+           varInt === 7 ? mapRange(parseInt(value), 0, 100, 0, 147) :
            varInt === 20 ? parseInt(value) * 60 :
            [11,12,15,18].includes(varInt) ? Math.round(parseFloat(value) * 100) : value;
 };

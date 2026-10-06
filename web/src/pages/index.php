@@ -13,7 +13,7 @@ setcookie("newsess", "");
 // Capture the session ID if one has been chosen already
 $session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT) ?: null;
 
-$page = $_GET["page"] ?? 1;
+$page = max(1, (int)($_GET["page"] ?? 1));
 $raw_year = $_GET["year"] ?? "";
 if ($raw_year) {
     $filteryear = sanitizeInput($raw_year, 'year_or_all');

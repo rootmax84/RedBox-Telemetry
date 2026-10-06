@@ -1,10 +1,5 @@
 <?php
 
-// creds migration
-if (file_exists(__DIR__.'/creds.php')) {
-    rename(__DIR__.'/creds.php', __DIR__.'/src/creds.php');
-}
-
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/db_limits.php';
 require_once __DIR__ . '/plot.php';

@@ -1978,7 +1978,15 @@ document.addEventListener('keydown', (event) => {
             menuToggle.checked = false;
         }
     } else if (event.key === 'Delete' && typeof delSession === 'function') {
-        delSession();
+        const t = event.target;
+        const inEditable = t && (
+            t.tagName === 'INPUT'  ||
+            t.tagName === 'TEXTAREA' ||
+            t.tagName === 'SELECT' ||
+            t.isContentEditable ||
+            (t.closest && t.closest('[contenteditable=""],[contenteditable="true"],input,textarea,select'))
+        );
+        if (!inEditable) delSession();
     }
 });
 
