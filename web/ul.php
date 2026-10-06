@@ -198,24 +198,18 @@ $rate_limit_key = "rate_limit_" . $username;
 $max_upload_requests_per_second = $max_upload_requests_per_second ?? 100;
 
 if ($memcached_connected) {
-    $current_requests = $memcached->get($rate_limit_key);
-    if ($current_requests === false) {
-        try {
-            $memcached->set($rate_limit_key, 1, 1);
-        } catch (Exception $e) {
-            error_log("Memcached error on upload: " . $e->getMessage());
-        }
-    } else {
-        if ($current_requests >= $max_upload_requests_per_second) {
+    try {
+        // INCR + EXPIRE одной атомарной операцией на сервере Redis.
+        // TTL = 1 секунда устанавливается только на первом инкременте.
+        $count = $memcached->incrementWithTtl($rate_limit_key, 1, 1);
+
+        if ($count !== false && $count > $max_upload_requests_per_second) {
             http_response_code(429);
             error_log("Upload spammer detected: " . $username);
             die($translations[$lang]['upload.429']);
         }
-        try {
-            $memcached->increment($rate_limit_key, 1);
-        } catch (Exception $e) {
-            error_log("Memcached error on upload: " . $e->getMessage());
-        }
+    } catch (Exception $e) {
+        error_log("Memcached error on upload: " . $e->getMessage());
     }
 }
 

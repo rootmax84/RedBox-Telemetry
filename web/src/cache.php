@@ -147,6 +147,63 @@ final class RatelCache
         }
     }
 
+    /**
+     * Атомарный INCRBY + EXPIRE через Lua-скрипт.
+     *
+     * Решает проблему "залипшего TTL": если между отдельными INCR и EXPIRE
+     * оборвётся соединение, ключ останется без TTL, и счётчик будет расти
+     * вечно — пользователь получит 429 перманентно.
+     *
+     * Скрипт исполняется на сервере Redis целиком, без сетевых вызовов
+     * между INCR и EXPIRE. Промежуточного состояния не существует.
+     *
+     * TTL ставится только на первом инкременте (когда результат равен
+     * $offset — то есть это первая операция над только что созданным
+     * ключом). На последующих вызовах TTL не трогается, окно не продлевается.
+     *
+     * @return int|false новое значение, либо false при ошибке.
+     */
+    public function incrementWithTtl(string $key, int $ttl, int $offset = 1)
+    {
+        if (!$this->redis instanceof Redis) {
+            return false;
+        }
+        try {
+            $script =
+                "local c = redis.call('INCRBY', KEYS[1], ARGV[1]) " .
+                "if c == tonumber(ARGV[1]) then " .
+                "  redis.call('EXPIRE', KEYS[1], ARGV[2]) " .
+                "end " .
+                "return c";
+
+            // phpredis::eval($script, $args, $num_keys)
+            // $num_keys = 1 → KEYS[1] = $key, ARGV[1] = $offset, ARGV[2] = $ttl
+            $result = $this->redis->eval($script, [$key, $offset, $ttl], 1);
+
+            return $result === false ? false : (int)$result;
+        } catch (Throwable $e) {
+            error_log('RatelCache::incrementWithTtl error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Установить TTL на существующий ключ.
+     * Возвращает true, если TTL установлен (ключ существует).
+     */
+    public function expire(string $key, int $ttl): bool
+    {
+        if (!$this->redis instanceof Redis) {
+            return false;
+        }
+        try {
+            return (bool)$this->redis->expire($key, $ttl);
+        } catch (Throwable $e) {
+            error_log('RatelCache::expire error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     public function getResultCode(): int
     {
         return $this->lastResultCode;
