@@ -10,7 +10,7 @@
  * CSRF is not checked on this file — add it to $csrf_exempt_scripts
  * in auth_user.php. Access is restricted to admin sessions only.
  */
-require_once __DIR__ . '/src/db.php';   // → creds.php → auth_user.php → cache.php → redis.php
+require_once __DIR__ . '/src/db.php';
 
 if (!isset($_SESSION['admin'])) {
     header('Location: .');
@@ -46,8 +46,6 @@ function rs_id_ts(string $id): int {
 function rs_h(?string $s): string {
     return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 }
-
-/** Flat XRANGE entry → associative [field => value]. */
 function rs_entry_to_assoc(array $fields): array {
     $kv = [];
     $n  = count($fields);
@@ -528,7 +526,7 @@ foreach (($dlqAll ?? []) as $e) {
 $dlqUsers = array_keys($dlqUsers); sort($dlqUsers);
 
 /* ────────────────────────────────────────────────────────────
- * Per-user list — only users with any activity, sorted by score
+ * Per-user list
  * ──────────────────────────────────────────────────────────── */
 $perUserWithActivity = [];
 $perUserTotal        = count($stats['per_user'] ?? []);
@@ -575,7 +573,6 @@ function rs_badge(int|string $v, int $warnAt, int $errAt, string $suffix = ''): 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Redis statistics</title>
 
-<?php /* Apply stored theme before any CSS is parsed — prevents FOUC. */ ?>
 <script>
 (function () {
     var choice;
@@ -597,11 +594,6 @@ function rs_badge(int|string $v, int $warnAt, int $errAt, string $suffix = ''): 
 <style>
 * { box-sizing: border-box; }
 
-/* ── Theme variables ─────────────────────────────────────────
- * Light is default (:root). Dark is applied via [data-theme="dark"].
- * The "auto" resolution happens in the inline <script> above —
- * it sets data-theme to "light" or "dark" before CSS runs.
- * ─────────────────────────────────────────────────────────── */
 :root {
     --bg: #f5f5f7;
     --fg: #1d1d1f;
@@ -691,7 +683,11 @@ body {
 .rs-wrap { max-width: 1200px; margin: 0 auto; }
 .rs-title { margin-bottom: 16px; }
 .rs-title h1 { font-size: 22px; margin: 0 0 4px; font-weight: 600; }
-.rs-sub { color: var(--sub); font-size: 13px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rs-sub {
+    color: var(--sub); font-size: 13px;
+    display: flex; align-items: center;
+    gap: 6px; flex-wrap: wrap;
+}
 .rs-sub a { color: var(--link); text-decoration: none; }
 .rs-sub a:hover { text-decoration: underline; }
 .rs-autorefresh { user-select: none; cursor: pointer; }
@@ -735,6 +731,7 @@ body {
     border-radius: 8px;
     margin-bottom: 14px;
     font-weight: 500;
+    word-break: break-word;
 }
 .rs-toast.ok  { background: var(--toast-ok-bg);  color: var(--toast-ok-fg);  border: 1px solid var(--toast-ok-border); }
 .rs-toast.err { background: var(--toast-err-bg); color: var(--toast-err-fg); border: 1px solid var(--toast-err-border); }
@@ -744,7 +741,11 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 8px 24px;
 }
-.rs-grid > div { display: flex; align-items: center; gap: 8px; }
+.rs-grid > div {
+    display: flex; align-items: center;
+    gap: 8px; flex-wrap: wrap;
+    min-width: 0;
+}
 .rs-lbl { color: var(--sub); min-width: 120px; font-size: 13px; }
 .rs-dim { color: var(--dim); font-size: 12px; }
 .rs-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
@@ -752,7 +753,21 @@ body {
 .rs-err-inline { color: var(--err-inline); font-size: 12px; margin-top: 4px; }
 .rs-error-cell { max-width: 480px; word-break: break-word; font-size: 12px; color: var(--error-cell); }
 
-.rs-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+/* ── Table wrapper — fixes horizontal overflow on narrow screens ── */
+.rs-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Небольшой негативный margin, чтобы скролл-бар не «съедал» padding карточки */
+    margin: 0 -4px;
+    padding: 0 4px;
+}
+.rs-table {
+    width: 100%;
+    min-width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
 .rs-table th, .rs-table td {
     text-align: left;
     padding: 8px 10px;
@@ -766,6 +781,7 @@ body {
     text-transform: uppercase;
     letter-spacing: .03em;
     background: var(--table-th-bg);
+    white-space: nowrap;       /* заголовки не переносятся по буквам */
 }
 .rs-table tr:last-child td { border-bottom: none; }
 .rs-table tr:hover td { background: var(--table-hover); }
@@ -777,6 +793,7 @@ body {
     font-size: 12px;
     font-weight: 600;
     line-height: 1.4;
+    white-space: nowrap;
 }
 .rs-badge.ok      { background: var(--badge-ok-bg);      color: var(--badge-ok-fg); }
 .rs-badge.warn    { background: var(--badge-warn-bg);    color: var(--badge-warn-fg); }
@@ -797,6 +814,7 @@ body {
     line-height: 1.3;
     text-transform: none;
     letter-spacing: 0;
+    white-space: nowrap;
 }
 .rs-btn:hover { background: var(--btn-hover-bg); }
 .rs-btn-danger { color: var(--btn-danger-fg); border-color: var(--btn-danger-border); background: var(--btn-danger-bg); }
@@ -824,6 +842,62 @@ body {
 }
 
 .rs-statuses { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+
+/* ── Mobile / narrow viewports ──────────────────────────── */
+@media (max-width: 700px) {
+    body {
+        padding: 12px 8px;
+        font-size: 13px;
+    }
+    .rs-wrap { max-width: 100%; }
+
+    .rs-title h1 { font-size: 18px; }
+    .rs-sub { font-size: 12px; gap: 4px 6px; }
+    .rs-sub > span:not(.rs-autorefresh) { display: inline; }
+
+    .rs-card {
+        padding: 12px 12px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    .rs-card h2 {
+        font-size: 13px;
+        margin-bottom: 10px;
+        gap: 8px;
+    }
+
+    .rs-grid {
+        grid-template-columns: 1fr;
+        gap: 6px 12px;
+    }
+    .rs-grid > div { gap: 4px 8px; }
+    .rs-lbl { min-width: 90px; font-size: 12px; }
+
+    .rs-table th, .rs-table td {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    .rs-table th {
+        font-size: 11px;
+        letter-spacing: .02em;
+    }
+
+    .rs-btn { padding: 7px 12px; }
+    .rs-btn-small { padding: 5px 9px; font-size: 12px; }
+
+    .rs-actions { gap: 8px; }
+    .rs-filter {
+        margin-left: 0;
+        width: 100%;
+    }
+    .rs-filter input[type=text] {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto;
+    }
+
+    .rs-error-cell { max-width: none; }
+}
 </style>
 </head>
 <body>
@@ -887,60 +961,62 @@ body {
     <?php /* 2. Streams */ ?>
     <div class="rs-card">
         <h2>Streams</h2>
-        <table class="rs-table">
-            <thead>
-                <tr>
-                    <th>Stream</th><th>Length</th><th>Lag</th><th>Pending</th>
-                    <th>Consumers</th><th>First entry</th><th>Last entry</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($stats['streams'] as $s): ?>
-                <tr>
-                    <td>
-                        <div class="rs-name"><?= rs_h($s['label']) ?></div>
-                        <div class="rs-mono rs-dim"><?= rs_h($s['key']) ?></div>
-                        <?php if ($s['error']): ?>
-                            <div class="rs-err-inline"><?= rs_h($s['error']) ?></div>
+        <div class="rs-table-wrap">
+            <table class="rs-table">
+                <thead>
+                    <tr>
+                        <th>Stream</th><th>Length</th><th>Lag</th><th>Pending</th>
+                        <th>Consumers</th><th>First entry</th><th>Last entry</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($stats['streams'] as $s): ?>
+                    <tr>
+                        <td>
+                            <div class="rs-name"><?= rs_h($s['label']) ?></div>
+                            <div class="rs-mono rs-dim"><?= rs_h($s['key']) ?></div>
+                            <?php if ($s['error']): ?>
+                                <div class="rs-err-inline"><?= rs_h($s['error']) ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <?php if (!$s['exists']): ?>
+                            <?php $noExistMsg = $s['key'] === $dlqKey
+                                ? 'no dead letters yet (good)'
+                                : 'stream does not exist'; ?>
+                            <td colspan="6" class="rs-dim"><?= rs_h($noExistMsg) ?></td>
+                        <?php else: ?>
+                            <td><?= (int)$s['length'] ?></td>
+                            <td>
+                                <?php if ($s['group'] === null): ?><span class="rs-dim">—</span>
+                                <?php elseif ($s['lag'] === null): ?><span class="rs-dim">?</span>
+                                <?php else: ?><?= rs_badge($s['lag'], 1, 100) ?><?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($s['pending'] === null): ?><span class="rs-dim">—</span>
+                                <?php else: ?><?= rs_badge($s['pending'], 1, 50) ?><?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($s['consumers'] === null): ?><span class="rs-dim">—</span>
+                                <?php else: ?><?= (int)$s['consumers'] ?><?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($s['first_id']): ?>
+                                    <div class="rs-mono rs-dim"><?= rs_h($s['first_id']) ?></div>
+                                    <div class="rs-dim"><?= rs_h(rs_age((int)$s['first_ts'])) ?></div>
+                                <?php else: ?><span class="rs-dim">—</span><?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($s['last_id']): ?>
+                                    <div class="rs-mono rs-dim"><?= rs_h($s['last_id']) ?></div>
+                                    <div class="rs-dim"><?= rs_h(rs_age((int)$s['last_ts'])) ?></div>
+                                <?php else: ?><span class="rs-dim">—</span><?php endif; ?>
+                            </td>
                         <?php endif; ?>
-                    </td>
-                    <?php if (!$s['exists']): ?>
-                        <?php $noExistMsg = $s['key'] === $dlqKey
-                            ? 'no dead letters yet (good)'
-                            : 'stream does not exist'; ?>
-                        <td colspan="6" class="rs-dim"><?= rs_h($noExistMsg) ?></td>
-                    <?php else: ?>
-                        <td><?= (int)$s['length'] ?></td>
-                        <td>
-                            <?php if ($s['group'] === null): ?><span class="rs-dim">—</span>
-                            <?php elseif ($s['lag'] === null): ?><span class="rs-dim">?</span>
-                            <?php else: ?><?= rs_badge($s['lag'], 1, 100) ?><?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($s['pending'] === null): ?><span class="rs-dim">—</span>
-                            <?php else: ?><?= rs_badge($s['pending'], 1, 50) ?><?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($s['consumers'] === null): ?><span class="rs-dim">—</span>
-                            <?php else: ?><?= (int)$s['consumers'] ?><?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($s['first_id']): ?>
-                                <div class="rs-mono rs-dim"><?= rs_h($s['first_id']) ?></div>
-                                <div class="rs-dim"><?= rs_h(rs_age((int)$s['first_ts'])) ?></div>
-                            <?php else: ?><span class="rs-dim">—</span><?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($s['last_id']): ?>
-                                <div class="rs-mono rs-dim"><?= rs_h($s['last_id']) ?></div>
-                                <div class="rs-dim"><?= rs_h(rs_age((int)$s['last_ts'])) ?></div>
-                            <?php else: ?><span class="rs-dim">—</span><?php endif; ?>
-                        </td>
-                    <?php endif; ?>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <?php /* 3. Dead letters */ ?>
@@ -981,30 +1057,32 @@ body {
             <?php if (empty($dlqEntries)): ?>
                 <div class="rs-dim" style="margin-top:10px">No messages match filter.</div>
             <?php else: ?>
-                <table class="rs-table" style="margin-top:12px">
-                    <thead>
-                        <tr>
-                            <th>ID</th><th>User</th><th>Kind</th>
-                            <th>Failed</th><th>Error</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($dlqEntries as $e): ?>
-                        <tr>
-                            <td class="rs-mono rs-dim"><?= rs_h($e['id']) ?></td>
-                            <td><?= rs_h($e['user']) ?></td>
-                            <td><?= rs_h($e['kind']) ?></td>
-                            <td>
-                                <div><?= rs_h(rs_age($e['failed_at'])) ?></div>
-                                <div class="rs-dim rs-mono">
-                                    src: <?= rs_h($e['src_stream']) ?> / <?= rs_h($e['src_id']) ?>
-                                </div>
-                            </td>
-                            <td class="rs-error-cell"><?= rs_h($e['error']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="rs-table-wrap" style="margin-top:12px">
+                    <table class="rs-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>User</th><th>Kind</th>
+                                <th>Failed</th><th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($dlqEntries as $e): ?>
+                            <tr>
+                                <td class="rs-mono rs-dim"><?= rs_h($e['id']) ?></td>
+                                <td><?= rs_h($e['user']) ?></td>
+                                <td><?= rs_h($e['kind']) ?></td>
+                                <td>
+                                    <div><?= rs_h(rs_age($e['failed_at'])) ?></div>
+                                    <div class="rs-dim rs-mono">
+                                        src: <?= rs_h($e['src_stream']) ?> / <?= rs_h($e['src_id']) ?>
+                                    </div>
+                                </td>
+                                <td class="rs-error-cell"><?= rs_h($e['error']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
                 <?php if (count($dlqEntries) >= RS_DLQ_ROW_LIMIT): ?>
                     <div class="rs-dim" style="margin-top:6px">
                         Showing first <?= RS_DLQ_ROW_LIMIT ?> entries<?= $dlqFilter !== '' ? ' (filtered)' : '' ?>.
@@ -1032,35 +1110,37 @@ body {
         <?php if (empty($stats['consumers'])): ?>
             <div class="rs-dim">no consumers registered yet</div>
         <?php else: ?>
-            <table class="rs-table">
-                <thead>
-                    <tr>
-                        <th>Stream</th><th>Consumer</th><th>Pending</th>
-                        <th>Idle</th><th>State</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($stats['consumers'] as $c): ?>
-                    <?php
-                        $idleSec = intdiv($c['idle_ms'], 1000);
-                        $idleCls = $idleSec < 30 ? 'ok' : ($idleSec < 300 ? 'warn' : 'neutral');
-                    ?>
-                    <tr>
-                        <td class="rs-mono"><?= rs_h($c['stream']) ?></td>
-                        <td class="rs-mono"><?= rs_h($c['name']) ?></td>
-                        <td><?= rs_badge($c['pending'], 1, 10) ?></td>
-                        <td><span class="rs-badge <?= $idleCls ?>"><?= rs_h(rs_human_duration($idleSec)) ?></span></td>
-                        <td>
-                            <?php if ($c['dead']): ?>
-                                <span class="rs-badge err">dead</span>
-                            <?php else: ?>
-                                <span class="rs-badge ok">active</span>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="rs-table-wrap">
+                <table class="rs-table">
+                    <thead>
+                        <tr>
+                            <th>Stream</th><th>Consumer</th><th>Pending</th>
+                            <th>Idle</th><th>State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($stats['consumers'] as $c): ?>
+                        <?php
+                            $idleSec = intdiv($c['idle_ms'], 1000);
+                            $idleCls = $idleSec < 30 ? 'ok' : ($idleSec < 300 ? 'warn' : 'neutral');
+                        ?>
+                        <tr>
+                            <td class="rs-mono"><?= rs_h($c['stream']) ?></td>
+                            <td class="rs-mono"><?= rs_h($c['name']) ?></td>
+                            <td><?= rs_badge($c['pending'], 1, 10) ?></td>
+                            <td><span class="rs-badge <?= $idleCls ?>"><?= rs_h(rs_human_duration($idleSec)) ?></span></td>
+                            <td>
+                                <?php if ($c['dead']): ?>
+                                    <span class="rs-badge err">dead</span>
+                                <?php else: ?>
+                                    <span class="rs-badge ok">active</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
             <div class="rs-dim" style="margin-top:6px">
                 A consumer is marked <b>dead</b> when pending = 0 and idle &gt; <?= RS_DEAD_IDLE_SECONDS ?>s —
                 these are leftovers from previous worker restarts.
@@ -1080,26 +1160,28 @@ body {
             <div style="margin-bottom:8px">
                 <span class="rs-badge ok">✔ <?= count($stats['workers']) ?> alive</span>
             </div>
-            <table class="rs-table">
-                <thead>
-                    <tr><th>Consumer</th><th>TTL</th><th>Last beat</th></tr>
-                </thead>
-                <tbody>
-                <?php foreach ($stats['workers'] as $w): ?>
-                    <tr>
-                        <td class="rs-mono"><?= rs_h($w['consumer']) ?></td>
-                        <td>
-                            <?php if ($w['ttl'] < 0): ?>
-                                <span class="rs-badge neutral">no TTL</span>
-                            <?php else: ?>
-                                <?= rs_badge($w['ttl'], 0, 99999, ' s') ?>
-                            <?php endif; ?>
-                        </td>
-                        <td><?= $w['hb_at'] ? rs_h(rs_age($w['hb_at'])) : '<span class="rs-dim">?</span>' ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="rs-table-wrap">
+                <table class="rs-table">
+                    <thead>
+                        <tr><th>Consumer</th><th>TTL</th><th>Last beat</th></tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($stats['workers'] as $w): ?>
+                        <tr>
+                            <td class="rs-mono"><?= rs_h($w['consumer']) ?></td>
+                            <td>
+                                <?php if ($w['ttl'] < 0): ?>
+                                    <span class="rs-badge neutral">no TTL</span>
+                                <?php else: ?>
+                                    <?= rs_badge($w['ttl'], 0, 99999, ' s') ?>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= $w['hb_at'] ? rs_h(rs_age($w['hb_at'])) : '<span class="rs-dim">?</span>' ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         <?php endif; ?>
     </div>
 
@@ -1123,23 +1205,25 @@ body {
             <?php endif; ?>
         </div>
         <?php if (!empty($stats['tasks']['by_status'])): ?>
-            <table class="rs-table" style="margin-top:12px">
-                <thead><tr><th>Status</th><th>Count</th></tr></thead>
-                <tbody>
-                <?php foreach ($stats['tasks']['by_status'] as $st => $cnt): ?>
-                    <?php $cls = match ($st) {
-                        'done'    => 'ok',
-                        'running' => 'warn',
-                        'failed'  => 'err',
-                        default   => 'neutral',
-                    }; ?>
-                    <tr>
-                        <td><span class="rs-badge <?= $cls ?>"><?= rs_h($st) ?></span></td>
-                        <td><?= (int)$cnt ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="rs-table-wrap" style="margin-top:12px">
+                <table class="rs-table">
+                    <thead><tr><th>Status</th><th>Count</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($stats['tasks']['by_status'] as $st => $cnt): ?>
+                        <?php $cls = match ($st) {
+                            'done'    => 'ok',
+                            'running' => 'warn',
+                            'failed'  => 'err',
+                            default   => 'neutral',
+                        }; ?>
+                        <tr>
+                            <td><span class="rs-badge <?= $cls ?>"><?= rs_h($st) ?></span></td>
+                            <td><?= (int)$cnt ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         <?php endif; ?>
     </div>
 
@@ -1155,81 +1239,83 @@ body {
         <?php if (empty($perUserShown)): ?>
             <div class="rs-dim">No per-user activity in Redis right now.</div>
         <?php else: ?>
-            <table class="rs-table">
-                <thead>
-                    <tr>
-                        <th>User</th><th>UID</th>
-                        <th title="rate_limit_<user> — upload counter, TTL ≤ 1s">rate_limit</th>
-                        <th title="new_session_<user> — flag, TTL 300s">new_session</th>
-                        <th title="worker_user_<user> — cached user row in worker">worker_cache</th>
-                        <th title="DLQ messages for this user">DLQ</th>
-                        <th title="Heavy task hashes owned by this user (ratel:task:*)">Heavy</th>
-                        <th title="Active task IDs in ratel:user_tasks:<uid>">Active tasks</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($perUserShown as $u): ?>
-                    <tr>
-                        <td>
-                            <span class="rs-name"><?= rs_h($u['username']) ?></span>
-                            <?php if ($u['uid'] === null): ?>
-                                <span class="rs-badge warn">no DB row</span>
-                            <?php endif; ?>
-                        </td>
-                        <td class="rs-mono rs-dim"><?= $u['uid'] !== null ? (int)$u['uid'] : '—' ?></td>
-                        <td>
-                            <?php if ($u['rate_limit'] === null): ?><span class="rs-dim">—</span>
-                            <?php else: ?>
-                                <span class="rs-badge <?= $u['rate_limit']['value'] > 100 ? 'err' : ($u['rate_limit']['value'] > 50 ? 'warn' : 'neutral') ?>">
-                                    <?= (int)$u['rate_limit']['value'] ?>
-                                </span>
-                                <span class="rs-dim"> (ttl <?= (int)$u['rate_limit']['ttl'] ?>s)</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($u['new_session_ttl'] === null): ?><span class="rs-dim">—</span>
-                            <?php else: ?><span class="rs-badge warn"><?= (int)$u['new_session_ttl'] ?>s left</span><?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($u['worker_cache_ttl'] === null): ?><span class="rs-dim">—</span>
-                            <?php else: ?><span class="rs-badge neutral"><?= (int)$u['worker_cache_ttl'] ?>s left</span><?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($u['dlq_count'] === 0): ?><span class="rs-dim">—</span>
-                            <?php else: ?>
-                                <span class="rs-badge err"><?= (int)$u['dlq_count'] ?></span>
-                                <?php if ($u['dlq_last_ts']): ?>
-                                    <div class="rs-dim">last <?= rs_h(rs_age((int)$u['dlq_last_ts'])) ?></div>
+            <div class="rs-table-wrap">
+                <table class="rs-table">
+                    <thead>
+                        <tr>
+                            <th>User</th><th>UID</th>
+                            <th title="rate_limit_<user> — upload counter, TTL ≤ 1s">rate_limit</th>
+                            <th title="new_session_<user> — flag, TTL 300s">new_session</th>
+                            <th title="worker_user_<user> — cached user row in worker">worker_cache</th>
+                            <th title="DLQ messages for this user">DLQ</th>
+                            <th title="Heavy task hashes owned by this user (ratel:task:*)">Heavy</th>
+                            <th title="Active task IDs in ratel:user_tasks:<uid>">Active tasks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($perUserShown as $u): ?>
+                        <tr>
+                            <td>
+                                <span class="rs-name"><?= rs_h($u['username']) ?></span>
+                                <?php if ($u['uid'] === null): ?>
+                                    <span class="rs-badge warn">no DB row</span>
                                 <?php endif; ?>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($u['heavy_total'] === 0): ?><span class="rs-dim">—</span>
-                            <?php else: ?>
-                                <span class="rs-badge neutral"><?= (int)$u['heavy_total'] ?></span>
-                                <div class="rs-statuses">
-                                    <?php foreach ($u['heavy_by_status'] as $st => $cnt): ?>
-                                        <?php $cls = match ($st) {
-                                            'done'    => 'ok',
-                                            'running' => 'warn',
-                                            'failed'  => 'err',
-                                            default   => 'neutral',
-                                        }; ?>
-                                        <span class="rs-badge <?= $cls ?>" style="font-size:10px">
-                                            <?= rs_h($st) ?>:<?= (int)$cnt ?>
-                                        </span>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($u['user_tasks_active'] === 0): ?><span class="rs-dim">—</span>
-                            <?php else: ?><span class="rs-badge warn"><?= (int)$u['user_tasks_active'] ?></span><?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+                            </td>
+                            <td class="rs-mono rs-dim"><?= $u['uid'] !== null ? (int)$u['uid'] : '—' ?></td>
+                            <td>
+                                <?php if ($u['rate_limit'] === null): ?><span class="rs-dim">—</span>
+                                <?php else: ?>
+                                    <span class="rs-badge <?= $u['rate_limit']['value'] > 100 ? 'err' : ($u['rate_limit']['value'] > 50 ? 'warn' : 'neutral') ?>">
+                                        <?= (int)$u['rate_limit']['value'] ?>
+                                    </span>
+                                    <span class="rs-dim"> (ttl <?= (int)$u['rate_limit']['ttl'] ?>s)</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($u['new_session_ttl'] === null): ?><span class="rs-dim">—</span>
+                                <?php else: ?><span class="rs-badge warn"><?= (int)$u['new_session_ttl'] ?>s left</span><?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($u['worker_cache_ttl'] === null): ?><span class="rs-dim">—</span>
+                                <?php else: ?><span class="rs-badge neutral"><?= (int)$u['worker_cache_ttl'] ?>s left</span><?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($u['dlq_count'] === 0): ?><span class="rs-dim">—</span>
+                                <?php else: ?>
+                                    <span class="rs-badge err"><?= (int)$u['dlq_count'] ?></span>
+                                    <?php if ($u['dlq_last_ts']): ?>
+                                        <div class="rs-dim">last <?= rs_h(rs_age((int)$u['dlq_last_ts'])) ?></div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($u['heavy_total'] === 0): ?><span class="rs-dim">—</span>
+                                <?php else: ?>
+                                    <span class="rs-badge neutral"><?= (int)$u['heavy_total'] ?></span>
+                                    <div class="rs-statuses">
+                                        <?php foreach ($u['heavy_by_status'] as $st => $cnt): ?>
+                                            <?php $cls = match ($st) {
+                                                'done'    => 'ok',
+                                                'running' => 'warn',
+                                                'failed'  => 'err',
+                                                default   => 'neutral',
+                                            }; ?>
+                                            <span class="rs-badge <?= $cls ?>" style="font-size:10px">
+                                                <?= rs_h($st) ?>:<?= (int)$cnt ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($u['user_tasks_active'] === 0): ?><span class="rs-dim">—</span>
+                                <?php else: ?><span class="rs-badge warn"><?= (int)$u['user_tasks_active'] ?></span><?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
 
             <?php if ($perUserCapped): ?>
                 <div class="rs-dim" style="margin-top:6px">
@@ -1250,7 +1336,6 @@ body {
 </div>
 
 <script>
-/* ── Auto-refresh ─────────────────────────────────────────── */
 (function () {
     const ms  = 10000;
     const cb  = document.getElementById('autoRefresh');
@@ -1274,14 +1359,12 @@ body {
     start();
 })();
 
-/* ── Theme switcher ───────────────────────────────────────── */
 (function () {
     const sel = document.getElementById('themeSelect');
     if (!sel) return;
 
     const KEY = 'rs_theme';
 
-    // Initial select value: whatever we stored, otherwise "auto".
     let stored = 'auto';
     try { stored = localStorage.getItem(KEY) || 'auto'; } catch (e) {}
     sel.value = stored;
@@ -1302,7 +1385,6 @@ body {
         apply(choice);
     });
 
-    // If "auto" is selected, react live to OS theme changes.
     if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)')
             .addEventListener('change', () => {
