@@ -288,12 +288,22 @@ rocksdb-keep-log-file-num=2
 rocksdb-flush-log-at-trx_commit=2
 rocksdb-max-log-file-size=10M
 rocksdb_max_total_wal_size=10485760
+
+# RocksDB default CF options for small instances.
 #Better compression
-#rocksdb_default_cf_options=compression=kZSTDNotFinalCompression;bottommost_compression=kZSTDNotFinalCompression
+#rocksdb_default_cf_options=compression=kZSTD;bottommost_compression=kZSTD
 #Better performance
 #rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kLZ4Compression
 #Recommended
-rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kZSTDNotFinalCompression
+#rocksdb_default_cf_options=compression=kLZ4Compression;bottommost_compression=kZSTD
+
+# RocksDB default CF options optimized for high-load production.
+# Compression is tiered by LSM level to balance write throughput and disk space:
+#   L0-L1: kNoCompression  -> fastest writes for hot, recently written data
+#   L2-L3: kLZ4Compression -> fast compression for warm data
+#   L4-L6: kZSTD           -> strong compression for cold, rarely read data
+# bottommost_compression=kZSTD ensures the lowest level always uses ZSTD.
+rocksdb_default_cf_options="compression_per_level=kNoCompression:kNoCompression:kLZ4Compression:kLZ4Compression:kZSTD:kZSTD:kZSTD;bottommost_compression=kZSTD;max_bytes_for_level_multiplier=4"
 ```
 
 ### PHP configuration for standalone installation:
