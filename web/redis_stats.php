@@ -47,12 +47,36 @@ function rs_h(?string $s): string {
     return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 }
 function rs_entry_to_assoc(array $fields): array {
+    if (empty($fields)) return [];
+
+    // phpredis 6.x возвращает поля уже ассоциативным массивом
+    // (field_name => value). phpredis 5.x возвращал плоский список
+    // (field_name, value, field_name, value, ...).
+    // Определяем формат по первому ключу.
+    $firstKey = array_key_first($fields);
+
+    if (is_string($firstKey)) {
+        // Уже ассоциативный.
+        $out = [];
+        foreach ($fields as $k => $v) {
+            if (!is_string($k)) continue;
+            $out[$k] = is_scalar($v) || $v === null
+                ? (string)$v
+                : (string)json_encode($v, JSON_UNESCAPED_UNICODE);
+        }
+        return $out;
+    }
+
+    // Плоский список [k1, v1, k2, v2, ...].
     $kv = [];
     $n  = count($fields);
     for ($i = 0; $i < $n; $i += 2) {
         $k = (string)($fields[$i] ?? '');
         if ($k === '') continue;
-        $kv[$k] = (string)($fields[$i + 1] ?? '');
+        $v = $fields[$i + 1] ?? '';
+        $kv[$k] = is_scalar($v) || $v === null
+            ? (string)$v
+            : (string)json_encode($v, JSON_UNESCAPED_UNICODE);
     }
     return $kv;
 }
@@ -251,13 +275,33 @@ if ($r === null) {
             $si = $r->xInfo('STREAM', $def['key']);
             if (is_array($si)) {
                 $entry['length'] = (int)($si['length'] ?? 0);
-                if (!empty($si['first-entry'][0])) {
-                    $entry['first_id'] = $si['first-entry'][0];
-                    $entry['first_ts'] = rs_id_ts($si['first-entry'][0]);
+
+                // Разные версии phpredis могут возвращать ключи
+                // 'first-entry' / 'last-entry' или 'first_entry' / 'last_entry',
+                // и в разных вложенных форматах. Достаём id безопасно.
+                $firstRaw = $si['first-entry'] ?? $si['first_entry'] ?? null;
+                $lastRaw  = $si['last-entry']  ?? $si['last_entry']  ?? null;
+
+                $firstId = null;
+                if (is_array($firstRaw)) {
+                    $firstId = is_array($firstRaw[0] ?? null)
+                        ? ($firstRaw[0][0] ?? null)
+                        : ($firstRaw[0] ?? null);
                 }
-                if (!empty($si['last-entry'][0])) {
-                    $entry['last_id'] = $si['last-entry'][0];
-                    $entry['last_ts'] = rs_id_ts($si['last-entry'][0]);
+                $lastId = null;
+                if (is_array($lastRaw)) {
+                    $lastId = is_array($lastRaw[0] ?? null)
+                        ? ($lastRaw[0][0] ?? null)
+                        : ($lastRaw[0] ?? null);
+                }
+
+                if (is_string($firstId) && $firstId !== '') {
+                    $entry['first_id'] = $firstId;
+                    $entry['first_ts'] = rs_id_ts($firstId);
+                }
+                if (is_string($lastId) && $lastId !== '') {
+                    $entry['last_id'] = $lastId;
+                    $entry['last_ts'] = rs_id_ts($lastId);
                 }
             }
             if ($def['group'] !== null) {
@@ -418,10 +462,21 @@ if ($r === null) {
         try {
             $raw = $r->xRange($dlqKey, '-', '+', RS_DLQ_ROW_LIMIT);
             if (is_array($raw)) {
-                foreach ($raw as $e) {
-                    $id     = $e[0] ?? null;
-                    $fields = $e[1] ?? null;
-                    if (!$id || !is_array($fields)) continue;
+                foreach ($raw as $rk => $rv) {
+                    // phpredis xRange возвращает один из двух форматов:
+                    //   A) [[id, [field1, value1, ...]], ...]
+                    //   B) ['id' => [field1, value1, ...], ...]
+                    if (is_int($rk) && is_array($rv)
+                        && count($rv) >= 2 && is_array($rv[1])) {
+                        $id     = (string)$rv[0];
+                        $fields = $rv[1];
+                    } elseif (is_string($rk) && $rk !== '' && is_array($rv)) {
+                        $id     = $rk;
+                        $fields = $rv;
+                    } else {
+                        continue;
+                    }
+                    if ($id === '' || !is_array($fields)) continue;
                     $kv = rs_entry_to_assoc($fields);
                     $u  = $kv['user'] ?? '';
                     $entry = [
