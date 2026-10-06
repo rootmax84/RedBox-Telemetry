@@ -14,7 +14,7 @@ if (isset($_SESSION['admin'])) {
             unlink($maintenanceFile);
         }
     } elseif (isset($_GET['mode'])) {
-        die(file_exists($maintenanceFile) ? $translations[$_COOKIE['lang']]['dialog.maintenance.on'] : $translations[$_COOKIE['lang']]['dialog.maintenance.off']);
+        die(file_exists($maintenanceFile) ? $translations[current_lang()]['dialog.maintenance.on'] : $translations[current_lang()]['dialog.maintenance.off']);
     }
 }
 

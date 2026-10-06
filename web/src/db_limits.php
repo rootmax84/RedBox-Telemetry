@@ -25,7 +25,7 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
                 // короткий TTL — счётчик меняется на каждой загрузке
                 $memcached->set($db_limit_cache_key, $db_limit, 60);
             } catch (Exception $e) {
-                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
             }
         }
@@ -43,7 +43,7 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
             try {
                 $memcached->set($user_status_cache_key, $user_status, 300);
             } catch (Exception $e) {
-                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
             }
         }

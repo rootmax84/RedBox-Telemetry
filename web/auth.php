@@ -48,7 +48,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'HEAD') {
                 setcookie("newsess", true);
             }
         } catch (Throwable $e) {
-            error_log("Memcached error on new-session check: " . $e->getMessage());
+            error_log("Ratel cache error on new-session check: " . $e->getMessage());
         }
     }
 

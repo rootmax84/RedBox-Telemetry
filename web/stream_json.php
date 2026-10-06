@@ -23,10 +23,10 @@ require_once __DIR__ . '/src/methods.php';
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With,Authorization,Content-Type');
 header('Access-Control-Max-Age: 86400');
-header('Content-Type: application/json');
-header('Cache-Control: no-cache');
 
 allowMethods('GET');
+header('Content-Type: application/json');
+header('Cache-Control: no-cache');
 
 // Maintenance check — before any DB or auth work
 if (file_exists('maintenance')) {
@@ -40,13 +40,21 @@ $token = getBearerToken();
 if (empty($token)) {
     // Show usage without token
     header('Content-Type: text/plain; charset=utf-8', true);
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+           || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+        ? 'https'
+        : 'http';
 
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $path = parse_url($_SERVER['REQUEST_URI'] ?? '/stream_json.php', PHP_URL_PATH) ?: '/stream_json.php';
+
+    $current_url = $scheme . '://' . $host . $path;
     $usage  = "RedBox Telemetry Stream JSON API\n";
     $usage .= "================================\n\n";
     $usage .= "Returns the latest user log entry checked in the PID menu as a JSON stream.\n\n";
     $usage .= "USAGE EXAMPLE\n";
     $usage .= "-------------\n";
-    $usage .= "curl https://your_site/stream_json.php -H \"Authorization: Bearer \$username_token\"\n\n";
+    $usage .= "curl ${current_url} -H \"Authorization: Bearer \$username_token\"\n\n";
     $usage .= "RESPONSE\n";
     $usage .= "--------\n";
     $usage .= "[\n";
@@ -77,6 +85,17 @@ $user_data = false;
 
 if ($memcached_connected) {
     $user_data = $memcached->get($cache_key);
+
+    // Sanity: кэш старого формата без 'id' — инвалидируем и игнорируем,
+    // чтобы не возвращать 500 при апгрейде.
+    if (is_array($user_data) && empty($user_data['id'])) {
+        try {
+            $memcached->delete($cache_key);
+        } catch (Exception $e) {
+            error_log("Ratel cache error on stream api: " . $e->getMessage());
+        }
+        $user_data = false;
+    }
 }
 
 if ($user_data === false) {
@@ -90,7 +109,7 @@ if ($user_data === false) {
             try {
                 $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                error_log(sprintf("Ratel cache error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
             }
         }
     }
@@ -100,26 +119,17 @@ $access  = 0;
 $user_id = 0;
 
 if ($user_data) {
-    // $user_id ставится независимо от того, был cache hit или miss
     $user_id = (int)($user_data['id'] ?? 0);
 
-    // Старый кэш мог быть без поля 'id' — инвалидируем
-    if ($user_id <= 0) {
-        if ($memcached_connected) {
-            try { $memcached->delete($cache_key); } catch (Exception $e) {}
-        }
-        http_response_code(500);
-        echo json_encode(['error' => 'Cache invalidated, retry']);
-        exit;
+    if ($user_id > 0) {
+        $user   = $user_data["user"];
+        $limit  = $user_data["s"];
+        $gps    = $user_data["api_gps"];
+        $access = 1;
     }
-
-    $user   = $user_data["user"];
-    $limit  = $user_data["s"];
-    $gps    = $user_data["api_gps"];
-    $access = 1;
 }
 
-if ($access != 1 || $limit == 0) {
+if (!$user_data || $access !== 1 || (int)$limit === 0) {
     http_response_code(403);
     echo json_encode(['error' => 'Access denied']);
     exit;
@@ -140,7 +150,7 @@ if ($memcached_connected) {
             exit;
         }
     } catch (Exception $e) {
-        error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+        error_log(sprintf("Ratel cache error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
     }
 }
 
@@ -173,7 +183,7 @@ if ($pids === false) {
             try {
                 $memcached->set($cache_key_api_pids, $pids, $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                error_log(sprintf("Ratel cache error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
             }
         }
     }
@@ -202,7 +212,7 @@ if ($user_settings === false) {
             try {
                 $memcached->set($cache_key_api_conv, $user_settings, $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                error_log(sprintf("Memcached error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                error_log(sprintf("Ratel cache error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
             }
         }
     }

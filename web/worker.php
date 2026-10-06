@@ -353,6 +353,7 @@ fwrite(STDOUT, sprintf(
 // Админка считает живых воркеров по этим ключам, что устраняет
 // ложный "Workers: 0" во время долгих задач.
 // ────────────────────────────────────────────────────────────
+$redis = null;
 $GLOBALS['worker_heartbeat_cb'] = function () use (&$redis, $consumer, $heartbeatTtl) {
     if ($redis instanceof Redis && $consumer !== '') {
         try {
@@ -366,7 +367,6 @@ $GLOBALS['worker_heartbeat_cb'] = function () use (&$redis, $consumer, $heartbea
 // ────────────────────────────────────────────────────────────
 // Connect to Redis (retry until success)
 // ────────────────────────────────────────────────────────────
-$redis = null;
 while ($redis === null) {
     $redis = worker_connect_redis();
     if ($redis === null) {

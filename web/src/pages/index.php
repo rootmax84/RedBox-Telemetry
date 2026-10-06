@@ -7,7 +7,7 @@
  * Returns an array of view data for src/templates/index/page.php.
  */
 
-$lang = $_COOKIE['lang'] ?? 'en';
+$lang = current_lang();
 setcookie("newsess", "");
 
 // Capture the session ID if one has been chosen already
@@ -72,7 +72,7 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($years_cache_key, [$yeararray, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
             }
         }
@@ -103,7 +103,7 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($profiles_cache_key, [$profilearray, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
             }
         }
@@ -138,7 +138,7 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
             }
         }
@@ -173,7 +173,7 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($stream_lock_cache_key, [$stream_lock, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
             }
         }
@@ -199,7 +199,7 @@ if (isset($sids[0])) {
             try {
                 $memcached->set($session_id_cache_key, [$id, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
+                $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
             }
         }

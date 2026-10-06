@@ -84,7 +84,7 @@ try {
 
     //Exceed php_post_size
     if (!isset($_FILES['file'])) {
-        $msg = $translations[$_COOKIE['lang']]['redlog.post.max'];
+        $msg = $translations[current_lang()]['redlog.post.max'];
         if ($streaming) {
             http_response_code(406);
             stream_fail($msg, $db);
@@ -101,7 +101,7 @@ try {
     }
 
     if(count($files) > 10) {
-        $msg = $translations[$_COOKIE['lang']]['redlog.warn.count'];
+        $msg = $translations[current_lang()]['redlog.warn.count'];
         if ($streaming) {
             http_response_code(406);
             stream_fail($msg, $db);
@@ -133,7 +133,7 @@ try {
         $target_file[$f] = tempnam($tmp_dir, 'upload_');
         if (!$target_file[$f]) {
             error_log("Error creating temporary file.");
-            $msg = $translations[$_COOKIE['lang']]['redlog.err'];
+            $msg = $translations[current_lang()]['redlog.err'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -143,7 +143,7 @@ try {
         }
 
         if (!move_uploaded_file($files[$f]['tmp_name'], $target_file[$f]) ) {
-            $msg = $translations[$_COOKIE['lang']]['redlog.err'];
+            $msg = $translations[current_lang()]['redlog.err'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -157,7 +157,7 @@ try {
 
         if ($data_size > 15) {
             if (file_exists($target_file[$f])) unlink($target_file[$f]);
-            $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.warn.size'];
+            $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.warn.size'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -168,7 +168,7 @@ try {
         }
         if ($limit != -1 && $session_count >= $limit) {
             if (file_exists($target_file[$f])) unlink($target_file[$f]);
-            $msg = $translations[$_COOKIE['lang']]['redlog.nospace'];
+            $msg = $translations[current_lang()]['redlog.nospace'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -178,7 +178,7 @@ try {
         }
         elseif (!$data || !$data_size || strpos($data, REDLOG_HEADER) !== 0) {
             if (file_exists($target_file[$f])) unlink($target_file[$f]);
-            $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+            $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.broken'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -208,7 +208,7 @@ try {
             );
         } catch (Exception $e) {
             if (file_exists($target_file[$f])) unlink($target_file[$f]);
-            $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.dup'];
+            $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.dup'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -388,8 +388,8 @@ try {
 
             $file = htmlspecialchars($fileName);
             $msg = str_contains($e->getMessage(), 'Duplicate')
-                ? $file . " " . $translations[$_COOKIE['lang']]['redlog.dup']
-                : $file . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+                ? $file . " " . $translations[current_lang()]['redlog.dup']
+                : $file . " " . $translations[current_lang()]['redlog.broken'];
 
             $db->execute_query("DELETE FROM logs     WHERE user_id = ? AND session = ?", [$user_id, $session]);
             $db->execute_query("DELETE FROM sessions WHERE user_id = ? AND session = ?", [$user_id, $session]);
@@ -418,7 +418,7 @@ try {
 
     cache_flush();
 
-    $word = getPluralForm($ok, $translations[$_COOKIE['lang']]['redlog.upload.ok']);
+    $word = getPluralForm($ok, $translations[current_lang()]['redlog.upload.ok']);
     $finalMsg = "$ok $word [RedManage]";
 
     if ($streaming) {
@@ -440,7 +440,7 @@ try {
 
 } catch (TypeError $e) {
     $fileName = $files[$f]['name'] ?? '?';
-    $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+    $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.broken'];
 
     if ($streaming) {
         stream_emit([

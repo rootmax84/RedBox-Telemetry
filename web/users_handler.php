@@ -30,7 +30,7 @@ function handleUserSettings($db, $translations, $username, $admin, $db_users) {
     cache_flush($token);
     cache_flush();
 
-    return $translations[$_COOKIE['lang']]['set.common.updated'];
+    return $translations[current_lang()]['set.common.updated'];
 }
 
 function handleTokenRequests($db, $translations, $username, $admin, $db_users) {
@@ -38,7 +38,7 @@ function handleTokenRequests($db, $translations, $username, $admin, $db_users) {
 
     if (isset($_GET['get_token'])) {
         $row = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc();
-        return $row["token"] ?? $translations[$_COOKIE['lang']]['new.token'];
+        return $row["token"] ?? $translations[current_lang()]['new.token'];
     }
 
     if (isset($_GET['renew_token'])) {
@@ -46,7 +46,7 @@ function handleTokenRequests($db, $translations, $username, $admin, $db_users) {
         cache_flush($token);
         $token = generate_token($username);
         $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [$token, $username]);
-        return $translations[$_COOKIE['lang']]['set.token.updated'];
+        return $translations[current_lang()]['set.token.updated'];
     }
 
     return false;
@@ -60,22 +60,22 @@ function handlePasswordChange($db, $translations, $username, $admin, $salt, $db_
     $row = $db->execute_query("SELECT id, pass FROM $db_users WHERE user=?", [$username])->fetch_assoc();
 
     if (!password_verify($_POST['old_p'], $row["pass"])) {
-        return $translations[$_COOKIE['lang']]['set.pwd.wrong.curr'];
+        return $translations[current_lang()]['set.pwd.wrong.curr'];
     }
     if ($_POST['new_p1'] != $_POST['new_p2']) {
-        return $translations[$_COOKIE['lang']]['set.pwd.not.match'];
+        return $translations[current_lang()]['set.pwd.not.match'];
     }
     if (mb_strlen($_POST['new_p1']) < 8) {
-        return $translations[$_COOKIE['lang']]['set.pwd.short'];
+        return $translations[current_lang()]['set.pwd.short'];
     }
     if ($_POST['old_p'] == $_POST['new_p1']) {
-        return $translations[$_COOKIE['lang']]['set.pwd.same'];
+        return $translations[current_lang()]['set.pwd.same'];
     }
     if (!preg_match("#[0-9]+#", $_POST['new_p2'])) {
-        return $translations[$_COOKIE['lang']]['set.pwd.number'];
+        return $translations[current_lang()]['set.pwd.number'];
     }
     if (!preg_match("#[a-zA-Z]+#", $_POST['new_p2'])) {
-        return $translations[$_COOKIE['lang']]['set.pwd.char'];
+        return $translations[current_lang()]['set.pwd.char'];
     }
 
     $db->execute_query(
@@ -83,7 +83,7 @@ function handlePasswordChange($db, $translations, $username, $admin, $salt, $db_
         [password_hash($_POST['new_p2'], PASSWORD_DEFAULT, $salt), $row['id']]
     );
 
-    return $translations[$_COOKIE['lang']]['set.pwd.changed'];
+    return $translations[current_lang()]['set.pwd.changed'];
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -124,11 +124,11 @@ try {
             $testMessage = notify("👋", $tg_token, $tg_chatid, $tg_socks_proxy ?? '');
 
             $response = $testMessage === null
-                ? $translations[$_COOKIE['lang']]['set.nothing']
+                ? $translations[current_lang()]['set.nothing']
                 : ($testMessage === -1
-                    ? $translations[$_COOKIE['lang']]['set.tg.timeout']
+                    ? $translations[current_lang()]['set.tg.timeout']
                     : ($testMessage['ok']
-                        ? $translations[$_COOKIE['lang']]['set.tg.send']
+                        ? $translations[current_lang()]['set.tg.send']
                         : $testMessage['description']));
         }
 
@@ -138,7 +138,7 @@ try {
             $db->execute_query("UPDATE $db_users SET share_secret=? WHERE user=?", [$secret, $username]);
             $_SESSION['share_secret'] = $secret;
             cache_flush();
-            $response = $translations[$_COOKIE['lang']]['share.sec.update'];
+            $response = $translations[current_lang()]['share.sec.update'];
         }
     }
 
@@ -153,31 +153,31 @@ try {
             $e_limit = $_POST['e_limit'];
 
             if ($login == $admin && $e_limit != null) {
-                die($translations[$_COOKIE['lang']]['admin.limit.catch']);
+                die($translations[current_lang()]['admin.limit.catch']);
             }
 
             $row = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login])->fetch_assoc();
 
             if (!$row) {
-                die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
+                die($translations[current_lang()]['admin.user.not.found'].$login);
             }
             if (mb_strlen($password) > 1 && mb_strlen($password) < 5) {
-                die($translations[$_COOKIE['lang']]['admin.pwd.short']);
+                die($translations[current_lang()]['admin.pwd.short']);
             }
             if (!strlen($e_limit) && !mb_strlen($password)) {
-                die($translations[$_COOKIE['lang']]['set.nothing']);
+                die($translations[current_lang()]['set.nothing']);
             }
             if (!mb_strlen($password) && strlen($e_limit)) {
                 $db->execute_query("UPDATE $db_users SET s=? WHERE id=?", [$e_limit, $row['id']]);
-                $response = $translations[$_COOKIE['lang']]['admin.limit.changed'].$login;
+                $response = $translations[current_lang()]['admin.limit.changed'].$login;
             }
             elseif (mb_strlen($password) && !strlen($e_limit)) {
                 $db->execute_query("UPDATE $db_users SET pass=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $row['id']]);
-                $response = $translations[$_COOKIE['lang']]['admin.pwd.changed'].$login;
+                $response = $translations[current_lang()]['admin.pwd.changed'].$login;
             }
             else {
                 $db->execute_query("UPDATE $db_users SET pass=?, s=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $e_limit, $row['id']]);
-                $response = $translations[$_COOKIE['lang']]['admin.changed'].$login;
+                $response = $translations[current_lang()]['admin.changed'].$login;
             }
 
             $username = $login;
@@ -193,11 +193,11 @@ try {
             $userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
 
             if ($userqry->num_rows || mb_strlen($login) < 1 || mb_strlen($login) > 32) {
-                die($translations[$_COOKIE['lang']]['admin.user.exists']);
+                die($translations[current_lang()]['admin.user.exists']);
             }
 
             if (mb_strlen($password) < 5) {
-                die($translations[$_COOKIE['lang']]['admin.pwd.short']);
+                die($translations[current_lang()]['admin.pwd.short']);
             }
 
             // ── Создать запись в users ──
@@ -209,14 +209,14 @@ try {
             $new_user_id = (int)$db->insert_id;
 
             if ($new_user_id <= 0) {
-                die($translations[$_COOKIE['lang']]['admin.user.exists']);
+                die($translations[current_lang()]['admin.user.exists']);
             }
 
             // ── Засеять дефолтные PID'ы ──
             $include_legacy = isset($_POST['reg_legacy']);
             seed_default_pids($db, $new_user_id, $include_legacy);
 
-            $response = $translations[$_COOKIE['lang']]['admin.user.added'].$login;
+            $response = $translations[current_lang()]['admin.user.added'].$login;
         }
 
         /* ── Delete user ── */
@@ -226,10 +226,10 @@ try {
             $userqry = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login]);
 
             if (!$userqry->num_rows || mb_strlen($login) < 1) {
-                die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
+                die($translations[current_lang()]['admin.user.not.found'].$login);
             }
             if ($login == $admin) {
-                die($translations[$_COOKIE['lang']]['admin.del.admin']);
+                die($translations[current_lang()]['admin.del.admin']);
             }
 
             $row        = $userqry->fetch_assoc();
@@ -255,7 +255,7 @@ try {
                     'status'   => 'accepted',
                     'task_id'  => $task_id,
                     'type'     => 'delete_user',
-                    'message'  => $translations[$_COOKIE['lang']]['admin.del.ok'].$login,
+                    'message'  => $translations[current_lang()]['admin.del.ok'].$login,
                     'username' => $login,
                 ]);
                 exit;
@@ -281,7 +281,7 @@ try {
             $_SESSION['uid'] = $saved_uid;
             $user_id         = $saved_user_id;
 
-            $response = $translations[$_COOKIE['lang']]['admin.del.ok'].$login;
+            $response = $translations[current_lang()]['admin.del.ok'].$login;
         }
         /* ── Truncate user data ── */
         elseif (isset($_POST['trunc_login'])) {
@@ -290,10 +290,10 @@ try {
             $userqry = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login]);
 
             if (!$userqry->num_rows || mb_strlen($login) < 1) {
-                die($translations[$_COOKIE['lang']]['admin.user.not.found'].$login);
+                die($translations[current_lang()]['admin.user.not.found'].$login);
             }
             if ($login == $admin) {
-                die($translations[$_COOKIE['lang']]['admin.trunc.admin']);
+                die($translations[current_lang()]['admin.trunc.admin']);
             }
 
             $row        = $userqry->fetch_assoc();
@@ -319,7 +319,7 @@ try {
                     'status'   => 'accepted',
                     'task_id'  => $task_id,
                     'type'     => 'truncate_user',
-                    'message'  => $translations[$_COOKIE['lang']]['admin.trunc'].$login,
+                    'message'  => $translations[current_lang()]['admin.trunc'].$login,
                     'username' => $login,
                 ]);
                 exit;
@@ -347,7 +347,7 @@ try {
             $_SESSION['uid'] = $saved_uid;
             $user_id         = $saved_user_id;
 
-            $response = $translations[$_COOKIE['lang']]['admin.trunc'].$login;
+            $response = $translations[current_lang()]['admin.trunc'].$login;
         }
         /* ── Invalid admin request ── */
         else {

@@ -7,8 +7,6 @@
  *   - replay DLQ            (XRANGE → XADD into _src_stream → XDEL)
  *   - kill dead consumers   (bulk XGROUP DELCONSUMER, only pending=0 && idle>60s)
  *
- * CSRF is not checked on this file — add it to $csrf_exempt_scripts
- * in auth_user.php. Access is restricted to admin sessions only.
  */
 require_once __DIR__ . '/src/db.php';
 

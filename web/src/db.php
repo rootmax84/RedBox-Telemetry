@@ -281,7 +281,7 @@ function cache_flush($token = null, $keyname = null)
 
     } catch (Exception $e) {
         error_log(sprintf(
-            "Memcached error for user %s: %s (Code: %d)",
+            "Ratel cache error for user %s: %s (Code: %d)",
             $username ?? '?',
             $e->getMessage(),
             $e->getCode()

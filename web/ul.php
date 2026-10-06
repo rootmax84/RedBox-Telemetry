@@ -114,7 +114,7 @@ if (!empty($token)) {
                 try {
                     $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
                 } catch (Exception $e) {
-                    error_log("Memcached error on upload auth: " . $e->getMessage());
+                    error_log("Ratel cache error on upload auth: " . $e->getMessage());
                 }
             }
         } else {
@@ -181,7 +181,7 @@ if ($session_count === false) {
         try {
             $memcached->set($session_count_cache_key, $session_count, 60);
         } catch (Exception $e) {
-            error_log("Memcached error on upload: " . $e->getMessage());
+            error_log("Ratel cache error on upload: " . $e->getMessage());
         }
     }
 }
@@ -209,7 +209,7 @@ if ($memcached_connected) {
             die($translations[$lang]['upload.429']);
         }
     } catch (Exception $e) {
-        error_log("Memcached error on upload: " . $e->getMessage());
+        error_log("Ratel cache error on upload: " . $e->getMessage());
     }
 }
 

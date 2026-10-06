@@ -32,7 +32,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
                 try {
                     $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
                 } catch (Exception $e) {
-                    error_log(sprintf("Memcached error on share plot: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                    error_log(sprintf("Ratel cache error on share plot: %s (Code: %d)", $e->getMessage(), $e->getCode()));
                 }
             }
         } else {
@@ -105,7 +105,7 @@ if (isset($_GET["id"])) {
             try {
                 $memcached->set($cache_key_id, [$id, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                error_log(sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
+                error_log(sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
             }
         }
     }
@@ -131,7 +131,7 @@ if (isset($_GET["id"])) {
             try {
                 $memcached->set($cache_key_settings, [$setqry, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                error_log(sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
+                error_log(sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
             }
         }
     }
@@ -166,7 +166,7 @@ if (isset($_GET["id"])) {
             try {
                 $memcached->set($cache_key_pids, [$keyarr, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                error_log(sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
+                error_log(sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
             }
         }
     }
@@ -224,7 +224,7 @@ if (isset($_GET["id"])) {
                 try {
                     $memcached->set($cache_key, [$session_data, $current_timestamp], $db_memcached_ttl ?? 3600);
                 } catch (Exception $e) {
-                    error_log(sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
+                    error_log(sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
                 }
             }
         } catch (Exception $e) {

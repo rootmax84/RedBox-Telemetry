@@ -35,7 +35,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
                 try {
                     $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
                 } catch (Exception $e) {
-                    error_log(sprintf("Memcached error on share: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                    error_log(sprintf("Ratel cache error on share: %s (Code: %d)", $e->getMessage(), $e->getCode()));
                 }
             }
         } else {
@@ -108,7 +108,7 @@ if ($username) {
             try {
                 $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                error_log(sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
+                error_log(sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
             }
         }
     }

@@ -70,7 +70,7 @@ try {
     }
 
     if (!isset($_FILES['file'])) {
-        $msg = $translations[$_COOKIE['lang']]['redlog.post.max'];
+        $msg = $translations[current_lang()]['redlog.post.max'];
         if ($streaming) {
             http_response_code(406);
             stream_fail($msg, $db);
@@ -87,7 +87,7 @@ try {
     }
 
     if (count($files) > 10) {
-        $msg = $translations[$_COOKIE['lang']]['redlog.warn.count'];
+        $msg = $translations[current_lang()]['redlog.warn.count'];
         if ($streaming) {
             http_response_code(406);
             stream_fail($msg, $db);
@@ -125,7 +125,7 @@ try {
         $tmp_dir = sys_get_temp_dir();
         $target_file = tempnam($tmp_dir, 'torque_');
         if (!$target_file) {
-            $msg = $translations[$_COOKIE['lang']]['redlog.err'];
+            $msg = $translations[current_lang()]['redlog.err'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -135,7 +135,7 @@ try {
         }
 
         if (!move_uploaded_file($fileInfo['tmp_name'], $target_file)) {
-            $msg = $translations[$_COOKIE['lang']]['redlog.err'];
+            $msg = $translations[current_lang()]['redlog.err'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -149,7 +149,7 @@ try {
 
         if ($data_size > 15) {
             unlink($target_file);
-            $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.warn.size'];
+            $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.warn.size'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -186,7 +186,7 @@ try {
 
         if (empty($blocks)) {
             unlink($target_file);
-            $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+            $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.broken'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -303,7 +303,7 @@ try {
 
             if ($limit != -1 && $session_count >= $limit) {
                 unlink($target_file);
-                $msg = $translations[$_COOKIE['lang']]['redlog.nospace'];
+                $msg = $translations[current_lang()]['redlog.nospace'];
                 if ($streaming) {
                     stream_file_error($fileName, $msg);
                     $skipFile = true;
@@ -322,7 +322,7 @@ try {
                 );
             } catch (Exception $e) {
                 unlink($target_file);
-                $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.dup'];
+                $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.dup'];
                 if ($streaming) {
                     stream_file_error($fileName, $msg);
                     $skipFile = true;
@@ -376,7 +376,7 @@ try {
                 $db->execute_query("DELETE FROM logs     WHERE user_id = ? AND session = ?", [$user_id, $sessionId]);
                 $db->execute_query("DELETE FROM sessions WHERE user_id = ? AND session = ?", [$user_id, $sessionId]);
                 unlink($target_file);
-                $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+                $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.broken'];
                 if ($streaming) {
                     stream_file_error($fileName, $msg);
                     $skipFile = true;
@@ -399,7 +399,7 @@ try {
         unlink($target_file);
 
         if ($fileOk === 0) {
-            $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['nodata'];
+            $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['nodata'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
                 continue;
@@ -422,9 +422,9 @@ try {
 
     cache_flush();
 
-    if ($_COOKIE['lang'] === 'ru') {
-        $fileWord = getPluralForm($filesOk, $translations[$_COOKIE['lang']]['redlog.file']);
-        $sessionWord = getPluralForm($totalOk, $translations[$_COOKIE['lang']]['redlog.session']);
+    if (current_lang() === 'ru') {
+        $fileWord = getPluralForm($filesOk, $translations[current_lang()]['redlog.file']);
+        $sessionWord = getPluralForm($totalOk, $translations[current_lang()]['redlog.session']);
         $finalMsg = "$filesOk $fileWord ($totalOk $sessionWord) успешно загружено [Torque]";
     } else {
         $finalMsg = "$filesOk file(s) ($totalOk session(s)) successfully uploaded [Torque]";
@@ -449,7 +449,7 @@ try {
 
 } catch (TypeError $e) {
     $fileName = $files[$index]['name'] ?? '?';
-    $msg = htmlspecialchars($fileName) . " " . $translations[$_COOKIE['lang']]['redlog.broken'];
+    $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.broken'];
 
     if ($streaming) {
         stream_emit([

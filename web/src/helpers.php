@@ -195,7 +195,7 @@ function checkRateLimit($limit = 10, $period = 3600, $success = false) {
             $memcached->delete($rate_key);
             $memcached->delete($backoff_key);
         } catch (Exception $e) {
-            error_log("Memcached error clearing rate limit: " . $e->getMessage());
+            error_log("Ratel cache error clearing rate limit: " . $e->getMessage());
         }
         return true;
     }
@@ -243,7 +243,7 @@ function checkRateLimit($limit = 10, $period = 3600, $success = false) {
 
         return true;
     } catch (Exception $e) {
-        error_log("Memcached error in rate limiting: " . $e->getMessage());
+        error_log("Ratel cache error in rate limiting: " . $e->getMessage());
         return true; // In case of cache error, don't block access
     }
 }
@@ -664,7 +664,7 @@ function processSessionStartRecord(
         try {
             $GLOBALS['memcached']->set("new_session_" . $username, 1, 300);
         } catch (Throwable $e) {
-            error_log("Memcached error on new-session signal: " . $e->getMessage());
+            error_log("Ratel cache error on new-session signal: " . $e->getMessage());
         }
     }
 
@@ -1219,11 +1219,33 @@ function cache_pids_after_commit(int $user_id, string $username, array $result):
         try {
             $memcached->set("pids_known_{$user_id}", $result['known'], 60);
         } catch (Exception $e) {
-            error_log("Memcached error on PID cache: " . $e->getMessage());
+            error_log("Ratel cache error on PID cache: " . $e->getMessage());
         }
     }
 
     if (!empty($result['inserted']) && $username !== '') {
         cache_flush(null, "columns_data_pids_{$username}");
     }
+}
+
+/**
+ * Возвращает валидный код языка из cookie. Если cookie нет или она
+ * содержит неизвестный код — 'en'.
+ *
+ * Используется везде, где сейчас читается $_COOKIE['lang'] напрямую,
+ * чтобы не ловить undefined-index при мусорной куке.
+ */
+function current_lang(): string
+{
+    static $lang = null;
+    if ($lang !== null) return $lang;
+
+    global $translations;
+
+    $candidate = $_COOKIE['lang'] ?? 'en';
+    $lang = (is_string($candidate) && isset($translations[$candidate]))
+        ? $candidate
+        : 'en';
+
+    return $lang;
 }

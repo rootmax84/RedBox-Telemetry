@@ -2,7 +2,7 @@
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../timezone.php';
 include_once __DIR__ . '/../translations.php';
-$lang = $_COOKIE['lang'] ?? 'en';
+$lang = current_lang();
 
 function getFilterValue($postKey, $getKey, $default) {
     return isset($_POST[$postKey]) ? $_POST[$postKey] : (isset($_GET[$getKey]) ? $_GET[$getKey] : $default);

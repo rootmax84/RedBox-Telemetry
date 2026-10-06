@@ -10,10 +10,9 @@ if (isset($_SESSION['admin'])) {
     exit;
 }
 
+allowMethods('GET');
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
-
-allowMethods('GET');
 
 $user_id    = current_user_id();
 $session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
@@ -30,7 +29,7 @@ $r = $db->execute_query($query, $params);
 
 if (!$r->num_rows) {
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>"
-       . $translations[$_COOKIE['lang']]['nodata']
+       . $translations[current_lang()]['nodata']
        . "</span></td></tr>\n\nretry: 5000\n\n";
     die;
 }
@@ -56,7 +55,7 @@ if ($s_data === false) {
         while ($row = $s_result->fetch_array()) $s_data[] = $row;
         if ($memcached_connected) {
             try { $memcached->set($cache_key_s, $s_data, $db_memcached_ttl ?? 3600); }
-            catch (Exception $e) { error_log("Memcached error on stream (s): " . $e->getMessage()); }
+            catch (Exception $e) { error_log("Ratel cache error on stream (s): " . $e->getMessage()); }
         }
     }
 }
@@ -78,7 +77,7 @@ if ($d_data === false) {
         while ($row = $d_result->fetch_array()) $d_data[] = $row;
         if ($memcached_connected) {
             try { $memcached->set($cache_key_d, $d_data, $db_memcached_ttl ?? 3600); }
-            catch (Exception $e) { error_log("Memcached error on stream (d): " . $e->getMessage()); }
+            catch (Exception $e) { error_log("Ratel cache error on stream (d): " . $e->getMessage()); }
         }
     }
 }
@@ -115,14 +114,14 @@ if ($user_settings === false) {
         $user_settings = $setqry->fetch_row();
         if ($memcached_connected) {
             try { $memcached->set($cache_key_api_conv, $user_settings, $db_memcached_ttl ?? 3600); }
-            catch (Exception $e) { error_log("Memcached error on api: " . $e->getMessage()); }
+            catch (Exception $e) { error_log("Ratel cache error on api: " . $e->getMessage()); }
         }
     }
 }
 
 if ($user_settings === false) {
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>"
-       . $translations[$_COOKIE['lang']]['nodata']
+       . $translations[current_lang()]['nodata']
        . "</span></td></tr>\n\nretry: 5000\n\n";
     die;
 }
@@ -131,7 +130,7 @@ if ($user_settings === false) {
 
 if (empty($s_data) || empty($d_data)) {
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>"
-       . $translations[$_COOKIE['lang']]['stream.empty']
+       . $translations[current_lang()]['stream.empty']
        . "</span></td></tr>\n\nretry: 5000\n\n";
     die;
 }
@@ -249,9 +248,9 @@ function outputLastRecordDate($time, $rate) {
     if ($time != '') {
         $seconds = intval($time / 1000);
         $time_format = $_COOKIE['timeformat'] == "12" ? "d.m.Y h:i:sa" : "d.m.Y H:i:s";
-        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>" . $translations[$_COOKIE['lang']]['stream.last'] . date($time_format, $seconds) . "</span></td></tr>";
+        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>" . $translations[current_lang()]['stream.last'] . date($time_format, $seconds) . "</span></td></tr>";
     } else {
-        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>" . $translations[$_COOKIE['lang']]['nodata'] . "</span></td></tr>";
+        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>" . $translations[current_lang()]['nodata'] . "</span></td></tr>";
     }
 
     echo "data: {$data}\n";

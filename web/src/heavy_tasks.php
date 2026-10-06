@@ -177,7 +177,6 @@ function heavy_update_logs_session_chunked(mysqli $db, int $user_id,
 
         $times = [];
         while ($r = $rows->fetch_row()) $times[] = (int)$r[0];
-        $rows->free();
         if (empty($times)) break;
 
         $time_ph = implode(',', array_fill(0, count($times), '?'));
@@ -232,7 +231,6 @@ function heavy_delete_logs_by_sessions(mysqli $db, int $user_id, array $session_
 
         $times = [];
         while ($r = $rows->fetch_row()) $times[] = (int)$r[0];
-        $rows->free();
         if (empty($times)) break;
 
         $time_ph = implode(',', array_fill(0, count($times), '?'));
@@ -270,7 +268,6 @@ function heavy_delete_logs_by_user(mysqli $db, int $user_id): int
 
         $times = [];
         while ($r = $rows->fetch_row()) $times[] = (int)$r[0];
-        $rows->free();
         if (empty($times)) break;
 
         $time_ph = implode(',', array_fill(0, count($times), '?'));

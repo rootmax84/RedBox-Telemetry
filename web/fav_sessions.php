@@ -26,7 +26,7 @@ if ($fav_data === false) {
             try {
                 $memcached->set($cache_key, $fav_data, $db_memcached_ttl ?? 3600);
             } catch (Exception $e) {
-                error_log(sprintf("Memcached error on favorite: %s (Code: %d)", $e->getMessage(), $e->getCode()));
+                error_log(sprintf("Ratel cache error on favorite: %s (Code: %d)", $e->getMessage(), $e->getCode()));
             }
         }
     }

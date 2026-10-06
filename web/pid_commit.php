@@ -49,7 +49,7 @@ try {
   }
 
     $db->commit();
-    echo $translations[$_COOKIE['lang']]['dialog.pid.update'];
+    echo $translations[current_lang()]['dialog.pid.update'];
 } catch (Exception $e) {
     $db->rollback();
     echo "Error: " . $e->getMessage();
