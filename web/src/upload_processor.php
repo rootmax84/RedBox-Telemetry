@@ -44,13 +44,14 @@ function processBulkRecords(mysqli $db, array $ctx, array $records): void
     $translations = $ctx['translations'];
 
     $pendingNotifications = [];
+    $pidsResult           = ['inserted' => [], 'known' => []];
 
     $db->begin_transaction();
     try {
-        $log_rows            = [];  // для insert_log_rows_bulk
-        $sessionUpserts      = [];  // UPSERT-и в sessions
-        $sessionStartRecords = [];  // записи с profileName
-        $all_pids            = [];  // уникальные PID-ключи для ensure_pids_exist
+        $log_rows            = [];   // для insert_log_rows_bulk
+        $sessionAgg          = [];   // session => [id, time, timeend]
+        $sessionStartRecords = [];   // записи с profileName
+        $all_pids            = [];   // уникальные PID-ключи
 
         foreach ($records as $record) {
             if (!is_array($record)) continue;
@@ -94,33 +95,64 @@ function processBulkRecords(mysqli $db, array $ctx, array $records): void
             }
 
             if ($session > 0) {
-                $sessionUpserts[] = [
-                    'id'      => $id,
-                    'session' => $session,
-                    'time'    => $time,
-                    'timeend' => $time,
-                ];
+                // Агрегируем per-session метаданные:
+                // time = min из батча, timeend = max из батча,
+                // id = последний непустой.
+                if (!isset($sessionAgg[$session])) {
+                    $sessionAgg[$session] = [
+                        'id'      => $id,
+                        'time'    => $time,
+                        'timeend' => $time,
+                    ];
+                } else {
+                    if ($time < $sessionAgg[$session]['time']) {
+                        $sessionAgg[$session]['time'] = $time;
+                    }
+                    if ($time > $sessionAgg[$session]['timeend']) {
+                        $sessionAgg[$session]['timeend'] = $time;
+                    }
+                    if ($id !== '') {
+                        $sessionAgg[$session]['id'] = $id;
+                    }
+                }
             }
         }
 
         // ─── Авто-регистрация новых PID'ов ───
+        // Кэш обновляем ПОСЛЕ commit'а (см. ниже).
         if (!empty($all_pids)) {
-            ensure_pids_exist($db, $user_id, array_keys($all_pids));
+            $pidsResult = ensure_pids_exist($db, $user_id, array_keys($all_pids));
         }
 
         if (!empty($log_rows)) {
             insert_log_rows_bulk($db, $user_id, $log_rows);
         }
 
-        foreach ($sessionUpserts as $s) {
+        foreach ($sessionAgg as $session => $s) {
+            // Метаданные сессии — без sessionsize.
             $db->execute_query(
-                "INSERT INTO sessions (user_id, id, session, time, timeend, sessionsize)
-                 VALUES (?,?,?,?,?,1)
+                "INSERT INTO sessions (user_id, id, session, time, timeend)
+                 VALUES (?,?,?,?,?)
                  ON DUPLICATE KEY UPDATE
-                    id          = VALUES(id),
-                    timeend     = GREATEST(timeend, VALUES(timeend)),
-                    sessionsize = sessionsize + 1",
-                [$user_id, $s['id'], $s['session'], $s['time'], $s['timeend']]
+                    id      = VALUES(id),
+                    timeend = GREATEST(timeend, VALUES(timeend))",
+                [$user_id, $s['id'], $session, $s['time'], $s['timeend']]
+            );
+
+            // sessionsize = количество датапоинтов в logs для этой сессии.
+            // Пересчитываем из фактического COUNT, а не инкрементим:
+            // повторные аплоады (INSERT IGNORE в logs) не должны
+            // завышать счётчик, а батч может содержать как новые
+            // точки, так и дубликаты — не зная поштучно, кто из них
+            // вставился, безопаснее посчитать COUNT.
+            $db->execute_query(
+                "UPDATE sessions
+                    SET sessionsize = (
+                        SELECT COUNT(*) FROM logs
+                         WHERE user_id = ? AND session = ?
+                    )
+                  WHERE user_id = ? AND session = ?",
+                [$user_id, $session, $user_id, $session]
             );
         }
 
@@ -149,6 +181,9 @@ function processBulkRecords(mysqli $db, array $ctx, array $records): void
         $db->rollback();
         throw $e;
     }
+
+    // ─── После commit'а — обновить кэши PID'ов ───
+    cache_pids_after_commit($user_id, $ctx['username'], $pidsResult);
 
     if (!empty($pendingNotifications)) {
         sendPendingNotifications($pendingNotifications);
@@ -238,20 +273,53 @@ function processSingleRequest(mysqli $db, array $ctx, array $request): void
         if (isset($request['noticeClass'])) $pids['noticeClass'] = $request['noticeClass'];
     }
 
-    // ─── Авто-регистрация новых PID'ов ───
-    if (!empty($pids)) {
-        ensure_pids_exist($db, $user_id, array_keys($pids));
+    $pidsResult = ['inserted' => [], 'known' => []];
+
+    $db->begin_transaction();
+    try {
+        // ─── Авто-регистрация новых PID'ов ───
+        // Кэш обновим после commit'а.
+        if (!empty($pids)) {
+            $pidsResult = ensure_pids_exist($db, $user_id, array_keys($pids));
+        }
+
+        insert_log_row($db, $user_id, $session, $time, $pids);
+
+        // affected_rows после INSERT IGNORE:
+        //   1 — строка реально вставлена (новый датапоинт);
+        //   0 — дубликат, пропущен.
+        $wasNew = ($db->affected_rows > 0);
+
+        // Метаданные сессии — без sessionsize.
+        $db->execute_query(
+            "INSERT INTO sessions (user_id, id, session, time, timeend)
+             VALUES (?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE
+                id      = VALUES(id),
+                timeend = GREATEST(timeend, VALUES(timeend))",
+            [$user_id, $id, $session, $time, $time]
+        );
+
+        // sessionsize пересчитываем ТОЛЬКО когда добавили новый
+        // датапоинт. На дубликатах — не трогаем (лишний COUNT
+        // на каждый повторный пакет от Torque ни к чему).
+        if ($wasNew) {
+            $db->execute_query(
+                "UPDATE sessions
+                    SET sessionsize = (
+                        SELECT COUNT(*) FROM logs
+                         WHERE user_id = ? AND session = ?
+                    )
+                  WHERE user_id = ? AND session = ?",
+                [$user_id, $session, $user_id, $session]
+            );
+        }
+
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollback();
+        throw $e;
     }
 
-    insert_log_row($db, $user_id, $session, $time, $pids);
-
-    $db->execute_query(
-        "INSERT INTO sessions (user_id, id, session, time, timeend, sessionsize)
-         VALUES (?,?,?,?,?,1)
-         ON DUPLICATE KEY UPDATE
-            id          = VALUES(id),
-            timeend     = GREATEST(timeend, VALUES(timeend)),
-            sessionsize = sessionsize + 1",
-        [$user_id, $id, $session, $time, $time]
-    );
+    cache_pids_after_commit($user_id, $ctx['username'], $pidsResult);
 }

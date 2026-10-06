@@ -46,6 +46,11 @@ $heavy_task_ttl            = 86400;   // TTL статуса задачи, сек
 $heavy_chunk_size          = 5000;    // строк за один чанк DELETE
 $heavy_chunk_pause_us      = 100000;  // 100ms пауза между чанками
 
+$worker_max_attempts = 3;
+$redis_dlq_key       = 'ratel:dead_letters';
+$worker_dlq_maxlen   = 10000;
+$worker_attempt_ttl  = 86400;
+
 $salt = ['cost' => 10]; //Password salt cost. Min/Max/Default 4/31/10. Higher value = more CPU usage on authorization process
 $admin = "admin";
 $admin_timeformat_12 = false; //Default 24 hours time format for admin

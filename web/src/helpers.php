@@ -589,7 +589,7 @@ function processSessionStartRecord(
     $spv          = [];
     $sessuploadid = $record['session'] ?? null;
     $sesstime     = $record['time']    ?? null;
-    $id           = $record['id']      ?? '';
+    $id           = $record['id']      ?? '-';
 
     if ($sessuploadid === null || $sesstime === null) {
         return null;
@@ -600,6 +600,14 @@ function processSessionStartRecord(
         ?? $_SERVER['HTTP_X_FORWARDED_FOR']
         ?? $_SERVER['REMOTE_ADDR']
         ?? '0.0.0.0';
+
+    if (strpos($ip, ',') !== false) {
+        $ip = trim(explode(',', $ip, 2)[0]);
+    }
+
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        $ip = '0.0.0.0';
+    }
 
     foreach ($record as $key => $value) {
         if ($key === 'profileName') {
@@ -613,13 +621,15 @@ function processSessionStartRecord(
     $sesskeys[]   = 'timeend';
     $sessvalues[] = $sesstime;
 
-    $sql = "INSERT INTO sessions (user_id, " . quote_names($sesskeys) . ")
-            VALUES (" . (int)$user_id . ", " . quote_values($sessvalues) . ")
+    $sesskeys[]   = 'id';
+    $sessvalues[] = $id;
+
+    $sql = "INSERT INTO sessions (user_id, " . quote_names($sesskeys) . ", sessionsize)
+            VALUES (" . (int)$user_id . ", " . quote_values($sessvalues) . ", 0)
             ON DUPLICATE KEY UPDATE
-                id          = ?,
-                timeend     = GREATEST(timeend, ?),
-                sessionsize = sessionsize + 1";
-    $db->execute_query($sql, [$id, $sesstime]);
+                id      = VALUES(id),
+                timeend = GREATEST(timeend, VALUES(timeend))";
+    $db->execute_query($sql);
 
     $isNewSessionStart = false;
 
@@ -1094,15 +1104,30 @@ function seed_default_pids(mysqli $db, int $user_id, bool $include_legacy = fals
  * которого нет в таблице `pids`, он автоматически добавляется
  * с дефолтными настройками (populated=1, stream=1, favorite=0).
  *
- * Идемпотентно, батчами. Кэш `pids_known_{$user_id}` (TTL 60)
- * экономит SELECT при частых upload'ах.
+ * ВАЖНО: функция НЕ трогает Redis-кэш. Раньше она писала
+ * `pids_known_<uid>` и сбрасывала `columns_data_pids_<user>` прямо
+ * здесь, но это опасно: функция вызывается ВНУТРИ транзакции
+ * (processBulkRecords / processSingleRequest), и при rollback кэш
+ * оставался с PID'ами, которых в БД нет. Следующие 60 секунд
+ * `ensure_pids_exist` считал бы их известными и не пытался вставить.
+ *
+ * Теперь caller обязан после успешного commit'а вызвать
+ * `cache_pids_after_commit()` с возвращённым массивом.
+ *
+ * @return array{
+ *   inserted: array<string,bool>,  // ключи, реально вставленные в БД
+ *   known:    array<string,bool>,  // полный набор известных PID'ов
+ *                                  // (existing + inserted) для кэша
+ * }
  */
-function ensure_pids_exist(mysqli $db, int $user_id, array $pid_keys): void
+function ensure_pids_exist(mysqli $db, int $user_id, array $pid_keys): array
 {
-    global $memcached, $memcached_connected, $username;
+    global $memcached, $memcached_connected;
+
+    $result = ['inserted' => [], 'known' => []];
 
     if (empty($pid_keys)) {
-        return;
+        return $result;
     }
 
     $valid = [];
@@ -1112,7 +1137,7 @@ function ensure_pids_exist(mysqli $db, int $user_id, array $pid_keys): void
         $valid[$key] = true;
     }
     if (empty($valid)) {
-        return;
+        return $result;
     }
 
     $cache_key = "pids_known_{$user_id}";
@@ -1139,19 +1164,13 @@ function ensure_pids_exist(mysqli $db, int $user_id, array $pid_keys): void
         }
     }
 
-    // Если новых PID'ов нет — просто кэшируем (если был miss) и выходим
+    // Если новых PID'ов нет — возвращаем current known для кэша.
     if (empty($missing)) {
-        if (!$cache_hit && $memcached_connected) {
-            try {
-                $memcached->set($cache_key, $known, 60);
-            } catch (Exception $e) {
-                error_log("Memcached error on PID: " . $e->getMessage());
-            }
-        }
-        return;
+        $result['known'] = $known;
+        return $result;
     }
 
-    // Есть новые — INSERT
+    // Есть новые — INSERT.
     $placeholders = [];
     $values       = [];
     foreach (array_keys($missing) as $pid) {
@@ -1175,10 +1194,36 @@ function ensure_pids_exist(mysqli $db, int $user_id, array $pid_keys): void
         $known[$pid] = true;
     }
 
-    if ($memcached_connected) {
-        try { $memcached->set($cache_key, $known, 60); } catch (Exception $e) {}
+    $result['inserted'] = $missing;
+    $result['known']    = $known;
+
+    return $result;
+}
+
+/**
+ * Обновляет Redis-кэши после успешного commit'а.
+ *
+ * Вызывать ТОЛЬКО после $db->commit() (не после rollback!).
+ *
+ *   - pids_known_<uid>          — полный набор известных PID'ов (TTL 60s);
+ *   - columns_data_pids_<user>  — сбрасывается, чтобы get_columns.php
+ *                                 перечитал pids из БД с новыми строками.
+ *
+ * @param array $result  то, что вернул ensure_pids_exist()
+ */
+function cache_pids_after_commit(int $user_id, string $username, array $result): void
+{
+    global $memcached, $memcached_connected;
+
+    if (!empty($result['known']) && $memcached_connected) {
+        try {
+            $memcached->set("pids_known_{$user_id}", $result['known'], 60);
+        } catch (Exception $e) {
+            error_log("Memcached error on PID cache: " . $e->getMessage());
+        }
     }
 
-    // Инвалидировать кэш колонок (get_columns.php)
-    cache_flush(null, "columns_data_pids_{$username}");
+    if (!empty($result['inserted']) && $username !== '') {
+        cache_flush(null, "columns_data_pids_{$username}");
+    }
 }

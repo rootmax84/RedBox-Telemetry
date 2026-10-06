@@ -239,7 +239,8 @@ if (!empty($redis_stream_enabled)) {
     $no  = "❌";
     $mb  = $translations[$lang]['admin.mb'];
 
-    $redis_part = "Redis: " . ($redis_connected ? $yes : $no);
+    $redis_part = "Redis: " . ($redis_connected ? $yes : $no)
+        . " <a href='redis_stats.php'>📊</a>";
     if ($redis_connected) {
         if ($redis_stream_lag !== null) {
             $redis_part .= " (backlog: {$redis_stream_lag}";

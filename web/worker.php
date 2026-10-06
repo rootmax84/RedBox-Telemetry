@@ -9,6 +9,14 @@
  * Оба стрима используют одну consumer group ($redis_stream_group).
  * Масштабируется как раньше: docker compose up -d --scale worker=N
  *
+ * Обработка ошибок:
+ *   - conn-ошибки MariaDB        → сообщение остаётся pending, XAUTOCLAIM подберёт;
+ *   - transient (deadlock 1213,
+ *     lock wait 1205)            → attempts++, до $worker_max_attempts попыток;
+ *   - fatal (всё остальное)      → сразу в DLQ ($redis_dlq_key) + XAck;
+ *   - после N неудачных попыток  → DLQ + XAck + очистка счётчика.
+ * DLQ — обычный стрим, разбирается руками через XRANGE.
+ *
  *   php worker.php
  */
 
@@ -47,6 +55,23 @@ $reclaimBatch    = 10;      // messages per XAUTOCLAIM call
 $statsEvery      = 60;      // seconds between stats log lines
 $redisRetryDelay = 5;       // seconds between Redis reconnect attempts
 $heartbeatTtl    = 120;     // TTL heartbeat-ключа, сек
+
+// ────────────────────────────────────────────────────────────
+// DLQ / retry config
+//
+//   worker_max_attempts — сколько transient-ошибок подряд терпим, прежде
+//                         чем отправить сообщение в DLQ.
+//   redis_dlq_key       — стрим «мёртвых писем». Обычный стрим, пишется
+//                         через XADD, читается руками через XRANGE.
+//   worker_dlq_maxlen   — MAXLEN DLQ, 0 = без лимита.
+//   worker_attempt_ttl  — TTL ключа ratel:attempts:<stream>:<id>.
+//                         Счётчик живёт сутки, потом сам истекает —
+//                         иначе при частых падениях он бы копился вечно.
+// ────────────────────────────────────────────────────────────
+$maxAttempts      = (int)($worker_max_attempts ?? 3);
+$dlqKey           = $redis_dlq_key      ?? 'ratel:dead_letters';
+$dlqMaxlen        = (int)($worker_dlq_maxlen ?? 10000);
+$workerAttemptTtl = (int)($worker_attempt_ttl ?? 86400);
 
 // ────────────────────────────────────────────────────────────
 // Early exit if Redis is disabled in creds.php
@@ -98,6 +123,197 @@ function worker_connect_redis(): ?Redis
     }
 }
 
+/* ────────────────────────────────────────────────────────────
+ * Классификация ошибок MariaDB
+ * ──────────────────────────────────────────────────────────── */
+
+/** Ошибки уровня «соединение отвалилось» — триггерят reconnect. */
+function worker_errno_is_conn(int $errno): bool
+{
+    return in_array($errno, [2002, 2003, 2006, 2013, 1927, 1040], true);
+}
+
+/** Транзиентные ошибки уровня «попробовать ещё раз без reconnect». */
+function worker_errno_is_transient(int $errno): bool
+{
+    return in_array($errno, [1205, 1213], true); // lock wait, deadlock
+}
+
+/* ────────────────────────────────────────────────────────────
+ * Счётчик попыток для конкретного сообщения
+ *
+ * Ключ ratel:attempts:<stream>:<id> живёт $workerAttemptTtl секунд.
+ * Инкремент — единственный источник правды «сколько раз это сообщение
+ * уже падало». Очищается при успехе или при отправке в DLQ.
+ * ──────────────────────────────────────────────────────────── */
+
+function worker_attempts_key(string $streamKey, string $msgId): string
+{
+    return 'ratel:attempts:' . $streamKey . ':' . $msgId;
+}
+
+function worker_attempts_incr(Redis $redis, string $streamKey, string $msgId, int $ttl): int
+{
+    $key = worker_attempts_key($streamKey, $msgId);
+    $n = (int)$redis->incr($key);
+    if ($n === 1) {
+        $redis->expire($key, $ttl);
+    }
+    return $n;
+}
+
+function worker_attempts_clear(Redis $redis, string $streamKey, string $msgId): void
+{
+    try { $redis->del(worker_attempts_key($streamKey, $msgId)); } catch (Throwable $e) {}
+}
+
+/* ────────────────────────────────────────────────────────────
+ * DLQ push
+ *
+ * Копирует исходные поля сообщения + метаданные об ошибке в стрим
+ * $dlqKey. Исходное сообщение не удаляется — вызывающий код сам
+ * делает XAck основного стрима после успешного XADD в DLQ.
+ *
+ * Если XADD в DLQ падает — пишем в error_log, но не роняем воркер.
+ * ──────────────────────────────────────────────────────────── */
+
+function worker_dlq_push(
+    Redis $redis,
+    string $dlqKey,
+    string $srcStream,
+    string $srcId,
+    array $fields,
+    string $error,
+    int $dlqMaxlen
+): void {
+    $dlq = $fields;
+    $dlq['_src_stream'] = $srcStream;
+    $dlq['_src_id']     = $srcId;
+    $dlq['_error']      = substr($error, 0, 2000);
+    $dlq['_failed_at']  = (string)time();
+    $dlq['_consumer']   = gethostname() . '-' . getmypid();
+
+    // XADD принимает только скаляры. null → '', массив → json.
+    foreach ($dlq as $k => $v) {
+        if ($v === null) {
+            $dlq[$k] = '';
+        } elseif (!is_scalar($v)) {
+            $dlq[$k] = json_encode($v, JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    try {
+        $redis->xAdd($dlqKey, '*', $dlq, $dlqMaxlen, true);
+    } catch (Throwable $e) {
+        error_log('[worker] DLQ push failed: ' . $e->getMessage());
+    }
+}
+
+/* ────────────────────────────────────────────────────────────
+ * Обработка одного сообщения (upload или heavy task).
+ *
+ * Возвращает:
+ *   'ok'      — сообщение успешно обработано (XAck сделан);
+ *   'dlq'     — сообщение отправлено в DLQ (XAck сделан);
+ *   'pending' — сообщение оставлено pending (conn-ошибка или недостигнутый
+ *               лимит попыток). Caller должен прекратить текущий батч и
+ *               переподключиться / дать XAUTOCLAIM подобрать сообщение.
+ *
+ * $db передаётся по ссылке — при conn-ошибке он обновляется результатом
+ * worker_reconnect_db().
+ * ──────────────────────────────────────────────────────────── */
+
+function worker_process_message(
+    Redis $redis,
+    mysqli &$db,
+    string $sKey,
+    string $id,
+    array $fields,
+    string $group,
+    int $maxAttempts,
+    int $workerAttemptTtl,
+    string $dlqKey,
+    int $dlqMaxlen,
+    string $src
+): string {
+    $fatal  = false;
+    $errMsg = '';
+
+    try {
+        worker_dispatch($db, $sKey, $fields, $redis);
+
+        // Успех
+        try { $redis->xAck($sKey, $group, [$id]); } catch (Throwable $e) {}
+        worker_attempts_clear($redis, $sKey, $id);
+        return 'ok';
+    } catch (mysqli_sql_exception $e) {
+        $errMsg = $e->getMessage();
+        $errno  = (int)$e->getCode();
+
+        if (worker_errno_is_conn($errno)) {
+            error_log(sprintf(
+                '[worker] DB lost (%d) %s/%s [%s]; left pending',
+                $errno, $sKey, $id, $src
+            ));
+            try {
+                $db = worker_reconnect_db($db);
+                error_log('[worker] DB reconnected');
+            } catch (Throwable $re) {
+                error_log('[worker] DB reconnect failed: ' . $re->getMessage());
+                sleep(5);
+            }
+            return 'pending';
+        }
+
+        if (worker_errno_is_transient($errno)) {
+            error_log(sprintf(
+                '[worker] transient SQL (%d) %s/%s [%s]: %s',
+                $errno, $sKey, $id, $src, $errMsg
+            ));
+        } else {
+            $fatal = true;
+            error_log(sprintf(
+                '[worker] fatal SQL (%d) %s/%s [%s]: %s',
+                $errno, $sKey, $id, $src, $errMsg
+            ));
+        }
+    } catch (Throwable $e) {
+        $fatal  = true;
+        $errMsg = $e->getMessage();
+        error_log(sprintf(
+            "[worker] %s/%s [%s] fatal: %s\n%s",
+            $sKey, $id, $src, $errMsg, $e->getTraceAsString()
+        ));
+    }
+
+    // Решаем: DLQ сейчас или retry позже
+    $toDlq = $fatal;
+
+    if (!$toDlq) {
+        try {
+            $attempts = worker_attempts_incr($redis, $sKey, $id, $workerAttemptTtl);
+            if ($attempts >= $maxAttempts) {
+                $toDlq   = true;
+                $errMsg .= sprintf(' [gave up after %d attempts]', $attempts);
+            }
+        } catch (Throwable $e) {
+            error_log('[worker] attempts incr failed: ' . $e->getMessage());
+            $toDlq = true; // безопаснее в DLQ, чем залипнуть
+        }
+    }
+
+    if ($toDlq) {
+        worker_dlq_push($redis, $dlqKey, $sKey, $id, $fields, $errMsg, $dlqMaxlen);
+        try { $redis->xAck($sKey, $group, [$id]); } catch (Throwable $e) {}
+        worker_attempts_clear($redis, $sKey, $id);
+        error_log(sprintf('[worker] %s/%s [%s] → DLQ', $sKey, $id, $src));
+        return 'dlq';
+    }
+
+    // transient, попытки ещё не исчерпаны — оставляем pending
+    return 'pending';
+}
+
 // ────────────────────────────────────────────────────────────
 // Список стримов, которые обслуживает воркер
 // ────────────────────────────────────────────────────────────
@@ -112,8 +328,8 @@ if ($heavyEnabled && $heavyStream !== $stream) {
 $consumer = gethostname() . '-' . getmypid();
 
 fwrite(STDOUT, sprintf(
-    "[worker] starting consumer=%s streams=[%s] group=%s\n",
-    $consumer, implode(', ', $pollStreams), $group
+    "[worker] starting consumer=%s streams=[%s] group=%s dlq=%s max_attempts=%d\n",
+    $consumer, implode(', ', $pollStreams), $group, $dlqKey, $maxAttempts
 ));
 
 // ────────────────────────────────────────────────────────────
@@ -208,6 +424,7 @@ if (function_exists('pcntl_signal')) {
 // ────────────────────────────────────────────────────────────
 $lastStatsAt    = 0;
 $processedCount = 0;
+$dlqCount       = 0;   // сообщений ушло в DLQ за жизнь процесса
 
 while ($running) {
     // ─── Redis health check / reconnect ───
@@ -229,9 +446,8 @@ while ($running) {
 
     // ─── Reclaim stale pending messages (XAUTOCLAIM) ───
     // XAUTOCLAIM принимает один ключ — идём циклом по всем стримам.
+    $needBreak = false;
     foreach ($pollStreams as $sKey) {
-        $dbLost = false;
-
         try {
             $claimed = $redis->xAutoClaim(
                 $sKey, $group, $consumer,
@@ -242,40 +458,23 @@ while ($running) {
                 && !empty($claimed[1]) && is_array($claimed[1])) {
 
                 foreach ($claimed[1] as $id => $fields) {
-                    try {
-                        worker_dispatch($db, $sKey, $fields, $redis);
-                        $redis->xAck($sKey, $group, [$id]);
-                        $processedCount++;
-                        fwrite(STDOUT, "[worker] reclaimed {$sKey}/{$id}\n");
-                    } catch (mysqli_sql_exception $e) {
-                        $errno = (int)$e->getCode();
-                        if (in_array($errno, [2002, 2003, 2006, 2013, 1927, 1040], true)) {
-                            error_log(sprintf(
-                                '[worker] DB connection lost (%d) while reclaiming %s/%s',
-                                $errno, $sKey, $id
-                            ));
-                            try {
-                                $db = worker_reconnect_db($db);
-                                error_log('[worker] DB reconnected');
-                            } catch (Throwable $re) {
-                                error_log('[worker] DB reconnect failed: ' . $re->getMessage());
-                                sleep(5);
-                            }
-                            $dbLost = true;
-                            break;
-                        }
-                        error_log(sprintf(
-                            '[worker] reclaimed %s/%s SQL error (%d): %s',
-                            $sKey, $id, $errno, $e->getMessage()
-                        ));
-                        $redis->xAck($sKey, $group, [$id]);
-                    } catch (Throwable $e) {
-                        error_log(sprintf(
-                            '[worker] reclaimed %s/%s failed: %s',
-                            $sKey, $id, $e->getMessage()
-                        ));
-                        $redis->xAck($sKey, $group, [$id]);
+                    $status = worker_process_message(
+                        $redis, $db, $sKey, $id, $fields, $group,
+                        $maxAttempts, $workerAttemptTtl, $dlqKey, $dlqMaxlen,
+                        'reclaim'
+                    );
+
+                    if ($status === 'pending') {
+                        $needBreak = true;
+                        break;
                     }
+
+                    if ($status === 'dlq') {
+                        $dlqCount++;
+                    } else {
+                        fwrite(STDOUT, "[worker] reclaimed {$sKey}/{$id}\n");
+                    }
+                    $processedCount++;
                 }
             }
         } catch (Throwable $e) {
@@ -286,12 +485,17 @@ while ($running) {
             }
         }
 
-        if ($dbLost || $redis === null) {
+        if ($needBreak || $redis === null) {
             break;
         }
     }
 
-    if ($redis === null) {
+    // Если хотя бы одно сообщение оставлено pending (conn-ошибка или
+    // недостигнутый лимит попыток) — не читаем новые в этой итерации.
+    // Возврат на верх главного цикла: heartbeat, следующий XAUTOCLAIM
+    // (сообщение уже вылежит 60 сек idle и снова попадёт под reclaim),
+    // и только потом XREADGROUP.
+    if ($needBreak || $redis === null) {
         continue;
     }
 
@@ -324,45 +528,21 @@ while ($running) {
             $breakOuter = false;
 
             foreach ($items as $id => $fields) {
-                $retry = false;
+                $status = worker_process_message(
+                    $redis, $db, $sKey, $id, $fields, $group,
+                    $maxAttempts, $workerAttemptTtl, $dlqKey, $dlqMaxlen,
+                    'new'
+                );
 
-                try {
-                    worker_dispatch($db, $sKey, $fields, $redis);
-                    $processedCount++;
-                } catch (mysqli_sql_exception $e) {
-                    $errno = (int)$e->getCode();
-                    if (in_array($errno, [2002, 2003, 2006, 2013, 1927, 1040], true)) {
-                        error_log(sprintf(
-                            '[worker] DB connection lost (%d: %s); message %s/%s left pending',
-                            $errno, $e->getMessage(), $sKey, $id
-                        ));
-                        try {
-                            $db = worker_reconnect_db($db);
-                            error_log('[worker] DB reconnected');
-                        } catch (Throwable $re) {
-                            error_log('[worker] DB reconnect failed: ' . $re->getMessage());
-                            sleep(5);
-                        }
-                        $retry = true;
-                    } else {
-                        error_log(sprintf(
-                            '[worker] message %s/%s SQL error (%d): %s',
-                            $sKey, $id, $errno, $e->getMessage()
-                        ));
-                    }
-                } catch (Throwable $e) {
-                    error_log(sprintf(
-                        "[worker] message %s/%s failed: %s\n%s",
-                        $sKey, $id, $e->getMessage(), $e->getTraceAsString()
-                    ));
-                }
-
-                if (!$retry) {
-                    try { $redis->xAck($sKey, $group, [$id]); } catch (Throwable $e) {}
-                } else {
+                if ($status === 'pending') {
                     $breakOuter = true;
                     break;
                 }
+
+                if ($status === 'dlq') {
+                    $dlqCount++;
+                }
+                $processedCount++;
             }
 
             if ($breakOuter) break;
@@ -397,9 +577,18 @@ while ($running) {
                 $parts[] = "{$sKey}[err]";
             }
         }
+
+        // DLQ отдельно — по нему важно видеть непустоту
+        try {
+            $dlqLen  = (int)$redis->xLen($dlqKey);
+            $parts[] = sprintf('%s[len=%d]', $dlqKey, $dlqLen);
+        } catch (Throwable $e) {
+            $parts[] = "{$dlqKey}[err]";
+        }
+
         fwrite(STDOUT, sprintf(
-            "[worker] stats: consumer=%s %s processed_total=%d\n",
-            $consumer, implode(' ', $parts), $processedCount
+            "[worker] stats: consumer=%s %s processed_total=%d dlq_total=%d\n",
+            $consumer, implode(' ', $parts), $processedCount, $dlqCount
         ));
     }
 }
@@ -410,8 +599,8 @@ while ($running) {
 try { $redis->del("worker:hb:{$consumer}"); } catch (Throwable $e) {}
 try { $db->close(); } catch (Throwable $e) {}
 fwrite(STDOUT, sprintf(
-    "[worker] stopped consumer=%s streams=[%s] processed_total=%d\n",
-    $consumer, implode(', ', $pollStreams), $processedCount
+    "[worker] stopped consumer=%s streams=[%s] processed_total=%d dlq_total=%d\n",
+    $consumer, implode(', ', $pollStreams), $processedCount, $dlqCount
 ));
 
 /* ────────────────────────────────────────────────────────────

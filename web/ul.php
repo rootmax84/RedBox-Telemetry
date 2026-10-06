@@ -239,7 +239,19 @@ if ($kind === 'bulk' && count($payload) > 100) {
  * ──────────────────────────────────────────────────────────── */
 $ip = $_SERVER['HTTP_CLIENT_IP']
     ?? $_SERVER['HTTP_X_FORWARDED_FOR']
-    ?? $_SERVER['REMOTE_ADDR'];
+    ?? $_SERVER['REMOTE_ADDR']
+    ?? '0.0.0.0';
+
+// X-Forwarded-For — список через запятую: "client, proxy1, proxy2".
+// Берём первый (клиентский) IP.
+if (strpos($ip, ',') !== false) {
+    $ip = trim(explode(',', $ip, 2)[0]);
+}
+
+// Страховка: если пришёл мусор — не пишем его в БД.
+if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+    $ip = '0.0.0.0';
+}
 
 $streamed = false;
 if (!empty($redis_stream_enabled)) {

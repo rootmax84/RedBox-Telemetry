@@ -22,7 +22,7 @@
  *     1.1 Переносит creds.php из корня в src/ (legacy-инсталляции)
  *     1.2 Создаёт src/creds.php из src/creds.php.example, если его нет
  *     1.3 Migrates per-user → shared tables (логи/sessions/pids)
- *     1.4 Добавляет недостающие параметры (heavy_tasks и др.)
+ *     1.4 Добавляет недостающие параметры (heavy_tasks, worker DLQ и др.)
  *
  *   Phase 2. Подключение к MariaDB с retry (--wait-db=N)
  *
@@ -30,6 +30,12 @@
  *     3.1 CREATE TABLE IF NOT EXISTS: logs, sessions, pids
  *     3.2 ALTER TABLE users: недостающие колонки + drop legacy index
  *         (пропускается, если users ещё нет — clean install)
+ *     3.3 ALTER TABLE sessions — расширяющие миграции (заглушка)
+ *     3.4 ALTER TABLE logs     — расширяющие миграции (заглушка)
+ *     3.5 ALTER TABLE pids     — расширяющие миграции (заглушка)
+ *         Все три идемпотентны: ADD COLUMN пропускается по column_exists,
+ *         MODIFY COLUMN — только если текущий тип совпал с одним из
+ *         ожидаемых "старых" (защита от случайного сужения).
  *
  *   Phase 4. Data migration
  *     4.1 {user}_logs     → logs      (колонки PID → JSON в data)
@@ -275,17 +281,21 @@ PHP;
 /* ══════════════════════════════════════════════════════════
  * Phase 1.4: добавить недостающие параметры в creds.php
  *
- * Идемпотентно вставляет два блока:
+ * Идемпотентно вставляет три блока:
  *   1. Redis / Streams     (если нет $redis_enabled)
  *   2. Heavy tasks         (если нет $redis_heavy_stream_key)
+ *   3. Worker retry / DLQ  (если нет $worker_max_attempts)
  *
- * Порядок важен: сначала Redis-блок, потом heavy_tasks —
- * heavy вставляется после $redis_stream_maxlen, а эта переменная
- * появляется вместе с Redis-блоком.
+ * Порядок важен: сначала Redis-блок, потом heavy_tasks (якорится
+ * на $redis_stream_maxlen, которая появляется вместе с Redis-блоком),
+ * потом DLQ (якорится на $heavy_chunk_pause_us из heavy-блока).
  *
  * Якоря вставки (по убыванию приоритета):
- *   Redis-блок:  после $max_api_requests_per_second; иначе перед $salt; иначе в конец.
- *   Heavy:       после $redis_stream_maxlen;            иначе перед $salt; иначе в конец.
+ *   Redis-блок:   после $max_api_requests_per_second; иначе перед $salt; иначе в конец.
+ *   Heavy:        после $redis_stream_maxlen;          иначе перед $salt; иначе в конец.
+ *   DLQ:          после $heavy_chunk_pause_us;
+ *                 иначе после $redis_stream_maxlen;
+ *                 иначе перед $salt; иначе в конец.
  *
  * @return array{status:string, backup:?string, matched:array<string>}
  *   status: 'updated' | 'already' | 'error'
@@ -362,6 +372,40 @@ function migrate_creds_params(string $path, bool $dry_run, bool $no_backup): arr
         } else {
             $src .= $heavy_block;
             $added[] = 'heavy_tasks appended';
+        }
+    }
+
+    /* ──────────────────────────────────────────────────────
+     * 3. Worker retry / DLQ
+     *
+     * Параметры обработки ошибок в worker.php:
+     *   - worker_max_attempts — сколько transient-падений терпим до DLQ;
+     *   - redis_dlq_key       — стрим «мёртвых писем» (ratel:dead_letters);
+     *   - worker_dlq_maxlen   — MAXLEN для DLQ;
+     *   - worker_attempt_ttl  — TTL счётчика попыток на сообщение.
+     *
+     * Проверка идемпотентности — по $worker_max_attempts.
+     * ────────────────────────────────────────────────────── */
+    if (strpos($src, '$worker_max_attempts') === false) {
+        $dlq_block =
+              "\n// --- Worker retry / DLQ (dead letter queue) ---\n"
+            . "\$worker_max_attempts  = 3;             // transient-ошибок до DLQ\n"
+            . "\$redis_dlq_key        = 'ratel:dead_letters';\n"
+            . "\$worker_dlq_maxlen    = 10000;         // ~ MAXLEN для DLQ\n"
+            . "\$worker_attempt_ttl   = 86400;         // TTL счётчика попыток, сек\n";
+
+        if (preg_match('/^(\$heavy_chunk_pause_us\s*=\s*[^;]+;.*)$/m', $src, $m)) {
+            $src = str_replace($m[0], $m[0] . "\n" . $dlq_block, $src);
+            $added[] = 'worker_dlq after $heavy_chunk_pause_us';
+        } elseif (preg_match('/^(\$redis_stream_maxlen\s*=\s*[^;]+;.*)$/m', $src, $m)) {
+            $src = str_replace($m[0], $m[0] . "\n" . $dlq_block, $src);
+            $added[] = 'worker_dlq after $redis_stream_maxlen';
+        } elseif (preg_match('/^(\$salt\s*=)/m', $src, $m)) {
+            $src = str_replace($m[0], $dlq_block . "\n" . $m[0], $src);
+            $added[] = 'worker_dlq before $salt';
+        } else {
+            $src .= $dlq_block;
+            $added[] = 'worker_dlq appended';
         }
     }
 
@@ -530,6 +574,28 @@ function columns_of(mysqli $db, string $t): array
     return $r ? array_column($r->fetch_all(MYSQLI_ASSOC), 'Field') : [];
 }
 
+/**
+ * Текущий тип колонки из information_schema (в нижнем регистре),
+ * либо null, если колонки нет.
+ *
+ * Используется для "расширяющих" миграций: реагируем только если
+ * тип колонки в точности совпал с одним из ожидаемых "старых",
+ * чтобы случайно не сузить колонку, которую уже расширили руками.
+ */
+function column_type(mysqli $db, string $table, string $column): ?string
+{
+    $stmt = $db->prepare(
+        "SELECT COLUMN_TYPE FROM information_schema.columns
+          WHERE table_schema = DATABASE()
+            AND table_name = ?
+            AND column_name = ?"
+    );
+    $stmt->bind_param('ss', $table, $column);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    return $row ? strtolower((string)$row['COLUMN_TYPE']) : null;
+}
+
 /* ══════════════════════════════════════════════════════════
  * Phase 3.2: ALTER users — дотянуть схему users до актуальной.
  *
@@ -591,6 +657,242 @@ function migrate_users_table(mysqli $db, string $db_users, bool $dry_run): void
     if ($added === 0 && !$dry_run) {
         out("[users] no column changes needed");
     }
+}
+
+/* ══════════════════════════════════════════════════════════
+ * Универсальный раннер ADD/MODIFY для одной таблицы
+ *
+ * @param array  $add_columns    ['col' => 'ALTER TABLE ... ADD COLUMN ...']
+ * @param array  $widen_columns  ['col' => [
+ *                                  'from' => ['char(15)'],       // только эти типы триггерят ALTER
+ *                                  'to'   => 'varchar(45)',      // для лога
+ *                                  'sql'  => 'ALTER TABLE ... MODIFY COLUMN ...',
+ *                               ]]
+ *
+ * Идемпотентно: ADD — по column_exists(), MODIFY — по совпадению
+ * текущего типа с одной из строк списка 'from'.
+ * ══════════════════════════════════════════════════════════ */
+
+function migrate_table_columns(
+    mysqli $db,
+    string $table,
+    array  $add_columns,
+    array  $widen_columns,
+    bool   $dry_run,
+    string $label
+): void {
+    if (!table_exists($db, $table)) {
+        out("[{$label}] table not found — skipping");
+        return;
+    }
+
+    $applied = 0;
+
+    // ── ADD COLUMN ──
+    foreach ($add_columns as $col => $sql) {
+        if (column_exists($db, $table, $col)) {
+            continue;
+        }
+        if ($dry_run) {
+            out("[{$label}] [dry] would ADD COLUMN {$col}");
+            $applied++;
+            continue;
+        }
+        try {
+            $db->query($sql);
+            info("[{$label}] added column: {$col}");
+            $applied++;
+        } catch (mysqli_sql_exception $e) {
+            err("[{$label}] ALTER ADD {$col} failed: " . $e->getMessage());
+        }
+    }
+
+    // ── MODIFY COLUMN (widening) ──
+    foreach ($widen_columns as $col => $def) {
+        $current = column_type($db, $table, $col);
+        if ($current === null) {
+            continue;   // колонки нет — это не widening
+        }
+        $from = array_map('strtolower', (array)($def['from'] ?? []));
+        if (empty($from) || !in_array($current, $from, true)) {
+            continue;   // уже не тот тип — не трогаем
+        }
+        $to = (string)($def['to'] ?? '?');
+
+        if ($dry_run) {
+            out("[{$label}] [dry] would MODIFY COLUMN {$col} ({$current} → {$to})");
+            $applied++;
+            continue;
+        }
+        try {
+            $db->query($def['sql']);
+            info("[{$label}] widened column: {$col} ({$current} → {$to})");
+            $applied++;
+        } catch (mysqli_sql_exception $e) {
+            err("[{$label}] ALTER MODIFY {$col} failed: " . $e->getMessage());
+        }
+    }
+
+    if ($applied === 0 && !$dry_run) {
+        out("[{$label}] no changes needed");
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+ * Phase 3.3: ALTER sessions — расширяющие миграции.
+ *
+ * Заглушка. Живые правила добавляются в $add_columns
+ * (для новых колонок) или в $widen_columns (для изменения
+ * типа существующих).
+ *
+ * Примеры (закомментированы, ничего не делают):
+ *
+ *   $add_columns = [
+ *       'user_agent' => "ALTER TABLE sessions
+ *                          ADD COLUMN user_agent VARCHAR(255) NULL AFTER ip",
+ *       'note'       => "ALTER TABLE sessions
+ *                          ADD COLUMN note TEXT NULL",
+ *   ];
+ *
+ *   $widen_columns = [
+ *       // ip CHAR(15) → VARCHAR(45): хватит на IPv6 и на результат
+ *       // нормализации X-Forwarded-For. Безопасно расширяет,
+ *       // существующие значения не трогает.
+ *       'ip' => [
+ *           'from' => ['char(15)'],
+ *           'to'   => 'varchar(45)',
+ *           'sql'  => "ALTER TABLE sessions
+ *                        MODIFY COLUMN ip VARCHAR(45) NOT NULL DEFAULT '0.0.0.0'",
+ *       ],
+ *
+ *       // profileName VARCHAR(128) → VARCHAR(255): длинные профили
+ *       // Torque. 'from' перечисляет оба возможных "старых" типа,
+ *       // чтобы миграция сработала независимо от того, что стоит
+ *       // сейчас — CHAR или VARCHAR с коротким размером.
+ *       // 'profileName' => [
+ *       //     'from' => ['varchar(128)', 'char(128)'],
+ *       //     'to'   => 'varchar(255)',
+ *       //     'sql'  => "ALTER TABLE sessions
+ *       //                  MODIFY COLUMN profileName VARCHAR(255)
+ *       //                  NOT NULL DEFAULT 'Not Specified'",
+ *       // ],
+ *   ];
+ *
+ * На MariaDB с ROCKSDB ALTER MODIFY перестраивает таблицу —
+ * на большой базе первый запуск migrate.php после апдейта
+ * может занять заметное время.
+ * ══════════════════════════════════════════════════════════ */
+
+function migrate_sessions_table(mysqli $db, bool $dry_run): void
+{
+    $add_columns = [
+        // 'user_agent' => "ALTER TABLE sessions ADD COLUMN user_agent VARCHAR(255) NULL AFTER ip",
+    ];
+
+    $widen_columns = [
+        // 'ip' => [
+        //     'from' => ['char(15)'],
+        //     'to'   => 'varchar(45)',
+        //     'sql'  => "ALTER TABLE sessions MODIFY COLUMN ip VARCHAR(45) NOT NULL DEFAULT '0.0.0.0'",
+        // ],
+        // 'profileName' => [
+        //     'from' => ['varchar(128)', 'char(128)'],
+        //     'to'   => 'varchar(255)',
+        //     'sql'  => "ALTER TABLE sessions MODIFY COLUMN profileName VARCHAR(255) NOT NULL DEFAULT 'Not Specified'",
+        // ],
+    ];
+
+    migrate_table_columns($db, 'sessions', $add_columns, $widen_columns, $dry_run, 'sessions');
+}
+
+/* ══════════════════════════════════════════════════════════
+ * Phase 3.4: ALTER logs — расширяющие миграции.
+ *
+ * Заглушка. Примеры (закомментированы, ничего не делают):
+ *
+ *   $add_columns = [
+ *       'source' => "ALTER TABLE logs ADD COLUMN source VARCHAR(32) NULL",
+ *   ];
+ *
+ *   $widen_columns = [
+ *       // data TEXT → LONGTEXT: если кто-то изначально создал
+ *       // таблицу с TEXT (64 KB), большие JSON с десятками PID
+ *       // не влезали и падали с 1406.
+ *       // 'data' => [
+ *       //     'from' => ['text', 'mediumtext'],
+ *       //     'to'   => 'longtext',
+ *       //     'sql'  => "ALTER TABLE logs MODIFY COLUMN data LONGTEXT NOT NULL",
+ *       // ],
+ *   ];
+ * ══════════════════════════════════════════════════════════ */
+
+function migrate_logs_table(mysqli $db, bool $dry_run): void
+{
+    $add_columns = [
+        // 'source' => "ALTER TABLE logs ADD COLUMN source VARCHAR(32) NULL",
+    ];
+
+    $widen_columns = [
+        // 'data' => [
+        //     'from' => ['text', 'mediumtext'],
+        //     'to'   => 'longtext',
+        //     'sql'  => "ALTER TABLE logs MODIFY COLUMN data LONGTEXT NOT NULL",
+        // ],
+    ];
+
+    migrate_table_columns($db, 'logs', $add_columns, $widen_columns, $dry_run, 'logs');
+}
+
+/* ══════════════════════════════════════════════════════════
+ * Phase 3.5: ALTER pids — расширяющие миграции.
+ *
+ * Заглушка. Примеры (закомментированы, ничего не делают):
+ *
+ *   $add_columns = [
+ *       'min_value' => "ALTER TABLE pids ADD COLUMN min_value DECIMAL(10,3) NULL",
+ *       'max_value' => "ALTER TABLE pids ADD COLUMN max_value DECIMAL(10,3) NULL",
+ *   ];
+ *
+ *   $widen_columns = [
+ *       // description VARCHAR(255) → VARCHAR(512): длинные
+ *       // описания новых PID'ов, которых нет в дефолтном наборе.
+ *       // 'description' => [
+ *       //     'from' => ['varchar(255)'],
+ *       //     'to'   => 'varchar(512)',
+ *       //     'sql'  => "ALTER TABLE pids MODIFY COLUMN description VARCHAR(512) DEFAULT NULL",
+ *       // ],
+ *       //
+ *       // id VARCHAR(16) → VARCHAR(32): если появятся PID'ы
+ *       // с более длинным hex-кодом, чем текущие kff120c.
+ *       // 'id' => [
+ *       //     'from' => ['varchar(16)'],
+ *       //     'to'   => 'varchar(32)',
+ *       //     'sql'  => "ALTER TABLE pids MODIFY COLUMN id VARCHAR(32) NOT NULL",
+ *       // ],
+ *   ];
+ * ══════════════════════════════════════════════════════════ */
+
+function migrate_pids_table(mysqli $db, bool $dry_run): void
+{
+    $add_columns = [
+        // 'min_value' => "ALTER TABLE pids ADD COLUMN min_value DECIMAL(10,3) NULL",
+        // 'max_value' => "ALTER TABLE pids ADD COLUMN max_value DECIMAL(10,3) NULL",
+    ];
+
+    $widen_columns = [
+        // 'description' => [
+        //     'from' => ['varchar(255)'],
+        //     'to'   => 'varchar(512)',
+        //     'sql'  => "ALTER TABLE pids MODIFY COLUMN description VARCHAR(512) DEFAULT NULL",
+        // ],
+        // 'id' => [
+        //     'from' => ['varchar(16)'],
+        //     'to'   => 'varchar(32)',
+        //     'sql'  => "ALTER TABLE pids MODIFY COLUMN id VARCHAR(32) NOT NULL",
+        // ],
+    ];
+
+    migrate_table_columns($db, 'pids', $add_columns, $widen_columns, $dry_run, 'pids');
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -823,7 +1125,7 @@ switch ($creds_result['status']) {
         }
 }
 
-// 1.4 Добавить недостающие параметры (heavy_tasks и др.)
+// 1.4 Добавить недостающие параметры (heavy_tasks, worker DLQ и др.)
 $params_result = migrate_creds_params($creds_path, $DRY_RUN, $NO_BACKUP);
 
 switch ($params_result['status']) {
@@ -914,6 +1216,14 @@ create_tables($db, $DRY_RUN);
 // 3.2 Дотянуть users до актуальной схемы (ALTER-ы).
 // Пропускается на clean install (users ещё нет).
 migrate_users_table($db, $db_users, $DRY_RUN);
+
+// 3.3-3.5 Расширяющие миграции для shared-таблиц.
+// Сейчас это заглушки — живых правил нет, всё закомментировано
+// внутри функций. Когда понадобится — раскомментировать правило
+// в нужном массиве ($add_columns или $widen_columns).
+migrate_sessions_table($db, $DRY_RUN);
+migrate_logs_table($db, $DRY_RUN);
+migrate_pids_table($db, $DRY_RUN);
 
 /* ═══════════════ Phase 4: data migration ═══════════════ */
 
