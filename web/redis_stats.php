@@ -1447,6 +1447,35 @@ body {
             });
     }
 })();
+
+(function () {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('msg') || url.searchParams.has('ok')) {
+        url.searchParams.delete('msg');
+        url.searchParams.delete('ok');
+        history.replaceState(null, '', url.pathname + (url.search || '') + url.hash);
+    }
+})();
+
+(function () {
+    const toast = document.querySelector('.rs-toast');
+    if (!toast) return;
+
+    const HIDE_AFTER = 5000;
+    const FADE_MS    = 300;
+
+    const t = setTimeout(() => {
+        toast.style.transition = `opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`;
+        toast.style.opacity    = '0';
+        toast.style.transform  = 'translateY(-8px)';
+        setTimeout(() => toast.remove(), FADE_MS);
+    }, HIDE_AFTER);
+
+    toast.addEventListener('click', () => {
+        clearTimeout(t);
+        toast.remove();
+    });
+})();
 </script>
 
 </body>
