@@ -9,6 +9,10 @@ function submitForm(el) {
 
     submitBtn.disabled = true;
 
+    // Inline-путь: показать спиннер, пока PHP чанками удаляет logs/sessions/pids.
+    // Heavy-путь: спрячем его чуть ниже — у pollHeavyTask свой индикатор.
+    $("#wait_layout").show();
+
     fetch(el.getAttribute("action"), {
         method: el.method,
         body: new FormData(el),
@@ -43,6 +47,7 @@ function submitForm(el) {
 
             // 202 + task_id — тяжёлая задача стала в очередь
             if (data.status === 'accepted' && data.task_id) {
+                $("#wait_layout").hide();
                 pollHeavyTask(data.task_id, {
                     taskType: data.type || null,
                     onDone: () => {
@@ -57,19 +62,23 @@ function submitForm(el) {
             }
 
             // Обычный JSON-ответ (ошибки и т.п.)
+            $("#wait_layout").hide();
             submitBtn.disabled = false;
             xhrResponse(data.message || data.error || 'OK');
             return;
         }
 
-        // Plain-text ответ (старый путь, например «Пароль изменён»)
+        // Plain-text ответ — это и есть inline-путь для delete_user/truncate_user.
+        // Сервер ответил "User deleted: X" / "User db truncated: X" после
+        // синхронного удаления — гасим спиннер и показываем сообщение.
+        $("#wait_layout").hide();
         xhrResponse(result.text);
         setTimeout(() => {
             submitBtn.disabled = false;
         }, 1000);
     })
-    .catch(error => {
-        console.error('Error:', error);
+    .catch(err => {
+        serverError(err.message);
         setTimeout(() => {
             submitBtn.disabled = false;
         }, 1000);

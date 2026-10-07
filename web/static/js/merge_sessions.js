@@ -79,6 +79,10 @@ $(document).ready(() => {
                 const form = document.getElementById("formmerge");
                 const fd   = new FormData();
 
+                // Inline-путь: показать спиннер, пока идёт чанковый UPDATE logs.
+                // Heavy-путь: спрячем его чуть ниже — у pollHeavyTask свой индикатор.
+                $("#wait_layout").show();
+
                 const csrfMeta = document.querySelector('meta[name="csrf-token"]');
                 if (csrfMeta) fd.append('csrf_token', csrfMeta.content);
 
@@ -115,6 +119,7 @@ $(document).ready(() => {
 
                         // Heavy path: задача ушла в воркер
                         if (data.status === 'accepted' && data.task_id) {
+                            $("#wait_layout").hide();
                             pollHeavyTask(data.task_id, {
                                 taskType: 'merge_sessions',
                                 onDone: (res) => {

@@ -100,14 +100,24 @@ function loadPage() {
     params.append('range', currentParams.range || 'day');
     params.append('last_session', lastSession);
 
+    // CSRF из формы search.php. head.js держит значение актуальным
+    // (обновляет hidden-инпут при продлении токена).
+    const csrfInput = document.querySelector('#searchForm input[name="csrf_token"]');
+    if (csrfInput && csrfInput.value) {
+        params.append('csrf_token', csrfInput.value);
+    }
+
     fetch('search_processor.php', {
         method: 'POST',
-        body: params
+        body: params,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
     .then(response => response.json())
     .then(data => {
         isLoading = false;
         $('.fetch-data').css('display', 'none');
+
+        if (data.reload) { location.href = '.?logout=true'; return; }
 
         if (data.error) {
             showError(data.error);

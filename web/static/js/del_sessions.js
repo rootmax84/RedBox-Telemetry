@@ -25,6 +25,10 @@ function delSessions() {
             const csrfMeta = document.querySelector('meta[name="csrf-token"]');
             if (csrfMeta) fd.append('csrf_token', csrfMeta.content);
 
+            // Inline-путь: показать спиннер, пока PHP молотит DELETE чанками.
+            // Heavy-путь: спрячем его чуть ниже — у pollHeavyTask свой индикатор.
+            $("#wait_layout").show();
+
             form.querySelectorAll('input').forEach(inp => {
                 if (!inp.name) return;
                 if (inp.type === 'checkbox') {
@@ -56,6 +60,8 @@ function delSessions() {
                     if (data.reload) { location.href = '.?logout=true'; return; }
 
                     if (data.status === 'accepted' && data.task_id) {
+                        // Heavy-путь: отдаём эстафету pollHeavyTask
+                        $("#wait_layout").hide();
                         // pollHeavyTask сам поднимет свой индикатор
                         pollHeavyTask(data.task_id, {
                             taskType: 'delete_sessions',
