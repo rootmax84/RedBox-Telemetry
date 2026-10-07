@@ -24,7 +24,7 @@ if ($fav_data === false) {
         $fav_data = $keydata->fetch_all(MYSQLI_ASSOC);
         if ($memcached_connected) {
             try {
-                $memcached->set($cache_key, $fav_data, $db_memcached_ttl ?? 3600);
+                $memcached->set($cache_key, $fav_data, $db_cache_meta_ttl ?? 300);
             } catch (Exception $e) {
                 error_log(sprintf("Ratel cache error on favorite: %s (Code: %d)", $e->getMessage(), $e->getCode()));
             }

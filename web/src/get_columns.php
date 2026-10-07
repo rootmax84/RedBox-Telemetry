@@ -28,7 +28,7 @@ if (empty($coldata)) {
 
     if ($memcached_connected) {
         try {
-            $memcached->set($columns_cache_key, $coldata, $db_memcached_ttl ?? 3600);
+            $memcached->set($columns_cache_key, $coldata, $db_cache_meta_ttl ?? 300);
         } catch (Exception $e) {
             $errorMessage = sprintf("Memcached error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
             error_log($errorMessage);

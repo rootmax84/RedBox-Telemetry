@@ -70,7 +70,7 @@ if (isset($sids[0])) {
         }
         if ($memcached_connected) {
             try {
-                $memcached->set($years_cache_key, [$yeararray, $current_timestamp], $db_memcached_ttl ?? 3600);
+                $memcached->set($years_cache_key, [$yeararray, $current_timestamp], $db_cache_meta_ttl ?? 300);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -101,7 +101,7 @@ if (isset($sids[0])) {
         }
         if ($memcached_connected) {
             try {
-                $memcached->set($profiles_cache_key, [$profilearray, $current_timestamp], $db_memcached_ttl ?? 3600);
+                $memcached->set($profiles_cache_key, [$profilearray, $current_timestamp], $db_cache_meta_ttl ?? 300);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -136,7 +136,7 @@ if (isset($sids[0])) {
         $gps_data = ['geolocs' => $geolocs, 'timearray' => $timearray];
         if ($memcached_connected) {
             try {
-                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_memcached_ttl ?? 3600);
+                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_cache_ttl ?? 3600);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -168,10 +168,10 @@ if (isset($sids[0])) {
     }
 
     if ($stream_lock === false || $cached_timestamp !== $current_timestamp) {
-        $stream_lock = $db->execute_query("SELECT stream_lock FROM $db_users WHERE user=?", [$username])->fetch_row()[0];
+        $stream_lock = $db->execute_query("SELECT stream_lock FROM users WHERE user=?", [$username])->fetch_row()[0];
         if ($memcached_connected) {
             try {
-                $memcached->set($stream_lock_cache_key, [$stream_lock, $current_timestamp], $db_memcached_ttl ?? 3600);
+                $memcached->set($stream_lock_cache_key, [$stream_lock, $current_timestamp], $db_cache_meta_ttl ?? 300);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -197,7 +197,7 @@ if (isset($sids[0])) {
         )->fetch_row()[0] ?? null;
         if ($memcached_connected) {
             try {
-                $memcached->set($session_id_cache_key, [$id, $current_timestamp], $db_memcached_ttl ?? 3600);
+                $memcached->set($session_id_cache_key, [$id, $current_timestamp], $db_cache_meta_ttl ?? 300);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);
@@ -233,8 +233,6 @@ return [
     'db_host'              => $db_host ?? '',
     'db_user'              => $db_user ?? '',
     'db_name'              => $db_name ?? '',
-    'db_users'             => $db_users ?? '',
-    'db_log_prefix'        => $db_log_prefix ?? '',
     'results_per_page'     => $results_per_page ?? 50,
     'memcached_connected'  => $memcached_connected,
     'redis_stream_enabled' => $redis_stream_enabled ?? false,

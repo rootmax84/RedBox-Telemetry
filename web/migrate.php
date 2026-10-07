@@ -23,6 +23,12 @@
  *     1.2 Создаёт src/creds.php из src/creds.php.example, если его нет
  *     1.3 Migrates per-user → shared tables (логи/sessions/pids)
  *     1.4 Добавляет недостающие параметры (heavy_tasks, worker DLQ и др.)
+ *     1.5 Синхронизирует creds.php с creds.php.example:
+ *           - удаляет переменные, которых нет в example;
+ *           - добавляет переменные из example, которых нет в creds.php;
+ *           - сохраняет значения существующих переменных из creds.php
+ *             (кроме простых ссылок на другие переменные — они
+ *              берутся из example, чтобы не получить undefined).
  *
  *   Phase 2. Подключение к MariaDB с retry (--wait-db=N)
  *
@@ -52,11 +58,15 @@
  *   - Изменения creds.php сопровождаются бэкапом:
  *       src/creds.php.bak.YYYYMMDD_HHMMSS        (shared-tables migration)
  *       src/creds.php.params.bak.YYYYMMDD_HHMMSS (params migration)
+ *       src/creds.php.sync.bak.YYYYMMDD_HHMMSS   (example-sync)
  *   - --auto возвращает ненулевой exit code при любой ошибке,
  *     чтобы startup-скрипт мог остановить контейнер.
  *   - --reset + --auto запрещены вместе (safety).
  *   - Все обращения к БД обёрнуты в try/catch для mysqli_sql_exception,
  *     т.к. в PHP 8.1+ mysqli по умолчанию работает в strict-режиме.
+ *
+ *   - Таблица users жёстко захардкожена как 'users' — глобальная
+ *     переменная $db_users из creds.php больше не используется.
  */
 
 if (PHP_SAPI !== 'cli') {
@@ -147,9 +157,20 @@ function phase(string $t): void
  * Phase 1.3: миграция creds.php (per-user → shared tables)
  *
  * Меняет схему хранения данных с "{login}_logs / {login}_sessions /
- * {login}_pids" на общие таблицы "logs / sessions / pids" с колонкой
- * user_id. Идемпотентно — если в creds.php уже есть $db_log_table,
- * сразу возвращает 'already'.
+ * {login}_pids" (или через префиксы) на общие таблицы
+ * "logs / sessions / pids" с колонкой user_id.
+ *
+ * Критерий «нужна миграция» — ЕДИНСТВЕННЫЙ: наличие строки
+ *   $db_table = $username.<что угодно>
+ *
+ * Если такой строки нет:
+ *   - есть $user_id  → «already» (уже мигрирован или синхронизирован);
+ *   - нет $user_id   → «no_match» (нестандартный файл, не трогаем).
+ *
+ * Значения и наличие любых других переменных ($db_log_table,
+ * $db_sessions_table, $db_pids_table, их префиксы и т.п.) здесь
+ * НЕ проверяются — их подчистит фаза 1.5, синхронизируя файл
+ * с creds.php.example.
  *
  * @return array{status:string, backup:?string, matched:array<string>}
  *   status: 'updated' | 'already' | 'no_match' | 'error'
@@ -174,12 +195,22 @@ function migrate_creds_php(string $path, bool $dry_run): array
         return $result;
     }
 
-    // Уже мигрирован?
-    if (strpos($src, '$db_log_table') !== false) {
-        $result['status'] = 'already';
+    // ─── Единственный legacy-маркер ───
+    // Старый формат: $db_table = $username.$db_log_prefix (или похожее).
+    $has_legacy_db_table = (bool)preg_match(
+        '/^[ \t]*\$db_table[ \t]*=[ \t]*\$username(?!\w)/m',
+        $src
+    );
+
+    if (!$has_legacy_db_table) {
+        // Либо уже мигрирован, либо файл нестандартный.
+        // Маркер «мигрирован» — присутствие $user_id.
+        $has_user_id = (bool)preg_match('/^[ \t]*\$user_id\b/m', $src);
+        $result['status'] = $has_user_id ? 'already' : 'no_match';
         return $result;
     }
 
+    // ─── Мигрируем старый формат ───
     $orig = $src;
 
     /* T1: global $username, $limit; → global $username, $limit, $user_id; */
@@ -193,17 +224,19 @@ function migrate_creds_php(string $path, bool $dry_run): array
         1
     );
 
-    /* T2: $db_table = $username.$db_log_prefix; → новый блок shared tables */
+    /* T2: $db_table = $username.$db_log_prefix; → новый блок.
+     *
+     * $db_table в новом блоке больше НЕ пишем — переменной нет
+     * в проекте, все запросы используют литерал 'logs'/'sessions'/'pids'.
+     * Единственное, что нужно сохранить — $user_id, потому что
+     * он используется в runtime-коде приложения.
+     *
+     * Остальные per-user переменные ($db_log_table, $db_sessions_table,
+     * $db_pids_table, префиксы) здесь намеренно не трогаем — их
+     * удалит 1.5 через сравнение с creds.php.example. */
     $new_block = <<<'PHP'
 // === [migrate.php] shared tables ===
-$db_log_table       = 'logs';
-$db_sessions_table  = 'sessions';
-$db_pids_table      = 'pids';
-$db_table           = $db_log_table;
-$db_log_prefix      = '';
-$db_sessions_prefix = '';
-$db_pids_prefix     = '';
-$user_id            = $_SESSION['uid'] ?? null;
+$user_id = $_SESSION['uid'] ?? null;
 // === [/migrate.php] ===
 PHP;
 
@@ -217,39 +250,9 @@ PHP;
         1
     );
 
-    /* T3: закомментировать $db_sessions_table = ... */
-    $src = preg_replace_callback(
-        '/^([ \t]*)(\$db_sessions_table[ \t]*=[ \t]*\$username[ \t]*\.[ \t]*\$db_sessions_prefix[ \t]*;)/m',
-        function ($m) use (&$result) {
-            $result['matched'][] = '$db_sessions_table (commented out)';
-            return $m[1] . '// [migrate.php] removed: ' . $m[2];
-        },
-        $src,
-        1
-    );
-
-    /* T4: закомментировать $db_pids_table = ... */
-    $src = preg_replace_callback(
-        '/^([ \t]*)(\$db_pids_table[ \t]*=[ \t]*\$username[ \t]*\.[ \t]*\$db_pids_prefix[ \t]*;)/m',
-        function ($m) use (&$result) {
-            $result['matched'][] = '$db_pids_table (commented out)';
-            return $m[1] . '// [migrate.php] removed: ' . $m[2];
-        },
-        $src,
-        1
-    );
-
     // Критическое условие: блок $db_table обязан был замениться.
     // Если нет — файл не похож на стандартный creds.php, лучше не трогать.
-    $critical_ok = false;
-    foreach ($result['matched'] as $m) {
-        if (strpos($m, '$db_table = $username') !== false) {
-            $critical_ok = true;
-            break;
-        }
-    }
-
-    if (!$critical_ok || $src === $orig) {
+    if ($src === $orig || empty($result['matched'])) {
         $result['status'] = 'no_match';
         return $result;
     }
@@ -448,6 +451,284 @@ function migrate_creds_params(string $path, bool $dry_run, bool $no_backup): arr
 }
 
 /* ══════════════════════════════════════════════════════════
+ * Phase 1.5: синхронизация creds.php с creds.php.example
+ *
+ * creds.php.example — эталон. После sync в creds.php:
+ *   - есть все переменные, которые есть в example;
+ *   - нет переменных, которых в example нет;
+ *   - значения существующих переменных сохранены из creds.php
+ *     (кроме случая, когда значение — простая ссылка на другую
+ *      переменную: такие значения берутся из example, чтобы
+ *      не получить «Undefined variable» после удаления
+ *      пер-юзерных переменных вида $db_log_table);
+ *   - комментарии, порядок, структура, кастомный runtime-код
+ *     (не присваивания верхнего уровня) — берутся из example.
+ *
+ * Идемпотентно: если наборы переменных уже совпадают —
+ * возвращает 'already' и файл не трогает.
+ * ══════════════════════════════════════════════════════════ */
+
+/**
+ * Находит в PHP-исходнике присваивания верхнего уровня `$var = ...;`.
+ *
+ * Возвращает массив:
+ *   [ ['var' => 'db_host', 'value_start' => 123, 'value_end' => 140], ... ]
+ *
+ * Игнорирует строки, комментарии //, #, /* ... *\/, вложенные блоки {},
+ * операторы ==, ===, =>.
+ *
+ * Не поддерживает heredoc / nowdoc — в creds.php.example их нет.
+ */
+function scan_php_assignments(string $src): array
+{
+    $findings = [];
+    $len      = strlen($src);
+    $i        = 0;
+    $depth    = 0;
+
+    while ($i < $len) {
+        $c = $src[$i];
+
+        // // комментарий
+        if ($c === '/' && ($src[$i + 1] ?? '') === '/') {
+            $nl = strpos($src, "\n", $i);
+            if ($nl === false) break;
+            $i = $nl + 1;
+            continue;
+        }
+        // # комментарий
+        if ($c === '#') {
+            $nl = strpos($src, "\n", $i);
+            if ($nl === false) break;
+            $i = $nl + 1;
+            continue;
+        }
+        // /* ... */ комментарий
+        if ($c === '/' && ($src[$i + 1] ?? '') === '*') {
+            $end = strpos($src, '*/', $i + 2);
+            $i   = $end === false ? $len : $end + 2;
+            continue;
+        }
+
+        // Строковый литерал
+        if ($c === "'" || $c === '"') {
+            $i = scan_php_string_end($src, $i);
+            continue;
+        }
+
+        // Фигурные скобки — тела if/for/while/функций
+        if ($c === '{') { $depth++; $i++; continue; }
+        if ($c === '}') { $depth = max(0, $depth - 1); $i++; continue; }
+
+        if ($depth === 0 && $c === '$') {
+            // Читаем имя переменной
+            $name_end = $i + 1;
+            while ($name_end < $len
+                && (ctype_alnum($src[$name_end]) || $src[$name_end] === '_')) {
+                $name_end++;
+            }
+            if ($name_end === $i + 1) { $i++; continue; }
+
+            $varName = substr($src, $i + 1, $name_end - $i - 1);
+
+            // Пропускаем пробелы до '='
+            $p = $name_end;
+            while ($p < $len && ctype_space($src[$p])) $p++;
+
+            // Должно быть именно '=', не '==', не '=>'
+            if ($p >= $len || $src[$p] !== '='
+                || ($src[$p + 1] ?? '') === '='
+                || ($src[$p + 1] ?? '') === '>') {
+                $i = $name_end;
+                continue;
+            }
+
+            $p++; // пропускаем '='
+            while ($p < $len && ctype_space($src[$p])) $p++;
+
+            $value_start = $p;
+
+            // Читаем выражение до ';' с учётом вложенных [], ()
+            $subDepth = 0;
+            while ($p < $len) {
+                $vc = $src[$p];
+                if ($vc === "'" || $vc === '"') { $p = scan_php_string_end($src, $p); continue; }
+                if ($vc === '[' || $vc === '(') { $subDepth++; $p++; continue; }
+                if ($vc === ']' || $vc === ')') { $subDepth = max(0, $subDepth - 1); $p++; continue; }
+                if ($vc === ';' && $subDepth === 0) break;
+                $p++;
+            }
+            if ($p >= $len) { $i = $name_end; continue; }
+
+            $value_end = $p;
+            while ($value_end > $value_start && ctype_space($src[$value_end - 1])) {
+                $value_end--;
+            }
+
+            $findings[] = [
+                'var'         => $varName,
+                'value_start' => $value_start,
+                'value_end'   => $value_end,
+            ];
+
+            $i = $p + 1;
+            continue;
+        }
+
+        $i++;
+    }
+
+    return $findings;
+}
+
+/**
+ * Позиция сразу после закрывающей кавычки строкового литерала.
+ * $i указывает на открывающую кавычку.
+ */
+function scan_php_string_end(string $src, int $i): int
+{
+    $len   = strlen($src);
+    $quote = $src[$i];
+    $i++;
+    while ($i < $len) {
+        if ($src[$i] === '\\') { $i += 2; continue; }
+        if ($src[$i] === $quote) { return $i + 1; }
+        $i++;
+    }
+    return $len;
+}
+
+/**
+ * Строит новый исходник creds.php: берёт example как шаблон и
+ * подменяет значения указанных переменных.
+ *
+ * $values_from_creds: [varname => raw_value_expression]
+ */
+function build_synced_creds(string $example_src, array $values_from_creds): string
+{
+    if (empty($values_from_creds)) {
+        return $example_src;
+    }
+
+    $findings = scan_php_assignments($example_src);
+
+    // Заменяем справа налево, чтобы не сбить offsets
+    usort($findings, fn($a, $b) => $b['value_start'] <=> $a['value_start']);
+
+    foreach ($findings as $f) {
+        if (!isset($values_from_creds[$f['var']])) continue;
+        $new_value   = $values_from_creds[$f['var']];
+        $example_src = substr($example_src, 0, $f['value_start'])
+                     . $new_value
+                     . substr($example_src, $f['value_end']);
+    }
+
+    return $example_src;
+}
+
+/**
+ * @return array{
+ *   status: 'updated'|'already'|'error',
+ *   backup: ?string,
+ *   added: string[],
+ *   removed: string[],
+ *   kept: string[]
+ * }
+ */
+function sync_creds_with_example(
+    string $creds_path,
+    string $example_path,
+    bool   $dry_run,
+    bool   $no_backup
+): array {
+    $result = [
+        'status'  => 'error',
+        'backup'  => null,
+        'added'   => [],
+        'removed' => [],
+        'kept'    => [],
+    ];
+
+    if (!file_exists($creds_path)) {
+        err("[creds-sync] not found: {$creds_path}");
+        return $result;
+    }
+    if (!file_exists($example_path)) {
+        err("[creds-sync] example not found: {$example_path}");
+        return $result;
+    }
+
+    $creds_src   = file_get_contents($creds_path);
+    $example_src = file_get_contents($example_path);
+    if ($creds_src === false || $example_src === false) {
+        err("[creds-sync] cannot read files");
+        return $result;
+    }
+
+    // Значения из creds.php
+    $creds_vars = [];
+    foreach (scan_php_assignments($creds_src) as $f) {
+        $creds_vars[$f['var']] = substr(
+            $creds_src, $f['value_start'], $f['value_end'] - $f['value_start']
+        );
+    }
+
+    // Набор переменных из example
+    $example_vars = [];
+    foreach (scan_php_assignments($example_src) as $f) {
+        $example_vars[$f['var']] = true;
+    }
+
+    $added   = array_diff_key($example_vars, $creds_vars);
+    $removed = array_diff_key($creds_vars, $example_vars);
+    $kept    = array_intersect_key($creds_vars, $example_vars);
+
+    $result['added']   = array_keys($added);
+    $result['removed'] = array_keys($removed);
+    $result['kept']    = array_keys($kept);
+
+    if (empty($added) && empty($removed)) {
+        $result['status'] = 'already';
+        return $result;
+    }
+
+    if ($dry_run) {
+        $result['status'] = 'updated';
+        return $result;
+    }
+
+    if (!$no_backup) {
+        $backup = $creds_path . '.sync.bak.' . date('Ymd_His');
+        if (!@copy($creds_path, $backup)) {
+            err("[creds-sync] backup failed: {$backup}");
+            return $result;
+        }
+        $result['backup'] = $backup;
+    }
+
+    // Значения для подстановки: только те, что есть в example.
+    // Простые ссылки ($var) не сохраняем — иначе после удаления
+    // целевой переменной получим undefined.
+    $keep_values = [];
+    foreach ($kept as $var => $value) {
+        if (preg_match('/^\$[a-zA-Z_]\w*$/', $value)) {
+            continue;
+        }
+        $keep_values[$var] = $value;
+    }
+
+    $new_src = build_synced_creds($example_src, $keep_values);
+
+    if (@file_put_contents($creds_path, $new_src) === false) {
+        err("[creds-sync] write failed: {$creds_path}");
+        return $result;
+    }
+
+    $result['status'] = 'updated';
+    return $result;
+}
+
+/* ══════════════════════════════════════════════════════════
  * Phase 3.1: DDL — создать shared-таблицы
  * ══════════════════════════════════════════════════════════ */
 
@@ -599,31 +880,36 @@ function column_type(mysqli $db, string $table, string $column): ?string
 /* ══════════════════════════════════════════════════════════
  * Phase 3.2: ALTER users — дотянуть схему users до актуальной.
  *
+ * Таблица жёстко захардкожена как 'users' — переменная $db_users
+ * в проекте больше не используется.
+ *
  * Пропускается, если таблицы users нет (clean install —
  * её создаст auth_functions.php::create_users_table() при первом заходе).
  * ══════════════════════════════════════════════════════════ */
 
-function migrate_users_table(mysqli $db, string $db_users, bool $dry_run): void
+function migrate_users_table(mysqli $db, bool $dry_run): void
 {
-    if (!table_exists($db, $db_users)) {
+    $users_table = 'users';
+
+    if (!table_exists($db, $users_table)) {
         out("[users] table not found — clean install, skipping column migration");
         return;
     }
 
     $migrations = [
-        'stream_lock'     => "ALTER TABLE `$db_users` ADD COLUMN stream_lock TINYINT(1) NOT NULL DEFAULT 0",
-        'sessions_filter' => "ALTER TABLE `$db_users` ADD COLUMN sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
-        'share_secret'    => "ALTER TABLE `$db_users` ADD COLUMN share_secret CHAR(32)",
-        'login_attempts'  => "ALTER TABLE `$db_users` ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
-        'last_attempt'    => "ALTER TABLE `$db_users` ADD COLUMN last_attempt DATETIME",
-        'api_gps'         => "ALTER TABLE `$db_users` ADD COLUMN api_gps TINYINT(1) NOT NULL DEFAULT 0",
-        'lang'            => "ALTER TABLE `$db_users` ADD COLUMN lang ENUM('en','ru','es','de') NOT NULL DEFAULT 'en' AFTER gap",
-        'mcu_data'        => "ALTER TABLE `$db_users` ADD COLUMN mcu_data VARCHAR(2048) NULL AFTER sessions_filter",
+        'stream_lock'     => "ALTER TABLE `$users_table` ADD COLUMN stream_lock TINYINT(1) NOT NULL DEFAULT 0",
+        'sessions_filter' => "ALTER TABLE `$users_table` ADD COLUMN sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
+        'share_secret'    => "ALTER TABLE `$users_table` ADD COLUMN share_secret CHAR(32)",
+        'login_attempts'  => "ALTER TABLE `$users_table` ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
+        'last_attempt'    => "ALTER TABLE `$users_table` ADD COLUMN last_attempt DATETIME",
+        'api_gps'         => "ALTER TABLE `$users_table` ADD COLUMN api_gps TINYINT(1) NOT NULL DEFAULT 0",
+        'lang'            => "ALTER TABLE `$users_table` ADD COLUMN lang ENUM('en','ru','es','de') NOT NULL DEFAULT 'en' AFTER gap",
+        'mcu_data'        => "ALTER TABLE `$users_table` ADD COLUMN mcu_data VARCHAR(2048) NULL AFTER sessions_filter",
     ];
 
     $added = 0;
     foreach ($migrations as $col => $sql) {
-        if (column_exists($db, $db_users, $col)) {
+        if (column_exists($db, $users_table, $col)) {
             continue;
         }
         if ($dry_run) {
@@ -641,12 +927,12 @@ function migrate_users_table(mysqli $db, string $db_users, bool $dry_run): void
     }
 
     // Legacy-индекс, который оставался с очень старых версий
-    if (index_exists($db, $db_users, 'indexes')) {
+    if (index_exists($db, $users_table, 'indexes')) {
         if ($dry_run) {
             out("[users] [dry] would DROP INDEX `indexes`");
         } else {
             try {
-                $db->query("DROP INDEX `indexes` ON `$db_users`");
+                $db->query("DROP INDEX `indexes` ON `$users_table`");
                 info("[users] dropped legacy index: indexes");
             } catch (mysqli_sql_exception $e) {
                 err("[users] DROP INDEX `indexes` failed: " . $e->getMessage());
@@ -1109,10 +1395,10 @@ switch ($creds_result['status']) {
 
     case 'no_match':
         err("[creds] no shared-tables patterns matched in {$creds_path}");
-        err("[creds] файл не похож на стандартный creds.php;");
-        err("[creds] проверьте вручную или начните с creds.php.example");
+        err("[creds] file does not look like a standard creds.php;");
+        err("[creds] check it manually or start from creds.php.example");
         if (!$DRY_RUN) {
-            err("[creds] ABORT — БД не тронута");
+            err("[creds] ABORT — database untouched");
             exit(2);
         }
         break;
@@ -1120,7 +1406,7 @@ switch ($creds_result['status']) {
     case 'error':
     default:
         if (!$DRY_RUN) {
-            err("[creds] ABORT — БД не тронута");
+            err("[creds] ABORT — database untouched");
             exit(2);
         }
 }
@@ -1155,13 +1441,59 @@ switch ($params_result['status']) {
         }
 }
 
+// 1.5 Синхронизация creds.php с creds.php.example (эталон).
+// Выполняется последней: подчищает «хвосты» 1.3 и 1.4,
+// приводит структуру к актуальной и удаляет мёртвые переменные
+// (например, $db_log_table / $db_sessions_table / $db_pids_table,
+// а также $db_users / $db_table, если их нет в example).
+if (file_exists($creds_example_path)) {
+    $sync_result = sync_creds_with_example(
+        $creds_path,
+        $creds_example_path,
+        $DRY_RUN,
+        $NO_BACKUP
+    );
+
+    switch ($sync_result['status']) {
+        case 'already':
+            out("[creds-sync] already in sync with example");
+            break;
+
+        case 'updated':
+            if (!empty($sync_result['added'])) {
+                out("[creds-sync] add: " . implode(', ', $sync_result['added']));
+            }
+            if (!empty($sync_result['removed'])) {
+                out("[creds-sync] remove: " . implode(', ', $sync_result['removed']));
+            }
+            if ($DRY_RUN) {
+                out("[creds-sync] [dry] would sync {$creds_path} from {$creds_example_path}");
+            } else {
+                info("[creds-sync] synced: {$creds_path}");
+                if (!empty($sync_result['backup'])) {
+                    info("[creds-sync] backup: {$sync_result['backup']}");
+                }
+            }
+            break;
+
+        case 'error':
+        default:
+            if (!$DRY_RUN) {
+                err("[creds-sync] failed — ABORT");
+                exit(2);
+            }
+    }
+} else {
+    out("[creds-sync] example not found, skipping sync");
+}
+
 /* ═══════════════ Phase 2: DB connection ═══════════════ */
 
 phase("Phase 2/4: DB connection");
 
 require_once $creds_path;
 
-global $db_host, $db_user, $db_pass, $db_name, $db_port, $db_users;
+global $db_host, $db_user, $db_pass, $db_name, $db_port;
 
 $db       = null;
 $deadline = time() + max(0, $WAIT_DB);
@@ -1215,7 +1547,7 @@ create_tables($db, $DRY_RUN);
 
 // 3.2 Дотянуть users до актуальной схемы (ALTER-ы).
 // Пропускается на clean install (users ещё нет).
-migrate_users_table($db, $db_users, $DRY_RUN);
+migrate_users_table($db, $DRY_RUN);
 
 // 3.3-3.5 Расширяющие миграции для shared-таблиц.
 // Сейчас это заглушки — живых правил нет, всё закомментировано
@@ -1231,7 +1563,7 @@ phase("Phase 4/4: data migration");
 
 // Clean install: таблицы users ещё нет (её создаст auth_functions.php
 // при первом заходе на логин). Мигрировать нечего.
-if (!table_exists($db, $db_users)) {
+if (!table_exists($db, 'users')) {
     info("[migrate] users table not found — clean install, data migration skipped");
     info("[migrate] done");
     $db->close();
@@ -1239,7 +1571,7 @@ if (!table_exists($db, $db_users)) {
 }
 
 $users = $db->query(
-    "SELECT id, user FROM `$db_users` ORDER BY id ASC"
+    "SELECT id, user FROM `users` ORDER BY id ASC"
 )->fetch_all(MYSQLI_ASSOC);
 
 out("[users] found: " . count($users));

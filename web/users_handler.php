@@ -4,7 +4,7 @@ require_once __DIR__ . '/src/auth_functions.php';
 require_once __DIR__ . '/src/db.php';
 include_once __DIR__ . '/translations.php';
 
-function handleUserSettings($db, $translations, $username, $admin, $db_users) {
+function handleUserSettings($db, $translations, $username, $admin) {
     if (!isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'],
           $_POST['time'], $_POST['gap'], $_POST['stream_lock'],
           $_POST['sessions_filter'], $_POST['api_gps']) || $username == $admin) {
@@ -18,7 +18,7 @@ function handleUserSettings($db, $translations, $username, $admin, $db_users) {
     ];
 
     $db->execute_query(
-        "UPDATE $db_users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=?, sessions_filter=?, api_gps=?, lang=? WHERE user=?",
+        "UPDATE users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=?, sessions_filter=?, api_gps=?, lang=? WHERE user=?",
         $params
     );
 
@@ -26,38 +26,38 @@ function handleUserSettings($db, $translations, $username, $admin, $db_users) {
     setcookie("gap", $_POST['gap']);
     $_SESSION['sessions_filter'] = $_POST['sessions_filter'];
 
-    $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
+    $token = $db->execute_query("SELECT token FROM users WHERE user=?", [$username])->fetch_assoc()["token"];
     cache_flush($token);
     cache_flush();
 
     return $translations[current_lang()]['set.common.updated'];
 }
 
-function handleTokenRequests($db, $translations, $username, $admin, $db_users) {
+function handleTokenRequests($db, $translations, $username, $admin) {
     if ($username == $admin) return false;
 
     if (isset($_GET['get_token'])) {
-        $row = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc();
+        $row = $db->execute_query("SELECT token FROM users WHERE user=?", [$username])->fetch_assoc();
         return $row["token"] ?? $translations[current_lang()]['new.token'];
     }
 
     if (isset($_GET['renew_token'])) {
-        $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
+        $token = $db->execute_query("SELECT token FROM users WHERE user=?", [$username])->fetch_assoc()["token"];
         cache_flush($token);
         $token = generate_token($username);
-        $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [$token, $username]);
+        $db->execute_query("UPDATE users SET token=? WHERE user=?", [$token, $username]);
         return $translations[current_lang()]['set.token.updated'];
     }
 
     return false;
 }
 
-function handlePasswordChange($db, $translations, $username, $admin, $salt, $db_users) {
+function handlePasswordChange($db, $translations, $username, $admin, $salt) {
     if (!isset($_POST['old_p'], $_POST['new_p1'], $_POST['new_p2']) || $username == $admin) {
         return false;
     }
 
-    $row = $db->execute_query("SELECT id, pass FROM $db_users WHERE user=?", [$username])->fetch_assoc();
+    $row = $db->execute_query("SELECT id, pass FROM users WHERE user=?", [$username])->fetch_assoc();
 
     if (!password_verify($_POST['old_p'], $row["pass"])) {
         return $translations[current_lang()]['set.pwd.wrong.curr'];
@@ -79,7 +79,7 @@ function handlePasswordChange($db, $translations, $username, $admin, $salt, $db_
     }
 
     $db->execute_query(
-        "UPDATE $db_users SET pass=? WHERE id=?",
+        "UPDATE users SET pass=? WHERE id=?",
         [password_hash($_POST['new_p2'], PASSWORD_DEFAULT, $salt), $row['id']]
     );
 
@@ -96,13 +96,13 @@ try {
     /* ─────────── Regular user requests ─────────── */
 
     if (isset($username) && $username != $admin) {
-        $response = handleUserSettings($db, $translations, $username, $admin, $db_users) ?:
-                   handleTokenRequests($db, $translations, $username, $admin, $db_users) ?:
-                   handlePasswordChange($db, $translations, $username, $admin, $salt, $db_users);
+        $response = handleUserSettings($db, $translations, $username, $admin) ?:
+                   handleTokenRequests($db, $translations, $username, $admin) ?:
+                   handlePasswordChange($db, $translations, $username, $admin, $salt);
 
         // Handle Telegram integration
         if (isset($_POST['tg_token'], $_POST['tg_chatid'])) {
-            $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$username])->fetch_assoc()["token"];
+            $token = $db->execute_query("SELECT token FROM users WHERE user=?", [$username])->fetch_assoc()["token"];
             cache_flush($token);
 
             // Validate and sanitize Telegram token and chat ID
@@ -117,7 +117,7 @@ try {
             }
 
             $db->execute_query(
-                "UPDATE $db_users SET tg_token=?, tg_chatid=? WHERE user=?",
+                "UPDATE users SET tg_token=?, tg_chatid=? WHERE user=?",
                 [$tg_token, $tg_chatid, $username]
             );
 
@@ -135,7 +135,7 @@ try {
         // Handle share secret update
         if (isset($_POST['share_secret'])) {
             $secret = bin2hex(random_bytes(16));
-            $db->execute_query("UPDATE $db_users SET share_secret=? WHERE user=?", [$secret, $username]);
+            $db->execute_query("UPDATE users SET share_secret=? WHERE user=?", [$secret, $username]);
             $_SESSION['share_secret'] = $secret;
             cache_flush();
             $response = $translations[current_lang()]['share.sec.update'];
@@ -156,7 +156,7 @@ try {
                 die($translations[current_lang()]['admin.limit.catch']);
             }
 
-            $row = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login])->fetch_assoc();
+            $row = $db->execute_query("SELECT id, token FROM users WHERE user=?", [$login])->fetch_assoc();
 
             if (!$row) {
                 die($translations[current_lang()]['admin.user.not.found'].$login);
@@ -168,15 +168,15 @@ try {
                 die($translations[current_lang()]['set.nothing']);
             }
             if (!mb_strlen($password) && strlen($e_limit)) {
-                $db->execute_query("UPDATE $db_users SET s=? WHERE id=?", [$e_limit, $row['id']]);
+                $db->execute_query("UPDATE users SET s=? WHERE id=?", [$e_limit, $row['id']]);
                 $response = $translations[current_lang()]['admin.limit.changed'].$login;
             }
             elseif (mb_strlen($password) && !strlen($e_limit)) {
-                $db->execute_query("UPDATE $db_users SET pass=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $row['id']]);
+                $db->execute_query("UPDATE users SET pass=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $row['id']]);
                 $response = $translations[current_lang()]['admin.pwd.changed'].$login;
             }
             else {
-                $db->execute_query("UPDATE $db_users SET pass=?, s=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $e_limit, $row['id']]);
+                $db->execute_query("UPDATE users SET pass=?, s=? WHERE id=?", [password_hash($password, PASSWORD_DEFAULT, $salt), $e_limit, $row['id']]);
                 $response = $translations[current_lang()]['admin.changed'].$login;
             }
 
@@ -190,7 +190,7 @@ try {
             $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['reg_login']);
             $password = $_POST['reg_pass'];
 
-            $userqry = $db->execute_query("SELECT id FROM $db_users WHERE user=?", [$login]);
+            $userqry = $db->execute_query("SELECT id FROM users WHERE user=?", [$login]);
 
             if ($userqry->num_rows || mb_strlen($login) < 1 || mb_strlen($login) > 32) {
                 die($translations[current_lang()]['admin.user.exists']);
@@ -202,7 +202,7 @@ try {
 
             // ── Создать запись в users ──
             $db->execute_query(
-                "INSERT INTO $db_users (user, pass, s) VALUES (?,?,?)",
+                "INSERT INTO users (user, pass, s) VALUES (?,?,?)",
                 [$login, password_hash($password, PASSWORD_DEFAULT, $salt), $def_limit]
             );
 
@@ -223,7 +223,7 @@ try {
         elseif (isset($_POST['del_login'])) {
             $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['del_login']);
 
-            $userqry = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login]);
+            $userqry = $db->execute_query("SELECT id, token FROM users WHERE user=?", [$login]);
 
             if (!$userqry->num_rows || mb_strlen($login) < 1) {
                 die($translations[current_lang()]['admin.user.not.found'].$login);
@@ -265,7 +265,7 @@ try {
             $db->execute_query("DELETE FROM logs     WHERE user_id = ?", [$target_uid]);
             $db->execute_query("DELETE FROM sessions WHERE user_id = ?", [$target_uid]);
             $db->execute_query("DELETE FROM pids     WHERE user_id = ?", [$target_uid]);
-            $db->execute_query("DELETE FROM $db_users WHERE id = ?",     [$target_uid]);
+            $db->execute_query("DELETE FROM users WHERE id = ?",     [$target_uid]);
 
             $username = $login;
 
@@ -287,7 +287,7 @@ try {
         elseif (isset($_POST['trunc_login'])) {
             $login = preg_replace('/[^\p{L}\p{N}_]+/u', '', $_POST['trunc_login']);
 
-            $userqry = $db->execute_query("SELECT id, token FROM $db_users WHERE user=?", [$login]);
+            $userqry = $db->execute_query("SELECT id, token FROM users WHERE user=?", [$login]);
 
             if (!$userqry->num_rows || mb_strlen($login) < 1) {
                 die($translations[current_lang()]['admin.user.not.found'].$login);

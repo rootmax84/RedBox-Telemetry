@@ -104,7 +104,7 @@ if (!empty($token)) {
 
     if ($user_data === false) {
         $userqry = $db->execute_query(
-            "SELECT id, user, s, tg_token, tg_chatid, lang FROM $db_users WHERE token=?",
+            "SELECT id, user, s, tg_token, tg_chatid, lang FROM users WHERE token=?",
             [$token]
         );
         if ($userqry->num_rows) {
@@ -112,7 +112,7 @@ if (!empty($token)) {
             $user_data = $userqry->fetch_assoc();
             if ($memcached_connected) {
                 try {
-                    $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
+                    $memcached->set($cache_key, $user_data, $db_cache_ttl ?? 3600);
                 } catch (Exception $e) {
                     error_log("Ratel cache error on upload auth: " . $e->getMessage());
                 }

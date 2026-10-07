@@ -37,7 +37,7 @@ if (isset($data['id'])) {
 if (empty($_SESSION['share_secret'])) {
     $secret = bin2hex(random_bytes(16));
     $db->execute_query(
-        "UPDATE $db_users SET share_secret = ? WHERE user = ?",
+        "UPDATE users SET share_secret = ? WHERE user = ?",
         [$secret, $username]
     );
     $_SESSION['share_secret'] = $secret;

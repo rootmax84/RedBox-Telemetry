@@ -3,7 +3,7 @@
     require_once __DIR__ . '/src/db_limits.php';
 
     //Conversion and gap settings etc
-    $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,api_gps FROM $db_users WHERE user=?", [$username])->fetch_row();
+    $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,api_gps FROM users WHERE user=?", [$username])->fetch_row();
     [$token, $chatid, $speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter, $api_gps] = $setqry;
 
     $db->close();

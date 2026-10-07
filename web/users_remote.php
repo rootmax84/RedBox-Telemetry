@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/src/db.php';
 
-$qry = $db->execute_query("SELECT token, mcu_data FROM $db_users WHERE user=?", [$username])->fetch_row();
+$qry = $db->execute_query("SELECT token, mcu_data FROM users WHERE user=?", [$username])->fetch_row();
 [$token, $mcu_data] = $qry;
 
 $db->close();

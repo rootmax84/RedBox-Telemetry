@@ -712,7 +712,7 @@ function processStreamMessage(mysqli $db, array $fields): void
  * ──────────────────────────────────────────────────────────── */
 function getUserData(string $username): ?array
 {
-    global $db, $db_users, $memcached, $memcached_connected, $db_memcached_ttl;
+    global $db, $memcached, $memcached_connected, $db_cache_ttl;
 
     $cacheKey = "worker_user_" . $username;
 
@@ -724,7 +724,7 @@ function getUserData(string $username): ?array
     }
 
     $row = $db->execute_query(
-        "SELECT id, user, s, tg_token, tg_chatid, lang FROM $db_users WHERE user=?",
+        "SELECT id, user, s, tg_token, tg_chatid, lang FROM users WHERE user=?",
         [$username]
     )->fetch_assoc();
 
@@ -733,7 +733,7 @@ function getUserData(string $username): ?array
     }
 
     if ($memcached_connected) {
-        try { $memcached->set($cacheKey, $row, $db_memcached_ttl ?? 3600); }
+        try { $memcached->set($cacheKey, $row, $db_cache_ttl ?? 3600); }
         catch (Throwable $e) { /* ignore */ }
     }
 

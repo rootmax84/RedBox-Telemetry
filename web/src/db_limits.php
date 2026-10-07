@@ -37,11 +37,11 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
     }
 
     if ($user_status === false) {
-        $row = $db->execute_query("SELECT s FROM $db_users WHERE user=?", [$username])->fetch_assoc();
+        $row = $db->execute_query("SELECT s FROM users WHERE user=?", [$username])->fetch_assoc();
         $user_status = $row['s'];
         if ($memcached_connected) {
             try {
-                $memcached->set($user_status_cache_key, $user_status, 300);
+                $memcached->set($user_status_cache_key, $user_status, $db_cache_meta_ttl ?? 300);
             } catch (Exception $e) {
                 $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
                 error_log($errorMessage);

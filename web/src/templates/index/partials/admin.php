@@ -18,7 +18,7 @@
 
 <?php
 $page_first_result = ($page - 1) * $results_per_page;
-$usrqry = $db->query("SELECT COUNT(*) FROM $db_users");
+$usrqry = $db->query("SELECT COUNT(*) FROM users");
 $number_of_result = $usrqry->fetch_row()[0];
 $number_of_page = ceil($number_of_result / $results_per_page);
 
@@ -47,8 +47,8 @@ while ($cr = $cnt_r->fetch_assoc()) {
 
 $r = $db->query(
     "SELECT id, user, s, last_attempt
-       FROM $db_users
-      ORDER BY id = (SELECT MIN(id) FROM $db_users) DESC, user ASC
+       FROM users
+      ORDER BY id = (SELECT MIN(id) FROM users) DESC, user ASC
       LIMIT " . (int)$page_first_result . "," . (int)$results_per_page
 );
 

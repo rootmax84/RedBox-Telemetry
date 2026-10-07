@@ -26,14 +26,14 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
 
     if ($user_data === false) {
         $userqry = $db->execute_query(
-            "SELECT id, user, sessions_filter, time, gap, share_secret FROM $db_users WHERE id=?",
+            "SELECT id, user, sessions_filter, time, gap, share_secret FROM users WHERE id=?",
             [$uid]
         );
         if ($userqry->num_rows) {
             $user_data = $userqry->fetch_assoc();
             if ($memcached_connected) {
                 try {
-                    $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
+                    $memcached->set($cache_key, $user_data, $db_cache_ttl ?? 3600);
                 } catch (Exception $e) {
                     error_log(sprintf("Ratel cache error on share: %s (Code: %d)", $e->getMessage(), $e->getCode()));
                 }
@@ -106,7 +106,7 @@ if ($username) {
         $gps_data = ['geolocs' => $geolocs, 'timearray' => $timearray];
         if ($memcached_connected) {
             try {
-                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_memcached_ttl ?? 3600);
+                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_cache_ttl ?? 3600);
             } catch (Exception $e) {
                 error_log(sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
             }

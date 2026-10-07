@@ -163,7 +163,6 @@ function processBulkRecords(mysqli $db, array $ctx, array $records): void
             $notif = processSessionStartRecord(
                 $db,
                 $record,
-                'sessions',
                 $lang,
                 $ctx['username'],
                 $ctx['tg_token']       ?? null,
@@ -241,7 +240,6 @@ function processSingleRequest(mysqli $db, array $ctx, array $request): void
             $notif = processSessionStartRecord(
                 $db,
                 $record,
-                'sessions',
                 $lang,
                 $ctx['username'],
                 $ctx['tg_token']       ?? null,

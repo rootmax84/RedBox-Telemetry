@@ -61,7 +61,7 @@ function get_redis_connection()
             (int)($redis_port ?? 6379),
             (float)($redis_timeout ?? 2.0),
             null,   // persistent_id — null = пул по host:port
-            0,      // retry_interval
+            30,     // retry_interval
             0       // read_timeout (значение по умолчанию, не блокирующий)
         );
 

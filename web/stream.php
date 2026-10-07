@@ -54,7 +54,7 @@ if ($s_data === false) {
         $s_data = [];
         while ($row = $s_result->fetch_array()) $s_data[] = $row;
         if ($memcached_connected) {
-            try { $memcached->set($cache_key_s, $s_data, $db_memcached_ttl ?? 3600); }
+            try { $memcached->set($cache_key_s, $s_data, $db_cache_meta_ttl ?? 300); }
             catch (Exception $e) { error_log("Ratel cache error on stream (s): " . $e->getMessage()); }
         }
     }
@@ -76,7 +76,7 @@ if ($d_data === false) {
         $d_data = [];
         while ($row = $d_result->fetch_array()) $d_data[] = $row;
         if ($memcached_connected) {
-            try { $memcached->set($cache_key_d, $d_data, $db_memcached_ttl ?? 3600); }
+            try { $memcached->set($cache_key_d, $d_data, $db_cache_meta_ttl ?? 300); }
             catch (Exception $e) { error_log("Ratel cache error on stream (d): " . $e->getMessage()); }
         }
     }
@@ -107,13 +107,13 @@ if ($memcached_connected) {
 
 if ($user_settings === false) {
     $setqry = $db->execute_query(
-        "SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?",
+        "SELECT speed,temp,pressure,boost FROM users WHERE user=?",
         [$username]
     );
     if ($setqry->num_rows) {
         $user_settings = $setqry->fetch_row();
         if ($memcached_connected) {
-            try { $memcached->set($cache_key_api_conv, $user_settings, $db_memcached_ttl ?? 3600); }
+            try { $memcached->set($cache_key_api_conv, $user_settings, $db_cache_ttl ?? 3600); }
             catch (Exception $e) { error_log("Ratel cache error on api: " . $e->getMessage()); }
         }
     }

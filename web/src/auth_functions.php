@@ -1,7 +1,7 @@
 <?php
 
 function get_db_connection() {
-    global $db_users, $live_data_rate, $db_engine, $admin, $salt, $username, $db_sessions_table, $db_table;
+    global $live_data_rate, $db_engine, $admin, $salt, $username;
     include __DIR__ . '/creds.php';
 
     if (!isset($db)) {
@@ -57,14 +57,13 @@ function get_pass()
 
 function check_login_attempts($user) {
     $db = get_db_connection();
-    global $db_users;
 
     // Clean install — таблица users ещё не создана
-    if (!check_table_exists($db, $db_users)) {
+    if (!check_table_exists($db, 'users')) {
         return true;
     }
 
-    $result = $db->execute_query("SELECT login_attempts, UNIX_TIMESTAMP(last_attempt) as last_attempt FROM $db_users WHERE user=?", [$user]);
+    $result = $db->execute_query("SELECT login_attempts, UNIX_TIMESTAMP(last_attempt) as last_attempt FROM users WHERE user=?", [$user]);
 
     if (!$result || !$result->num_rows) {
         return true;
@@ -83,12 +82,11 @@ function check_login_attempts($user) {
 
 function update_login_attempts($user, $success) {
     $db = get_db_connection();
-    global $db_users;
 
     if ($success) {
-        $db->execute_query("UPDATE $db_users SET login_attempts = 0, last_attempt = NOW() WHERE user=?", [$user]);
+        $db->execute_query("UPDATE users SET login_attempts = 0, last_attempt = NOW() WHERE user=?", [$user]);
     } else {
-        $db->execute_query("UPDATE $db_users SET login_attempts = login_attempts + 1, last_attempt = NOW() WHERE user=?", [$user]);
+        $db->execute_query("UPDATE users SET login_attempts = login_attempts + 1, last_attempt = NOW() WHERE user=?", [$user]);
     }
 }
 
@@ -96,7 +94,7 @@ function update_login_attempts($user, $success) {
 function auth_user()
 {
     $db = get_db_connection();
-    global $db_users, $live_data_rate;
+    global $live_data_rate;
 
     global $csrf_exempt_scripts;
     $current_script = basename($_SERVER['SCRIPT_FILENAME']);
@@ -125,7 +123,7 @@ function auth_user()
         exit;
     }
 
-    $userqry = $db->execute_query("SELECT id, user, pass, s, time, gap, sessions_filter, share_secret FROM $db_users WHERE user=?", [$user]);
+    $userqry = $db->execute_query("SELECT id, user, pass, s, time, gap, sessions_filter, share_secret FROM users WHERE user=?", [$user]);
 
     if (!$userqry->num_rows) {
         update_login_attempts($user, false);
@@ -169,11 +167,11 @@ function auth_user()
 function create_users_table()
 {
     $db = get_db_connection();
-    global $db_users, $db_engine, $admin, $salt;
+    global $db_engine, $admin, $salt;
 
-    $is_empty = "SELECT * FROM $db_users LIMIT 1";
+    $is_empty = "SELECT * FROM users LIMIT 1";
 
-    $table = "CREATE TABLE IF NOT EXISTS " . $db_users . " (
+    $table = "CREATE TABLE IF NOT EXISTS users (
         id bigint unsigned NOT NULL AUTO_INCREMENT,
         s mediumint NOT NULL DEFAULT 100,
         user varchar(128) COLLATE utf8mb4_bin NOT NULL,
@@ -202,7 +200,7 @@ function create_users_table()
 
     $db->query($table);
     if (!$db->query($is_empty)->num_rows) {
-        $db->execute_query("INSERT INTO $db_users (s, user, pass) VALUES (?,?,?)", [0, $admin, password_hash('admin', PASSWORD_DEFAULT, $salt)]);
+        $db->execute_query("INSERT INTO users (s, user, pass) VALUES (?,?,?)", [0, $admin, password_hash('admin', PASSWORD_DEFAULT, $salt)]);
     }
     $db->close();
 }

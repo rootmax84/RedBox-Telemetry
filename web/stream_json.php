@@ -100,14 +100,14 @@ if ($memcached_connected) {
 
 if ($user_data === false) {
     $userqry = $db->execute_query(
-        "SELECT id, user, s, api_gps FROM $db_users WHERE token=?",
+        "SELECT id, user, s, api_gps FROM users WHERE token=?",
         [$token]
     );
     if ($userqry->num_rows) {
         $user_data = $userqry->fetch_assoc();
         if ($memcached_connected) {
             try {
-                $memcached->set($cache_key, $user_data, $db_memcached_ttl ?? 3600);
+                $memcached->set($cache_key, $user_data, $db_cache_ttl ?? 3600);
             } catch (Exception $e) {
                 error_log(sprintf("Ratel cache error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
             }
@@ -181,7 +181,7 @@ if ($pids === false) {
         }
         if ($memcached_connected) {
             try {
-                $memcached->set($cache_key_api_pids, $pids, $db_memcached_ttl ?? 3600);
+                $memcached->set($cache_key_api_pids, $pids, $db_cache_meta_ttl ?? 300);
             } catch (Exception $e) {
                 error_log(sprintf("Ratel cache error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
             }
@@ -203,14 +203,14 @@ if ($memcached_connected) {
 
 if ($user_settings === false) {
     $setqry = $db->execute_query(
-        "SELECT speed,temp,pressure,boost FROM $db_users WHERE user=?",
+        "SELECT speed,temp,pressure,boost FROM users WHERE user=?",
         [$user]
     );
     if ($setqry->num_rows) {
         $user_settings = $setqry->fetch_row();
         if ($memcached_connected) {
             try {
-                $memcached->set($cache_key_api_conv, $user_settings, $db_memcached_ttl ?? 3600);
+                $memcached->set($cache_key_api_conv, $user_settings, $db_cache_ttl ?? 3600);
             } catch (Exception $e) {
                 error_log(sprintf("Ratel cache error on api: %s (Code: %d)", $e->getMessage(), $e->getCode()));
             }

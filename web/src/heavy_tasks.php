@@ -509,8 +509,6 @@ function heavy_do_delete_sessions(mysqli $db, int $user_id, array $payload): arr
 
 function heavy_do_delete_user(mysqli $db, array $payload): array
 {
-    global $db_users;
-
     $target_uid  = (int)($payload['target_user_id']     ?? 0);
     $target_name = (string)($payload['target_username'] ?? '');
     $token       = (string)($payload['target_token']    ?? '');
@@ -519,7 +517,7 @@ function heavy_do_delete_user(mysqli $db, array $payload): array
 
     if ($target_name === '') {
         $row = $db->execute_query(
-            "SELECT user, token FROM $db_users WHERE id = ?",
+            "SELECT user, token FROM users WHERE id = ?",
             [$target_uid]
         )->fetch_assoc();
         if (!$row) return ['deleted' => false, 'reason' => 'user_not_found'];
@@ -538,7 +536,7 @@ function heavy_do_delete_user(mysqli $db, array $payload): array
         $db->execute_query("DELETE FROM pids WHERE user_id = ?", [$target_uid]);
         $pids_deleted = $db->affected_rows;
 
-        $db->execute_query("DELETE FROM $db_users WHERE id = ?", [$target_uid]);
+        $db->execute_query("DELETE FROM users WHERE id = ?", [$target_uid]);
         $user_deleted = $db->affected_rows > 0;
 
         if ($token !== '') cache_flush($token);
@@ -558,8 +556,6 @@ function heavy_do_delete_user(mysqli $db, array $payload): array
 
 function heavy_do_truncate_user(mysqli $db, array $payload): array
 {
-    global $db_users;
-
     $target_uid  = (int)($payload['target_user_id']     ?? 0);
     $target_name = (string)($payload['target_username'] ?? '');
     $token       = (string)($payload['target_token']    ?? '');
@@ -568,7 +564,7 @@ function heavy_do_truncate_user(mysqli $db, array $payload): array
 
     if ($target_name === '') {
         $row = $db->execute_query(
-            "SELECT user, token FROM $db_users WHERE id = ?",
+            "SELECT user, token FROM users WHERE id = ?",
             [$target_uid]
         )->fetch_assoc();
         if (!$row) return ['truncated' => false, 'reason' => 'user_not_found'];

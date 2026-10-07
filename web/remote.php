@@ -38,7 +38,7 @@ if (empty($token)) {
 $_SESSION['torque_logged_in'] = true;
 require_once __DIR__ . '/src/db.php';
 
-$row = $db->execute_query("SELECT mcu_data, s FROM $db_users WHERE token=?", [$token])->fetch_assoc();
+$row = $db->execute_query("SELECT mcu_data, s FROM users WHERE token=?", [$token])->fetch_assoc();
 
 if (!$row) {
     http_response_code(403);
@@ -73,6 +73,6 @@ if (strlen($data) > 2048 || count($parts) !== 406 || $parts[count($parts) - 2] !
     exit;
 }
 
-$db->execute_query("UPDATE $db_users SET mcu_data=? WHERE token=?", [$data, $token]);
+$db->execute_query("UPDATE users SET mcu_data=? WHERE token=?", [$data, $token]);
 $db->close();
 exit;

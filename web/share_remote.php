@@ -15,7 +15,7 @@ require_once __DIR__ . '/timezone.php';
 if (isset($_GET['uid'], $_GET['sig'])) {
     $uid = $_GET['uid'];
     $sig = $_GET['sig'];
-    $userqry = $db->execute_query("SELECT token, mcu_data, time, share_secret, s FROM $db_users WHERE id=?", [$uid]);
+    $userqry = $db->execute_query("SELECT token, mcu_data, time, share_secret, s FROM users WHERE id=?", [$uid]);
     if ($userqry->num_rows) {
         $user_data = $userqry->fetch_assoc();
     } else {

@@ -39,10 +39,9 @@ require_once __DIR__ . '/src/auth_functions.php';
 require_once __DIR__ . '/src/db.php';
 
 $db = get_db_connection();
-global $db_users;
 
 // Check user presence
-$userqry = $db->execute_query("SELECT user, pass, s FROM $db_users WHERE user=?", [$user]);
+$userqry = $db->execute_query("SELECT user, pass, s FROM users WHERE user=?", [$user]);
 if ($userqry->num_rows === 0) {
     http_response_code(401);
     echo $translations[$lang]['catch.loginfailed'];
@@ -75,10 +74,10 @@ if (!password_verify($pass, $row['pass'])) {
 
 // Generate new token
 try {
-    $token = $db->execute_query("SELECT token FROM $db_users WHERE user=?", [$user])->fetch_assoc()["token"];
+    $token = $db->execute_query("SELECT token FROM users WHERE user=?", [$user])->fetch_assoc()["token"];
     cache_flush($token);
     $token = generate_token($user);
-    $db->execute_query("UPDATE $db_users SET token=? WHERE user=?", [$token, $user]);
+    $db->execute_query("UPDATE users SET token=? WHERE user=?", [$token, $user]);
 } catch(Exception $e) {
     http_response_code(500);
     echo $translations[$lang]['dialog.token.err.msg'];

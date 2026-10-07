@@ -87,7 +87,7 @@ $r = get_redis_connection();
 global $redis_stream_key, $redis_stream_group,
        $redis_stream_maxlen,
        $redis_heavy_stream_key, $redis_dlq_key,
-       $db, $db_users;
+       $db;
 
 $uploadsKey = $redis_stream_key       ?? 'telemetry:uploads';
 $heavyKey   = $redis_heavy_stream_key ?? 'ratel:heavy_tasks';
@@ -503,7 +503,7 @@ if ($r === null) {
     /* 10. uid ↔ username map */
     $userRows = [];
     try {
-        $res = $db->query("SELECT id, user FROM `$db_users`");
+        $res = $db->query("SELECT id, user FROM users");
         if ($res) {
             while ($row = $res->fetch_assoc()) {
                 $userRows[(int)$row['id']] = ['id' => (int)$row['id'], 'user' => (string)$row['user']];

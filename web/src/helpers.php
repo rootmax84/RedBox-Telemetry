@@ -72,7 +72,6 @@ function temp_conv(float|int $val, string $unit, string $id): float
 /**
  * @param mysqli $db
  * @param string $session_id
- * @param string $db_sessions_table
  * @return int|null
  */
 function getLastUpdateTimestamp(mysqli $db, int $user_id, string $session_id): ?int
@@ -487,72 +486,10 @@ function sanitizeInput($input, string $type = 'string') {
 }
 
 /**
- * single insert of raw data
- */
-function insert_single_record(mysqli $db, string $db_table, array $rawkeys, array $rawvalues) {
-    $sql = "INSERT IGNORE INTO $db_table (".quote_names($rawkeys).") VALUES (".quote_values($rawvalues).")";
-    try {
-        $db->query($sql);
-    } catch (Exception $e) {
-        cache_flush();
-    }
-}
-
-/**
- * Bulk insert of raw data records.
- *
- * @param mysqli $db
- * @param string $db_table
- * @param array $records
- */
-function insert_bulk_records(mysqli $db, string $db_table, array $records) {
-    if (empty($records)) return;
-
-    // Collect all unique keeys from all records
-    $allKeys = [];
-    foreach ($records as $record) {
-        foreach (array_keys($record) as $key) {
-            if (!in_array($key, $allKeys)) {
-                $allKeys[] = $key;
-            }
-        }
-    }
-
-    // Build string of columns
-    $columns = quote_names($allKeys);
-
-    // Build value array for each record
-    $valueRows = [];
-    foreach ($records as $record) {
-        $rowValues = [];
-        foreach ($allKeys as $key) {
-            $rowValues[] = $record[$key] ?? '';
-        }
-        $valueRows[] = '(' . quote_values($rowValues) . ')';
-    }
-
-    $valuesStr = implode(', ', $valueRows);
-    $sql = "INSERT IGNORE INTO $db_table ($columns) VALUES $valuesStr";
-
-    try {
-        $db->query($sql);
-    } catch (Exception $e) {
-        cache_flush();
-        error_log(sprintf(
-            "Bulk insert error: %s | columns=[%s] | first row=[%s]",
-            $e->getMessage(),
-            implode(',', $allKeys),
-            json_encode($records[0] ?? null, JSON_UNESCAPED_UNICODE)
-        ));
-    }
-}
-
-/**
  * Session start records handler
  *
  * @param mysqli $db
  * @param array $record
- * @param string $db_sessions_table
  * @param string $lang
  * @param string $username
  * @param string $tg_token
@@ -565,7 +502,6 @@ function insert_bulk_records(mysqli $db, string $db_table, array $records) {
 function processSessionStartRecord(
     mysqli  $db,
     array   $record,
-    string  $db_sessions_table,   // 'sessions' (оставлен для совместимости сигнатуры)
     string  $lang,
     string  $username,
     ?string $tg_token,
