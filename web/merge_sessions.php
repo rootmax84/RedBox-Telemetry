@@ -55,6 +55,14 @@ if (!empty($mergesession) && !empty($mergesess1)) {
 
     // ── Fallback inline (Redis недоступен) ──
     // (то же самое, что делает heavy_do_merge_sessions, но синхронно)
+
+    /* ── 1. Метаданные целевой сессии ──
+     * target_session — то, что пользователь выбрал в UI. Должна
+     * существовать и принадлежать текущему юзеру. Если её нет
+     * (удалена в другой вкладке, подделан URL, гонка) — уводим
+     * на главную, иначе UPDATE logs уедет на несуществующий id
+     * и оставит сиротские логи без метаданных.
+     */
     $profileResult = $db->execute_query(
         "SELECT profileName, description, favorite, ip
            FROM sessions
@@ -62,11 +70,20 @@ if (!empty($mergesession) && !empty($mergesess1)) {
         [current_user_id(), $mergesession]
     )->fetch_assoc();
 
+    if (!$profileResult) {
+        header('Location: .');
+        exit;
+    }
+
     $profileName     = $profileResult['profileName'];
     $profileFavorite = $profileResult['favorite'];
     $profileDesc     = $profileResult['description'];
     $profileIp       = $profileResult['ip'];
 
+    /* ── 2. Агрегаты по всем выбранным сессиям ──
+     * MIN(session) здесь не нужен — new_session всегда равен
+     * target_session (то, что пользователь выбрал в UI).
+     */
     $allSessions = array_values($sessionids);
     $ph          = implode(',', array_fill(0, count($allSessions), '?'));
     $params      = array_merge([current_user_id()], $allSessions);
@@ -74,7 +91,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
 
     $stmt = $db->prepare(
         "SELECT MIN(time) AS time, MAX(timeend) AS timeend,
-                MIN(session) AS session, SUM(sessionsize) AS sessionsize
+                SUM(sessionsize) AS sessionsize
            FROM sessions
           WHERE user_id = ? AND session IN ($ph)"
     );
@@ -83,37 +100,70 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     $mergerow = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    $newsession     = $mergerow['session'];
+    if (!$mergerow || $mergerow['time'] === null) {
+        header('Location: .');
+        exit;
+    }
+
+    $newsession     = $mergesession;               // = target_session, а не MIN()
     $newtimestart   = $mergerow['time'];
     $newtimeend     = $mergerow['timeend'];
     $newsessionsize = $mergerow['sessionsize'];
 
-    $stmt = $db->prepare(
-        "UPDATE sessions
-            SET time = ?, timeend = ?, sessionsize = ?, profileName = ?,
-                favorite = ?, description = ?, ip = ?
-          WHERE user_id = ? AND session = ?"
-    );
-    $stmt->bind_param('iiissssii',
-        $newtimestart, $newtimeend, $newsessionsize,
-        $profileName, $profileFavorite, $profileDesc, $profileIp,
-        current_user_id(), $newsession
-    );
-    $stmt->execute();
-    $stmt->close();
+    /* ── 2b. Защита от слишком большого мержа ──
+     * UI проверяет mergeMax до отправки, но полагаться только
+     * на клиент нельзя — запрос мог быть сформирован вручную.
+     */
+    if (!empty($merge_max) && (int)$newsessionsize > (int)$merge_max) {
+        header('Location: .');
+        exit;
+    }
 
-    foreach ($allSessions as $sid) {
-        if ($sid == $newsession) continue;
+    /* ── 3. Атомарное обновление ──
+     * В inline-пути чанков нет (один UPDATE logs без LIMIT), поэтому
+     * транзакция бесплатна и даёт атомарность: либо обновили метаданные
+     * + перелили логи + удалили чужие sessions — либо ничего.
+     */
+    $db->begin_transaction();
 
-        $delStmt = $db->prepare("DELETE FROM sessions WHERE user_id = ? AND session = ?");
-        $delStmt->bind_param('ii', current_user_id(), $sid);
-        $delStmt->execute();
-        $delStmt->close();
+    try {
+        // 3a. Обновить метаданные целевой сессии
+        $stmt = $db->prepare(
+            "UPDATE sessions
+                SET time = ?, timeend = ?, sessionsize = ?, profileName = ?,
+                    favorite = ?, description = ?, ip = ?
+              WHERE user_id = ? AND session = ?"
+        );
+        $stmt->bind_param('iiissssii',
+            $newtimestart, $newtimeend, $newsessionsize,
+            $profileName, $profileFavorite, $profileDesc, $profileIp,
+            current_user_id(), $newsession
+        );
+        $stmt->execute();
+        $stmt->close();
 
-        $updDataStmt = $db->prepare("UPDATE logs SET session = ? WHERE user_id = ? AND session = ?");
-        $updDataStmt->bind_param('iii', $newsession, current_user_id(), $sid);
-        $updDataStmt->execute();
-        $updDataStmt->close();
+        // 3b. Перелить логи из чужих сессий и удалить их метаданные.
+        //     Порядок: UPDATE logs → DELETE sessions. Если упадёт
+        //     DELETE — останутся пустые сессии, их легко дочистить.
+        //     Обратный порядок оставил бы логи без метаданных.
+        foreach ($allSessions as $sid) {
+            if ($sid == $newsession) continue;
+
+            $updDataStmt = $db->prepare("UPDATE logs SET session = ? WHERE user_id = ? AND session = ?");
+            $updDataStmt->bind_param('iii', $newsession, current_user_id(), $sid);
+            $updDataStmt->execute();
+            $updDataStmt->close();
+
+            $delStmt = $db->prepare("DELETE FROM sessions WHERE user_id = ? AND session = ?");
+            $delStmt->bind_param('ii', current_user_id(), $sid);
+            $delStmt->execute();
+            $delStmt->close();
+        }
+
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollback();
+        throw $e;
     }
 
     cache_flush();

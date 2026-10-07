@@ -47,6 +47,15 @@ function stream_fail(string $message, ?mysqli $db = null): void {
     exit;
 }
 
+// ────────────────────────────────────────────────────────────
+// Переменные, читаемые в outer catch. Инициализируем null:
+// исключение может прилететь ДО их объявления в try-блоке.
+// ────────────────────────────────────────────────────────────
+$index             = null;   // текущий ключ в foreach ($files)
+$current_file_name = '?';    // имя файла текущей итерации
+$target_file       = null;   // tmp-путь текущего файла
+$pending_session   = null;   // sessionId, вставленный в БД, но НЕ закоммиченный
+
 try {
     if (!$_COOKIE['stream']) {
         if ($streaming) {
@@ -108,7 +117,8 @@ try {
 
     foreach ($files as $index => $fileInfo) {
 
-        $fileName = $fileInfo['name'];
+        $current_file_name = $fileInfo['name'];
+        $fileName          = $current_file_name;
 
         if ($streaming && connection_aborted()) {
             $db->close();
@@ -320,6 +330,8 @@ try {
                      VALUES (?,?,?,?,?,?,?,?)",
                     [$user_id, 'TorqueLog', $sessionId, $firstTime, 'Torque-Log', $lastTime, $rowCount, $ip]
                 );
+                // Сессия вставлена, ещё не закоммичена.
+                $pending_session = $sessionId;
             } catch (Exception $e) {
                 unlink($target_file);
                 $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.dup'];
@@ -371,8 +383,14 @@ try {
                     insert_log_rows_bulk($db, (int)$user_id, $batch);
                 }
                 $db->commit();
+
+                // Коммит прошёл — сессия больше не pending.
+                $pending_session = null;
+
             } catch (Exception $e) {
                 $db->rollBack();
+                $pending_session = null;
+
                 $db->execute_query("DELETE FROM logs     WHERE user_id = ? AND session = ?", [$user_id, $sessionId]);
                 $db->execute_query("DELETE FROM sessions WHERE user_id = ? AND session = ?", [$user_id, $sessionId]);
                 unlink($target_file);
@@ -448,7 +466,37 @@ try {
     $db->close();
 
 } catch (TypeError $e) {
-    $fileName = $files[$index]['name'] ?? '?';
+    // ────────────────────────────────────────────────────────
+    // Аварийный путь.
+    //
+    // TypeError extends Error, не Exception — внутренние
+    // catch (Exception $e) его не ловят. Прибираем всё, что
+    // осталось незачищенным.
+    // ────────────────────────────────────────────────────────
+
+    // 1) Откат незакоммиченной транзакции
+    if (isset($db) && $db instanceof mysqli) {
+        try { $db->rollBack(); } catch (Throwable $e2) {}
+    }
+
+    // 2) Удаляем временный файл текущей итерации
+    if (isset($target_file) && is_string($target_file) && $target_file !== '') {
+        if (file_exists($target_file)) @unlink($target_file);
+    }
+
+    // 3) Сносим ЧАСТИЧНУЮ сессию текущего блока.
+    //    Раньше этой логики тут не было вообще.
+    if ($pending_session !== null && isset($db) && $db instanceof mysqli) {
+        try {
+            $db->execute_query("DELETE FROM logs     WHERE user_id = ? AND session = ?", [$user_id, $pending_session]);
+            $db->execute_query("DELETE FROM sessions WHERE user_id = ? AND session = ?", [$user_id, $pending_session]);
+        } catch (Throwable $e2) {
+            error_log("import_torque: outer-catch cleanup failed: " . $e2->getMessage());
+        }
+    }
+
+    // 4) Имя файла — без warning'ов про undefined $index.
+    $fileName = $current_file_name;
     $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.broken'];
 
     if ($streaming) {
@@ -457,7 +505,9 @@ try {
             'message' => $msg,
             'error'   => true,
         ]);
-        try { $db->close(); } catch (Throwable $e2) {}
+        if (isset($db) && $db instanceof mysqli) {
+            try { $db->close(); } catch (Throwable $e2) {}
+        }
         exit;
     }
 

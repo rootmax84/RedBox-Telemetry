@@ -65,8 +65,14 @@ if ($data === 'fetch') {
     exit;
 }
 
+if (strlen($data) > 2048) {
+    http_response_code(400);
+    echo 'Invalid data';
+    exit;
+}
+
 $parts = explode(',', $data);
-if (strlen($data) > 2048 || count($parts) !== 406 || $parts[count($parts) - 2] !== '~') {
+if (count($parts) !== 406 || $parts[count($parts) - 2] !== '~') {
     http_response_code(400);
     //error_log('[REMOTE] Invalid data: ' . $data);
     echo 'Invalid data';

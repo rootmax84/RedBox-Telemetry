@@ -49,14 +49,15 @@ if (isset($delsession)) {
         $uid    = current_user_id();
         $params = array_merge([$uid], array_values($sessionids));
 
-        $db->execute_query(
-            "DELETE FROM logs WHERE user_id = ? AND session IN ($ph)",
-            $params
-        );
-        $db->execute_query(
-            "DELETE FROM sessions WHERE user_id = ? AND session IN ($ph)",
-            $params
-        );
+        $db->begin_transaction();
+        try {
+            $db->execute_query("DELETE FROM logs     WHERE user_id = ? AND session IN ($ph)", $params);
+            $db->execute_query("DELETE FROM sessions WHERE user_id = ? AND session IN ($ph)", $params);
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
     }
 
     cache_flush();

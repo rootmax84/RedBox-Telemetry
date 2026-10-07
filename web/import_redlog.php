@@ -56,6 +56,16 @@ function stream_fail(string $message, ?mysqli $db = null): void {
     exit;
 }
 
+// ────────────────────────────────────────────────────────────
+// Переменные, читаемые в outer catch. Инициализируем null:
+// исключение может прилететь ДО их объявления в try-блоке.
+// ────────────────────────────────────────────────────────────
+$f                 = null;   // текущий индекс в for-цикле
+$files             = [];     // нормализованный $_FILES['file']
+$target_file       = [];     // tmp-пути, созданные tempnam()
+$current_file_name = '?';    // имя файла текущей итерации
+$pending_session   = null;   // сессия, вставленная в БД, но НЕ закоммиченная
+
 try {
     if (!$_COOKIE['stream']) {
         if ($streaming) {
@@ -80,9 +90,8 @@ try {
     )->fetch_row()[0];
 
     $ok = 0;
-    $files = [];
 
-    //Exceed php_post_size
+    // Exceed php_post_size
     if (!isset($_FILES['file'])) {
         $msg = $translations[current_lang()]['redlog.post.max'];
         if ($streaming) {
@@ -93,14 +102,14 @@ try {
         die($msg);
     }
 
-    //Convert to simply array
-    foreach($_FILES['file'] as $k => $l) {
-        foreach($l as $i => $v) {
+    // Convert to simply array
+    foreach ($_FILES['file'] as $k => $l) {
+        foreach ($l as $i => $v) {
             $files[$i][$k] = $v;
         }
     }
 
-    if(count($files) > 10) {
+    if (count($files) > 10) {
         $msg = $translations[current_lang()]['redlog.warn.count'];
         if ($streaming) {
             http_response_code(406);
@@ -111,10 +120,10 @@ try {
         die;
     }
 
-    $target_file = [];
     for ($f = 0; $f < count($files); $f++) {
 
-        $fileName = $files[$f]['name'];
+        $current_file_name = $files[$f]['name'];
+        $fileName          = $current_file_name;
 
         // Обрыв соединения — прекращаем (только в streaming)
         if ($streaming && connection_aborted()) {
@@ -142,7 +151,7 @@ try {
             die($msg);
         }
 
-        if (!move_uploaded_file($files[$f]['tmp_name'], $target_file[$f]) ) {
+        if (!move_uploaded_file($files[$f]['tmp_name'], $target_file[$f])) {
             $msg = $translations[current_lang()]['redlog.err'];
             if ($streaming) {
                 stream_file_error($fileName, $msg);
@@ -153,7 +162,7 @@ try {
         }
 
         $data = file_get_contents($target_file[$f]);
-        $data_size = filesize($target_file[$f])/1048576;
+        $data_size = filesize($target_file[$f]) / 1048576;
 
         if ($data_size > 15) {
             if (file_exists($target_file[$f])) unlink($target_file[$f]);
@@ -199,6 +208,7 @@ try {
             $last_index = array_key_last($data);
             $time_end = $data[$last_index - 37] ?? $data[$last_index] ?? $time;
         }
+
         try {
             $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
             $db->execute_query(
@@ -217,6 +227,10 @@ try {
             echo $msg;
             die;
         }
+
+        // Сессия вставлена, но ещё не закоммичена.
+        // Outer catch должен её снести, если TypeError пробросится.
+        $pending_session = $session;
 
         $default_redlog_pids = [
             ['k10',     'Mass Air Flow Rate',                           'g/sec', 1, 1],
@@ -382,8 +396,14 @@ try {
             }
 
             $db->commit();
+
+            // Коммит прошёл — сессия больше не pending.
+            $pending_session = null;
+
         } catch (Exception $e) {
             $db->rollBack();
+            $pending_session = null;   // транзакция откатана — pending не нужен
+
             if (file_exists($target_file[$f])) unlink($target_file[$f]);
 
             $file = htmlspecialchars($fileName);
@@ -439,7 +459,47 @@ try {
     $db->close();
 
 } catch (TypeError $e) {
-    $fileName = $files[$f]['name'] ?? '?';
+    // ────────────────────────────────────────────────────────
+    // Аварийный путь.
+    //
+    // TypeError extends Error, не Exception — поэтому внутренние
+    // catch (Exception $e) его НЕ ловят. Всё, что осталось
+    // незачищенным (транзакция, tmp-файл, pending-сессия),
+    // прибираем здесь.
+    // ────────────────────────────────────────────────────────
+
+    // 1) Откат незакоммиченной транзакции
+    if (isset($db) && $db instanceof mysqli) {
+        try { $db->rollBack(); } catch (Throwable $e2) {}
+    }
+
+    // 2) Чистим все временные файлы, которые не успели
+    //    за собой прибрать. Итерация по массиву: несуществующие
+    //    уже unlink'нуты, @unlink на них — no-op.
+    if (!empty($target_file) && is_array($target_file)) {
+        foreach ($target_file as $tmp) {
+            if (is_string($tmp) && $tmp !== '' && file_exists($tmp)) {
+                @unlink($tmp);
+            }
+        }
+    }
+
+    // 3) Сносим ЧАСТИЧНУЮ сессию.
+    //    ВАЖНО: используем $pending_session, а НЕ $session.
+    //    $session — значение из последнего валидного файла,
+    //    оно могло быть уже успешно закоммичено ранее, и его
+    //    удаление = потеря данных.
+    if ($pending_session !== null && isset($db) && $db instanceof mysqli) {
+        try {
+            $db->execute_query("DELETE FROM logs     WHERE user_id = ? AND session = ?", [$user_id, $pending_session]);
+            $db->execute_query("DELETE FROM sessions WHERE user_id = ? AND session = ?", [$user_id, $pending_session]);
+        } catch (Throwable $e2) {
+            error_log("import_redlog: outer-catch cleanup failed: " . $e2->getMessage());
+        }
+    }
+
+    // 4) Имя файла — без warning'ов про undefined.
+    $fileName = $current_file_name;
     $msg = htmlspecialchars($fileName) . " " . $translations[current_lang()]['redlog.broken'];
 
     if ($streaming) {
@@ -448,15 +508,13 @@ try {
             'message' => $msg,
             'error'   => true,
         ]);
-        try { $db->close(); } catch (Throwable $e2) {}
+        if (isset($db) && $db instanceof mysqli) {
+            try { $db->close(); } catch (Throwable $e2) {}
+        }
         exit;
     }
 
     http_response_code(406);
     echo $msg;
-    if (isset($session)) {
-        $db->execute_query("DELETE FROM logs     WHERE user_id = ? AND session = ?", [$user_id, $session]);
-        $db->execute_query("DELETE FROM sessions WHERE user_id = ? AND session = ?", [$user_id, $session]);
-    }
     die;
 }

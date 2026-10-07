@@ -203,6 +203,74 @@ if ($action !== null) {
                     break;
                 }
 
+                case 'purge_cache': {
+                    // Whitelist шаблонов кэша RatelCache.
+                    // НЕ трогает: telemetry:uploads, ratel:heavy_tasks,
+                    // ratel:dead_letters, ratel:task:*, ratel:user_tasks:*,
+                    // ratel:attempts:*, worker:hb:*
+                    $patterns = [
+                        'user_data_*',
+                        'user_api_data_*',
+                        'session_data_*',
+                        'gps_data_*',
+                        'fav_data_*',
+                        'profiles_list_*',
+                        'years_list_*',
+                        'stream_lock_*',
+                        'user_settings_*',
+                        'user_status_*',
+                        'pids_mapping_*',
+                        'stream_conv_*',
+                        'stream_pids_s_*',
+                        'stream_pids_d_*',
+                        'api_conv_*',
+                        'api_pids_*',
+                        'worker_user_*',
+                        'columns_data_pids_*',
+                        'session_count_*',
+                        'pids_known_*',
+                        'share_data_*',
+                        'share_plot_*',
+                        'rate_limit_*',
+                        'rate_limit:block:*',
+                        'rate_backoff:block:*',
+                        'new_session_*',
+                        'api_rate_limit_*',
+                    ];
+
+                    $deleted = 0;
+
+                    foreach ($patterns as $pattern) {
+                        $it = null;
+                        while (true) {
+                            $keys = $r->scan($it, $pattern, 500);
+                            if ($keys === false) break;
+                            if (!empty($keys)) {
+                                $deleted += (int)$r->del($keys);
+                            }
+                            if ((int)$it === 0) break;
+                        }
+                    }
+
+                    // Bump версий переменных ключей — все `u{uid}_vv{old}_*`
+                    // мгновенно становятся недостижимы и истекают по своему TTL.
+                    $verBumped = 0;
+                    $it = null;
+                    while (true) {
+                        $keys = $r->scan($it, 'u*_varver', 500);
+                        if ($keys === false) break;
+                        foreach ($keys as $k) {
+                            try { $r->incr($k); $verBumped++; } catch (Throwable $e) {}
+                        }
+                        if ((int)$it === 0) break;
+                    }
+
+                    $ok  = true;
+                    $msg = "Cache purged: {$deleted} key(s) deleted, "
+                         . "{$verBumped} version counter(s) bumped";
+                    break;
+                }
+
                 default:
                     throw new RuntimeException('Unknown action: ' . $action);
             }
@@ -1008,6 +1076,38 @@ body {
                         : '<span class="rs-dim">unlimited</span>' ?></span></div>
             <div><span class="rs-lbl">Clients</span><span><?= (int)($stats['info']['clients'] ?? 0) ?></span></div>
             <div><span class="rs-lbl">Total commands</span><span><?= number_format((int)($stats['info']['total_commands'] ?? 0)) ?></span></div>
+        </div>
+    </div>
+
+    <?php /* 1b. Cache */ ?>
+    <div class="rs-card">
+        <h2>
+            <span>Application cache</span>
+            <span class="rs-dim">(RatelCache over Redis)</span>
+        </h2>
+        <div class="rs-actions">
+            <form method="post"
+                  onsubmit="return confirm('Purge application cache? Streams, tasks, DLQ, attempt counters and worker heartbeats are preserved. Variable per-session caches are invalidated via version bump.');">
+                <input type="hidden" name="action" value="purge_cache">
+                <input type="hidden" name="csrf_token"
+                       value="<?= htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+                <button type="submit" class="rs-btn rs-btn-danger">
+                    ✖ Purge application cache
+                </button>
+            </form>
+        </div>
+        <div class="rs-dim" style="margin-top:8px">
+            Removes cached user rows, session/GPS data, PID mappings, favorites,
+            settings, per-user rate-limit counters and session counters.
+            <br>
+            Preserved:
+            <code>telemetry:uploads</code>,
+            <code>ratel:heavy_tasks</code>,
+            <code>ratel:dead_letters</code>,
+            <code>ratel:task:*</code>,
+            <code>ratel:user_tasks:*</code>,
+            <code>ratel:attempts:*</code>,
+            <code>worker:hb:*</code>.
         </div>
     </div>
 

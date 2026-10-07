@@ -363,6 +363,8 @@ function heavy_process_task(mysqli $db, array $fields, ?Redis $redis = null): vo
 
 function heavy_do_merge_sessions(mysqli $db, int $user_id, array $payload): array
 {
+    global $merge_max;
+
     $session_ids    = $payload['session_ids']    ?? [];
     $target_session = (int)($payload['target_session'] ?? 0);
     $username       = (string)($payload['username'] ?? '');
@@ -399,29 +401,40 @@ function heavy_do_merge_sessions(mysqli $db, int $user_id, array $payload): arra
             throw new RuntimeException('Target session not found');
         }
 
-        // 2. Агрегаты по всем выбранным сессиям
+        // 2. Агрегаты по всем выбранным сессиям.
+        //    MIN(session) здесь не нужен — new_session всегда
+        //    равен target_session (то, что пользователь выбрал в UI).
         $ph     = implode(',', array_fill(0, count($session_ids), '?'));
         $params = array_merge([$user_id], $session_ids);
 
         $mergerow = $db->execute_query(
             "SELECT MIN(time) AS time, MAX(timeend) AS timeend,
-                    MIN(session) AS session, SUM(sessionsize) AS sessionsize
+                    SUM(sessionsize) AS sessionsize
                FROM sessions
               WHERE user_id = ? AND session IN ($ph)",
             $params
         )->fetch_assoc();
 
-        if (!$mergerow || $mergerow['session'] === null) {
+        if (!$mergerow || $mergerow['time'] === null) {
             throw new RuntimeException('Aggregate query returned nothing');
         }
 
-        $new_session      = (int)$mergerow['session'];
+        $new_session      = $target_session;
         $new_time_start   = (int)$mergerow['time'];
         $new_time_end     = (int)$mergerow['timeend'];
         $new_session_size = (int)$mergerow['sessionsize'];
 
-        // 3. Обновить метаданные «новой» сессии (это одна из существующих —
-        //    та, у которой минимальный session id)
+        // 2b. Защита от слишком большого мержа.
+        //     UI проверяет mergeMax до отправки, но полагаться только
+        //     на клиент нельзя — payload мог быть сформирован вручную.
+        if (!empty($merge_max) && $new_session_size > (int)$merge_max) {
+            throw new RuntimeException(sprintf(
+                'Merge result exceeds merge_max (%d > %d)',
+                $new_session_size, (int)$merge_max
+            ));
+        }
+
+        // 3. Обновить метаданные «новой» сессии
         $db->execute_query(
             "UPDATE sessions
                 SET time = ?, timeend = ?, sessionsize = ?,
@@ -441,7 +454,16 @@ function heavy_do_merge_sessions(mysqli $db, int $user_id, array $payload): arra
             if ($sid !== $new_session) $other_sessions[] = $sid;
         }
 
-        // 5. Удалить чужие sessions (метаданные; логи переносим ниже)
+        // 5. Перевести логи чужих сессий на новую (чанками).
+        //    Порядок: UPDATE logs → DELETE sessions. Если упадёт
+        //    финальный DELETE — останутся пустые сессии, их легко
+        //    дочистить. Обратный порядок оставил бы логи без
+        //    метаданных (сироты, невосстановимые через UI).
+        $logs_moved = heavy_update_logs_session_chunked(
+            $db, $user_id, $other_sessions, $new_session
+        );
+
+        // 6. Удалить чужие sessions (метаданные; логи уже перенесены)
         $sessions_deleted = 0;
         if (!empty($other_sessions)) {
             $del_ph = implode(',', array_fill(0, count($other_sessions), '?'));
@@ -451,11 +473,6 @@ function heavy_do_merge_sessions(mysqli $db, int $user_id, array $payload): arra
             );
             $sessions_deleted = $db->affected_rows;
         }
-
-        // 6. Перевести логи чужих сессий на новую (чанками)
-        $logs_moved = heavy_update_logs_session_chunked(
-            $db, $user_id, $other_sessions, $new_session
-        );
 
         cache_flush();
 
