@@ -53,7 +53,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
         $GLOBALS['user_id']  = (int)$user_data['id'];
     }
 
-    $_SESSION['sessions_filter'] = $user_filter;
+    $GLOBALS['share_sessions_filter'] = (int)$user_filter;
     setcookie('gap', $gap);
     setcookie('timeformat', $user_time);
     $_COOKIE['timeformat'] = $user_time;
@@ -91,7 +91,7 @@ if ($username) {
     }
 
     if ($gps_data === false || $cached_timestamp !== $current_timestamp) {
-        $gpsQuery = getFilteredGpsQuery((int)$user_id, (int)$_SESSION['sessions_filter']);
+        $gpsQuery = getFilteredGpsQuery((int)$user_id, current_sessions_filter());
         $gps_time_data = $db->execute_query($gpsQuery, [$session_id]);
         $geolocs = [];
         $timearray = [];

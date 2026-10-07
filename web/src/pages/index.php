@@ -7,6 +7,7 @@
  * Returns an array of view data for src/templates/index/page.php.
  */
 
+unset($GLOBALS['share_sessions_filter']);
 $lang = current_lang();
 setcookie("newsess", "");
 
@@ -121,7 +122,7 @@ if (isset($sids[0])) {
     }
 
     if ($gps_data === false || $cached_timestamp !== $current_timestamp) {
-        $gpsQuery = getFilteredGpsQuery((int)current_user_id(), (int)$_SESSION['sessions_filter']);
+        $gpsQuery = getFilteredGpsQuery((int)current_user_id(), current_sessions_filter());
         $gps_time_data = $db->execute_query($gpsQuery, [$session_id]);
         $geolocs = [];
         $timearray = [];

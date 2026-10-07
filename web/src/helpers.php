@@ -725,6 +725,17 @@ function current_user_id(): ?int
     return null;
 }
 
+function current_sessions_filter(): int
+{
+    // 1) явное переопределение из share-контекста
+    if (isset($GLOBALS['share_sessions_filter'])
+        && $GLOBALS['share_sessions_filter'] !== null) {
+        return max(1, min(5, (int)$GLOBALS['share_sessions_filter']));
+    }
+    // 2) обычный залогиненный пользователь
+    return max(1, min(5, (int)($_SESSION['sessions_filter'] ?? 1)));
+}
+
 /**
  * Декодирует data-столбец logs. Возвращает [] на битом JSON.
  */

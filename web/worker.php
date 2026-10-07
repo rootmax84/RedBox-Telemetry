@@ -35,7 +35,62 @@ $_SESSION = [
 $_SERVER['SCRIPT_FILENAME'] = __FILE__;
 $_SERVER['REQUEST_METHOD']  = 'CLI';
 
+// creds.php читает эти переменные в global scope
+$username = '';
+$limit    = 0;
+
 require_once __DIR__ . '/src/redis.php';
+
+// creds.php нужен ДО db.php — из него мы берём $db_host/$db_user/...
+// для блокирующего ожидания БД. db.php потом сам подтянет тот же файл
+// через require_once.
+require_once __DIR__ . '/src/creds.php';
+
+// ────────────────────────────────────────────────────────────
+// Ждём MariaDB ПЕРЕД загрузкой db.php.
+//
+// db.php вызывает get_db_connection(), а та на неудачном connect делает
+// header('Location: ...') + exit. В CLI header() — просто warning, а вот
+// exit; убивает воркер с кодом 0. С docker `restart: on-failure` это
+// значит, что контейнер не перезапускается и воркер тихо пропадает.
+//
+// Поэтому: сначала сами пробуем дозвониться до БД (с ретраями),
+// и только когда соединение точно устанавливается — грузим db.php.
+//
+// @new mysqli — давит PHP Warning "getaddrinfo for ... failed" на этапе,
+// когда DNS ещё не резолвится. Сам warning нам не нужен: catch (Throwable)
+// всё равно поймает ошибку и залогирует её через fwrite(STDERR).
+// ────────────────────────────────────────────────────────────
+$db_ready        = false;
+$db_wait_attempt = 0;
+
+while (!$db_ready) {
+    try {
+        $probe = @new mysqli(
+            $db_host,
+            $db_user,
+            $db_pass,
+            $db_name,
+            (int)$db_port
+        );
+        $probe->query('SELECT 1');
+        $probe->close();
+        $db_ready = true;
+
+        if ($db_wait_attempt > 0) {
+            fwrite(STDOUT, "[worker] DB is up\n");
+        }
+    } catch (Throwable $e) {
+        $db_wait_attempt++;
+        fwrite(STDERR, sprintf(
+            "[worker] DB not ready (attempt %d): %s\n",
+            $db_wait_attempt,
+            $e->getMessage()
+        ));
+        sleep(5);
+    }
+}
+
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/translations.php';
 require_once __DIR__ . '/src/upload_processor.php';
@@ -55,6 +110,8 @@ $reclaimBatch    = 10;      // messages per XAUTOCLAIM call
 $statsEvery      = 60;      // seconds between stats log lines
 $redisRetryDelay = 5;       // seconds between Redis reconnect attempts
 $heartbeatTtl    = 120;     // TTL heartbeat-ключа, сек
+$dbDownCooldown  = 60;      // backoff после провальной серии реконнектов, сек
+$dbPollInterval  = 2;       // пауза в главном цикле, пока БД лежит, сек
 
 // ────────────────────────────────────────────────────────────
 // DLQ / retry config
@@ -72,6 +129,19 @@ $maxAttempts      = (int)($worker_max_attempts ?? 3);
 $dlqKey           = $redis_dlq_key      ?? 'ratel:dead_letters';
 $dlqMaxlen        = (int)($worker_dlq_maxlen ?? 10000);
 $workerAttemptTtl = (int)($worker_attempt_ttl ?? 86400);
+
+// ────────────────────────────────────────────────────────────
+// DB reconnect backoff
+//
+// Глобальная метка времени: «до какого момента БД считается лежащей».
+// Если $worker_db_down_until > now, worker_reconnect_db() сразу бросает
+// исключение (без нового 60-секундного цикла попыток).
+//
+// Главный цикл НЕ использует эту метку как индикатор «БД жива» —
+// источник правды о состоянии соединения — только `$db instanceof mysqli`.
+// Backoff влияет исключительно на частоту попыток реконнекта.
+// ────────────────────────────────────────────────────────────
+$worker_db_down_until = 0.0;
 
 // ────────────────────────────────────────────────────────────
 // Early exit if Redis is disabled in creds.php
@@ -213,20 +283,22 @@ function worker_dlq_push(
 /* ────────────────────────────────────────────────────────────
  * Обработка одного сообщения (upload или heavy task).
  *
+ * $db передаётся по ссылке и объявлен nullable: если реконнект
+ * не удался, $db становится null, и следующий вызов из главного
+ * цикла уже не произойдёт (главный цикл проверяет $db перед
+ * worker_process_message).
+ *
  * Возвращает:
  *   'ok'      — сообщение успешно обработано (XAck сделан);
  *   'dlq'     — сообщение отправлено в DLQ (XAck сделан);
  *   'pending' — сообщение оставлено pending (conn-ошибка или недостигнутый
  *               лимит попыток). Caller должен прекратить текущий батч и
  *               переподключиться / дать XAUTOCLAIM подобрать сообщение.
- *
- * $db передаётся по ссылке — при conn-ошибке он обновляется результатом
- * worker_reconnect_db().
  * ──────────────────────────────────────────────────────────── */
 
 function worker_process_message(
     Redis $redis,
-    mysqli &$db,
+    ?mysqli &$db,
     string $sKey,
     string $id,
     array $fields,
@@ -256,12 +328,16 @@ function worker_process_message(
                 '[worker] DB lost (%d) %s/%s [%s]; left pending',
                 $errno, $sKey, $id, $src
             ));
+
+            // Пытаемся реконнектиться. При неудаче — принудительно
+            // обнуляем $db: старое соединение точно мертво, ссылку
+            // на него нельзя больше использовать.
             try {
                 $db = worker_reconnect_db($db);
                 error_log('[worker] DB reconnected');
             } catch (Throwable $re) {
+                $db = null;
                 error_log('[worker] DB reconnect failed: ' . $re->getMessage());
-                sleep(5);
             }
             return 'pending';
         }
@@ -433,8 +509,16 @@ if (function_exists('pcntl_signal')) {
 
 // ────────────────────────────────────────────────────────────
 // Main loop
+//
+// Модель состояния:
+//   $db instanceof mysqli → соединение живое, работаем
+//   $db === null          → соединения нет, стрим не читаем
+//
+// $worker_db_down_until — только backoff для worker_reconnect_db.
+// На главный цикл напрямую не влияет: главный цикл проверяет $db.
 // ────────────────────────────────────────────────────────────
 $lastStatsAt    = 0;
+$lastDbCheckAt  = 0;
 $processedCount = 0;
 $dlqCount       = 0;   // сообщений ушло в DLQ за жизнь процесса
 
@@ -455,6 +539,49 @@ while ($running) {
 
     // Обновляем heartbeat — мы живы
     ($GLOBALS['worker_heartbeat_cb'])();
+
+    // ─── DB health check (раз в $statsEvery секунд) ───
+    //
+    // Лёгкий SELECT 1 на уже открытом соединении. Если соединение
+    // мертво — обнуляем $db и позволяем следующему блоку уйти в
+    // реконнект. Проверка выполняется только над живым $db:
+    // mysqli, уже закрытый предыдущей неудачной попыткой, больше
+    // не вызовет "mysqli object is already closed".
+    $now = time();
+    if (($db instanceof mysqli) && ($now - $lastDbCheckAt >= $statsEvery)) {
+        $lastDbCheckAt = $now;
+        try {
+            $db->query('SELECT 1');
+        } catch (Throwable $e) {
+            error_log('[worker] DB health check failed: ' . $e->getMessage());
+            $db = null;
+        }
+    }
+
+    // ─── Реконнект, если соединения нет ───
+    //
+    // Backoff живёт внутри worker_reconnect_db: если недавняя серия
+    // провалилась, вызов бросит RuntimeException сразу, и мы уйдём
+    // в sleep(2) без похода в сеть. Раз в $dbPollInterval секунд
+    // пробуем снова — как только backoff истёк, реконнект происходит
+    // в первой же итерации, без ожидания следующего health-check.
+    if (!($db instanceof mysqli)) {
+        try {
+            $db = worker_reconnect_db(null);
+            error_log('[worker] DB reconnected');
+        } catch (Throwable $re) {
+            // Тихий лог раз в 60 сек, чтобы не спамить каждые 2 секунды.
+            // Отдельная метка, чтобы не путаться с backoff внутри
+            // worker_reconnect_db.
+            static $lastReconnectLogAt = 0;
+            if ($now - $lastReconnectLogAt >= $statsEvery) {
+                $lastReconnectLogAt = $now;
+                error_log('[worker] DB reconnect failed: ' . $re->getMessage());
+            }
+            sleep($dbPollInterval);
+            continue;
+        }
+    }
 
     // ─── Reclaim stale pending messages (XAUTOCLAIM) ───
     // XAUTOCLAIM принимает один ключ — идём циклом по всем стримам.
@@ -511,6 +638,12 @@ while ($running) {
         continue;
     }
 
+    // Если реконнект в worker_process_message не удался, $db мог
+    // стать null. Не читаем новые сообщения до восстановления.
+    if (!($db instanceof mysqli)) {
+        continue;
+    }
+
     // ─── Read new messages из всех стримов одним вызовом ───
     $readKeys = [];
     foreach ($pollStreams as $sKey) {
@@ -540,6 +673,16 @@ while ($running) {
             $breakOuter = false;
 
             foreach ($items as $id => $fields) {
+                if (!($db instanceof mysqli)) {
+                    // Реконнект в предыдущем worker_process_message
+                    // не удался — оставшееся в батче обработаем в
+                    // следующей итерации (они уже помечены как
+                    // доставленные этому консьюмеру и попадут под
+                    // XAUTOCLAIM через reclaimMinIdle секунд).
+                    $breakOuter = true;
+                    break;
+                }
+
                 $status = worker_process_message(
                     $redis, $db, $sKey, $id, $fields, $group,
                     $maxAttempts, $workerAttemptTtl, $dlqKey, $dlqMaxlen,
@@ -565,6 +708,10 @@ while ($running) {
     $now = time();
     if ($now - $lastStatsAt >= $statsEvery) {
         $lastStatsAt = $now;
+
+        // Источник правды о состоянии БД — сам $db, не backoff-метка.
+        $dbState = ($db instanceof mysqli) ? 'up' : 'down';
+
         $parts = [];
         foreach ($pollStreams as $sKey) {
             try {
@@ -599,8 +746,8 @@ while ($running) {
         }
 
         fwrite(STDOUT, sprintf(
-            "[worker] stats: consumer=%s %s processed_total=%d dlq_total=%d\n",
-            $consumer, implode(' ', $parts), $processedCount, $dlqCount
+            "[worker] stats: consumer=%s db=%s %s processed_total=%d dlq_total=%d\n",
+            $consumer, $dbState, implode(' ', $parts), $processedCount, $dlqCount
         ));
     }
 }
@@ -609,7 +756,9 @@ while ($running) {
 // Shutdown
 // ────────────────────────────────────────────────────────────
 try { $redis->del("worker:hb:{$consumer}"); } catch (Throwable $e) {}
-try { $db->close(); } catch (Throwable $e) {}
+if ($db instanceof mysqli) {
+    try { $db->close(); } catch (Throwable $e) {}
+}
 fwrite(STDOUT, sprintf(
     "[worker] stopped consumer=%s streams=[%s] processed_total=%d dlq_total=%d\n",
     $consumer, implode(', ', $pollStreams), $processedCount, $dlqCount
@@ -748,10 +897,22 @@ function getUserData(string $username): ?array
  * long-running worker'а.
  *
  * @throws RuntimeException если не удалось переподключиться за ~60 секунд
+ *                          ИЛИ если активен backoff после недавних неудач
  */
 function worker_reconnect_db(?mysqli $oldDb): mysqli
 {
     global $db_host, $db_user, $db_pass, $db_name, $db_port;
+    global $worker_db_down_until, $dbDownCooldown;
+
+    // ── Backoff: если недавняя серия попыток уже провалилась, ──
+    // ── не запускаем новый 60-секундный цикл на каждое сообщение. ──
+    $now = microtime(true);
+    if ($worker_db_down_until > $now) {
+        throw new RuntimeException(sprintf(
+            'DB known down, retry in %.1fs',
+            $worker_db_down_until - $now
+        ));
+    }
 
     if ($oldDb !== null) {
         try { $oldDb->close(); } catch (Throwable $e) {}
@@ -760,9 +921,17 @@ function worker_reconnect_db(?mysqli $oldDb): mysqli
     $maxAttempts = 12;   // ~60 секунд суммарно при sleep(5)
     for ($i = 1; $i <= $maxAttempts; $i++) {
         try {
-            $newDb = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
+            $newDb = @new mysqli(
+                $db_host,
+                $db_user,
+                $db_pass,
+                $db_name,
+                $db_port
+            );
             // Явная проверка, что соединение действительно работает
             $newDb->query('SELECT 1');
+            // Успех — сбрасываем backoff
+            $worker_db_down_until = 0.0;
             return $newDb;
         } catch (Throwable $e) {
             error_log(sprintf(
@@ -774,6 +943,11 @@ function worker_reconnect_db(?mysqli $oldDb): mysqli
             }
         }
     }
+
+    // Все попытки провалились. Ставим метку — следующие $dbDownCooldown
+    // секунд worker_reconnect_db будет бросать исключение сразу, без
+    // похода в сеть.
+    $worker_db_down_until = microtime(true) + (float)$dbDownCooldown;
 
     throw new RuntimeException(
         'Cannot reconnect to DB after ' . $maxAttempts . ' attempts'

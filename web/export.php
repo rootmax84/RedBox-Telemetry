@@ -121,10 +121,10 @@ if ($filetype == "csv") {
     header('Content-Disposition: attachment; filename=' . $filename);
 
     // Header
+    $out = fopen('php://output', 'w');
     $header = ['session', 'time'];
     foreach ($pids_list as $pid) $header[] = $pid;
-    echo '"' . implode('","', $header) . '"' . "\n";
-    flush();
+    fputcsv($out, $header, ',', '"', '\\');
 
     while ($stmt->fetch()) {
         $d = decode_log_data($data);
@@ -132,10 +132,11 @@ if ($filetype == "csv") {
         foreach ($pids_list as $pid) {
             $row[] = $d[$pid] ?? 0;
         }
-        echo '"' . implode('","', $row)  . '"' . "\n";
+        fputcsv($out, $row, ',', '"', '\\');
         flush();
     }
 
+    fclose($out);
     $stmt->close();
     $db->close();
     exit;

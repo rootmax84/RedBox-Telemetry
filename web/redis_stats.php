@@ -105,6 +105,14 @@ const RS_TASK_SCAN_LIMIT    = 5000;
 $action = $_POST['action'] ?? null;
 
 if ($action !== null) {
+
+    // CSRF guard
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=utf-8');
+        exit('Invalid CSRF token');
+    }
+
     $ok  = false;
     $msg = '';
 

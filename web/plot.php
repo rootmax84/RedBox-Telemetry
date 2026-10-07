@@ -48,7 +48,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
         $GLOBALS['user_id']  = (int)$user_data['id'];
     }
 
-    $_SESSION['sessions_filter'] = $user_filter;
+    $GLOBALS['share_sessions_filter'] = (int)$user_filter;
 
     $payload = "uid={$uid}&id={$sid}";
     $expected_sig = hash_hmac('sha256', $payload, $share_secret);
@@ -204,7 +204,7 @@ if (isset($_GET["id"])) {
             $query = getFilteredQuery(
                 (int)$user_id,
                 $streamLimit,
-                (int)$_SESSION['sessions_filter']
+                current_sessions_filter()
             );
             $sessionqry = $db->execute_query($query, [$session_id]);
             $raw = $sessionqry->fetch_all(MYSQLI_ASSOC);

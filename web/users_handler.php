@@ -14,7 +14,7 @@ function handleUserSettings($db, $translations, $username, $admin) {
     $params = [
         $_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'],
         $_POST['time'], $_POST['gap'], $_POST['stream_lock'],
-        $_POST['sessions_filter'], $_POST['api_gps'], $_COOKIE['lang'], $username
+        $_POST['sessions_filter'], $_POST['api_gps'], current_lang(), $username
     ];
 
     $db->execute_query(
