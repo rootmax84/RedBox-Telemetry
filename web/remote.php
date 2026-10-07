@@ -24,18 +24,19 @@ if (empty($_POST) || empty($data)) {
     exit;
 }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
+$bearer = getBearerToken();
+
+if (!empty($bearer)) {
+    define('RATEL_API_REQUEST', true);
+    $token = $bearer;
 }
 
-$token = getBearerToken() ?? $_SESSION['remote_token'];
 if (empty($token)) {
     http_response_code(403);
     echo $translations[$lang]['denied'];
     exit;
 }
 
-$_SESSION['torque_logged_in'] = true;
 require_once __DIR__ . '/src/db.php';
 
 $row = $db->execute_query("SELECT mcu_data, s FROM users WHERE token=?", [$token])->fetch_assoc();

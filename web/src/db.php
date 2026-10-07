@@ -63,7 +63,6 @@ set_exception_handler(function($exception) {
         'ul.php',
         'remote.php',
         'get_token.php',
-        'search_processor.php',
     ], true);
 
     if ($is_api) {

@@ -380,6 +380,9 @@ async function fetchData() {
             }
             
             return newData;
+        } else if (response.status === 403) {
+            location.reload();
+            return null;
         } else if (response.status === 204) {
             location.reload();
         } else {
