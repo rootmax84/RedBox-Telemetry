@@ -166,15 +166,11 @@ INLINE FALLBACK (Redis disabled or unavailable):
 | $db_pass | MySQL password | ratel |
 | $db_port | MySQL port | 3306 |
 | $db_name | Database name | ratel |
-| $db_log_table | Logs table name | logs |
-| $db_sessions_table | Sessions table name | sessions |
-| $db_pids_table | PIDs table name | pids |
-| $db_table | Alias for logs table | $db_log_table |
 | $user_id | Current user ID (from session) | $_SESSION['uid'] ?? null |
 | $db_engine | Table engine (ROCKSDB or INNODB) | ROCKSDB |
 | $db_innodb_compression | Enable row compression for InnoDB | false |
-| $db_memcached_ttl | Redis cache TTL in seconds | 3600 |
-| $db_users | Users table name | users |
+| $db_cache_ttl | Redis cache TTL in seconds | 3600 |
+| $db_cache_meta_ttl | Redis metadata cache TTL (seconds) | 300 |
 | $def_limit | Default user database size limit (session count) | 100 |
 | $max_upload_requests_per_second | Upload rate limit (requests/sec) | 100 |
 | $max_api_requests_per_second | API rate limit (requests/sec) | 10 |
