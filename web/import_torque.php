@@ -51,7 +51,6 @@ function stream_fail(string $message, ?mysqli $db = null): void {
 // Переменные, читаемые в outer catch. Инициализируем null:
 // исключение может прилететь ДО их объявления в try-блоке.
 // ────────────────────────────────────────────────────────────
-$index             = null;   // текущий ключ в foreach ($files)
 $current_file_name = '?';    // имя файла текущей итерации
 $target_file       = null;   // tmp-путь текущего файла
 $pending_session   = null;   // sessionId, вставленный в БД, но НЕ закоммиченный
