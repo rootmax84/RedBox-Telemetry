@@ -82,11 +82,9 @@ if (!empty($token)) {
         die($translations[$lang ?? 'en']['maintenance']);
     }
 
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_start();
-    }
-
-    $_SESSION['torque_logged_in'] = true;
+    // API-запрос: сессия не нужна. auth_user.php (подтянется через db.php)
+    // не будет стартовать её и не будет рендерить форму логина.
+    define('RATEL_API_REQUEST', true);
     require_once __DIR__ . '/src/db.php';
 
     $load = sys_getloadavg();

@@ -1,12 +1,23 @@
 <?php
 require_once __DIR__ . '/auth_functions.php';
 require_once __DIR__ . '/helpers.php';
-if (!isset($_SESSION)) { session_start(); }
+
+// API-эндпоинты (ul.php, get_token.php, stream_json.php) аутентифицируются
+// собственными средствами: Bearer-токен, пароль, подпись. Форма логина им
+// не нужна, сессия — тоже. Флаг RATEL_API_REQUEST сообщает этот факт
+// auth_user.php, чтобы он не стартовал сессию и не рендерил HTML-форму.
+$api_request = defined('RATEL_API_REQUEST') && RATEL_API_REQUEST;
+
+if (!$api_request && !isset($_SESSION)) {
+    session_start();
+}
 
 $current_script = basename($_SERVER['SCRIPT_FILENAME']);
 $csrf_exempt_scripts = ['get_token.php', 'ul.php', 'adminer.php', 'remote.php']; //CSRF exclude
 
-$logged_in = isset($_SESSION['torque_logged_in']) && $_SESSION['torque_logged_in'];
+// API-запросы аутентифицируются своими средствами (Bearer-токен,
+// пароль, HMAC-подпись), для них форма логина не нужна.
+$logged_in = $api_request || (isset($_SESSION['torque_logged_in']) && $_SESSION['torque_logged_in']);
 
 /* Определяем AJAX/JSON-запрос один раз — чтобы различать HTML-редирект и API-ответ */
 $is_ajax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest')
@@ -56,7 +67,9 @@ if(isset($_POST) && !empty($_POST)){
     }
 }
 
-$_SESSION['torque_logged_in'] = $logged_in;
+if (!$api_request) {
+    $_SESSION['torque_logged_in'] = $logged_in;
+}
 
 if (!$logged_in) {
     setcookie("stream", "");

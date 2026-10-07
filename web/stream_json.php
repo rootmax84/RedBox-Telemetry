@@ -72,11 +72,7 @@ if (empty($token)) {
     exit;
 }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
-
-$_SESSION['torque_logged_in'] = true;
+define('RATEL_API_REQUEST', true);
 require_once __DIR__ . '/src/db.php';
 
 // Auth via Bearer token

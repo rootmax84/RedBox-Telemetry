@@ -30,62 +30,57 @@ if (empty($user) || empty($pass)) {
     exit;
 }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
-
-$_SESSION['torque_logged_in'] = true;
+define('RATEL_API_REQUEST', true);
 require_once __DIR__ . '/src/auth_functions.php';
 require_once __DIR__ . '/src/db.php';
+
+$fail = function (int $code, string $msg): void {
+    http_response_code($code);
+    echo $msg;
+    exit;
+};
 
 $db = get_db_connection();
 
 // Check user presence
 $userqry = $db->execute_query("SELECT user, pass, s FROM users WHERE user=?", [$user]);
 if ($userqry->num_rows === 0) {
-    http_response_code(401);
-    echo $translations[$lang]['catch.loginfailed'];
-    exit;
+    $fail(401, $translations[$lang]['catch.loginfailed']);
 }
 
 $row = $userqry->fetch_assoc();
 
 // Check disabled user
 if (!$row['s']) {
-    http_response_code(403);
-    echo $translations[$lang]['disabled'];
-    exit;
+    $fail(403, $translations[$lang]['disabled']);
 }
 
 // Login attempts
 if (!check_login_attempts($user)) {
-    http_response_code(403);
-    echo $translations[$lang]['blocked'];
-    exit;
+    $fail(403, $translations[$lang]['blocked']);
 }
 
 // Password check
 if (!password_verify($pass, $row['pass'])) {
     update_login_attempts($user, false);
-    http_response_code(401);
-    echo $translations[$lang]['catch.loginfailed'];
-    exit;
+    $fail(401, $translations[$lang]['catch.loginfailed']);
 }
 
 // Generate new token
 try {
-    $token = $db->execute_query("SELECT token FROM users WHERE user=?", [$user])->fetch_assoc()["token"];
-    cache_flush($token);
+    $old_token = $db->execute_query(
+        "SELECT token FROM users WHERE user=?",
+        [$user]
+    )->fetch_assoc()["token"];
+    cache_flush($old_token);
     $token = generate_token($user);
     $db->execute_query("UPDATE users SET token=? WHERE user=?", [$token, $user]);
-} catch(Exception $e) {
-    http_response_code(500);
-    echo $translations[$lang]['dialog.token.err.msg'];
-    exit;
+} catch (Exception $e) {
+    $fail(500, $translations[$lang]['dialog.token.err.msg']);
 }
 
-// Success
 update_login_attempts($user, true);
+
 echo $token;
 
 $db->close();
