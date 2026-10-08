@@ -1,42 +1,27 @@
 <?php
+require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/db.php';
 
-$qry = $db->execute_query("SELECT token, mcu_data FROM users WHERE user=?", [$username])->fetch_row();
+$qry = $db->execute_query(
+    "SELECT token, mcu_data FROM users WHERE user=?",
+    [$username]
+)->fetch_row();
+
 [$token, $mcu_data] = $qry;
 
 $db->close();
 
-$array = explode(',', $mcu_data ?? '');
+$isValid = false;
+$data    = null;
 
-$isValid = true;
+if (is_string($mcu_data) && $mcu_data !== '') {
+    [$isValid] = validateMcuData($mcu_data);
 
-if (count($array) !== 406) {
-    $isValid = false;
-}
-
-$secondLast = $array[count($array) - 2] ?? null;
-if ($secondLast !== '~') {
-    $isValid = false;
-}
-
-$lastElement = $array[count($array) - 1] ?? null;
-$lastElement = (int)$lastElement / 1000;
-if (!is_numeric($lastElement) || $lastElement <= 0) {
-    $isValid = false;
-} else {
-    $timestamp = (int)$lastElement;
-    $currentTime = time();
-    if ($timestamp > $currentTime + 3600) {
-        $isValid = false;
+    if ($isValid) {
+        $array     = explode(',', $mcu_data);
+        $dataArray = array_slice($array, 0, -2); // drop '~' and timestamp
+        $data      = implode(',', $dataArray);
     }
-    if ($timestamp < 1609459200) {
-        $isValid = false;
-    }
-}
-
-if ($isValid) {
-    $dataArray = array_slice($array, 0, -2);
-    $data = implode(",", $dataArray);
 }
 
 include_once __DIR__ . '/src/head.php';

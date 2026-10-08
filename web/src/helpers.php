@@ -1196,3 +1196,49 @@ function current_lang(): string
 
     return $lang;
 }
+
+/**
+ * Validate MCU payload: 404 bytes (0..255) + '~' + 13-digit ms timestamp.
+ *
+ * @return array{0: bool, 1: string}  [ok, error]
+ */
+function validateMcuData(string $data): array
+{
+    $len = strlen($data);
+    if ($len < 400 || $len > 2048) {
+        return [false, 'Bad length'];
+    }
+
+    $parts = explode(',', $data);
+    if (count($parts) !== 406) {
+        return [false, 'Bad parts count'];
+    }
+    if ($parts[404] !== '~') {
+        return [false, 'Missing terminator'];
+    }
+
+    for ($i = 0; $i < 404; $i++) {
+        $v = $parts[$i];
+        if ($v === '' || !ctype_digit($v) || strlen($v) > 3) {
+            return [false, "Bad cell $i"];
+        }
+        if ((int)$v > 255) {
+            return [false, "Out of range cell $i"];
+        }
+    }
+
+    $tsStr = $parts[405];
+    if (strlen($tsStr) !== 13 || !ctype_digit($tsStr)) {
+        return [false, 'Bad timestamp'];
+    }
+
+    $ts  = (int)$tsStr;
+    $now = (int)(microtime(true) * 1000);
+
+    // Roughly 2020-01-01 .. now + 1 day
+    if ($ts < 1577836800000 || $ts > $now + 86400000) {
+        return [false, 'Timestamp out of range'];
+    }
+
+    return [true, ''];
+}
