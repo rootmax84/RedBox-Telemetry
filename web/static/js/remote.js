@@ -126,7 +126,7 @@ function initChoicesSystem() {
 
 Object.defineProperty($.fn, 'value', {
     get: function () { return this.val(); },
-    set: function (value) { return this.val(value); },
+    set: function (value) { this.val(value); },
     configurable: true
 });
 
@@ -134,7 +134,7 @@ Object.defineProperty($.fn, 'checked', {
     get: function () { return this.prop('checked'); },
     set: function (value) {
         const boolValue = !!(value && value !== "" && value !== "false");
-        return this.prop('checked', boolValue);
+        this.prop('checked', boolValue);
     },
     configurable: true
 });
@@ -367,7 +367,7 @@ function saveData() {
 
     saveDesired = true;
     if (saveInFlight) return;
-    flushSave();
+    void flushSave();
 }
 
 async function flushSave() {
@@ -377,18 +377,18 @@ async function flushSave() {
         while (saveDesired) {
             saveDesired = false;
 
-            const snapshot   = [...data];
-            const dataToSend = [...snapshot, MCU_TERMINATOR, Date.now()];
-
-            if (!isValidServerPayload(dataToSend.map(String))) {
-                xhrResponse('Invalid outgoing payload');
-                continue;
-            }
-
-            const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-            if (typeof token !== 'undefined') headers['Authorization'] = token;
-
             try {
+                const snapshot   = [...data];
+                const dataToSend = [...snapshot, MCU_TERMINATOR, Date.now()];
+
+                if (!isValidServerPayload(dataToSend.map(String))) {
+                    xhrResponse('Invalid outgoing payload');
+                    continue;
+                }
+
+                const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+                if (typeof token !== 'undefined') headers['Authorization'] = token;
+
                 const response = await fetch('remote.php', {
                     method: 'POST',
                     headers,
@@ -409,7 +409,8 @@ async function flushSave() {
                 } else {
                     xhrResponse(localization.key['redlog.err']);
                 }
-            } catch (_) {
+            } catch (err) {
+                console.error('[flushSave]', err);
                 xhrResponse(localization.key['redlog.err']);
             }
         }
