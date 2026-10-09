@@ -5,12 +5,12 @@ require_once __DIR__ . '/src/db.php';
 
 if (!isset($_SESSION['admin'])) {
     http_response_code(403);
-    header("Location: /?.");
+    header("Location: /");
     die;
 }
 
 if (!isset($_GET['action'])) {
- header("Location: /?.");
+ header("Location: /");
  die;
 }
 include_once __DIR__ . '/src/head.php';

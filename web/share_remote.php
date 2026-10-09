@@ -70,7 +70,7 @@ if (isset($_GET['uid'], $_GET['sig'])) {
         $data = implode(",", $dataArray);
     }
 } else {
-    header('Location: /?.');
+    header('Location: /');
     exit;
 
 } if ($uid) {

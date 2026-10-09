@@ -25,7 +25,12 @@ function maintenance() {
 
                 onResolve: function () {
                     $("#wait_layout").show();
-                    fetch("/maintenance?enable", { method: "POST" })
+
+                    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                    const fd = new FormData();
+                    if (csrfMeta) fd.append('csrf_token', csrfMeta.content);
+
+                    fetch("/maintenance?enable", { method: "POST", body: fd })
                         .then(r => {
                             $("#wait_layout").hide();
                             if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -37,7 +42,12 @@ function maintenance() {
 
                 onReject: function () {
                     $("#wait_layout").show();
-                    fetch("/maintenance?disable", { method: "POST" })
+
+                    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                    const fd = new FormData();
+                    if (csrfMeta) fd.append('csrf_token', csrfMeta.content);
+
+                    fetch("/maintenance?disable", { method: "POST", body: fd })
                         .then(r => {
                             $("#wait_layout").hide();
                             if (!r.ok) throw new Error(`HTTP ${r.status}`);

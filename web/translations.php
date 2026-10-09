@@ -2063,5 +2063,9 @@ if (isset($_GET['l10n'])) {
     header('Content-Type: application/json');
     echo json_encode($translations);
 } elseif (isset($_GET['lang'])) {
-    setcookie("lang", $_GET['lang']);
+    $allowedLangs = array_keys($translations);
+    if (in_array($_GET['lang'], $allowedLangs, true)) {
+        setcookie("lang", $_GET['lang']);
+        $_COOKIE['lang'] = $_GET['lang'];
+    }
 }

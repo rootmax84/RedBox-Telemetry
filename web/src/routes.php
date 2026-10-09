@@ -20,8 +20,7 @@ $router->any ('/favorites',           'fav_sessions.php');
 $router->any ('/settings',            'users_settings.php');
 $router->post('/settings/save',       'users_handler.php');
 $router->any ('/settings/remote',     'users_remote.php');
-$router->any ('/settings/token',      'users_handler.php');   // ?get_token
-$router->any ('/settings/token/renew','users_handler.php');   // ?renew_token
+$router->any ('/settings/token',      'users_handler.php');   // ?get_token || ?renew_token
 $router->any ('/remote',              'users_remote.php');
 $router->any ('/pids',                'pid_edit.php');
 $router->post('/pids/commit',         'pid_commit.php');
@@ -29,10 +28,11 @@ $router->post('/pids/commit',         'pid_commit.php');
 // ════════════════════════════════════════════════════════════
 //  Sessions
 // ════════════════════════════════════════════════════════════
-$router->any ('/sessions',              'del_sessions.php');
+$router->get ('/sessions',              'del_sessions.php');
 $router->post('/sessions/delete',       'del_sessions.php');
-$router->any ('/sessions/delete-one',   'del_session.php');
-$router->any ('/sessions/merge',        'merge_sessions.php');
+$router->post ('/sessions/delete-one',   'del_session.php');
+$router->get ('/sessions/merge',        'merge_sessions.php');
+$router->post ('/sessions/merge',        'merge_sessions.php');
 $router->any ('/sessions/export',       'export.php');
 $router->any ('/sessions/favorite',     'favorite.php');
 $router->any ('/sessions/stream',       'stream.php');

@@ -18,6 +18,11 @@ $user = $_POST['user'] ?? '';
 $pass = $_POST['pass'] ?? '';
 $lang = $_POST['lang'] ?? 'en';
 
+$allowedLangs = array_keys($translations);
+if (!is_string($lang) || !in_array($lang, $allowedLangs, true)) {
+    $lang = 'en';
+}
+
 if (is_maintenance()){
     http_response_code(423);
     echo $translations[$lang]['maintenance'];

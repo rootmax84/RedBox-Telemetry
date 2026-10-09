@@ -1,11 +1,34 @@
 <?php
+require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/helpers.php';
+require_once __DIR__ . '/src/methods.php';
 
-$deletesession = filter_input(INPUT_POST, 'deletesession', FILTER_SANITIZE_NUMBER_INT)
-               ?? filter_input(INPUT_GET, 'deletesession', FILTER_SANITIZE_NUMBER_INT);
+allowMethods('POST');
 
-$cut_start = filter_input(INPUT_GET, 'cutstart', FILTER_SANITIZE_NUMBER_INT);
-$cut_end   = filter_input(INPUT_GET, 'cutend',   FILTER_SANITIZE_NUMBER_INT);
+/**
+ * Отдаёт результат удаления: JSON для AJAX, Location для обычной навигации.
+ */
+function del_session_respond(string $redirect): void
+{
+    $is_ajax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest')
+            || (stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false);
+
+    if ($is_ajax) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status'   => 'done',
+            'redirect' => $redirect,
+        ]);
+        exit;
+    }
+
+    header("Location: $redirect");
+    exit;
+}
+
+$deletesession = filter_input(INPUT_POST, 'deletesession', FILTER_SANITIZE_NUMBER_INT);
+$cut_start     = filter_input(INPUT_POST, 'cutstart',     FILTER_SANITIZE_NUMBER_INT);
+$cut_end       = filter_input(INPUT_POST, 'cutend',       FILTER_SANITIZE_NUMBER_INT);
 
 if ($deletesession !== '' && $deletesession !== false && $deletesession !== null) {
 
@@ -65,12 +88,11 @@ if ($deletesession !== '' && $deletesession !== false && $deletesession !== null
         cache_flush();
 
         // Если сессия исчезла — на главную, иначе — обратно в неё
-        if ($new_size === 0) {
-            header("Location: /");
-        } else {
-            header("Location: /?id=" . $deletesession);
-        }
-        exit;
+        $redirect = ($new_size === 0)
+            ? '/'
+            : '/?id=' . urlencode((string)$deletesession);
+
+        del_session_respond($redirect);
 
     /* ────────────────────────────────────────────────────────
      * Полное удаление сессии.
@@ -97,7 +119,6 @@ if ($deletesession !== '' && $deletesession !== false && $deletesession !== null
         }
 
         cache_flush();
-        header("Location: /?.");
-        exit;
+        del_session_respond('/');
     }
 }

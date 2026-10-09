@@ -63,7 +63,11 @@ set_exception_handler(function($exception) {
         'ul.php',
         'remote.php',
         'get_token.php',
-    ], true);
+        'del_session.php',
+        'del_sessions.php',
+        'merge_sessions.php',
+    ], true)
+    || (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest');
 
     if ($is_api) {
         if (!headers_sent()) {

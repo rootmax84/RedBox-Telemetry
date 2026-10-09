@@ -6,6 +6,11 @@ require_once __DIR__ . '/src/router.php';
 $router = new Router(__DIR__);
 require __DIR__ . '/src/routes.php';
 
+if (session_status() === PHP_SESSION_NONE
+    && !(defined('RATEL_API_REQUEST') && RATEL_API_REQUEST)) {
+    session_start();
+}
+
 $target = $router->dispatch($_SERVER['REQUEST_URI'] ?? '/');
 
 // ────────────────────────────────────────────────────────────

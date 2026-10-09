@@ -8,7 +8,7 @@ require_once __DIR__ . '/helpers.php';
 // auth_user.php, чтобы он не стартовал сессию и не рендерил HTML-форму.
 $api_request = defined('RATEL_API_REQUEST') && RATEL_API_REQUEST;
 
-if (!$api_request && !isset($_SESSION)) {
+if (!$api_request && session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 

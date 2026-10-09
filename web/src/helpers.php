@@ -1187,17 +1187,14 @@ function cache_pids_after_commit(int $user_id, string $username, array $result):
  */
 function current_lang(): string
 {
-    static $lang = null;
-    if ($lang !== null) return $lang;
-
     global $translations;
 
     $candidate = $_COOKIE['lang'] ?? 'en';
-    $lang = (is_string($candidate) && isset($translations[$candidate]))
+    return (is_string($candidate)
+         && is_array($translations)
+         && isset($translations[$candidate]))
         ? $candidate
         : 'en';
-
-    return $lang;
 }
 
 /**

@@ -2612,15 +2612,25 @@ function showToken() {
                 },
                 onReject: function() {
                     $("#wait_layout").show();
-                    fetch("/settings/token?renew_token")
-                        .then(response => {
-                            if (response.ok) {
-                                showToken();
-                            } else {
-                                serverError();
-                            }
-                        })
-                        .catch(() => serverError());
+
+                    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                    const fd = new FormData();
+                    if (csrfMeta) fd.append('csrf_token', csrfMeta.content);
+
+                    fetch("/settings/token?renew_token", {
+                        method: 'POST',
+                        body: fd,
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            showToken();
+                        } else {
+                            serverError();
+                        }
+                    })
+                    .catch(() => serverError());
                 }
             };
             redDialog.make(dialogOpt);

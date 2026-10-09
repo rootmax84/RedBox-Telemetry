@@ -1,7 +1,6 @@
 <?php
 if (!isset($_SESSION['admin'])) { //admin not need db tables
     require_once __DIR__ . '/auth_user.php';
-    require_once __DIR__ . '/../del_session.php';
     require_once __DIR__ . '/get_sessions.php';
     require_once __DIR__ . '/get_columns.php';
     require_once __DIR__ . '/helpers.php';

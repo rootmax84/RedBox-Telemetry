@@ -5,6 +5,20 @@ include_once __DIR__ . '/translations.php';
 if (isset($_SESSION['admin'])) {
     $maintenanceFile = __DIR__ . '/_maintenance';
 
+    /* enable/disable — state-changing, требуют POST + CSRF.
+     * mode — read-only, оставляем как есть. */
+    if (isset($_GET['enable']) || isset($_GET['disable'])) {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            http_response_code(405);
+            header('Allow: POST');
+            exit('Method not allowed');
+        }
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            exit('Invalid CSRF token');
+        }
+    }
+
     if (isset($_GET['enable'])) {
         if (!file_exists($maintenanceFile)) {
             touch($maintenanceFile);

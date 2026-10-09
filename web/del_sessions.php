@@ -5,16 +5,15 @@ require_once __DIR__ . '/src/db_limits.php';
 require_once __DIR__ . '/src/heavy_tasks.php';
 global $delsession;
 
-$delsession = filter_input(INPUT_POST, 'delsession', FILTER_SANITIZE_NUMBER_INT)
-            ?? filter_input(INPUT_GET,  'delsession', FILTER_SANITIZE_NUMBER_INT);
+$delsession = filter_input(INPUT_POST, 'delsession', FILTER_SANITIZE_NUMBER_INT);
 
 $page = $_GET["page"] ?? $_POST["page"] ?? 1;
 
 $is_ajax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest')
         || (stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false);
 
-/* Собираем session_id из ключей POST/GET (кроме служебных) */
-$src = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' ? $_POST : $_GET;
+/* Собираем session_id из ключей POST (кроме служебных) */
+$src = $_POST;
 $sessionids = [];
 foreach ($src as $key => $value) {
     if (!in_array($key, ["delsession", "page", "csrf_token"], true)) {
@@ -69,13 +68,8 @@ if (isset($delsession)) {
         exit;
     }
 
-    if (!empty($_SESSION["page"])) {
-        header('Location: /session/?page=' . $_SESSION["page"]);
-        exit;
-    } else {
-        header('Location: /sessions');
-        exit;
-    }
+    header('Location: /sessions');
+    exit;
 } else {
     include_once __DIR__ . '/src/head.php';
 ?>
@@ -164,8 +158,9 @@ if (isset($delsession)) {
     </ul>
   </div>
 
-    <form style="padding:50px 0 0;" action="/sessions/delete" method="get" id="formdel" >
-      <input type="hidden" name="delsession" value="<?php echo $delsession; ?>">
+    <form style="padding:50px 0 0;" action="/sessions/delete" method="post" id="formdel" >
+      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+      <input type="hidden" name="delsession" value="<?php echo htmlspecialchars($delsession ?? '', ENT_QUOTES, 'UTF-8'); ?>">
       <div style="padding:10px; display:flex; justify-content:center"><button class="btn btn-info btn-sm" type="submit" id="del-btn" l10n="btn.del"></button></div>
       <table class="table table-del-merge-pid">
         <thead>

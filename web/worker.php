@@ -21,7 +21,7 @@
  */
 
 if (PHP_SAPI !== 'cli') {
-    header('Location: /?.');
+    header('Location: /');
     exit;
 }
 
@@ -50,7 +50,7 @@ require_once __DIR__ . '/src/creds.php';
 // Ждём MariaDB ПЕРЕД загрузкой db.php.
 //
 // db.php вызывает get_db_connection(), а та на неудачном connect делает
-// header('Location: /?...') + exit. В CLI header() — просто warning, а вот
+// header('Location: /...') + exit. В CLI header() — просто warning, а вот
 // exit; убивает воркер с кодом 0. С docker `restart: on-failure` это
 // значит, что контейнер не перезапускается и воркер тихо пропадает.
 //

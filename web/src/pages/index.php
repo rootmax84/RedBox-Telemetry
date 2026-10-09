@@ -39,7 +39,7 @@ if (isset($sids[0])) {
     }
 
     if ($session_id == ''){
-        header('Location: /?.');
+        header('Location: /');
     }
 
     $cached_timestamp = null;

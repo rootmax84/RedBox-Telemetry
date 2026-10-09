@@ -15,7 +15,6 @@ $db_port = '3306';     // Default port 3306
 $db_name = 'ratel';
 $user_id = $_SESSION['uid'] ?? null;
 $db_engine = 'ROCKSDB'; //Or INNODB. Engine for database tables (Recommended ROCKSDB). Applies to newly created users
-$db_innodb_compression = false; //Use row compression with innodb engine. Applies to newly created users
 $db_cache_ttl = 3600;
 $db_cache_meta_ttl = 300;
 $def_limit = 100; //Default user db size in sessions count

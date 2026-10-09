@@ -6,14 +6,13 @@ require_once __DIR__ . '/src/db_limits.php';
 require_once __DIR__ . '/src/heavy_tasks.php';
 
 $mergesession = filter_input(INPUT_POST, 'mergesession', FILTER_SANITIZE_NUMBER_INT)
-              ?? filter_input(INPUT_GET,  'mergesession', FILTER_SANITIZE_NUMBER_INT);
+             ?? filter_input(INPUT_GET,  'mergesession', FILTER_SANITIZE_NUMBER_INT);
 
 $page = $_GET["page"] ?? $_POST["page"] ?? 1;
 
 $is_ajax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest');
 
-// Читаем параметры из POST для AJAX, иначе из GET (как раньше)
-$src = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' ? $_POST : $_GET;
+$src = $_POST;
 
 $sessionids = [];
 $mergesess  = [];
@@ -54,15 +53,8 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     }
 
     // ── Fallback inline (Redis недоступен) ──
-    // (то же самое, что делает heavy_do_merge_sessions, но синхронно)
 
-    /* ── 1. Метаданные целевой сессии ──
-     * target_session — то, что пользователь выбрал в UI. Должна
-     * существовать и принадлежать текущему юзеру. Если её нет
-     * (удалена в другой вкладке, подделан URL, гонка) — уводим
-     * на главную, иначе UPDATE logs уедет на несуществующий id
-     * и оставит сиротские логи без метаданных.
-     */
+    /* ── 1. Метаданные целевой сессии ── */
     $profileResult = $db->execute_query(
         "SELECT profileName, description, favorite, ip
            FROM sessions
@@ -80,10 +72,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     $profileDesc     = $profileResult['description'];
     $profileIp       = $profileResult['ip'];
 
-    /* ── 2. Агрегаты по всем выбранным сессиям ──
-     * MIN(session) здесь не нужен — new_session всегда равен
-     * target_session (то, что пользователь выбрал в UI).
-     */
+    /* ── 2. Агрегаты по всем выбранным сессиям ── */
     $allSessions = array_values($sessionids);
     $ph          = implode(',', array_fill(0, count($allSessions), '?'));
     $params      = array_merge([current_user_id()], $allSessions);
@@ -105,25 +94,18 @@ if (!empty($mergesession) && !empty($mergesess1)) {
         exit;
     }
 
-    $newsession     = $mergesession;               // = target_session, а не MIN()
+    $newsession     = $mergesession;
     $newtimestart   = $mergerow['time'];
     $newtimeend     = $mergerow['timeend'];
     $newsessionsize = $mergerow['sessionsize'];
 
-    /* ── 2b. Защита от слишком большого мержа ──
-     * UI проверяет mergeMax до отправки, но полагаться только
-     * на клиент нельзя — запрос мог быть сформирован вручную.
-     */
+    /* ── 2b. Защита от слишком большого мержа ── */
     if (!empty($merge_max) && (int)$newsessionsize > (int)$merge_max) {
         header('Location: /');
         exit;
     }
 
-    /* ── 3. Атомарное обновление ──
-     * В inline-пути чанков нет (один UPDATE logs без LIMIT), поэтому
-     * транзакция бесплатна и даёт атомарность: либо обновили метаданные
-     * + перелили логи + удалили чужие sessions — либо ничего.
-     */
+    /* ── 3. Атомарное обновление ── */
     $db->begin_transaction();
 
     try {
@@ -143,9 +125,6 @@ if (!empty($mergesession) && !empty($mergesess1)) {
         $stmt->close();
 
         // 3b. Перелить логи из чужих сессий и удалить их метаданные.
-        //     Порядок: UPDATE logs → DELETE sessions. Если упадёт
-        //     DELETE — останутся пустые сессии, их легко дочистить.
-        //     Обратный порядок оставил бы логи без метаданных.
         foreach ($allSessions as $sid) {
             if ($sid == $newsession) continue;
 
@@ -189,7 +168,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
                 <div class="new-session"><a href='/' l10n='sess.new'></a></div>
                 <div class="storage-usage-img"></div>
             <?php } ?>
-                <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></a>
+                <a href="/settings/remote" class="remote-img" style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></a>
             <div class="container">
                 <div id="theme-switch"></div>
                 <div class="navbar-header">
@@ -252,6 +231,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
           <span class="icon" id="remote-ra-rbx-img"></span>
           <span l10n="func.remote"></span>
         </button>
+      </li>
       <li role="none">
         <button class="menu-item" role="menuitem" tabindex="-1" onclick="showHints()">
           <span class="icon" id="hint-img"></span>
@@ -261,8 +241,9 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     </ul>
   </div>
 
-        <form style="padding:50px 0 0;" action="/sessions/merge" method="get" id="formmerge">
-            <input type="hidden" name="mergesession" value="<?php echo $mergesession; ?>">
+        <form style="padding:50px 0 0;" action="/sessions/merge" method="post" id="formmerge">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="mergesession" value="<?php echo htmlspecialchars($mergesession ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             <div style="padding:10px; display:flex; justify-content:center;">
                 <button class="btn btn-info btn-sm" type="submit" id="merge-btn" l10n="btn.merge"></button>
             </div>
@@ -336,7 +317,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
             <?php } ?>
         </form>
         <div class="pages">
-        <?php //Pagination with page count limit
+        <?php
             $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
             $total_pages = $number_of_page;
             $page_numbers_limit = 10;

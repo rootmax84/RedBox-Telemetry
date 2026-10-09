@@ -76,43 +76,53 @@ function createChoices() {
     });
 }
 
-function linkifyAPI() {
-  const label = document.querySelector('label[for="api_gps"]');
-  if (!label) return;
+(function () {
+  const SELECTOR = 'label[for="api_gps"]';
+  const LINK_HREF = '/api/stream';
 
-  const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
-  const targets = [];
-  let node;
+  let observer;
 
-  while ((node = walker.nextNode())) {
-    if (node.nodeValue.includes('API')) {
-      targets.push(node);
-    }
+  function normalize() {
+    const label = document.querySelector(SELECTOR);
+    if (!label) return;
+
+    const links = label.querySelectorAll(`a[href="${LINK_HREF}"]`);
+    const clone = label.cloneNode(true);
+    clone.querySelectorAll('a').forEach(a => a.remove());
+    const bare = clone.textContent;
+
+    const hasBareApi = /(^|\s)API(\s|$)/.test(bare);
+    const isCorrect = links.length === 1 && !hasBareApi;
+    if (isCorrect) return;
+
+    const base = bare.replace(/\s*API\s*$/, '').replace(/\s+$/, '');
+
+    const frag = document.createDocumentFragment();
+    if (base) frag.append(document.createTextNode(base + ' '));
+
+    const a = document.createElement('a');
+    a.href = LINK_HREF;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = 'API';
+    frag.append(a);
+
+    observer?.disconnect();
+    label.replaceChildren(frag);
+    observer?.observe(label, { childList: true, subtree: true, characterData: true });
   }
 
-  targets.forEach((textNode) => {
-    const parts = textNode.nodeValue.split(/(API)/);
-    const fragment = document.createDocumentFragment();
-
-    parts.forEach((part) => {
-      if (part === 'API') {
-        const a = document.createElement('a');
-        a.href = '/api/stream';
-        a.textContent = 'API';
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        fragment.appendChild(a);
-      } else if (part) {
-        fragment.appendChild(document.createTextNode(part));
-      }
-    });
-
-    textNode.parentNode.replaceChild(fragment, textNode);
+  document.addEventListener('DOMContentLoaded', () => {
+    observer = new MutationObserver(normalize);
+    normalize();
+    const label = document.querySelector(SELECTOR);
+    if (label) {
+      observer.observe(label, { childList: true, subtree: true, characterData: true });
+    }
   });
-}
+})();
 
 $(document).ready(function () {
     $("#lang").val(lang ?? "en");
     createChoices();
-    linkifyAPI();
 });

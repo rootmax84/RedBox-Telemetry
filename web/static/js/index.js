@@ -641,43 +641,88 @@ function uploadLogDialog() {
 // =============================================================
 function delSession() {
     $("#wait_layout").hide();
-    const sessionId = APP_CONFIG.sessionId || '';
+    const sessionId   = APP_CONFIG.sessionId   || '';
     const sessionDate = APP_CONFIG.sessionDate || '';
     if (!sessionId.length) return;
 
     const formatTime = (timestamp) => {
         const date = new Date(timestamp);
-        if (Cookies.get('timeformat') == '12') {
-            return date.toLocaleTimeString('en-US');
-        } else {
-            return date.toLocaleTimeString('ru-RU');
-        }
+        return Cookies.get('timeformat') == '12'
+            ? date.toLocaleTimeString('en-US')
+            : date.toLocaleTimeString('ru-RU');
     };
 
     let messageText = `${localization.key['dialog.del.session']} (${sessionDate})`;
     if (cutStart !== null && cutEnd !== null) {
         const startTime = formatTime(cutStart);
-        const endTime = formatTime(cutEnd);
+        const endTime   = formatTime(cutEnd);
         messageText += ` <strong>${localization.key['dialog.del.range']}</strong> ${startTime} - ${endTime}`;
     }
     messageText += "?";
 
-    let dialogOpt = {
+    const dialogOpt = {
         title: localization.key['dialog.confirm'],
         btnClassSuccessText: localization.key['btn.yes'],
-        btnClassFailText: localization.key['btn.no'],
+        btnClassFailText:    localization.key['btn.no'],
         btnClassFail: "btn btn-info btn-sm",
         message: messageText,
         onResolve: function () {
-            $("#wait_layout").show();
-            let url = `?deletesession=${sessionId}`;
+            const fd = new FormData();
+            fd.append('deletesession', sessionId);
             if (cutStart !== null && cutEnd !== null) {
-                url += `&cutstart=${cutStart}&cutend=${cutEnd}`;
+                fd.append('cutstart', cutStart);
+                fd.append('cutend',   cutEnd);
             }
-            location.href = url;
+
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) fd.append('csrf_token', csrfMeta.content);
+
+            $("#wait_layout").show();
+
+            fetch('/sessions/delete-one', {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            })
+            .then(r => {
+                const ct = r.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                    return r.json();
+                }
+                // Не должно случаться при корректном del_session.php,
+                // но подстрахуемся на случай старого сервера/прокси.
+                return r.text().then(t => ({ _text: t }));
+            })
+            .then(data => {
+                if (data._text !== undefined) {
+                    location.reload();
+                    return;
+                }
+
+                if (data.reload)   { location.href = '/logout'; return; }
+                if (data.redirect) { location.href = data.redirect; return; }
+
+                if (data.status === 'accepted' && data.task_id) {
+                    $("#wait_layout").hide();
+                    pollHeavyTask(data.task_id, {
+                        taskType: 'delete_sessions',
+                        onDone: () => location.reload(),
+                    });
+                    return;
+                }
+
+                $("#wait_layout").hide();
+                serverError(data.error || 'Unknown response');
+            })
+            .catch(err => {
+                $("#wait_layout").hide();
+                serverError(err.message);
+            });
         },
         onReject: function () { return; }
     };
+
     redDialog.make(dialogOpt);
 }
 
@@ -826,7 +871,7 @@ function updateSessionList() {
     $('#hiddenYear').val(year);
     $('#hiddenMonth').val(month);
 
-    let url = `get_filtered_sessions.php?current_id=${encodeURIComponent(currentSessionId)}`;
+    let url = `/sessions/filtered/?current_id=${encodeURIComponent(currentSessionId)}`;
 
     if (year && year !== 'ALL' && year !== '') {
         url += `&year=${encodeURIComponent(year)}`;

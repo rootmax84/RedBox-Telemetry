@@ -42,6 +42,13 @@ function handleTokenRequests($db, $translations, $username, $admin) {
     }
 
     if (isset($_GET['renew_token'])) {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            http_response_code(405);
+            header('Allow: POST');
+            exit('Method not allowed');
+        }
+
+        // CSRF проверен в auth_user.php (POST + непустое тело).
         $token = $db->execute_query("SELECT token FROM users WHERE user=?", [$username])->fetch_assoc()["token"];
         cache_flush($token);
         $token = generate_token($username);
@@ -352,7 +359,7 @@ try {
         /* ── Invalid admin request ── */
         else {
             http_response_code(403);
-            header("Location: /?.");
+            header("Location: /");
             die;
         }
     }
@@ -365,7 +372,7 @@ try {
 
     // Redirect non-admin users
     if (!isset($_SESSION['admin'])) {
-        header("Location: /?.");
+        header("Location: /");
         die;
     }
 
