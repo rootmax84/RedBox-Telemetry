@@ -68,6 +68,41 @@ function addCsrfTokenToForms() {
     });
 }
 
+// JSON-запросы не могут передать csrf_token через $_POST (PHP не парсит
+// application/json в $_POST). Поэтому шлём кастомный заголовок,
+// который читает auth_user.php из $_SERVER['HTTP_X_CSRF_TOKEN'].
+(function patchFetchForCsrf() {
+    if (window.__csrfFetchPatched) return;
+    window.__csrfFetchPatched = true;
+
+    const _fetch = window.fetch.bind(window);
+
+    window.fetch = function (input, init) {
+        init = init || {};
+        const method = (init.method || 'GET').toUpperCase();
+
+        if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+            const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+            const token = tokenMeta ? tokenMeta.content : '';
+
+            if (token) {
+                if (init.headers instanceof Headers) {
+                    if (!init.headers.has('X-CSRF-Token')) {
+                        init.headers.set('X-CSRF-Token', token);
+                    }
+                } else {
+                    init.headers = Object.assign(
+                        { 'X-CSRF-Token': token },
+                        init.headers || {}
+                    );
+                }
+            }
+        }
+
+        return _fetch(input, init);
+    };
+})();
+
 if (HEAD_CONFIG.torqueUser) {
     const checkCSRFToken = function () {
         const tokenMeta  = document.querySelector('meta[name="csrf-token"]');

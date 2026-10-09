@@ -37,13 +37,20 @@ $auth_fail = function (string $reason, int $http_code = 401, ?string $catch = nu
     exit;
 };
 
-if(isset($_POST) && !empty($_POST)){
-    if (!in_array($current_script, $csrf_exempt_scripts)) {
-        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
-            $auth_fail('csrffailed', 401, 'csrffailed');
-        }
-    }
+$request_method     = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$is_state_changing  = in_array($request_method, ['POST', 'PUT', 'DELETE', 'PATCH'], true);
 
+if ($is_state_changing && !in_array($current_script, $csrf_exempt_scripts, true)) {
+    $csrf_token = $_POST['csrf_token']
+               ?? $_SERVER['HTTP_X_CSRF_TOKEN']
+               ?? '';
+
+    if ($csrf_token === '' || !verify_csrf_token($csrf_token)) {
+        $auth_fail('csrffailed', 401, 'csrffailed');
+    }
+}
+
+if (isset($_POST) && !empty($_POST)) {
     if (!$logged_in) {
         if (!check_login_attempts(get_user())) {
             $auth_fail('toomanyattempts', 429, 'toomanyattempts');

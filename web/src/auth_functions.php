@@ -96,16 +96,6 @@ function auth_user()
     $db = get_db_connection();
     global $live_data_rate;
 
-    global $csrf_exempt_scripts;
-    $current_script = basename($_SERVER['SCRIPT_FILENAME']);
-
-    if (!in_array($current_script, $csrf_exempt_scripts)) {
-        // CSRF token check
-        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
-            return false;
-        }
-    }
-
     // ── Clean install: файл `install` создаётся startup-скриптом контейнера,
     //    удаляется после первого успешного захода на страницу логина.
     //    Гарантирует, что таблица users + admin существуют.

@@ -13,10 +13,6 @@ if (isset($_SESSION['admin'])) {
             header('Allow: POST');
             exit('Method not allowed');
         }
-        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
-            http_response_code(403);
-            exit('Invalid CSRF token');
-        }
     }
 
     if (isset($_GET['enable'])) {

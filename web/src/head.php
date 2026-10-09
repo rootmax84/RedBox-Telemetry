@@ -9,6 +9,7 @@ $l10n_time = $l10n_match[0] ?? '';
 $head_username = (isset($username) && isset($admin) && $username != $admin)
     ? $username
     : '';
+$head_host = htmlspecialchars($_SERVER['HTTP_HOST'] ?? '', ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
 <html>
@@ -16,7 +17,7 @@ $head_username = (isset($username) && isset($admin) && $username != $admin)
 <script src="<?php echo version_url('/static/js/localization.js'); ?>"></script>
 <meta property="og:title" content="RedBox Telemetry">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://<?php echo $_SERVER['HTTP_HOST']; ?>/static/img/android-chrome-192x192.png">
+<meta property="og:image" content="https://<?php echo $head_host; ?>/static/img/android-chrome-192x192.png">
 <meta property="og:description" content="Go hard!">
 <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
