@@ -14,7 +14,7 @@
   <div class="container">
     <div id="theme-switch"></div>
     <div class="navbar-header">
-      <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+      <a class="navbar-brand" href="."><div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
     </div>
   </div>
 </div>

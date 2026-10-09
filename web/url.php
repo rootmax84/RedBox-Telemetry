@@ -5,9 +5,14 @@ include_once __DIR__ . '/src/helpers.php';
 
 // session ID sanitize
 $current_seshid = sanitizeInput(
-    $_GET["seshid"] ?? $_POST["seshidtag"] ?? $_GET["id"] ?? null,
+    $_GET['seshid'] ?? $_POST['seshidtag'] ?? $_GET['id'] ?? null,
     'alphanum'
 );
+
+// Если пришёл из формы — берём новый id из seshidtag (POST)
+if (!empty($_POST['seshidtag'])) {
+    $current_seshid = sanitizeInput($_POST['seshidtag'], 'alphanum');
+}
 
 // Calculate month from session ID if possible
 $calculated_month = '';
@@ -20,32 +25,30 @@ if ($current_seshid && is_numeric($current_seshid)) {
 }
 
 // Determine month with validation
-$raw_month = $_POST["selmonth"] ?? $_GET["month"] ?? '';
+$raw_month = $_POST['selmonth'] ?? $_GET['month'] ?? '';
 if ($raw_month === '') {
-    $raw_month = $calculated_month ?? '';
+    $raw_month = $calculated_month;
 }
 $month = sanitizeInput($raw_month, 'month');
 
-// Build URL
-$baselink = ".";
-$outurl = $baselink;
+// ────────────────────────────────────────────────────────────
+//  Строим URL. База — всегда "/", никаких "."
+// ────────────────────────────────────────────────────────────
 $params = [];
 
-// Always add ID if provided and valid
 if ($current_seshid) {
     $params['id'] = $current_seshid;
 }
-
-// Add month if provided and valid
 if (!empty($month)) {
     $params['month'] = $month;
 }
 
-// Add profile with validation
-$raw_profile = $_POST["selprofile"] ?? $_GET["profile"] ?? null;
+$raw_profile = $_POST['selprofile'] ?? $_GET['profile'] ?? null;
 if ($raw_profile) {
     $profile = sanitizeInput($raw_profile);
-    $lang = isset($_COOKIE['lang']) ? sanitizeInput($_COOKIE['lang'], 'alphanum') : 'en';
+    $lang = isset($_COOKIE['lang'])
+        ? sanitizeInput($_COOKIE['lang'], 'alphanum')
+        : 'en';
 
     if (isset($translations[$lang]) && $profile === $translations[$lang]['profile.ns']) {
         $profile = 'Not Specified';
@@ -53,8 +56,7 @@ if ($raw_profile) {
     $params['profile'] = $profile;
 }
 
-// Add year with validation
-$raw_year = $_POST["selyear"] ?? $_GET["year"] ?? null;
+$raw_year = $_POST['selyear'] ?? $_GET['year'] ?? null;
 if ($raw_year) {
     $year = sanitizeInput($raw_year, 'year_or_all');
     if ($year) {
@@ -62,23 +64,17 @@ if ($raw_year) {
     }
 }
 
+$outurl = '/';
 if (!empty($params)) {
     $outurl .= '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 }
 
-$allowed_hosts = [$_SERVER['HTTP_HOST'], 'localhost'];
-$parsed_url = parse_url($outurl);
-
-if (!isset($parsed_url['host']) || in_array($parsed_url['host'], $allowed_hosts, true)) {
-    if (strlen($outurl) < 2000) {
-        header("Location: " . $outurl);
-        exit;
-    } else {
-        error_log("Potential attack: Long URL attempted: " . $outurl);
-        header("Location: " . $baselink);
-        exit;
-    }
-} else {
-    header("Location: " . $baselink);
+// Защита от слишком длинного URL
+if (strlen($outurl) > 2000) {
+    error_log("Potential attack: Long URL attempted: " . $outurl);
+    header('Location: /');
     exit;
 }
+
+header('Location: ' . $outurl);
+exit;

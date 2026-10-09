@@ -11,7 +11,7 @@ function submitForm(el) {
     submitBtn.disabled = true;
 
     lang = $("#lang").val();
-    fetch(`translations.php?lang=${lang}`)
+    fetch(`/translations?lang=${lang}`)
         .then(() => localization.setLang(lang))
         .then(() => {
             return fetch(el.getAttribute("action"), {
@@ -24,14 +24,14 @@ function submitForm(el) {
             // 302/303/307 на catch.php — сессия/CSRF протухли
             if (response.type === 'opaqueredirect'
                 || (response.status >= 300 && response.status < 400)) {
-                location.href = '.?logout=true';
+                location.href = '/logout';
                 return null;
             }
             // 401 (CSRF/login), 419 (Laravel-style), 403 (disabled/denied)
             if (response.status === 401
                 || response.status === 419
                 || response.status === 403) {
-                location.href = '.?logout=true';
+                location.href = '/logout';
                 return null;
             }
             return response.text();
@@ -76,7 +76,43 @@ function createChoices() {
     });
 }
 
+function linkifyAPI() {
+  const label = document.querySelector('label[for="api_gps"]');
+  if (!label) return;
+
+  const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  let node;
+
+  while ((node = walker.nextNode())) {
+    if (node.nodeValue.includes('API')) {
+      targets.push(node);
+    }
+  }
+
+  targets.forEach((textNode) => {
+    const parts = textNode.nodeValue.split(/(API)/);
+    const fragment = document.createDocumentFragment();
+
+    parts.forEach((part) => {
+      if (part === 'API') {
+        const a = document.createElement('a');
+        a.href = '/api/stream';
+        a.textContent = 'API';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        fragment.appendChild(a);
+      } else if (part) {
+        fragment.appendChild(document.createTextNode(part));
+      }
+    });
+
+    textNode.parentNode.replaceChild(fragment, textNode);
+  });
+}
+
 $(document).ready(function () {
     $("#lang").val(lang ?? "en");
     createChoices();
+    linkifyAPI();
 });

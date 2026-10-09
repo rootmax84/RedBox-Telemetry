@@ -73,7 +73,7 @@ try {
     allowMethods('POST');
 
     if (isset($_SESSION['admin'])) {
-        header("Refresh:0; url=.");
+        header("Refresh:0; url=/");
         exit;
     }
 

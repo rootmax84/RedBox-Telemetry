@@ -112,7 +112,7 @@ if ($r->num_rows > 0) {
         }
 
         // Output row
-        echo "<tr onclick='window.location=\"./users_admin.php?action=edit&user="
+        echo "<tr onclick='window.location=\"/admin/users?action=edit&user="
              . urlencode($username_row) . "&limit=" . (int)$row['s'] . "\";'"
              . " data-username=\"" . $username_row . "\">";
         echo "<td>" . $i++ . "</td>";
@@ -241,7 +241,7 @@ if (!empty($redis_stream_enabled)) {
     $mb  = $translations[$lang]['admin.mb'];
 
     $redis_part = "Redis: " . ($redis_connected ? $yes : $no)
-        . " <a href='redis_stats.php'>📊</a>";
+        . " <a href='/admin/redis'>📊</a>";
     if ($redis_connected) {
         if ($redis_stream_lag !== null) {
             $redis_part .= " (backlog: {$redis_stream_lag}";

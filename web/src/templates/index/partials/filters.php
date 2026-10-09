@@ -1,6 +1,6 @@
     <div class="row center-block" style="padding-bottom:22px;">
       <!-- Filter the session list by year and month -->
-      <form method="post" class="form-horizontal" action="url.php?id=<?php echo $session_id; ?>">
+      <form method="post" class="form-horizontal" action="/url/?id=<?php echo $session_id; ?>">
         <table style="width:100%">
           <tr>
             <!-- Profile Filter -->
@@ -52,7 +52,7 @@
         </table>
       </form><br>
       <!-- Session Select Drop-Down List -->
-    <form method="post" class="form-horizontal" action="url.php" id="sessionForm">
+    <form method="post" class="form-horizontal" action="/url" id="sessionForm">
       <select id="seshidtag" name="seshidtag" class="form-control">
         <?php foreach ($seshdates as $dateid => $datestr) { ?>
           <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>>

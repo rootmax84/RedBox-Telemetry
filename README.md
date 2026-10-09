@@ -114,7 +114,7 @@ INLINE FALLBACK (Redis disabled or unavailable):
 6. Create empty file with name 'install' in root folder of installation (Make sure web-server have write rights on folder)
 7. Sign in with admin login and admin password (default password: admin) (Users table will be created while sign in)
 8. Create new user in admin panel and change admin password
-9. For upload data from Torque PRO/RedManage use URL - https://your.site/ul.php
+9. For upload data from Torque PRO/RedManage use URL - https://your.site/api/upload
 10. Done!
 
 ### Installation docker:
@@ -123,7 +123,7 @@ INLINE FALLBACK (Redis disabled or unavailable):
 2. Configure reverse-proxy with SSL (nginx, traefik, etc) or configure SSL at you own inside web container ./docker/web
 3. Sign in with admin login and admin password (default password: admin)
 4. Create new user in admin panel and change admin password
-5. For upload data from Torque PRO/RedManage use URL - https://your.site/upload
+5. For upload data from Torque PRO/RedManage use URL - https://your.site/api/upload
 6. Done!
 
 ### Migrate standalone installation to docker:
@@ -238,32 +238,32 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/your.site/privkey.pem;
     ssl_dhparam /etc/letsencrypt/dhparam.pem;
 
-    location ~ /.well-known {
+    location ~ ^/\.well-known(/|$) {
         allow all;
         root /var/www/html;
     }
 
+    location ~* \.(?:php|phtml|phar|inc|env|ini|log|sql|bak|old|swp|orig|yml|yaml|example)$ {
+        return 404;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_pass unix:/var/run/php/php8.5-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include /etc/nginx/fastcgi_params;
+    }
+
     location / {
-        index index.php;
-            location ~ ^/(.+\.php)$ {
-               try_files $uri =404;
-               fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
-               fastcgi_index index.php;
-               fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-               include /etc/nginx/fastcgi_params;
-            }
-        try_files $uri $uri/ /index.php;
+        try_files $uri $uri/ /index.php?$query_string;
     }
 
-    location /upload {
-        try_files $uri $uri/ /ul.php?$query_string;
-    }
-
-    location ~* .(?:css|js)$ {
-        expires 1d;
+    location ~* \.(?:css|js|woff2|woff|ttf|webp|png|jpg|jpeg|gif|svg|ico|map|avif|json)$ {
+        expires 30d;
         add_header Cache-Control "public";
+        access_log off;
     }
-  error_page 404 =200 /;
 }
 
 #nginx.conf
@@ -273,7 +273,6 @@ http {
    client_body_timeout 900;
    fastcgi_read_timeout 900;
 }
-
 ```
 
 ### RocksDB configuration for standalone installation:

@@ -76,7 +76,7 @@ set_exception_handler(function($exception) {
 
     // Обычные страницы — редирект, но только если headers не отправлены
     if (!headers_sent()) {
-        header('Location: catch.php?c=error');
+        header('Location: /catch?c=error');
     }
     exit;
 });
@@ -95,10 +95,10 @@ if (isset($_GET['logout'])) {
 }
 
 if (PHP_SAPI !== 'cli'
-    && file_exists('maintenance')
+    && is_maintenance()
     && !isset($_SESSION['admin'])
 ) {
-    header("Refresh:0; url=maintenance.php");
+    header("Refresh:0; url=/maintenance");
     exit;
 }
 

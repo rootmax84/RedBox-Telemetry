@@ -77,7 +77,7 @@ if (empty($lang) || !is_string($lang)) {
  * ──────────────────────────────────────────────────────────── */
 $token = getBearerToken();
 if (!empty($token)) {
-    if (file_exists('maintenance')) {
+    if (is_maintenance()) {
         http_response_code(423);
         die($translations[$lang ?? 'en']['maintenance']);
     }

@@ -18,7 +18,7 @@ $rawLang = $_POST['lang'] ?? 'en';
 
 $safeLang = is_string($rawLang) ? $rawLang : 'en';
 
-if (file_exists(__DIR__ . '/maintenance')) {
+if (is_maintenance()) {
     http_response_code(423);
     $msg = $translations[$safeLang]['maintenance']
         ?? ($translations['en']['maintenance'] ?? 'Maintenance');

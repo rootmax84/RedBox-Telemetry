@@ -81,7 +81,7 @@ try {
     require_once __DIR__ . '/src/methods.php';
     allowMethods('POST');
 
-    if (isset($_SESSION['admin'])) header("Refresh:0; url=.");
+    if (isset($_SESSION['admin'])) header("Refresh:0; url=/");
 
     $session_count = (int)$db->execute_query(
         "SELECT COUNT(*) FROM sessions WHERE user_id = ?",

@@ -156,7 +156,7 @@ function dataToggleCore() {
             handleSliderInit();
             $("#data").show();
             $("#data_toggle").html(localization.key['collapse']);
-            const streamUrl = "stream.php" +
+            const streamUrl = "/sessions/stream" +
                 (APP_CONFIG.streamLock > 0
                     ? '?id=' + encodeURIComponent(APP_CONFIG.sessionId)
                     : '');
@@ -486,8 +486,8 @@ function uploadLogDialog() {
         }
 
         const endpoints = {
-            redlog: 'import_redlog.php',
-            torque: 'import_torque.php'
+            redlog: '/import/redlog',
+            torque: '/import/torque'
         };
 
         let hasErrors = false;
@@ -710,7 +710,7 @@ function exportSession(type) {
         btnClassFail: "btn btn-info btn-sm",
         message: messageText,
         onResolve: function () {
-            let url = `./export.php?sid=${sessionId}&filetype=${type.toLowerCase()}`;
+            let url = `/sessions/export?sid=${sessionId}&filetype=${type.toLowerCase()}`;
             if (cutStart !== null && cutEnd !== null) {
                 url += `&cutstart=${cutStart}&cutend=${cutEnd}`;
             }
@@ -721,7 +721,7 @@ function exportSession(type) {
 }
 
 function mergeSessions() {
-    location.href = "./merge_sessions.php?mergesession=" + encodeURIComponent(APP_CONFIG.sessionId || '');
+    location.href = "/sessions/merge?mergesession=" + encodeURIComponent(APP_CONFIG.sessionId || '');
 }
 
 function shareSession() {
@@ -730,7 +730,7 @@ function shareSession() {
     $(".fetch-data").css("display", "block");
     $(".share-img").css("pointer-events", "none");
 
-    fetch('sign.php', {
+    fetch('/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid, id })
@@ -739,7 +739,7 @@ function shareSession() {
     .then(result => {
         if (result.signature) {
             const sig = result.signature;
-            const url = `${window.location.origin}/share.php?uid=${encodeURIComponent(uid)}&id=${encodeURIComponent(id)}&sig=${sig}`;
+            const url = `${window.location.origin}/share?uid=${encodeURIComponent(uid)}&id=${encodeURIComponent(id)}&sig=${sig}`;
             if (navigator.share) {
                 return navigator.share({
                     text: `${new Date(Number(id)).toLocaleString()}`,
@@ -784,7 +784,7 @@ function addToFavorite() {
     $(".fetch-data").css("display", "block");
     $(".favorite").css("pointer-events", "none");
 
-    fetch('favorite.php', {
+    fetch('/sessions/favorite', {
         method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: id })

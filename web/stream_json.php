@@ -1,7 +1,7 @@
 <?php
 /*
     USAGE EXAMPLE:
-    curl https://your_site/stream_json.php -H "Authorization: Bearer $username_token"
+    curl https://your_site/api/stream -H "Authorization: Bearer $your_access_token"
     returns the latest user log entry checked in the PID menu as Stream
 
       [
@@ -29,7 +29,7 @@ header('Content-Type: application/json');
 header('Cache-Control: no-cache');
 
 // Maintenance check — before any DB or auth work
-if (file_exists('maintenance')) {
+if (is_maintenance()) {
     http_response_code(423);
     echo json_encode(['error' => 'Server under maintenance']);
     exit;
@@ -54,7 +54,7 @@ if (empty($token)) {
     $usage .= "Returns the latest user log entry checked in the PID menu as a JSON stream.\n\n";
     $usage .= "USAGE EXAMPLE\n";
     $usage .= "-------------\n";
-    $usage .= "curl ${current_url} -H \"Authorization: Bearer \$username_token\"\n\n";
+    $usage .= "curl ${current_url} -H \"Authorization: Bearer \$your_access_token\"\n\n";
     $usage .= "RESPONSE\n";
     $usage .= "--------\n";
     $usage .= "[\n";

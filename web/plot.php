@@ -10,7 +10,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $sig = $_GET['sig'];
 
     if (!checkRateLimit(5)) {
-        header('Location: catch.php?c=block');
+        header('Location: /catch?c=block');
         exit;
     }
 
@@ -36,7 +36,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
                 }
             }
         } else {
-            header('Location: catch.php?c=noshare');
+            header('Location: /catch?c=noshare');
             exit;
         }
     }
@@ -53,7 +53,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $payload = "uid={$uid}&id={$sid}";
     $expected_sig = hash_hmac('sha256', $payload, $share_secret);
     if (!hash_equals($expected_sig, $sig)) {
-        header('Location: catch.php?c=noshare');
+        header('Location: /catch?c=noshare');
         exit;
     } else {
         checkRateLimit(5, 3600, true);
@@ -80,7 +80,7 @@ if (isset($_GET["id"])) {
 
     if ($current_timestamp === null && empty($_SESSION['share'])) {
         $db->close();
-        header('Location: .');
+        header('Location: /');
         exit;
     }
 
@@ -175,7 +175,7 @@ if (isset($_GET["id"])) {
     $selected_pids = [];
     $i = 1;
     while (isset($_GET["s$i"])) {
-        if ($_GET["s$i"] == '') { header('Location: .'); exit; }
+        if ($_GET["s$i"] == '') { header('Location: /'); exit; }
         ${'v' . $i} = $_GET["s$i"];
         $selected_pids[] = ${'v' . $i};
         $i++;

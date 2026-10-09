@@ -70,10 +70,10 @@ if (isset($delsession)) {
     }
 
     if (!empty($_SESSION["page"])) {
-        header('Location: del_sessions.php?page=' . $_SESSION["page"]);
+        header('Location: /session/?page=' . $_SESSION["page"]);
         exit;
     } else {
-        header('Location: del_sessions.php');
+        header('Location: /sessions');
         exit;
     }
 } else {
@@ -83,13 +83,13 @@ if (isset($delsession)) {
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
     <div class="fetch-data"></div>
 <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-     <div class="new-session"><a href='.' l10n='sess.new'></a></div>
+     <div class="new-session"><a href='/' l10n='sess.new'></a></div>
      <div class="storage-usage-img"></div>
 <?php } ?>
       <div class="container">
        <div id="theme-switch"></div>
         <div class="navbar-header">
-        <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+        <a class="navbar-brand" href="/"><div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
         </div>
       </div>
     </div>
@@ -108,7 +108,7 @@ if (isset($delsession)) {
 
     <ul class="menu-list" role="menu">
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./search.php'">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/search'">
           <span class="icon" id="search-img"></span>
           <span l10n="search.find"></span>
         </button>
@@ -164,7 +164,7 @@ if (isset($delsession)) {
     </ul>
   </div>
 
-    <form style="padding:50px 0 0;" action="del_sessions.php" method="get" id="formdel" >
+    <form style="padding:50px 0 0;" action="/sessions/delete" method="get" id="formdel" >
       <input type="hidden" name="delsession" value="<?php echo $delsession; ?>">
       <div style="padding:10px; display:flex; justify-content:center"><button class="btn btn-info btn-sm" type="submit" id="del-btn" l10n="btn.del"></button></div>
       <table class="table table-del-merge-pid">
@@ -267,26 +267,26 @@ if ($end > $total_pages) {
     $start = max(1, $total_pages - $page_numbers_limit + 1);
 }
 if ($current_page > 1) {
-    echo '<a class="pages" href="del_sessions.php?page=1">&#171;</a> ';
+    echo '<a class="pages" href="/sessions?page=1">&#171;</a> ';
 }
 if ($current_page > 1) {
     $previous_page = $current_page - 1;
-    echo '<a class="pages" href="del_sessions.php?page=' . $previous_page . '">&#60;</a> ';
+    echo '<a class="pages" href="/sessions?page=' . $previous_page . '">&#60;</a> ';
 }
 for ($page = $start; $page <= $end; $page++) {
     if ($number_of_result < $results_per_page) break;
     if ($page == $current_page) {
-        echo '<a class="current-page" href="del_sessions.php?page=' . $page . '">' . $page . ' </a>';
+        echo '<a class="current-page" href="/sessions?page=' . $page . '">' . $page . ' </a>';
     } else {
-        echo '<a class="pages" href="del_sessions.php?page=' . $page . '">' . $page . ' </a>';
+        echo '<a class="pages" href="/sessions?page=' . $page . '">' . $page . ' </a>';
     }
 }
 if ($current_page < $total_pages) {
     $next_page = $current_page + 1;
-    echo ' <a class="pages" href="del_sessions.php?page=' . $next_page . '">&#62;</a>';
+    echo ' <a class="pages" href="/sessions?page=' . $next_page . '">&#62;</a>';
 }
 if ($current_page < $total_pages) {
-    echo ' <a class="pages" href="del_sessions.php?page=' . $total_pages . '">&#187;</a>';
+    echo ' <a class="pages" href="/sessions?page=' . $total_pages . '">&#187;</a>';
 }
 ?>
 </div>

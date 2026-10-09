@@ -71,7 +71,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     )->fetch_assoc();
 
     if (!$profileResult) {
-        header('Location: .');
+        header('Location: /');
         exit;
     }
 
@@ -101,7 +101,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     $stmt->close();
 
     if (!$mergerow || $mergerow['time'] === null) {
-        header('Location: .');
+        header('Location: /');
         exit;
     }
 
@@ -115,7 +115,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
      * на клиент нельзя — запрос мог быть сформирован вручную.
      */
     if (!empty($merge_max) && (int)$newsessionsize > (int)$merge_max) {
-        header('Location: .');
+        header('Location: /');
         exit;
     }
 
@@ -177,7 +177,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
         exit;
     }
 
-    header('Location: .?id=' . $newsession);
+    header('Location: /?id=' . $newsession);
     exit;
 
 } elseif (isset($mergesession) && !empty($mergesession)) {
@@ -186,14 +186,14 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
             <?php if (!isset($_SESSION['admin']) && $limit > 0) { ?>
-                <div class="new-session"><a href='.' l10n='sess.new'></a></div>
+                <div class="new-session"><a href='/' l10n='sess.new'></a></div>
                 <div class="storage-usage-img"></div>
             <?php } ?>
                 <a href="users_remote.php" class="remote-img" style="right:<?php echo ($limit < 0) ? '40px' : '70px'; ?>"></a>
             <div class="container">
                 <div id="theme-switch"></div>
                 <div class="navbar-header">
-                    <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+                    <a class="navbar-brand" href="/"><div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
                 </div>
             </div>
         </div>
@@ -261,7 +261,7 @@ if (!empty($mergesession) && !empty($mergesess1)) {
     </ul>
   </div>
 
-        <form style="padding:50px 0 0;" action="merge_sessions.php" method="get" id="formmerge">
+        <form style="padding:50px 0 0;" action="/sessions/merge" method="get" id="formmerge">
             <input type="hidden" name="mergesession" value="<?php echo $mergesession; ?>">
             <div style="padding:10px; display:flex; justify-content:center;">
                 <button class="btn btn-info btn-sm" type="submit" id="merge-btn" l10n="btn.merge"></button>
@@ -351,26 +351,26 @@ if (!empty($mergesession) && !empty($mergesess1)) {
                 $start = max(1, $total_pages - $page_numbers_limit + 1);
             }
             if ($current_page > 1) {
-                echo '<a class="pages" href="merge_sessions.php?mergesession=' . $mergesession . '&page=1">&#171;</a> ';
+                echo '<a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=1">&#171;</a> ';
             }
             if ($current_page > 1) {
                 $previous_page = $current_page - 1;
-                echo '<a class="pages" href="merge_sessions.php?mergesession=' . $mergesession . '&page=' . $previous_page . '">&#60;</a> ';
+                echo '<a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $previous_page . '">&#60;</a> ';
             }
             for ($page = $start; $page <= $end; $page++) {
                 if ($number_of_result < $results_per_page) break;
                 if ($page == $current_page) {
-                    echo '<a class="current-page" href="merge_sessions.php?mergesession=' . $mergesession . '&page=' . $page . '">' . $page . ' </a>';
+                    echo '<a class="current-page" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $page . '">' . $page . ' </a>';
                 } else {
-                    echo '<a class="pages" href="merge_sessions.php?mergesession=' . $mergesession . '&page=' . $page . '">' . $page . ' </a>';
+                    echo '<a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $page . '">' . $page . ' </a>';
                 }
             }
             if ($current_page < $total_pages) {
                 $next_page = $current_page + 1;
-                echo ' <a class="pages" href="merge_sessions.php?mergesession=' . $mergesession . '&page=' . $next_page . '">&#62;</a>';
+                echo ' <a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $next_page . '">&#62;</a>';
             }
             if ($current_page < $total_pages) {
-                echo ' <a class="pages" href="merge_sessions.php?mergesession=' . $mergesession . '&page=' . $total_pages . '">&#187;</a>';
+                echo ' <a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $total_pages . '">&#187;</a>';
             }
             ?>
     </div>
@@ -387,6 +387,6 @@ if (!empty($mergesession) && !empty($mergesess1)) {
 </html>
 <?php
 } else {
-    header('Location: .');
+    header('Location: /');
 }
 $db->close();

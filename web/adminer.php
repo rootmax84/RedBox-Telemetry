@@ -13,7 +13,7 @@ require_once __DIR__ . '/src/auth_user.php';
 
 if (!isset($_SESSION['admin'])){
     http_response_code(401);
-    header('Location: .');
+    header('Location: /');
     exit;
 }
 if(isset($_GET["status"]))$_GET["variables"]=$_GET["status"];if(isset($_GET["import"]))$_GET["sql"]=$_GET["import"];const

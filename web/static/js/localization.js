@@ -51,7 +51,7 @@ class Localization {
 
     async fetchAndCacheTranslations() {
         try {
-            const response = await fetch(`translations.php?l10n`);
+            const response = await fetch(`/translations?l10n`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

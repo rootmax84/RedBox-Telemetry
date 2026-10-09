@@ -40,14 +40,14 @@ include_once __DIR__ . '/src/head.php';
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <div class="fetch-data"></div>
         <?php if (!isset($_SESSION['admin']) && $limit > 0) { ?>
-            <div class="new-session"><a href='.' l10n='sess.new'></a></div>
+            <div class="new-session"><a href='/' l10n='sess.new'></a></div>
             <div class="storage-usage-img"></div>
         <?php } ?>
         <div class="container">
             <div id="theme-switch"></div>
             <div class="navbar-header">
-                <a class="navbar-brand" href=".">
-                    <div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry
+                <a class="navbar-brand" href="/">
+                    <div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry
                 </a>
             </div>
         </div>
@@ -77,7 +77,7 @@ include_once __DIR__ . '/src/head.php';
                 </button>
             </li>
             <li role="none">
-                <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.location.href='del_sessions.php'">
+                <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.location.href='/sessions'">
                     <span class="icon" id="delMass-img"></span>
                     <span l10n="func.multi.del"></span>
                 </button>

@@ -41,7 +41,7 @@ function delSessions() {
             });
             if (!fd.has('delsession')) fd.append('delsession', '1');
 
-            fetch('del_sessions.php', {
+            fetch('/sessions/delete', {
                 method: 'POST',
                 body: fd,
                 credentials: 'same-origin',
@@ -57,7 +57,7 @@ function delSessions() {
             .then(result => {
                 if (result.json) {
                     const data = result.json;
-                    if (data.reload) { location.href = '.?logout=true'; return; }
+                    if (data.reload) { location.href = '/logout'; return; }
 
                     if (data.status === 'accepted' && data.task_id) {
                         // Heavy-путь: отдаём эстафету pollHeavyTask

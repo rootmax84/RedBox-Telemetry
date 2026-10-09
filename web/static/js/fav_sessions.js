@@ -7,7 +7,7 @@ function removeFavorite(id, str) {
         message: `${localization.key['func.del']} ${str}?`,
         onResolve: function() {
             $(".fetch-data").css("display", "block");
-            fetch('favorite.php', {
+            fetch('/sessions/favorite', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id })
@@ -52,7 +52,7 @@ function updateDescriptions() {
         return;
     }
 
-    fetch('favorite.php', {
+    fetch('/sessions/favorite', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ updates: updates })

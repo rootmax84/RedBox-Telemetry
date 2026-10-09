@@ -14,10 +14,10 @@ $(document).ready(function () {
         localization.loadTranslations();
         localStorage.setItem('l10n_time', l10n_time);
     }
-    fetch(`translations.php?lang=${lang}`);
+    fetch(`/translations?lang=${lang}`);
 
     const visitortimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    fetch("timezone.php?time=" + visitortimezone);
+    fetch("/timezone?time=" + visitortimezone);
 
     $("#theme-switch").click(function () {
         toggle_dark();
@@ -78,7 +78,7 @@ if (HEAD_CONFIG.torqueUser) {
             const expiryTime = parseInt(expiryMeta.content);
 
             if (currentTime > expiryTime + 60) {
-                fetch('auth.php', {
+                fetch('/auth', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {'Content-Type': 'application/json'},
@@ -87,7 +87,7 @@ if (HEAD_CONFIG.torqueUser) {
                 .then(response => {
                     if (response.status === 401) {
                         // сессия мертва — уходим на логин
-                        location.href = '.?logout=true';
+                        location.href = '/logout';
                         return null;
                     }
                     return response.json();
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', addCsrfTokenToForms);
 // auth() — heartbeat, polls every 5s
 // --------------------------------------------------------------
 function auth() {
-    fetch("auth.php", {method: "HEAD"})
+    fetch("/auth", {method: "HEAD"})
         .then(resp => {
             switch (resp.status) {
                 case 200:
@@ -122,10 +122,10 @@ function auth() {
                     }
                     break;
                 case 401:
-                    location.href = '.?logout=true';
+                    location.href = '/logout';
                     break;
                 case 307:
-                    location.href = 'maintenance.php';
+                    location.href = '/maintenance';
                     break;
                 default:
                     throw new Error('offline');

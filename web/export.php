@@ -6,7 +6,7 @@ require_once __DIR__ . '/src/auth_user.php';
 require_once __DIR__ . '/src/helpers.php';
 
 if (!isset($username) || $username == $admin) {
-    header("Location: .");
+    header('Location: /');
     die;
 }
 
@@ -18,7 +18,7 @@ $is_cut = ($cut_start !== null && $cut_start !== false && $cut_start !== ''
         && $cut_end   !== null && $cut_end   !== false && $cut_end   !== '');
 
 if (empty($_GET["sid"])) {
-    header('Location: .');
+    header('Location: /');
     $db->close();
     exit;
 }
@@ -27,7 +27,7 @@ $session_id = preg_replace('/[^0-9]/', '', $_GET['sid'] ?? '');
 $filetype   = $_GET["filetype"] ?? '';
 
 if ($session_id === '') {
-    header('Location: .');
+    header('Location: /');
     $db->close();
     exit;
 }
@@ -241,5 +241,5 @@ if ($filetype == "json") {
     exit;
 }
 
-header('Location: .');
+header('Location: /');
 $db->close();

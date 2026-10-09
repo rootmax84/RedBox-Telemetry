@@ -1,14 +1,19 @@
 <?php
+declare(strict_types=1);
 
-require_once __DIR__ . '/src/db.php';
-require_once __DIR__ . '/src/db_limits.php';
-require_once __DIR__ . '/plot.php';
-require_once __DIR__ . '/timezone.php';
-include_once __DIR__ . '/translations.php';
-include_once __DIR__ . '/src/helpers.php';
-require_once __DIR__ . '/src/redis.php';
+require_once __DIR__ . '/src/router.php';
 
-$data = require __DIR__ . '/src/pages/index.php';
+$router = new Router(__DIR__);
+require __DIR__ . '/src/routes.php';
 
-include_once __DIR__ . '/src/head.php';
-require __DIR__ . '/src/templates/index/page.php';
+$target = $router->dispatch($_SERVER['REQUEST_URI'] ?? '/');
+
+// ────────────────────────────────────────────────────────────
+// Подключаем целевой файл В ГЛОБАЛЬНОМ SCOPE.
+// Здесь, на верхнем уровне index.php, все top-level переменные
+// целевого файла ($db, $username, $memcached, $csrf_exempt_scripts
+// и т.д.) попадают в истинный global scope и живут до конца запроса.
+// ────────────────────────────────────────────────────────────
+if ($target !== null) {
+    require $target;
+}

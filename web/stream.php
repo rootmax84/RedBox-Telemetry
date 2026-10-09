@@ -6,7 +6,7 @@ include_once __DIR__ . '/translations.php';
 require_once __DIR__ . '/src/methods.php';
 
 if (isset($_SESSION['admin'])) {
-    header("Refresh:0; url=.");
+    header("Refresh:0; url=/");
     exit;
 }
 
@@ -15,7 +15,7 @@ header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
 
 $user_id    = current_user_id();
-$session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
+$session_id = filter_var($_GET['id'] ?? null, FILTER_SANITIZE_NUMBER_INT) ?: null;
 
 $query  = "SELECT time, data FROM logs WHERE user_id = ?";
 $params = [$user_id];

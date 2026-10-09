@@ -1,7 +1,7 @@
 (function() {
     const CHECK_INTERVAL = 10000;
     function checkMaintenance() {
-        fetch('maintenance.php', { method: 'HEAD' })
+        fetch('/maintenance', { method: 'HEAD' })
             .then(response => {
                 if (response.status === 200) {
                     window.location.href = '/';

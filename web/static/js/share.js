@@ -37,7 +37,7 @@ $(document).ready(function () {
                 const selectedValue = this.getAttribute('data-value');
                 closeDropdown();
 
-                fetch(`translations.php?lang=${selectedValue}`)
+                fetch(`/translations?lang=${selectedValue}`)
                     .then(() => {
                         localization.setLang(selectedValue);
                         location.reload();

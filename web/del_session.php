@@ -66,9 +66,9 @@ if ($deletesession !== '' && $deletesession !== false && $deletesession !== null
 
         // Если сессия исчезла — на главную, иначе — обратно в неё
         if ($new_size === 0) {
-            header("Location: .");
+            header("Location: /");
         } else {
-            header("Location: .?id=" . $deletesession);
+            header("Location: /?id=" . $deletesession);
         }
         exit;
 
@@ -97,7 +97,7 @@ if ($deletesession !== '' && $deletesession !== false && $deletesession !== null
         }
 
         cache_flush();
-        header("Location: .");
+        header("Location: /?.");
         exit;
     }
 }

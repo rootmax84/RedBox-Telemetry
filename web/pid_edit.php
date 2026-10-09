@@ -23,13 +23,13 @@ include_once __DIR__ . '/src/head.php';
     <script src="<?php echo version_url('static/js/pid_edit.js'); ?>"></script>
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-            <div class="new-session"><a href='.' l10n='sess.new'></a></div>
+            <div class="new-session"><a href='/' l10n='sess.new'></a></div>
             <div class="storage-usage-img"></div>
         <?php } ?>
         <div class="container">
             <div id="theme-switch"></div>
             <div class="navbar-header">
-                <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+                <a class="navbar-brand" href="/"><div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
             </div>
         </div>
     </div>
@@ -48,7 +48,7 @@ include_once __DIR__ . '/src/head.php';
 
     <ul class="menu-list" role="menu">
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./search.php'">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/search'">
           <span class="icon" id="search-img"></span>
           <span l10n="search.find"></span>
         </button>
@@ -104,7 +104,7 @@ include_once __DIR__ . '/src/head.php';
     </ul>
   </div>
 
-    <form style="padding:50px 0 0;" method="POST" action="pid_commit.php" onsubmit="return submitForm(this);">
+    <form style="padding:50px 0 0;" method="POST" action="/pids/commit" onsubmit="return submitForm(this);">
         <div style="padding:10px; display:flex; justify-content:center;">
             <button class="btn btn-info btn-sm" type="submit" l10n="btn.apply"></button>
         </div>

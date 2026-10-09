@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const selectedValue = this.getAttribute('data-value');
                 closeDropdown();
 
-                fetch(`translations.php?lang=${selectedValue}`)
+                fetch(`/translations?lang=${selectedValue}`)
                     .then(() => {
                         localization.setLang(selectedValue);
                     })
@@ -118,7 +118,7 @@ if (!REMOTE_CONFIG.hasUid) {
         $(".fetch-data").css("display", "block");
         $(".share-img").css("pointer-events", "none");
 
-        fetch('sign.php', {
+        fetch('/sign', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({uid})
@@ -127,7 +127,7 @@ if (!REMOTE_CONFIG.hasUid) {
         .then(result => {
             if (result.signature) {
                 const sig = result.signature;
-                const url = `${window.location.origin}/share_remote.php?uid=${encodeURIComponent(uid)}&sig=${sig}`;
+                const url = `${window.location.origin}/share/remote?uid=${encodeURIComponent(uid)}&sig=${sig}`;
                 if (navigator.share) {
                     return navigator.share({
                         text: '',

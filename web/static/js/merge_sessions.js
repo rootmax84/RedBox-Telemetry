@@ -98,7 +98,7 @@ $(document).ready(() => {
                 });
                 if (!fd.has('mergesession')) fd.append('mergesession', '1');
 
-                fetch('merge_sessions.php', {
+                fetch('/sessions/merge', {
                     method: 'POST',
                     body: fd,
                     credentials: 'same-origin',
@@ -115,7 +115,7 @@ $(document).ready(() => {
                 .then(result => {
                     if (result.json) {
                         const data = result.json;
-                        if (data.reload) { location.href = '.?logout=true'; return; }
+                        if (data.reload) { location.href = '/logout'; return; }
 
                         // Heavy path: задача ушла в воркер
                         if (data.status === 'accepted' && data.task_id) {
@@ -125,7 +125,7 @@ $(document).ready(() => {
                                 onDone: (res) => {
                                     const newId = (res && res.new_session) ? res.new_session : null;
                                     if (newId) {
-                                        location.href = '.?id=' + encodeURIComponent(newId);
+                                        location.href = '/sessions/' + encodeURIComponent(newId);
                                     } else {
                                         location.reload();
                                     }
@@ -136,7 +136,7 @@ $(document).ready(() => {
 
                         // Inline path: сервер сам всё сделал (Redis был недоступен)
                         if (data.status === 'done' && data.new_session) {
-                            location.href = '.?id=' + encodeURIComponent(data.new_session);
+                            location.href = '/?id=' + encodeURIComponent(data.new_session);
                             return;
                         }
 

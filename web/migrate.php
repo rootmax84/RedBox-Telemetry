@@ -56,9 +56,9 @@
  *
  *   - Идемпотентен. Можно запускать сколько угодно раз.
  *   - Изменения creds.php сопровождаются бэкапом:
- *       src/creds.php.bak.YYYYMMDD_HHMMSS        (shared-tables migration)
- *       src/creds.php.params.bak.YYYYMMDD_HHMMSS (params migration)
- *       src/creds.php.sync.bak.YYYYMMDD_HHMMSS   (example-sync)
+ *     src/creds.php.YYYYMMDD_HHMMSS.bak        (shared-tables migration)
+ *     src/creds.php.params.YYYYMMDD_HHMMSS.bak (params migration)
+ *     src/creds.php.sync.YYYYMMDD_HHMMSS.bak   (example-sync)
  *   - --auto возвращает ненулевой exit code при любой ошибке,
  *     чтобы startup-скрипт мог остановить контейнер.
  *   - --reset + --auto запрещены вместе (safety).
@@ -70,7 +70,7 @@
  */
 
 if (PHP_SAPI !== 'cli') {
-    header('Location: .');
+    header('Location: /');
     exit;
 }
 
@@ -263,7 +263,7 @@ PHP;
     }
 
     // Backup
-    $backup = $path . '.bak.' . date('Ymd_His');
+    $backup = $path . '.' . date('Ymd_His') . '.bak';
     if (!@copy($path, $backup)) {
         err("[creds] backup failed: {$backup}");
         $result['status'] = 'error';
@@ -431,7 +431,7 @@ function migrate_creds_params(string $path, bool $dry_run, bool $no_backup): arr
      * Backup
      * ────────────────────────────────────────────────────── */
     if (!$no_backup) {
-        $backup = $path . '.params.bak.' . date('Ymd_His');
+        $backup = $path . '.params.' . date('Ymd_His') . '.bak';
         if (!@copy($path, $backup)) {
             err("[creds-params] backup failed: {$backup}");
             $result['status'] = 'error';
@@ -698,7 +698,7 @@ function sync_creds_with_example(
     }
 
     if (!$no_backup) {
-        $backup = $creds_path . '.sync.bak.' . date('Ymd_His');
+        $backup = $creds_path . '.sync.' . date('Ymd_His') . '.bak';
         if (!@copy($creds_path, $backup)) {
             err("[creds-sync] backup failed: {$backup}");
             return $result;

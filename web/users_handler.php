@@ -352,7 +352,7 @@ try {
         /* ── Invalid admin request ── */
         else {
             http_response_code(403);
-            header("Location: .");
+            header("Location: /?.");
             die;
         }
     }
@@ -365,7 +365,7 @@ try {
 
     // Redirect non-admin users
     if (!isset($_SESSION['admin'])) {
-        header("Location: .");
+        header("Location: /?.");
         die;
     }
 

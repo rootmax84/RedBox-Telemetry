@@ -38,8 +38,6 @@ if (empty($coldata)) {
 
 $numcols = count($coldata) + 1;
 
-$session_id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT)
-            ?? filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT)
-            ?? null;
+$session_id = filter_var($_POST['id'] ?? $_GET['id'] ?? null, FILTER_SANITIZE_NUMBER_INT) ?: null;
 
 $coldataempty = [];

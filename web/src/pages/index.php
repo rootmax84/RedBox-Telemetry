@@ -12,7 +12,7 @@ $lang = current_lang();
 setcookie("newsess", "");
 
 // Capture the session ID if one has been chosen already
-$session_id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT) ?: null;
+$session_id = filter_var($_GET['id'] ?? null, FILTER_SANITIZE_NUMBER_INT) ?: null;
 
 $page = max(1, (int)($_GET["page"] ?? 1));
 $raw_year = $_GET["year"] ?? "";
@@ -39,7 +39,7 @@ if (isset($sids[0])) {
     }
 
     if ($session_id == ''){
-        header('Location: .');
+        header('Location: /?.');
     }
 
     $cached_timestamp = null;

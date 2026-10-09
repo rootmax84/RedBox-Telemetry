@@ -686,22 +686,25 @@ function map(float $x, float $in_min, float $in_max, float $out_min, float $out_
  * Uses file mtime when the file exists, otherwise container start time,
  * otherwise current time.
  */
-function version_url(string $url): string {
-    // If file exists use its mtime
-    $file_path = $_SERVER['DOCUMENT_ROOT'] . '/' . parse_url($url, PHP_URL_PATH);
-    if (file_exists($file_path)) {
-        $timestamp = filemtime($file_path);
-    } else {
-        // otherwise use container start time or current time
-        if (file_exists('/proc/1/stat')) {
-            $timestamp = filemtime('/proc/1/stat');
-        } else {
-            $timestamp = time();
-        }
+function version_url(string $url): string
+{
+    if (!preg_match('~^(?:https?:)?//~i', $url) && !str_starts_with($url, '/')) {
+        $url = '/' . $url;
     }
 
-    // Add v param to url
-    return $url . (strpos($url, '?') !== false ? '&' : '?') . 'v=' . $timestamp;
+    $path      = parse_url($url, PHP_URL_PATH) ?: '';
+    $docRoot   = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
+    $file_path = $docRoot . '/' . ltrim($path, '/');
+
+    if (is_file($file_path)) {
+        $timestamp = filemtime($file_path);
+    } elseif (is_file('/proc/1/stat')) {
+        $timestamp = filemtime('/proc/1/stat');
+    } else {
+        $timestamp = time();
+    }
+
+    return $url . (str_contains($url, '?') ? '&' : '?') . 'v=' . $timestamp;
 }
 
 /**
@@ -1241,4 +1244,14 @@ function validateMcuData(string $data): array
     }
 
     return [true, ''];
+}
+
+function maintenance_flag_path(): string
+{
+    return dirname(__DIR__) . '/_maintenance';
+}
+
+function is_maintenance(): bool
+{
+    return file_exists(maintenance_flag_path());
 }

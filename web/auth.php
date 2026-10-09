@@ -20,7 +20,7 @@ $is_logged_in = !empty($_SESSION['torque_logged_in']);
 /* ────────────────────────────────────────────────────────────
  * Maintenance — до ветвления. Админ не блокируется (как в db.php).
  * ──────────────────────────────────────────────────────────── */
-if (file_exists('maintenance') && empty($_SESSION['admin'])) {
+if (is_maintenance() && empty($_SESSION['admin'])) {
     http_response_code(307);
     exit;
 }

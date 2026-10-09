@@ -30,11 +30,11 @@ function submitForm(form) {
     })
     .then(response => {
         if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
-            location.href = '.?logout=true';
+            location.href = '/logout';
             return null;
         }
         if (response.status === 401 || response.status === 419 || response.status === 403) {
-            location.href = '.?logout=true';
+            location.href = '/logout';
             return null;
         }
         return response.text();
@@ -93,7 +93,7 @@ function deletePID(pid) {
             formData.append('delete', pid);
             formData.append('csrf_token', csrfToken);
 
-            fetch('pid_commit.php', { method: 'POST', body: formData })
+            fetch('/pids/commit', { method: 'POST', body: formData })
                 .then(response => response.text())
                 .then(text => {
                     $("#wait_layout").hide();

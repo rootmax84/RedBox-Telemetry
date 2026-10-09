@@ -14,31 +14,31 @@
     <ul class="menu-list" role="menu">
 <?php if(isset($_SESSION['admin'])) {?>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./users_admin.php?action=reg'">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/admin/users?action=reg'">
           <span class="icon" id="reg-img"></span>
           <span l10n="admin.page.btn.reg"></span>
         </button>
       </li>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./users_admin.php?action=edit'">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/admin/users?action=edit'">
           <span class="icon" id="editPid-img"></span>
           <span l10n="admin.page.btn.edit"></span>
         </button>
       </li>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./users_admin.php?action=del'">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/admin/users?action=del'">
           <span class="icon" id="del-img"></span>
           <span l10n="admin.page.btn.del"></span>
         </button>
       </li>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./users_admin.php?action=trunc'">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/admin/users?action=trunc'">
           <span class="icon" id="clear-img"></span>
           <span l10n="admin.page.btn.trunc"></span>
         </button>
       </li>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('./adminer.php?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('/adminer?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
           <span class="icon" id="adminer-img"></span>
           Adminer
         </button>
@@ -51,7 +51,7 @@
       </li>
 <?php } else {?>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./search.php'">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/search'">
           <span class="icon" id="search-img"></span>
           <span l10n="search.find"></span>
         </button>

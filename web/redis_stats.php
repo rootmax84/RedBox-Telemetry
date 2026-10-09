@@ -11,7 +11,7 @@
 require_once __DIR__ . '/src/db.php';
 
 if (!isset($_SESSION['admin'])) {
-    header('Location: .');
+    header('Location: /');
     exit;
 }
 
@@ -288,7 +288,7 @@ if ($action !== null) {
         }
     }
 
-    header('Location: redis_stats.php?ok=' . ($ok ? '1' : '0')
+    header('Location: /admin/redis?ok=' . ($ok ? '1' : '0')
         . '&msg=' . urlencode($msg));
     exit;
 }
@@ -1039,7 +1039,7 @@ body {
             <span>·</span>
             <a href="">↻ refresh</a>
             <span>·</span>
-            <a href="./">← admin</a>
+            <a href="/">← admin</a>
             <span>·</span>
             <label class="rs-autorefresh">
                 <input type="checkbox" id="autoRefresh"> auto-refresh 10s
@@ -1212,7 +1212,7 @@ body {
                     </datalist>
                     <button type="submit" class="rs-btn rs-btn-small">Filter</button>
                     <?php if ($dlqFilter !== ''): ?>
-                        <a href="redis_stats.php" class="rs-btn rs-btn-small rs-btn-ghost">Clear</a>
+                        <a href="/admin/redis" class="rs-btn rs-btn-small rs-btn-ghost">Clear</a>
                     <?php endif; ?>
                 </form>
             </div>

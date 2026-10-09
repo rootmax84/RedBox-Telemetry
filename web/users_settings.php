@@ -13,13 +13,13 @@
     <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
     <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-         <div class="new-session"><a href='.' l10n='sess.new'></a></div>
+         <div class="new-session"><a href='/' l10n='sess.new'></a></div>
          <div class="storage-usage-img"></div>
     <?php } ?>
             <div class="container">
               <div id="theme-switch"></div>
                 <div class="navbar-header">
-		 <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+		 <a class="navbar-brand" href="/"><div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
                 </div>
               </div>
             </div>
@@ -38,7 +38,7 @@
 
     <ul class="menu-list" role="menu">
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./search.php'">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/search'">
           <span class="icon" id="search-img"></span>
           <span l10n="search.find"></span>
         </button>
@@ -98,7 +98,7 @@
             <div class="settings-unit">
              <h4 l10n="user.tg.title"></h4>
              <h6 style="color:#777" l10n="user.tg.label"></h6>
-		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
+		<form method="POST" action="/settings/save" onsubmit="return submitForm(this);">
 		<div class="settings--cell">
 		    <div class="password-toggle">
 			<input class="form-control password-input" type="password" name="tg_token" l10n-placeholder="user.tg.token" maxlength="64" autocomplete="new-password" value="<?php echo $token; ?>">
@@ -115,7 +115,7 @@
             <div class="settings-unit">
              <h4 l10n="user.set.title"></h4>
              <h6 style="color:#777" l10n="user.set.label"></h6>
-		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
+		<form method="POST" action="/settings/save" onsubmit="return submitForm(this);">
 		    <div class="settings--cell">
 		      <div>
 		        <label for="speed" l10n="user.set.spd"></label>
@@ -209,7 +209,7 @@
             <div class="settings-unit">
              <h4 l10n="share.sec.title"></h4>
              <h6 style="color:#777" l10n="share.sec.label"></h6>
-		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
+		<form method="POST" action="/settings/save" onsubmit="return submitForm(this);">
 		 <input class="form-control" type="text" name="share_secret" value="1" style="display:none">
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.renew"></button></div>
 		</form>
@@ -218,7 +218,7 @@
             <div class="settings-unit">
              <h4 l10n="user.pwd.title"></h4>
              <h6 style="color:#777" l10n="user.pwd.label"></h6>
-		<form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
+		<form method="POST" action="/settings/save" onsubmit="return submitForm(this);">
 		<div class="settings--cell">
 		    <div class="password-toggle">
 			<input class="form-control password-input" type="password" name="old_p"  l10n-placeholder="user.pwd.curr" maxlength="64" autocomplete="new-password" required>

@@ -56,7 +56,7 @@ function renderRows(data) {
             <td>${session.timeend ? formatSessionDate(session.timeend, SEARCH_CONFIG.lang) : '-'}</td>
             <td>${session.sessionsize}</td>
             <td>${escapeHtml(session.profileName || '-')}</td>
-            <td><a href="index.php?id=${encodeURIComponent(session.session)}">${SEARCH_CONFIG.favOpen}</a></td>
+            <td><a href="/sessions/${encodeURIComponent(session.session)}">${SEARCH_CONFIG.favOpen}</a></td>
         `;
         resultsBody.appendChild(tr);
     });
@@ -107,7 +107,7 @@ function loadPage() {
         params.append('csrf_token', csrfInput.value);
     }
 
-    fetch('search_processor.php', {
+    fetch('/search/query', {
         method: 'POST',
         body: params,
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -117,7 +117,7 @@ function loadPage() {
         isLoading = false;
         $('.fetch-data').css('display', 'none');
 
-        if (data.reload) { location.href = '.?logout=true'; return; }
+        if (data.reload) { location.href = '/logout'; return; }
 
         if (data.error) {
             showError(data.error);

@@ -6,7 +6,7 @@ include_once __DIR__ . '/translations.php';
 $lang = $_COOKIE['lang'] ?? 'en';
 
 if (!checkRateLimit(5)) {
-    header('Location: catch.php?c=block');
+    header('Location: /catch?c=block');
     exit;
 }
 
@@ -39,7 +39,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
                 }
             }
         } else {
-            header('Location: catch.php?c=noshare');
+            header('Location: /catch?c=noshare');
             exit;
         }
     }
@@ -61,7 +61,7 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
     $payload = "uid={$uid}&id={$session_id}";
     $expected_sig = hash_hmac('sha256', $payload, $share_secret);
 } else {
-    header('Location: .');
+    header('Location: /');
     exit;
 }
 
@@ -72,7 +72,7 @@ if ($username) {
     $current_timestamp = getLastUpdateTimestamp($db, (int)$user_id, $session_id);
 
     if (!$current_timestamp || !hash_equals($expected_sig, $sig)) {
-        header('Location: catch.php?c=noshare');
+        header('Location: /catch?c=noshare');
         exit;
     } else {
         checkRateLimit(5, 3600, true);
@@ -128,7 +128,7 @@ if ($username) {
 
     $db->close();
 } else {
-    header('Location: catch.php?c=noshare');
+    header('Location: /catch?c=noshare');
     exit;
 }
 
@@ -162,7 +162,7 @@ include_once __DIR__ . '/src/head.php';
                 </div>
             <div class="navbar-header" style="margin-left:0 !important">
                 <a class="navbar-brand" href="#" style="cursor:default">
-                    <div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry
+                    <div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry
                 </a>
             </div>
         </div>

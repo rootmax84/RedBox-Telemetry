@@ -1,12 +1,12 @@
 <body>
         <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
     <?php if ($isValid) { ?>
-        <script src="<?php echo version_url('static/js/remote.js'); ?>"></script>
+        <script src="<?php echo version_url('/static/js/remote.js'); ?>"></script>
         <div class="fetch-data" style="display:block"></div>
         <div class="timestamp" id="timestamp"></div>
     <?php } ?>
     <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
-        <div class="new-session"><a href='.' l10n='sess.new'></a></div>
+        <div class="new-session"><a href='/' l10n='sess.new'></a></div>
     <?php } ?>
     <?php if (!isset($uid) && $isValid) { ?>
         <div class="share-img" onClick="shareRemote()" style="right:40px"></div>
@@ -26,16 +26,16 @@
     <?php } ?>
     <?php if (!isset($uid)) { ?>
                 <div class="navbar-header">
-                 <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+                 <a class="navbar-brand" href="/"><div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
     <?php } else { ?>
                 <div class="navbar-header" style="margin-left:0 !important">
-                 <a class="navbar-brand" href="#" style="cursor:default"><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+                 <a class="navbar-brand" href="#" style="cursor:default"><div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
     <?php } ?>
                 </div>
               </div>
             </div>
  <?php $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-  if (!str_contains($path, 'share_remote.php')) { ?>
+  if (!str_contains($path, '/share/remote')) { ?>
   <div class="menu-container">
     <input type="checkbox" id="menu-toggle" class="menu-toggle"/>
 
@@ -52,7 +52,7 @@
 
     <ul class="menu-list" role="menu">
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='./search.php'">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/search'">
           <span class="icon" id="search-img"></span>
           <span l10n="search.find"></span>
         </button>
@@ -1919,7 +1919,7 @@
         'shareUid' => $_SESSION['uid'] ?? null,
     ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
     </script>
-    <script src="<?php echo version_url('static/js/remote_inc.js'); ?>"></script>
+    <script src="<?php echo version_url('/static/js/remote_inc.js'); ?>"></script>
 <?php } else { ?>
         <div id="right-container" class="col-md-auto col-xs-12">
             <div class="login" style="text-align:center; width:fit-content; margin: 50px auto">

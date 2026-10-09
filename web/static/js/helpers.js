@@ -523,9 +523,9 @@ let updCharts = (last = false)=>{
         $(".fetch-data").css("display", "block");
         let varPrm = null;
         if (sid && uid && sig) {
-            varPrm = `plot.php?id=${sid}&uid=${uid}&sig=${sig}`;
+            varPrm = `/plot?id=${sid}&uid=${uid}&sig=${sig}`;
         } else {
-            varPrm = last ? `plot.php?last&id=${seshidtagValue}` : `plot.php?id=${seshidtagValue}`;
+            varPrm = last ? `/plot?last&id=${seshidtagValue}` : `/plot?id=${seshidtagValue}`;
         }
         plotDataSelected.forEach((v,i) => varPrm += `&s${i+1}=${v}`);
         fetch(varPrm).then(d => d.json()).then(gData => {
@@ -1930,7 +1930,7 @@ function updateMapWithRangePreservingHeatline(startIndex = null, endIndex = null
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker
-    .register('static/js/sw.js')
+    .register('/static/js/sw.js')
     .then(() => { console.log('Service Worker Registered'); });
 }
 
@@ -1954,7 +1954,7 @@ document.querySelector('html').style.transition = ".2s"
 }
 
 function logout() {
- location.href='.?logout=true';
+ location.href='/logout';
 }
 
 const alarm = new Audio("data:audio/mpeg;base64,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8Q18DK5S9Rtim2ZAwxbYC339u3mIAEA5RILAEC6gGziEsujIAVLW+ZrRoQgbKmb1tuX56tc3J/rxVHEAUAqgyvAuJRGKpcIwglJWiiVGJKLpUM0A7LTj7j7jbC+8EMG/S9Kb8V7/+1Bk84Ly0zDc8Y9mAAAAD/AAAAEKQMN1xLB1CAAAP8AAAARFu4AHcIcHYGUIcA5oGwAAAAAMBvmqadlRq52aGykta2S+MoKXFnldJE1HJ+ZkmAJZFSkQYvFwTzpGRsDdEHKJRImVRSAn00KQs4ckgv6BPmZkyKFWCkxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tQZPMC8j4o3vEjZKIAAA/wAAABCcyld8S9OAgAAD/AAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7QGT9gvJzKV3xI2SiAAAP8AAAAQrQv3PUlgAIAAA/woAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sgZPQAAqApV34eQAIAAA/wwAAAAAAB/hwAACAAAD/DgAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==");
@@ -2301,7 +2301,7 @@ function xhrResponse(text) {
     const s = String(text ?? '').trim();
     if (/^<!DOCTYPE/i.test(s) || /^<html[\s>]/i.test(s)) {
         $("#wait_layout").hide();
-        location.href = '.?logout=true';
+        location.href = '/logout';
         return;
     }
 
@@ -2571,29 +2571,29 @@ function stripHtml(html) {
 }
 
 function favoriteSessions() {
-    location.href = "./fav_sessions.php";
+    location.href = "/favorites";
 }
 
 function delSessions() {
-    location.href = "./del_sessions.php";
+    location.href = "/sessions";
 }
 
 function pidEdit() {
-    location.href = "./pid_edit.php";
+    location.href = "/pids";
 }
 
 function usersSettings() {
-    location.href = "./users_settings.php";
+    location.href = "/settings";
 }
 
 function remoteRa() {
-    location.href = "./users_remote.php";
+    location.href = "/settings/remote";
 }
 
 function showToken() {
     $("#wait_layout").show();
 
-    fetch("users_handler.php?get_token")
+    fetch("/settings/token?get_token")
         .then(response => {
             if (response.ok) {
                 return response.text();
@@ -2612,7 +2612,7 @@ function showToken() {
                 },
                 onReject: function() {
                     $("#wait_layout").show();
-                    fetch("users_handler.php?renew_token")
+                    fetch("/settings/token?renew_token")
                         .then(response => {
                             if (response.ok) {
                                 showToken();
@@ -2899,14 +2899,14 @@ function pollHeavyTask(taskId, options) {
             return;
         }
 
-        fetch('task_status.php?id=' + encodeURIComponent(taskId), {
+        fetch('/tasks/' + encodeURIComponent(taskId), {
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
         })
         .then(r => {
             const ct = r.headers.get('content-type') || '';
             if (!ct.includes('application/json')) {
-                location.href = '.?logout=true';
+                location.href = '/logout';
                 throw new Error('unexpected response');
             }
             return r.json().then(data => ({ status: r.status, data }));
@@ -3004,7 +3004,7 @@ function syncUserTasksFromServer() {
 
     heavySyncInFlight = true;
 
-    fetch('user_tasks.php', {
+    fetch('/tasks', {
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'same-origin',
     })

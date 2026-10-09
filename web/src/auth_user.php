@@ -32,7 +32,7 @@ $auth_fail = function (string $reason, int $http_code = 401, ?string $catch = nu
         echo json_encode(['error' => $reason, 'reload' => true]);
         exit;
     }
-    header('Location: catch.php?c=' . ($catch ?? $reason));
+    header('Location: /catch?c=' . ($catch ?? $reason));
     exit;
 };
 
@@ -86,9 +86,9 @@ if (!$logged_in) {
             <li data-value="de">Deutsch</li>
           </ul>
         </div>
-        <div style="font-weight:bold; color:#961911; text-align:center; width:100%; font-size:20px; letter-spacing:1.5px; text-shadow: none">RedB<img src="static/img/logo.svg" alt style="height:12px; width:12px; margin-right:1px">x Telemetry</div>
+        <div style="font-weight:bold; color:#961911; text-align:center; width:100%; font-size:20px; letter-spacing:1.5px; text-shadow: none">RedB<img src="/static/img/logo.svg" alt style="height:12px; width:12px; margin-right:1px">x Telemetry</div>
         <h6 style="text-align:center; margin-bottom:20px" l10n="login.label"></h6>
-        <form method="post" class="form-group" action=".">
+        <form method="post" class="form-group" action="/">
             <div class="clear-input">
                 <input class="form-control clear-input__input" type="text" name="user" value="" maxlength="32" l10n-placeholder="login.login" autocomplete="off" required autofocus>
                 <button type="button" class="clear-input__btn">

@@ -22,11 +22,11 @@ function submitForm(el) {
     })
     .then(response => {
         if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
-            location.href = '.?logout=true';
+            location.href = '/logout';
             return null;
         }
         if (response.status === 401 || response.status === 419 || response.status === 403) {
-            location.href = '.?logout=true';
+            location.href = '/logout';
             return null;
         }
 
@@ -43,7 +43,7 @@ function submitForm(el) {
         if (result.json) {
             const data = result.json;
 
-            if (data.reload) { location.href = '.?logout=true'; return; }
+            if (data.reload) { location.href = '/logout'; return; }
 
             // 202 + task_id — тяжёлая задача стала в очередь
             if (data.status === 'accepted' && data.task_id) {

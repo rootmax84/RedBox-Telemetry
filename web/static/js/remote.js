@@ -162,11 +162,11 @@ async function checkSig() {
         });
 
         if (response.status === 404) {
-            window.location.href = 'catch.php?c=noshare';
+            window.location.href = '/catch?c=noshare';
             throw new Error('Signature invalid');
         }
     } catch (error) {
-        window.location.href = 'catch.php?c=noshare';
+        window.location.href = '/catch?c=noshare';
         throw error;
     }
 }
@@ -389,7 +389,7 @@ async function flushSave() {
                 const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
                 if (typeof token !== 'undefined') headers['Authorization'] = token;
 
-                const response = await fetch('remote.php', {
+                const response = await fetch('/api/remote', {
                     method: 'POST',
                     headers,
                     body: new URLSearchParams({
@@ -424,7 +424,7 @@ async function fetchData() {
         const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
         if (typeof token !== 'undefined') headers['Authorization'] = token;
 
-        const response = await fetch('remote.php', {
+        const response = await fetch('/api/remote', {
             method: 'POST',
             headers: headers,
             body: new URLSearchParams({ data: 'fetch', lang: lang })

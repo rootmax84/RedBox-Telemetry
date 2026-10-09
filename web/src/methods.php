@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/helpers.php';
 
 function allowMethods(...$methods) {
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

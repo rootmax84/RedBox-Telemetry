@@ -5,12 +5,12 @@ require_once __DIR__ . '/src/db.php';
 
 if (!isset($_SESSION['admin'])) {
     http_response_code(403);
-    header("Location: .");
+    header("Location: /?.");
     die;
 }
 
 if (!isset($_GET['action'])) {
- header("Location: .");
+ header("Location: /?.");
  die;
 }
 include_once __DIR__ . '/src/head.php';
@@ -20,7 +20,7 @@ include_once __DIR__ . '/src/head.php';
             <div class="container">
               <div id="theme-switch"></div>
                 <div class="navbar-header">
-                    <a class="navbar-brand" href="."><div id="redhead">RedB<img src="static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
+                    <a class="navbar-brand" href="/"><div id="redhead">RedB<img src="/static/img/logo.svg" alt style="height:11px;">x</div> Telemetry</a>
                 </div>
             </div>
         </div>
@@ -43,7 +43,7 @@ include_once __DIR__ . '/src/head.php';
           <?php if(isset($_GET['action']) && $_GET['action'] == 'reg'): ?>
             style="color:#961911"
           <?php else: ?>
-            onclick="location.href='./users_admin.php?action=reg'"
+            onclick="location.href='/admin/users?action=reg'"
           <?php endif; ?>
         >
           <span class="icon" id="reg-img"></span>
@@ -55,7 +55,7 @@ include_once __DIR__ . '/src/head.php';
           <?php if(isset($_GET['action']) && $_GET['action'] == 'edit'): ?>
             style="color:#961911"
           <?php else: ?>
-            onclick="location.href='./users_admin.php?action=edit'"
+            onclick="location.href='/admin/users?action=edit'"
           <?php endif; ?>
         >
           <span class="icon" id="editPid-img"></span>
@@ -67,7 +67,7 @@ include_once __DIR__ . '/src/head.php';
           <?php if(isset($_GET['action']) && $_GET['action'] == 'del'): ?>
             style="color:#961911"
           <?php else: ?>
-            onclick="location.href='./users_admin.php?action=del'"
+            onclick="location.href='/admin/users?action=del'"
           <?php endif; ?>
         >
           <span class="icon" id="del-img"></span>
@@ -79,7 +79,7 @@ include_once __DIR__ . '/src/head.php';
           <?php if(isset($_GET['action']) && $_GET['action'] == 'trunc'): ?>
             style="color:#961911"
           <?php else: ?>
-            onclick="location.href='./users_admin.php?action=trunc'"
+            onclick="location.href='/admin/users?action=trunc'"
           <?php endif; ?>
         >
           <span class="icon" id="clear-img"></span>
@@ -87,7 +87,7 @@ include_once __DIR__ . '/src/head.php';
         </button>
       </li>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('./adminer.php?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('/adminer?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
           <span class="icon" id="adminer-img"></span>
           Adminer
         </button>
@@ -107,7 +107,7 @@ include_once __DIR__ . '/src/head.php';
     </ul>
   </div>
         <div class="login">
-        <form method="POST" action="users_handler.php" onsubmit="return submitForm(this);">
+        <form method="POST" action="/settings/save" onsubmit="return submitForm(this);">
 <?php
 if ($_GET['action'] == "edit") {
     $user = isset($_GET['user']) ? $_GET['user'] : null;

@@ -38,7 +38,7 @@ def fetch_data(api_host, bearer_token):
     global api_metrics
     try:
         response = requests.get(
-            f"{api_host}/stream_json.php",
+            f"{api_host}/api/stream",
             headers={"Authorization": f"Bearer {bearer_token}"}
         )
         response.raise_for_status()

@@ -6,7 +6,7 @@ include_once __DIR__ . '/translations.php';
 $lang = $_COOKIE['lang'] ?? 'en';
 
 if (!checkRateLimit(5)) {
-    header('Location: catch.php?c=block');
+    header('Location: /catch?c=block');
     exit;
 }
 
@@ -19,7 +19,7 @@ if (isset($_GET['uid'], $_GET['sig'])) {
     if ($userqry->num_rows) {
         $user_data = $userqry->fetch_assoc();
     } else {
-        header('Location: catch.php?c=noshare');
+        header('Location: /catch?c=noshare');
         exit;
     }
 
@@ -70,12 +70,12 @@ if (isset($_GET['uid'], $_GET['sig'])) {
         $data = implode(",", $dataArray);
     }
 } else {
-    header('Location: .');
+    header('Location: /?.');
     exit;
 
 } if ($uid) {
     if (!hash_equals($expected_sig, $sig) || $blocked === 0) {
-        header('Location: catch.php?c=noshare');
+        header('Location: /catch?c=noshare');
         exit;
     } else {
         $_SESSION['remote_token'] = $token;

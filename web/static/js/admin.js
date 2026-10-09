@@ -3,45 +3,57 @@
 function maintenance() {
     let mode;
 
-    fetch("maintenance.php?mode", {
-        method: "POST"
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.text();
-    })
-    .then(data => {
-        $("#wait_layout").hide();
-        mode = data;
-
-        if (!mode.length) return;
-
-        let dialogOpt = {
-            title: localization.key['dialog.maintenance.title'],
-            message: `${localization.key['dialog.maintenance.status']} ${mode}`,
-            btnClassSuccessText: localization.key['dialog.maintenance.en'],
-            btnClassFailText: localization.key['dialog.maintenance.dis'],
-            btnClassFail: "btn btn-info btn-sm",
-            onResolve: function() {
-                fetch("maintenance.php?enable", {
-                    method: "POST"
-                }).catch(error => console.error('Error:', error));
-            },
-            onReject: function() {
-                fetch("maintenance.php?disable", {
-                    method: "POST"
-                }).catch(error => console.error('Error:', error));
+    fetch("/maintenance?mode", { method: "POST" })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        };
+            return response.text();
+        })
+        .then(data => {
+            $("#wait_layout").hide();
+            mode = data;
 
-        redDialog.make(dialogOpt);
-    })
-    .catch(error => {
-        serverError(error);
-        $("#wait_layout").hide();
-    });
+            if (!mode.length) return;
+
+            let dialogOpt = {
+                title: localization.key['dialog.maintenance.title'],
+                message: `${localization.key['dialog.maintenance.status']} ${mode}`,
+                btnClassSuccessText: localization.key['dialog.maintenance.en'],
+                btnClassFailText: localization.key['dialog.maintenance.dis'],
+                btnClassFail: "btn btn-info btn-sm",
+
+                onResolve: function () {
+                    $("#wait_layout").show();
+                    fetch("/maintenance?enable", { method: "POST" })
+                        .then(r => {
+                            $("#wait_layout").hide();
+                            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                            return r.text();
+                        })
+                        .then(text => xhrResponse(text || 'OK'))
+                        .catch(err => serverError(err.message));
+                },
+
+                onReject: function () {
+                    $("#wait_layout").show();
+                    fetch("/maintenance?disable", { method: "POST" })
+                        .then(r => {
+                            $("#wait_layout").hide();
+                            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                            return r.text();
+                        })
+                        .then(text => xhrResponse(text || 'OK'))
+                        .catch(err => serverError(err.message));
+                }
+            };
+
+            redDialog.make(dialogOpt);
+        })
+        .catch(error => {
+            serverError(error);
+            $("#wait_layout").hide();
+        });
 }
 
 function initTableSorting(tableSelector) {
@@ -160,7 +172,7 @@ function adminUserDelete(username) {
             formData.append('csrf_token', csrfToken);
 
             // .fetch-data больше НЕ трогаем — индикатор создаст pollHeavyTask
-            fetch('users_handler.php', {
+            fetch('/admin/users/handler', {
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin',
@@ -176,7 +188,7 @@ function adminUserDelete(username) {
             .then(result => {
                 if (result.json) {
                     const data = result.json;
-                    if (data.reload) { location.href = '.?logout=true'; return; }
+                    if (data.reload) { location.href = '/logout'; return; }
 
                     if (data.status === 'accepted' && data.task_id) {
                         pollHeavyTask(data.task_id, {

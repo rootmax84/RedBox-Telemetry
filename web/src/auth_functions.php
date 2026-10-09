@@ -8,11 +8,11 @@ function get_db_connection() {
         try {
             $db = new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
         } catch (Exception $e) {
-            if (file_exists('maintenance')) {
-                header('Location: catch.php?c=maintenance');
+            if (is_maintenance()) {
+                header('Location: /catch?c=maintenance');
                 exit;
             } else {
-                header('Location: catch.php?c=dberror');
+                header('Location: /catch?c=dberror');
                 exit;
             }
         }
@@ -110,16 +110,16 @@ function auth_user()
     //    удаляется после первого успешного захода на страницу логина.
     //    Гарантирует, что таблица users + admin существуют.
     //    Идемпотентно (CREATE TABLE IF NOT EXISTS + INSERT при пустой таблице).
-    if (file_exists('install')) {
+    if (file_exists(__DIR__ . '/../install')) {
         create_users_table();
-        unlink('install');
+        unlink(__DIR__ . '/../install');
     }
 
     $user = preg_replace('/\s+/', '', get_user());
     $pass = preg_replace('/\s+/', '', get_pass());
 
     if (!check_login_attempts($user)) {
-        header('Location: catch.php?c=toomanyattempts');
+        header('Location: /catch?c=toomanyattempts');
         exit;
     }
 
@@ -217,6 +217,6 @@ function check_table_exists($db, $table_name) {
 function logout_user()
 {
     session_destroy();
-    header("Location: .");
+    header("Location: /");
     die;
 }
