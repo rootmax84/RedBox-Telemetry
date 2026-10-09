@@ -9,7 +9,7 @@
 // 1. Page bootstrap (was: first inline <script> in <body>)
 // =============================================================
 $(document).ready(function () {
-    $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
+    $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive · ${APP_CONFIG.version}`);
 
     if (!document.getElementById('plot_data')) {
         return;
