@@ -1,5 +1,9 @@
 'use strict';
 
+function choicesReady() {
+    document.documentElement.classList.remove('choices-pending');
+}
+
 let markerUpd = null;
 let chartTooltip = () => {
     let previousPoint = null;

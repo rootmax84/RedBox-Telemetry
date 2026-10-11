@@ -82,6 +82,8 @@ $(document).ready(function () {
         shouldSort: false,
     });
 
+    choicesReady();
+
     plotData.on('change', handleChange);
 
     // Sessions filters

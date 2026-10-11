@@ -100,6 +100,8 @@ $(document).ready(function () {
         },
     });
 
+    choicesReady();
+
     plotData.on('change', handleChange);
     updCharts();
     $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);

@@ -180,3 +180,9 @@ const username = HEAD_CONFIG.username || '';
 if (username.trim() !== '') {
     document.title += ` - ${username}`;
 }
+
+window.addEventListener('load', function () {
+    setTimeout(function () {
+        document.documentElement.classList.remove('choices-pending');
+    }, 300);
+});

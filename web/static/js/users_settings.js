@@ -74,6 +74,8 @@ function createChoices() {
             },
         });
     });
+
+    if (typeof choicesReady === 'function') choicesReady();
 }
 
 (function () {

@@ -1,3 +1,7 @@
+html.choices-pending select {
+  visibility: hidden;
+}
+
 *{
   font-family: 'Lato', 'Lato C', sans-serif;
 }

@@ -212,4 +212,6 @@ document.addEventListener('DOMContentLoaded', function () {
             itemSelectText: ''
         }));
     }
+
+    if (typeof choicesReady === 'function') choicesReady();
 });

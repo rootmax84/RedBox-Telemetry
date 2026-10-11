@@ -24,7 +24,6 @@ extract($data, EXTR_SKIP);
     include __DIR__ . '/partials/no-session.php';
 } ?>
       </div>
-    </div>
 
 <?php include __DIR__ . '/partials/scripts.php'; ?>
 </body>

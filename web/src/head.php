@@ -14,6 +14,9 @@ $head_host = htmlspecialchars($_SERVER['HTTP_HOST'] ?? '', ENT_QUOTES, 'UTF-8');
 <!DOCTYPE html>
 <html>
 <head>
+<script>
+document.documentElement.classList.add('choices-pending');
+</script>
 <script src="<?php echo version_url('/static/js/localization.js'); ?>"></script>
 <meta property="og:title" content="RedBox Telemetry">
 <meta property="og:type" content="website">
@@ -74,7 +77,7 @@ window.HEAD_CONFIG = <?php echo json_encode([
   </svg>
  </div>
 </div>
-<div class="wait_out" id="wait_layout" style="display: block;">
+<div class="wait_out" id="wait_layout" style="display: none;">
  <div class="wait_in">
   <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(.3); color:lightgray; position:fixed;" width="100%" height="100%" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0m7 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0m7 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0"/></svg>
  </div>
