@@ -8,6 +8,7 @@ $(document).ready(() => {
     }
 
     let total = 0;
+    let mergeSubmitInFlight = false;
 
     updateTotalDatapoints();
 
@@ -76,11 +77,14 @@ $(document).ready(() => {
             onResolve: function () {
                 if (oversize) return;
 
+                if (mergeSubmitInFlight) return;
+                mergeSubmitInFlight = true;
+
+                const $btn = $("#merge-btn").prop("disabled", true);
+
                 const form = document.getElementById("formmerge");
                 const fd   = new FormData();
 
-                // Inline-путь: показать спиннер, пока идёт чанковый UPDATE logs.
-                // Heavy-путь: спрячем его чуть ниже — у pollHeavyTask свой индикатор.
                 $("#wait_layout").show();
 
                 const csrfMeta = document.querySelector('meta[name="csrf-token"]');
@@ -109,7 +113,6 @@ $(document).ready(() => {
                     if (ct.includes('application/json')) {
                         return r.json().then(j => ({ json: j }));
                     }
-                    // Не JSON — например, редирект на catch.php (сессия истекла)
                     return r.text().then(t => ({ text: t }));
                 })
                 .then(result => {
@@ -117,7 +120,6 @@ $(document).ready(() => {
                         const data = result.json;
                         if (data.reload) { location.href = '/logout'; return; }
 
-                        // Heavy path: задача ушла в воркер
                         if (data.status === 'accepted' && data.task_id) {
                             $("#wait_layout").hide();
                             pollHeavyTask(data.task_id, {
@@ -134,20 +136,22 @@ $(document).ready(() => {
                             return;
                         }
 
-                        // Inline path: сервер сам всё сделал (Redis был недоступен)
                         if (data.status === 'done' && data.new_session) {
                             location.href = '/?id=' + encodeURIComponent(data.new_session);
                             return;
                         }
 
+                        mergeSubmitInFlight = false;
+                        $btn.prop("disabled", false);
                         serverError(data.error || 'Unknown response');
                         return;
                     }
 
-                    // Fallback на совсем крайний случай (не должно случиться)
                     location.reload();
                 })
                 .catch(err => {
+                    mergeSubmitInFlight = false;
+                    $btn.prop("disabled", false);
                     serverError(err.message);
                 });
             }

@@ -11,6 +11,8 @@ $(document).ready(() => {
     sortMergeDel();
 });
 
+let delSubmitInFlight = false;
+
 function delSessions() {
     let dialogOpt = {
         title: localization.key['dialog.confirm'],
@@ -19,14 +21,17 @@ function delSessions() {
         btnClassFail: "btn btn-info btn-sm",
         message: localization.key['dialog.del.sessions'],
         onResolve: function () {
+            if (delSubmitInFlight) return;
+            delSubmitInFlight = true;
+
+            const $btn = $("#del-btn").prop("disabled", true);
+
             const form = document.getElementById("formdel");
             const fd   = new FormData();
 
             const csrfMeta = document.querySelector('meta[name="csrf-token"]');
             if (csrfMeta) fd.append('csrf_token', csrfMeta.content);
 
-            // Inline-путь: показать спиннер, пока PHP молотит DELETE чанками.
-            // Heavy-путь: спрячем его чуть ниже — у pollHeavyTask свой индикатор.
             $("#wait_layout").show();
 
             form.querySelectorAll('input').forEach(inp => {
@@ -60,26 +65,30 @@ function delSessions() {
                     if (data.reload) { location.href = '/logout'; return; }
 
                     if (data.status === 'accepted' && data.task_id) {
-                        // Heavy-путь: отдаём эстафету pollHeavyTask
                         $("#wait_layout").hide();
-                        // pollHeavyTask сам поднимет свой индикатор
                         pollHeavyTask(data.task_id, {
                             taskType: 'delete_sessions',
                             onDone: () => location.reload(),
                         });
                         return;
                     }
+
                     if (data.status === 'done') {
                         location.reload();
                         return;
                     }
+
+                    delSubmitInFlight = false;
+                    $btn.prop("disabled", false);
                     serverError(data.error || 'Unknown response');
                     return;
                 }
-                // Fallback: сервер отдал HTML → перезагружаемся
+
                 location.reload();
             })
             .catch(err => {
+                delSubmitInFlight = false;
+                $btn.prop("disabled", false);
                 serverError(err.message);
             });
         }

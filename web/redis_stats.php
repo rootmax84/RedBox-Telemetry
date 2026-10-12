@@ -191,12 +191,19 @@ if ($action !== null) {
 
                         foreach ($cs as $c) {
                             $name    = (string)($c['name'] ?? '');
-                            $idleMs  = (int)($c['idle']    ?? 0);
                             $pending = (int)($c['pending'] ?? 0);
 
-                            if ($name === '')                          { $skipped++; continue; }
-                            if ($pending > 0)                          { $skipped++; continue; }
-                            if ($idleMs < RS_DEAD_IDLE_SECONDS * 1000) { $skipped++; continue; }
+                            if ($name === '') { $skipped++; continue; }
+                            if ($pending > 0) { $skipped++; continue; }
+
+                            // Пока heartbeat жив — не трогаем. Даже если процесс уже убит,
+                            // TTL (120s) должен истечь: это окно, за которое воркер мог бы
+                            // ожить (рестарт-петля) и не потерять PEL.
+                            $hasHb = false;
+                            try { $hasHb = (bool)$r->exists("worker:hb:{$name}"); }
+                            catch (Throwable $e) { $skipped++; continue; }
+
+                            if ($hasHb) { $skipped++; continue; }
 
                             try {
                                 $r->xGroup('DELCONSUMER', $stream, $groupName, $name);
@@ -207,7 +214,7 @@ if ($action !== null) {
 
                     $ok  = true;
                     $msg = "Killed {$killed} dead consumer(s)";
-                    if ($skipped > 0) $msg .= ", {$skipped} skipped";
+                    if ($skipped > 0) $msg .= ", {$skipped} skipped (alive or pending)";
                     break;
                 }
 
@@ -404,14 +411,57 @@ if ($r === null) {
             $cs = $r->xInfo('CONSUMERS', $sKey, $groupName);
             if (is_array($cs)) {
                 foreach ($cs as $c) {
+                    $name    = (string)($c['name'] ?? '?');
                     $pending = (int)($c['pending'] ?? 0);
                     $idleMs  = (int)($c['idle']    ?? 0);
-                    $isDead  = ($pending === 0) && ($idleMs >= RS_DEAD_IDLE_SECONDS * 1000);
+
+                    $hasHb = false;
+                    $hbTtl = -1;
+                    try {
+                        if ($r->exists("worker:hb:{$name}")) {
+                            $hasHb = true;
+                            $hbTtl = (int)$r->ttl("worker:hb:{$name}");
+                        }
+                    } catch (Throwable $e) {}
+
+                    $busyStream = null;
+                    $isBusy     = false;
+                    try {
+                        if ($hasHb) {
+                            $v = $r->get("worker:busy:{$name}");
+                            if (is_string($v) && $v !== '') {
+                                $busyStream = $v;
+                                // busy только на том стриме, который воркер реально обрабатывает.
+                                $isBusy     = ($busyStream === $sKey);
+                            }
+                        }
+                    } catch (Throwable $e) {}
+
+                    if ($hasHb && $isBusy) {
+                        $state  = 'busy';
+                        $isDead = false;
+                    } elseif ($hasHb) {
+                        $state  = ($idleMs < 30000) ? 'active' : 'waiting';
+                        $isDead = false;
+                    } elseif ($pending > 0) {
+                        $state  = 'stuck';
+                        $isDead = false;
+                    } else {
+                        $state  = 'dead';
+                        $isDead = true;
+                    }
+
                     $stats['consumers'][] = [
-                        'stream' => $sKey,
-                        'name'   => (string)($c['name'] ?? '?'),
-                        'pending' => $pending, 'idle_ms' => $idleMs, 'dead' => $isDead,
+                        'stream'  => $sKey,
+                        'name'    => $name,
+                        'pending' => $pending,
+                        'idle_ms' => $idleMs,
+                        'hb_ttl'  => $hbTtl,
+                        'busy'    => $isBusy,
+                        'state'   => $state,
+                        'dead'    => $isDead,
                     ];
+
                     if ($isDead) $stats['consumers_dead']++;
                 }
             }
@@ -1311,30 +1361,39 @@ body {
                         <?php
                             $idleSec = intdiv($c['idle_ms'], 1000);
                             $idleCls = $idleSec < 30 ? 'ok' : ($idleSec < 300 ? 'warn' : 'neutral');
+
+                            [$stateText, $stateCls] = match ($c['state']) {
+                                'busy'    => ['busy',    'ok'],
+                                'active'  => ['active',  'ok'],
+                                'waiting' => ['waiting', 'neutral'],
+                                'stuck'   => ['stuck',   'err'],
+                                'dead'    => ['dead',    'err'],
+                                default   => [$c['state'], 'neutral'],
+                            };
                         ?>
-                        <tr>
-                            <td class="rs-mono"><?= rs_h($c['stream']) ?></td>
-                            <td class="rs-mono"><?= rs_h($c['name']) ?></td>
-                            <td><?= rs_badge($c['pending'], 1, 10) ?></td>
-                            <td><span class="rs-badge <?= $idleCls ?>"><?= rs_h(rs_human_duration($idleSec)) ?></span></td>
-                            <td>
-                                <?php if ($c['dead']): ?>
-                                    <span class="rs-badge err">dead</span>
-                                <?php else: ?>
-                                    <span class="rs-badge ok">active</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
+                    <tr>
+                        <td class="rs-mono"><?= rs_h($c['stream']) ?></td>
+                        <td class="rs-mono"><?= rs_h($c['name']) ?></td>
+                        <td><?= rs_badge($c['pending'], 1, 10) ?></td>
+                        <td><span class="rs-badge <?= $idleCls ?>"><?= rs_h(rs_human_duration($idleSec)) ?></span></td>
+                        <td>
+                            <span class="rs-badge <?= $stateCls ?>"><?= rs_h($stateText) ?></span>
+                            <?php if ($c['hb_ttl'] > 0): ?>
+                                <div class="rs-dim" style="font-size:11px">HB: <?= (int)$c['hb_ttl'] ?>s left</div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
                 </table>
             </div>
-            <div class="rs-dim" style="margin-top:6px">
-                A consumer is marked <b>dead</b> when pending = 0 and idle &gt; <?= RS_DEAD_IDLE_SECONDS ?>s —
-                these are leftovers from previous worker restarts.
-                <b>Kill dead consumers</b> removes all of them in one click; active consumers and any
-                consumer with pending messages are left untouched.
-            </div>
+                <div class="rs-dim" style="margin-top:6px">
+                    <b>busy</b> — heartbeat is fresh and the worker is currently processing a heavy task.<br>
+                    <b>active</b> — heartbeat is fresh and the worker read from this stream recently.<br>
+                    <b>waiting</b> — heartbeat is fresh, but the worker has nothing to do on this stream right now (normal when a queue is empty).<br>
+                    <b>dead</b> — heartbeat expired, pending = 0; safe to remove.<br>
+                    <b>stuck</b> — heartbeat expired, but PEL still holds messages; XAUTOCLAIM should pick them up, do not kill.
+                </div>
         <?php endif; ?>
     </div>
 

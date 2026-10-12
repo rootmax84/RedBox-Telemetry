@@ -35,6 +35,9 @@ $mergesess1  = !empty($mergesess) ? $mergesess[0] : null;
 if (!empty($mergesession) && !empty($mergesess1)) {
 
     // ── Fast path: поставить в очередь heavy worker ──
+    $sig = 'merge_sessions:' . current_user_id() . ':' . (int)$mergesession;
+
+    $conflict_id = null;
     $task_id = heavy_task_push(
         'merge_sessions',
         [
@@ -42,8 +45,18 @@ if (!empty($mergesession) && !empty($mergesess1)) {
             'session_ids'    => array_values($sessionids),
             'target_session' => (int)$mergesession,
         ],
-        current_user_id()
+        current_user_id(),
+        null,
+        $sig,
+        $conflict_id
     );
+
+    if ($conflict_id !== null) {
+        header('Content-Type: application/json');
+        http_response_code(202);
+        echo json_encode(['status' => 'accepted', 'task_id' => $conflict_id]);
+        exit;
+    }
 
     if ($task_id !== null) {
         header('Content-Type: application/json');

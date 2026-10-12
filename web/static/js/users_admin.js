@@ -9,8 +9,6 @@ function submitForm(el) {
 
     submitBtn.disabled = true;
 
-    // Inline-путь: показать спиннер, пока PHP чанками удаляет logs/sessions/pids.
-    // Heavy-путь: спрячем его чуть ниже — у pollHeavyTask свой индикатор.
     $("#wait_layout").show();
 
     fetch(el.getAttribute("action"), {
@@ -45,19 +43,36 @@ function submitForm(el) {
 
             if (data.reload) { location.href = '/logout'; return; }
 
-            // 202 + task_id — тяжёлая задача стала в очередь
+            // 202 + task_id — тяжёлая задача стала в очередь.
             if (data.status === 'accepted' && data.task_id) {
                 $("#wait_layout").hide();
-                pollHeavyTask(data.task_id, {
-                    taskType: data.type || null,
-                    onDone: () => {
-                        submitBtn.disabled = false;
-                        xhrResponse(data.message || 'OK');
-                        // Небольшая задержка, чтобы пользователь увидел диалог
-                        // прежде чем таблица обновится (если решим делать reload).
-                        // Для truncate/delete reload не делаем — админ видит форму.
-                    },
-                });
+
+                const alreadyTracked = (typeof heavyTasksMeta !== 'undefined')
+                    && heavyTasksMeta.has(data.task_id);
+
+                if (alreadyTracked) {
+                    submitBtn.disabled = false;
+                    xhrResponse(data.message || 'OK');
+                    return;
+                }
+
+                let pollStarted = false;
+                try {
+                    pollHeavyTask(data.task_id, {
+                        taskType: data.type || null,
+                        onDone: () => {
+                            submitBtn.disabled = false;
+                            xhrResponse(data.message || 'OK');
+                        },
+                    });
+                    pollStarted = true;
+                } catch (e) {
+                    serverError(e.message);
+                }
+
+                if (!pollStarted) {
+                    submitBtn.disabled = false;
+                }
                 return;
             }
 
@@ -68,9 +83,6 @@ function submitForm(el) {
             return;
         }
 
-        // Plain-text ответ — это и есть inline-путь для delete_user/truncate_user.
-        // Сервер ответил "User deleted: X" / "User db truncated: X" после
-        // синхронного удаления — гасим спиннер и показываем сообщение.
         $("#wait_layout").hide();
         xhrResponse(result.text);
         setTimeout(() => {

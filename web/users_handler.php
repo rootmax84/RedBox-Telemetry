@@ -245,6 +245,8 @@ try {
 
             require_once __DIR__ . '/src/heavy_tasks.php';
 
+            $sig = 'delete_user:' . $target_uid;
+            $conflict_id = null;
             $task_id = heavy_task_push(
                 'delete_user',
                 [
@@ -252,8 +254,24 @@ try {
                     'target_username' => $login,
                     'target_token'    => $token ?? '',
                 ],
-                (int)($_SESSION['uid'] ?? 0)
+                (int)($_SESSION['uid'] ?? 0),
+                null,
+                $sig,
+                $conflict_id
             );
+
+            if ($conflict_id !== null) {
+                header('Content-Type: application/json');
+                http_response_code(202);
+                echo json_encode([
+                    'status'   => 'accepted',
+                    'task_id'  => $conflict_id,
+                    'type'     => 'delete_user',
+                    'message'  => $translations[current_lang()]['admin.del.ok'].$login,
+                    'username' => $login,
+                ]);
+                exit;
+            }
 
             if ($task_id !== null) {
                 header('Content-Type: application/json');
@@ -309,6 +327,8 @@ try {
 
             require_once __DIR__ . '/src/heavy_tasks.php';
 
+            $sig = 'truncate_user:' . $target_uid;
+            $conflict_id = null;
             $task_id = heavy_task_push(
                 'truncate_user',
                 [
@@ -316,8 +336,24 @@ try {
                     'target_username' => $login,
                     'target_token'    => $token ?? '',
                 ],
-                (int)($_SESSION['uid'] ?? 0)
+                (int)($_SESSION['uid'] ?? 0),
+                null,
+                $sig,
+                $conflict_id
             );
+
+            if ($conflict_id !== null) {
+                header('Content-Type: application/json');
+                http_response_code(202);
+                echo json_encode([
+                    'status'   => 'accepted',
+                    'task_id'  => $conflict_id,
+                    'type'     => 'truncate_user',
+                    'message'  => $translations[current_lang()]['admin.trunc'].$login,
+                    'username' => $login,
+                ]);
+                exit;
+            }
 
             if ($task_id !== null) {
                 header('Content-Type: application/json');

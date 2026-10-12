@@ -27,14 +27,30 @@ if (isset($delsession)) {
     if (!empty($sessionids)) {
 
         /* ── Пробуем поставить в очередь heavy-worker ── */
+        $sorted_ids = $sessionids;
+        sort($sorted_ids);
+        $sig = 'delete_sessions:' . current_user_id() . ':' . md5(implode(',', $sorted_ids));
+
+        $conflict_id = null;
         $task_id = heavy_task_push(
             'delete_sessions',
             [
                 'username'    => $username,
                 'session_ids' => array_values($sessionids),
             ],
-            current_user_id()
+            current_user_id(),
+            null,
+            $sig,
+            $conflict_id
         );
+
+        if ($conflict_id !== null) {
+            // Тот же набор сессий уже удаляется — отдаём его task_id.
+            header('Content-Type: application/json');
+            http_response_code(202);
+            echo json_encode(['status' => 'accepted', 'task_id' => $conflict_id]);
+            exit;
+        }
 
         if ($task_id !== null) {
             header('Content-Type: application/json');

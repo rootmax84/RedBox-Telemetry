@@ -2888,6 +2888,11 @@ function heavyTaskUntrack(taskId) {
 
 function pollHeavyTask(taskId, options) {
     options = options || {};
+
+    if (heavyTasksMeta.has(taskId)) {
+        return;
+    }
+
     const interval    = options.interval    || 2000;
     const maxAttempts = options.maxAttempts || 900;   // ~30 минут
 

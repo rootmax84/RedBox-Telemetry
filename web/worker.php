@@ -105,7 +105,13 @@ $heavyStream     = $redis_heavy_stream_key ?? 'ratel:heavy_tasks';
 $heavyEnabled    = !empty($heavy_tasks_enabled);
 $blockMs         = 5000;    // XREADGROUP blocking timeout (ms)
 $batchSize       = 20;      // messages per XREADGROUP call
-$reclaimMinIdle  = 60000;   // 60 sec — "stale" threshold for XAUTOCLAIM
+// Uploads обрабатываются за миллисекунды — короткий idle ок.
+// Heavy задачи (merge, chunked delete) идут минутами, XAUTOCLAIM
+// на них должен срабатывать только если воркер реально умер.
+$reclaimMinIdleByStream = [
+    $stream      => 15000,     // uploads: 15 s
+    $heavyStream => 600000,    // heavy:   10 min
+];
 $reclaimBatch    = 10;      // messages per XAUTOCLAIM call
 $statsEvery      = 60;      // seconds between stats log lines
 $redisRetryDelay = 5;       // seconds between Redis reconnect attempts
@@ -312,6 +318,17 @@ function worker_process_message(
     $fatal  = false;
     $errMsg = '';
 
+    // Воркер помечает себя «занятым» только когда реально ушёл
+    // в обработку. Для uploads это миллисекунды — маркер даже
+    // не успеет стать заметным. Для heavy — задача идёт минутами,
+    // и метка всё это время видна в Redis.
+    $isHeavy = ($sKey === ($GLOBALS['redis_heavy_stream_key'] ?? 'ratel:heavy_tasks'));
+
+    if ($isHeavy) {
+        worker_busy_set($redis, $GLOBALS['worker_consumer_name'] ?? '', $sKey);
+        $GLOBALS['worker_current_msg'] = [$sKey, $id];
+    }
+
     try {
         worker_dispatch($db, $sKey, $fields, $redis);
 
@@ -361,6 +378,11 @@ function worker_process_message(
             "[worker] %s/%s [%s] fatal: %s\n%s",
             $sKey, $id, $src, $errMsg, $e->getTraceAsString()
         ));
+    } finally {
+        if ($isHeavy) {
+            worker_busy_clear($redis, $GLOBALS['worker_consumer_name'] ?? '');
+            unset($GLOBALS['worker_current_msg']);
+        }
     }
 
     // Решаем: DLQ сейчас или retry позже
@@ -414,6 +436,7 @@ if ($heavyEnabled && $heavyStream !== $stream) {
 // Consumer name: unique per container/process
 // ────────────────────────────────────────────────────────────
 $consumer = gethostname() . '-' . getmypid();
+$GLOBALS['worker_consumer_name'] = $consumer;
 
 fwrite(STDOUT, sprintf(
     "[worker] starting consumer=%s streams=[%s] group=%s dlq=%s max_attempts=%d\n",
@@ -511,6 +534,23 @@ $GLOBALS['worker_yield_cb'] = function () use (
 
     return $processed > 0;
 };
+
+function worker_busy_key(string $consumer): string
+{
+    return "worker:busy:{$consumer}";
+}
+
+function worker_busy_set(Redis $redis, string $consumer, string $stream, int $ttl = 600): void
+{
+    try {
+        $redis->set(worker_busy_key($consumer), $stream, ['EX' => $ttl]);
+    } catch (Throwable $e) {}
+}
+
+function worker_busy_clear(Redis $redis, string $consumer): void
+{
+    try { $redis->del(worker_busy_key($consumer)); } catch (Throwable $e) {}
+}
 
 // ────────────────────────────────────────────────────────────
 // Connect to Redis (retry until success)
@@ -660,9 +700,11 @@ while ($running) {
     $needBreak = false;
     foreach ($pollStreams as $sKey) {
         try {
+            $minIdle = $reclaimMinIdleByStream[$sKey] ?? 60000;
+
             $claimed = $redis->xAutoClaim(
                 $sKey, $group, $consumer,
-                $reclaimMinIdle, '0-0', $reclaimBatch
+                $minIdle, '0-0', $reclaimBatch
             );
 
             if (!empty($claimed) && is_array($claimed)

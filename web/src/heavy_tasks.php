@@ -29,6 +29,32 @@ function heavy_heartbeat(): void
         && is_callable($GLOBALS['worker_heartbeat_cb'])) {
         ($GLOBALS['worker_heartbeat_cb'])();
     }
+
+    global $redis_stream_group;
+
+    $cur = $GLOBALS['worker_current_msg'] ?? null;
+    if (!is_array($cur)) return;
+
+    // XCLAIM JUSTID не чаще раза в 30 секунд на сообщение.
+    static $lastClaimAt = 0;
+    if (time() - $lastClaimAt < 30) return;
+    $lastClaimAt = time();
+
+    $shared = $GLOBALS['redis'] ?? $GLOBALS['__ratel_shared_redis'] ?? null;
+    if (!($shared instanceof Redis)) return;
+
+    try {
+        $shared->xClaim(
+            $cur[0],
+            $redis_stream_group ?? 'telemetry-workers',
+            $GLOBALS['worker_consumer_name'] ?? '',
+            0,
+            [$cur[1]],
+            ['JUSTID']
+        );
+    } catch (Throwable $e) {
+        /* not fatal */
+    }
 }
 
 function heavy_task_key(string $task_id): string
@@ -40,27 +66,60 @@ function heavy_task_key(string $task_id): string
  * Поставить задачу в очередь.
  * @return string|null task_id, либо null если Redis недоступен/выключен.
  */
-function heavy_task_push(string $type, array $payload, ?int $owner_user_id,
-                         ?Redis $redis = null): ?string
-{
+function heavy_task_push(
+    string  $type,
+    array   $payload,
+    ?int    $owner_user_id,
+    ?Redis  $redis = null,
+    ?string $dedup_signature = null,
+    ?string &$conflict_task_id = null
+): ?string {
     global $redis_heavy_stream_key, $redis_heavy_stream_maxlen,
            $heavy_tasks_enabled, $heavy_task_ttl;
+
+    $conflict_task_id = null;
 
     if (empty($heavy_tasks_enabled)) return null;
 
     if ($redis === null) $redis = get_redis_connection();
     if ($redis === null) return null;
 
-    $task_id = bin2hex(random_bytes(16));
-    $hash    = heavy_task_key($task_id);
+    $task_id  = bin2hex(random_bytes(16));
+    $hash     = heavy_task_key($task_id);
+    $lock_key = null;
+
+    // ── Дедуп: атомарный SET NX. Значение = task_id, чтобы
+    //    при релизе не снять чужой лок.
+    if ($dedup_signature !== null && $dedup_signature !== '') {
+        $lock_key = 'ratel:tasklock:' . hash('sha256', $dedup_signature);
+
+        try {
+            $ok = $redis->set($lock_key, $task_id, ['NX', 'EX' => (int)$heavy_task_ttl]);
+            if ($ok !== true) {
+                $existing = $redis->get($lock_key);
+                $conflict_task_id = (is_string($existing) && $existing !== '')
+                    ? $existing
+                    : '?';
+                return null;
+            }
+        } catch (Throwable $e) {
+            error_log('heavy_task_push: lock acquire failed: ' . $e->getMessage());
+            $lock_key = null;   // на ошибке — продолжаем без лока
+        }
+    }
 
     try {
-        $redis->hMSet($hash, [
+        $meta = [
             'status'        => 'queued',
             'type'          => $type,
             'owner_user_id' => (string)($owner_user_id ?? 0),
             'created_at'    => (string)time(),
-        ]);
+        ];
+        if ($dedup_signature !== null && $dedup_signature !== '') {
+            $meta['dedup_signature'] = $dedup_signature;
+        }
+
+        $redis->hMSet($hash, $meta);
         $redis->expire($hash, (int)$heavy_task_ttl);
 
         $key    = $redis_heavy_stream_key   ?? 'ratel:heavy_tasks';
@@ -76,15 +135,24 @@ function heavy_task_push(string $type, array $payload, ?int $owner_user_id,
 
         if ($id === false) {
             try { $redis->del($hash); } catch (Throwable $e) {}
+            if ($lock_key !== null) {
+                try {
+                    if ($redis->get($lock_key) === $task_id) $redis->del($lock_key);
+                } catch (Throwable $e) {}
+            }
             return null;
         }
 
-        // Индексируем задачу для пользователя — чтобы её увидели все его вкладки
         heavy_user_tasks_add((int)($owner_user_id ?? 0), $task_id, $redis);
 
         return $task_id;
     } catch (Throwable $e) {
         error_log('heavy_task_push: ' . $e->getMessage());
+        if ($lock_key !== null) {
+            try {
+                if ($redis->get($lock_key) === $task_id) $redis->del($lock_key);
+            } catch (Throwable $e2) {}
+        }
         return null;
     }
 }
@@ -117,8 +185,17 @@ function heavy_task_update(string $task_id, string $status,
                 if ($owner > 0) {
                     heavy_user_tasks_remove($owner, $task_id, $redis);
                 }
+
+                // Освобождаем dedup-лок, только если мы его всё ещё держим.
+                $sig = $redis->hGet($hash, 'dedup_signature');
+                if (is_string($sig) && $sig !== '') {
+                    $lock_key = 'ratel:tasklock:' . hash('sha256', $sig);
+                    if ($redis->get($lock_key) === $task_id) {
+                        $redis->del($lock_key);
+                    }
+                }
             } catch (Throwable $e) {
-                error_log('heavy_task_update: remove from user index: ' . $e->getMessage());
+                error_log('heavy_task_update: cleanup failed: ' . $e->getMessage());
             }
         }
     } catch (Throwable $e) {
