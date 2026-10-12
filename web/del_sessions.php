@@ -29,7 +29,7 @@ if (isset($delsession)) {
         /* ── Пробуем поставить в очередь heavy-worker ── */
         $sorted_ids = $sessionids;
         sort($sorted_ids);
-        $sig = 'delete_sessions:' . current_user_id() . ':' . md5(implode(',', $sorted_ids));
+        $sig = 'delete_sessions:' . current_user_id() . ':' . hash('sha256', implode(',', $sorted_ids));
 
         $conflict_id = null;
         $task_id = heavy_task_push(

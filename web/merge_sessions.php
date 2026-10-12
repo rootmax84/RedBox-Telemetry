@@ -251,6 +251,12 @@ if (!empty($mergesession) && !empty($mergesess1)) {
           <span l10n="hint.button"></span>
         </button>
       </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="logout()">
+          <span class="icon" id="logout-img"></span>
+          <span l10n="logout"></span>
+        </button>
+      </li>
     </ul>
   </div>
 
