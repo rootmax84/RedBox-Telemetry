@@ -300,6 +300,7 @@ $stats = [
     'connected'      => false, 'error' => null, 'info' => [],
     'streams'        => [], 'consumers' => [], 'consumers_dead' => 0,
     'workers'        => [],
+    'yield_total'    => 0,
     'tasks'          => ['hashes' => 0, 'by_status' => [], 'user_indexes' => 0],
     'attempts'       => 0, 'dlq_exists' => false,
 ];
@@ -417,6 +418,23 @@ if ($r === null) {
         } catch (Throwable $e) {}
     }
 
+    /* 4a. Worker yield counters */
+    $yieldByConsumer = [];
+    try {
+        $it = null;
+        while (true) {
+            $keys = $r->scan($it, 'worker:yield:*', 200);
+            if ($keys === false) break;
+            foreach ($keys as $k) {
+                $consumer = substr($k, strlen('worker:yield:'));
+                if ($consumer === '') continue;
+                $val = $r->get($k);
+                $yieldByConsumer[$consumer] = is_numeric($val) ? (int)$val : 0;
+            }
+            if ((int)$it === 0) break;
+        }
+    } catch (Throwable $e) {}
+
     /* 4. Worker heartbeats */
     try {
         $it = null;
@@ -424,12 +442,18 @@ if ($r === null) {
             $keys = $r->scan($it, 'worker:hb:*', 100);
             if ($keys === false) break;
             foreach ($keys as $k) {
-                $ttl = $r->ttl($k);
-                $val = $r->get($k);
+                $ttl      = $r->ttl($k);
+                $val      = $r->get($k);
+                $consumer = substr($k, strlen('worker:hb:'));
+                $yield    = $yieldByConsumer[$consumer] ?? 0;
+
+                $stats['yield_total'] += $yield;
+
                 $stats['workers'][] = [
-                    'consumer' => substr($k, strlen('worker:hb:')),
+                    'consumer' => $consumer,
                     'ttl'      => is_int($ttl) ? $ttl : -1,
                     'hb_at'    => ($val !== false) ? (int)$val : null,
+                    'yield'    => $yield,
                 ];
             }
             if ((int)$it === 0) break;
@@ -1316,7 +1340,16 @@ body {
 
     <?php /* 5. Workers */ ?>
     <div class="rs-card">
-        <h2>Workers <span class="rs-dim">(worker:hb:*)</span></h2>
+        <h2>
+            <span>Workers <span class="rs-dim">(worker:hb:*)</span></span>
+            <?php if ($stats['yield_total'] > 0): ?>
+                <span class="rs-dim"
+                      title="Uploads drained between heavy-task chunks via cooperative yield">
+                    Yield drained:
+                    <span class="rs-badge ok"><?= (int)$stats['yield_total'] ?></span>
+                </span>
+            <?php endif; ?>
+        </h2>
         <?php if (empty($stats['workers'])): ?>
             <div><span class="rs-badge err">✖ 0 alive</span>
                 <span class="rs-dim"> — no worker registered</span></div>
@@ -1327,7 +1360,14 @@ body {
             <div class="rs-table-wrap">
                 <table class="rs-table">
                     <thead>
-                        <tr><th>Consumer</th><th>TTL</th><th>Last beat</th></tr>
+                        <tr>
+                            <th>Consumer</th>
+                            <th>TTL</th>
+                            <th>Last beat</th>
+                            <th title="Uploads drained between heavy-task chunks (cooperative yield)">
+                                Yield
+                            </th>
+                        </tr>
                     </thead>
                     <tbody>
                     <?php foreach ($stats['workers'] as $w): ?>
@@ -1341,10 +1381,23 @@ body {
                                 <?php endif; ?>
                             </td>
                             <td><?= $w['hb_at'] ? rs_h(rs_age($w['hb_at'])) : '<span class="rs-dim">?</span>' ?></td>
+                            <td>
+                                <?php if (($w['yield'] ?? 0) > 0): ?>
+                                    <span class="rs-badge ok"><?= (int)$w['yield'] ?></span>
+                                <?php else: ?>
+                                    <span class="rs-dim">—</span>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+            <div class="rs-dim" style="margin-top:6px">
+                <b>Yield</b> — how many upload messages this worker drained
+                between heavy-task chunks. Non-zero values mean cooperative
+                yield is active; growing numbers confirm telemetry is not
+                starving while a long delete/merge runs.
             </div>
         <?php endif; ?>
     </div>

@@ -441,6 +441,78 @@ $GLOBALS['worker_heartbeat_cb'] = function () use (&$redis, $consumer, $heartbea
 };
 
 // ────────────────────────────────────────────────────────────
+// Cooperative yield для тяжёлых задач.
+//
+// Между чанками delete/merge вызывается heavy_yield(),
+// который через этот колбэк неблокирующе добирает uploads.
+// Читаем ТОЛЬКО uploads-стрим — heavy здесь не пере-входит.
+// ────────────────────────────────────────────────────────────
+$GLOBALS['worker_yield_cb'] = function () use (
+    &$redis, &$db,
+    $consumer, $group, $stream,
+    $maxAttempts, $workerAttemptTtl, $dlqKey, $dlqMaxlen,
+    $heartbeatTtl
+): bool {
+    static $yielding = false;
+    if ($yielding) return false;
+    $yielding = true;
+
+    $processed = 0;
+
+    try {
+        if (!is_object($redis))        return false;
+        if (!($db instanceof mysqli))  return false;
+
+        $messages = $redis->xReadGroup(
+            $group, $consumer,
+            [$stream => '>'],
+            10,
+            1
+        );
+
+        if ($messages && isset($messages[$stream]) && is_array($messages[$stream])) {
+            foreach ($messages[$stream] as $id => $fields) {
+                if (!($db instanceof mysqli)) break;
+
+                worker_process_message(
+                    $redis, $db, $stream, $id, $fields,
+                    $group,
+                    $maxAttempts, $workerAttemptTtl,
+                    $dlqKey, $dlqMaxlen,
+                    'yield'
+                );
+                $processed++;
+            }
+        }
+
+        if ($processed > 0) {
+            try {
+                $key = "worker:yield:{$consumer}";
+                $redis->incrBy($key, $processed);
+                $redis->expire($key, (int)$heartbeatTtl * 2);
+            } catch (Throwable $e) {
+                // Не роняем heavy-задачу из-за метрики.
+            }
+        }
+
+        if (!($db instanceof mysqli)) {
+            try {
+                $db = worker_reconnect_db(null);
+            } catch (Throwable $e) {
+                // Всё ещё лежит. Следующий чанк heavy-задачи упадёт
+                // на вызове метода null → mysqli_sql_exception(2006).
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('[worker] yield drain error: ' . $e->getMessage());
+    } finally {
+        $yielding = false;
+    }
+
+    return $processed > 0;
+};
+
+// ────────────────────────────────────────────────────────────
 // Connect to Redis (retry until success)
 // ────────────────────────────────────────────────────────────
 while ($redis === null) {

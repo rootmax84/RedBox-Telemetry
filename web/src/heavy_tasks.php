@@ -147,11 +147,18 @@ function heavy_task_get(string $task_id, ?Redis $redis = null): ?array
  * блокировки. Используется при merge — переписать session у всех
  * датапоинтов объединяемых сессий.
  *
+ * Между чанками вызывает heavy_yield() — неблокирующий добор uploads,
+ * чтобы телеметрия не голодала во время долгого merge.
+ *
  * @return int количество перемещённых строк
+ * @throws mysqli_sql_exception если соединение с БД потеряно и не восстановлено
  */
-function heavy_update_logs_session_chunked(mysqli $db, int $user_id,
-                                           array $old_sessions, int $new_session): int
-{
+function heavy_update_logs_session_chunked(
+    mysqli $db,
+    int    $user_id,
+    array  $old_sessions,
+    int    $new_session
+): int {
     global $heavy_chunk_size, $heavy_chunk_pause_us;
 
     if (empty($old_sessions)) return 0;
@@ -166,6 +173,22 @@ function heavy_update_logs_session_chunked(mysqli $db, int $user_id,
 
     while (true) {
         heavy_heartbeat();
+
+        if (isset($GLOBALS['db']) && $GLOBALS['db'] instanceof mysqli) {
+            $db = $GLOBALS['db'];
+        }
+
+        // ─── Защита от потерянного соединения ───
+        // Если yield в прошлой итерации не смог восстановить БД,
+        // следующий запрос ниже упадёт с fatal TypeError ("on null").
+        // Бросаем conn-ошибку (errno 2006), чтобы caller оставил
+        // сообщение pending и XAUTOCLAIM подобрал его позже.
+        if (!($db instanceof mysqli)) {
+            throw new mysqli_sql_exception(
+                'DB lost during chunked update',
+                2006
+            );
+        }
 
         $rows = $db->execute_query(
             "SELECT time FROM logs
@@ -187,25 +210,36 @@ function heavy_update_logs_session_chunked(mysqli $db, int $user_id,
         );
 
         $total += count($times);
-        heavy_heartbeat();
+
+        // ─── Yield: неблокирующий добор uploads ───
+        // Возвращает true, если обработал хоть одно сообщение.
+        // В этом случае пауза не нужна — работа уже заняла время.
+        $didWork = heavy_yield();
 
         if (count($times) < $chunk_size) break;
-        if ($pause_us > 0) usleep($pause_us);
+        if (!$didWork && $pause_us > 0) usleep($pause_us);
     }
 
     return $total;
 }
 
-/* ────────────────────────────────────────────────────────────
- * Chunked deletion
+/**
+ * Чанковое удаление логов по списку session_id.
  *
  * SELECT time LIMIT N → DELETE WHERE time IN — порционно,
  * с паузой между чанками. На каждом чанке дёргаем heartbeat,
  * чтобы админка видела воркер живым.
- * ──────────────────────────────────────────────────────────── */
-
-function heavy_delete_logs_by_sessions(mysqli $db, int $user_id, array $session_ids): int
-{
+ *
+ * Между чанками вызывает heavy_yield() — неблокирующий добор uploads.
+ *
+ * @return int количество удалённых строк
+ * @throws mysqli_sql_exception если соединение с БД потеряно и не восстановлено
+ */
+function heavy_delete_logs_by_sessions(
+    mysqli $db,
+    int    $user_id,
+    array  $session_ids
+): int {
     global $heavy_chunk_size, $heavy_chunk_pause_us;
 
     if (empty($session_ids)) return 0;
@@ -220,6 +254,18 @@ function heavy_delete_logs_by_sessions(mysqli $db, int $user_id, array $session_
 
     while (true) {
         heavy_heartbeat();
+
+        if (isset($GLOBALS['db']) && $GLOBALS['db'] instanceof mysqli) {
+            $db = $GLOBALS['db'];
+        }
+
+        // ─── Защита от потерянного соединения ───
+        if (!($db instanceof mysqli)) {
+            throw new mysqli_sql_exception(
+                'DB lost during chunked delete (by sessions)',
+                2006
+            );
+        }
 
         $rows = $db->execute_query(
             "SELECT time FROM logs
@@ -240,15 +286,26 @@ function heavy_delete_logs_by_sessions(mysqli $db, int $user_id, array $session_
         );
 
         $total += count($times);
-        heavy_heartbeat();
+
+        // ─── Yield: неблокирующий добор uploads ───
+        $didWork = heavy_yield();
 
         if (count($times) < $chunk_size) break;
-        if ($pause_us > 0) usleep($pause_us);
+        if (!$didWork && $pause_us > 0) usleep($pause_us);
     }
 
     return $total;
 }
 
+/**
+ * Чанковое удаление всех логов пользователя.
+ * Используется в delete_user и truncate_user.
+ *
+ * Между чанками вызывает heavy_yield() — неблокирующий добор uploads.
+ *
+ * @return int количество удалённых строк
+ * @throws mysqli_sql_exception если соединение с БД потеряно и не восстановлено
+ */
 function heavy_delete_logs_by_user(mysqli $db, int $user_id): int
 {
     global $heavy_chunk_size, $heavy_chunk_pause_us;
@@ -259,6 +316,18 @@ function heavy_delete_logs_by_user(mysqli $db, int $user_id): int
 
     while (true) {
         heavy_heartbeat();
+
+        if (isset($GLOBALS['db']) && $GLOBALS['db'] instanceof mysqli) {
+            $db = $GLOBALS['db'];
+        }
+
+        // ─── Защита от потерянного соединения ───
+        if (!($db instanceof mysqli)) {
+            throw new mysqli_sql_exception(
+                'DB lost during chunked delete (by user)',
+                2006
+            );
+        }
 
         $rows = $db->execute_query(
             "SELECT time FROM logs WHERE user_id = ? LIMIT $chunk_size",
@@ -277,10 +346,12 @@ function heavy_delete_logs_by_user(mysqli $db, int $user_id): int
         );
 
         $total += count($times);
-        heavy_heartbeat();
+
+        // ─── Yield: неблокирующий добор uploads ───
+        $didWork = heavy_yield();
 
         if (count($times) < $chunk_size) break;
-        if ($pause_us > 0) usleep($pause_us);
+        if (!$didWork && $pause_us > 0) usleep($pause_us);
     }
 
     return $total;
@@ -711,4 +782,23 @@ function heavy_user_tasks_list(int $user_id, ?Redis $redis = null): array
         error_log('heavy_user_tasks_list: ' . $e->getMessage());
         return [];
     }
+}
+
+/**
+ * Кооперативная уступка между чанками тяжёлой задачи.
+ *
+ * Обновляет heartbeat и, если worker.php зарегистрировал колбэк,
+ * неблокирующе добирает uploads.
+ *
+ * @return bool true, если обработал хотя бы одно upload-сообщение.
+ */
+function heavy_yield(): bool
+{
+    heavy_heartbeat();
+
+    if (isset($GLOBALS['worker_yield_cb'])
+        && is_callable($GLOBALS['worker_yield_cb'])) {
+        return (bool)($GLOBALS['worker_yield_cb'])();
+    }
+    return false;
 }
