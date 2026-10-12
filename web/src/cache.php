@@ -131,8 +131,13 @@ final class RatelCache
      * @return int|false новое значение, либо false при ошибке.
      *
      * ВАЖНО: phpredis::incrBy на несуществующем ключе создаёт его со
-     * значением offset и БЕЗ TTL. Все вызовы в проекте сначала делают
-     * set($key, 1, $ttl) при miss, так что на практике ключ существует.
+     * значением offset и БЕЗ TTL.
+     *
+     * Вызывающие:
+     *   - rate limit (ul.php, stream_json.php) — сначала set() при miss,
+     *     потом increment() в пределах окна;
+     *   - cache_flush() — increment() без предварительного set(),
+     *     полагаясь на auto-create со значением 1.
      */
     public function increment(string $key, int $offset = 1)
     {

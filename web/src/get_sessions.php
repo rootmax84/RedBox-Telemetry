@@ -104,7 +104,7 @@ while ($row = $sessionqry->fetch_assoc()) {
     $session_profileName = $row["profileName"] === 'Not Specified' ? $translations[$lang]['profile.ns'] : $row["profileName"];
     $session_ip = $row["ip"];
     $sids[] = preg_replace('/\D/', '', $sid);
-    $seshdates[$sid] = date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", substr($sid, 0, -3));
+    $seshdates[$sid] = date($_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i", intdiv((int)$row["time"], 1000));
     $seshsizes[$sid] = " ({$translations[$lang]['get.sess.length']}: $session_duration_str)";
     $seshprofile[$sid] = " ({$translations[$lang]['sel.profile']}: $session_profileName)";
     $seship[$sid] = " (IP: $session_ip)";

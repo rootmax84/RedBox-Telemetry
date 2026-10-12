@@ -183,7 +183,11 @@ function cache_var_key(string $suffix): string
     }
 
     if (!isset($GLOBALS['__ratel_varver'][$uid])) {
-        $GLOBALS['__ratel_varver'][$uid] = 1;
+        // Default 0 согласован с cache_flush(): первый flush
+        // через INCRBY создаёт u{uid}_varver со значением 1,
+        // и версия в web меняется с 0 на 1 — старый кэш
+        // становится недостижим.
+        $GLOBALS['__ratel_varver'][$uid] = 0;
         if ($memcached_connected) {
             try {
                 $v = $memcached->get("u{$uid}_varver");
@@ -270,16 +274,10 @@ function cache_flush($token = null, $keyname = null)
         //    версии. Все новые чтения получат новую версию, старые ключи
         //    недостижимы и истекут по TTL сами.
         if ($uid > 0) {
-            // ВАЖНО: не используем increment() — php-memcached не создаёт
-            // ключ, если его нет (NOT_FOUND → false), и версия не растёт.
-            // Делаем get + set вручную.
-            $cur = $memcached->get("u{$uid}_varver");
-            $cur = is_numeric($cur) ? (int)$cur : 0;
-            $memcached->set("u{$uid}_varver", $cur + 1, 0);
-
-            // Сбросить локальный кэш версии: если в этом же запросе
-            // после flush кто-то вызовет cache_var_key(), он должен
-            // получить НОВУЮ версию из Redis, а не залипшую старую.
+            // Атомарный INCRBY: если ключа нет — создаётся со значением 1,
+            // если есть N — становится N+1. Гонки между двумя воркерами,
+            // одновременно инвалидирующими кэш, безопасны.
+            $memcached->increment("u{$uid}_varver", 1);
             unset($GLOBALS['__ratel_varver'][$uid]);
         }
 

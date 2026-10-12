@@ -66,9 +66,9 @@ while ($row = $sessionqry->fetch_assoc()) {
         : $row["profileName"];
 
     $timeformat = isset($_COOKIE['timeformat']) && $_COOKIE['timeformat'] == "12" ? "F d, Y h:ia" : "F d, Y H:i";
-    $timestamp = substr($sid, 0, -3);
+    $timestamp = intdiv((int)$row["time"], 1000);
 
-    if (is_numeric($timestamp) && $timestamp > 0) {
+    if ($timestamp > 0) {
         $session_date = date($timeformat, $timestamp);
         $month_name = date("F", $timestamp);
 

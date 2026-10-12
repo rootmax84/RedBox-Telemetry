@@ -139,7 +139,7 @@ include_once __DIR__ . '/src/head.php';
                     <tr data-sid=<?php echo $keycol['session']; ?>>
                         <td id="id:<?php echo $keycol['session']; ?>">
                             <?php
-                                $start_timestamp = intval(substr($keycol['session'], 0, -3));
+                                $start_timestamp = intdiv((int)$keycol['time'], 1000);
                                 $month_num = date('n', $start_timestamp);
                                 $month_key = 'month.' . strtolower(date('M', $start_timestamp));
                                 $translated_month = $translations[$lang][$month_key];
