@@ -510,6 +510,7 @@ $translations = [
         'admin.db.tasks' => 'Tasks',
         'admin.db.running' => 'running',
         'admin.db.size' => 'Size',
+        'admin.version' => 'Version',
     ],
     'ru' => [
         'required' => 'Имя пользователя и пароль обязательны',
@@ -1020,6 +1021,7 @@ $translations = [
         'admin.db.tasks' => 'Задачи',
         'admin.db.running' => 'в работе',
         'admin.db.size' => 'Размер',
+        'admin.version' => 'Версия',
     ],
     'es' => [
         'required' => 'Se requieren nombre de usuario y contraseña',
@@ -1531,6 +1533,7 @@ $translations = [
         'admin.db.tasks' => 'Tareas',
         'admin.db.running' => 'en ejecución',
         'admin.db.size' => 'Tamaño',
+        'admin.version' => 'Versión',
     ],
     'de' => [
         'required' => 'Benutzername und Passwort sind erforderlich',
@@ -2041,6 +2044,7 @@ $translations = [
         'admin.db.tasks' => 'Aufgaben',
         'admin.db.running' => 'laufend',
         'admin.db.size' => 'Größe',
+        'admin.version' => 'Version',
     ],
 ];
 

@@ -283,6 +283,7 @@ if (!empty($redis_stream_enabled)) {
             . "<li>" . $translations[$lang]['admin.db.size']  . ": " . round($res[1]) . $mb . "</li>"
         . "</ul>"
        . "</li>"
+       . "<li>" . $translations[$lang]['admin.version'] . ": " . (defined('RATEL_VERSION') ? RATEL_VERSION : 'N/A') . "</li>"
        . "</ul>";
 ?>
 </div>
