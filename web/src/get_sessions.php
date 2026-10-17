@@ -58,7 +58,7 @@ if ($current_id > 0) {
 
     $query .= " AND ($filter_sql OR session = ?)";
     $params[] = $current_id;
-    $types .= "s";
+    $types .= "i";
 } else {
     if (!empty($filter_conditions)) {
         $query .= " AND " . implode(" AND ", $filter_conditions);
@@ -66,7 +66,7 @@ if ($current_id > 0) {
 }
 
 // Sort and group
-$query .= " GROUP BY session, profileName, time, timeend ORDER BY session DESC";
+$query .= " ORDER BY session DESC";
 
 // Do stuff in database
 $stmt = $db->prepare($query);
@@ -82,7 +82,6 @@ if ($sessionqry->num_rows == 0) {
         "SELECT time, timeend, session, profileName, ip, favorite
          FROM sessions
          WHERE user_id = ?
-         GROUP BY session, profileName, time, timeend
          ORDER BY session DESC
          LIMIT 20",
         [current_user_id()]

@@ -44,7 +44,7 @@ if ($filterprofile !== "%%") {
     $types .= "s";
 }
 
-$query .= " GROUP BY session, profileName, time, timeend ORDER BY session DESC";
+$query .= " ORDER BY session DESC";
 
 $stmt = $db->prepare($query);
 if (!empty($params)) {
