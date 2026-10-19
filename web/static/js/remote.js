@@ -942,6 +942,57 @@ function checkPIM() {
     }
 }
 
+/* =====================================================
+ *  DUTY SUM CHECK (block submission on violation)
+ *
+ *  Condition (same as client boost.js):
+ *    boost-duty   + boost-dc-corr   > 100
+ *    boost-duty   + boost-rpm-duty  > 100
+ *    boost-gX-duty + boost-dc-corr  > 100   (X = 1..4)
+ *    boost-gX-duty + boost-rpm-duty > 100   (X = 1..4)
+ *
+ *  For fields being changed by the form we use the DOM values
+ *  (what user is about to submit). For fields belonging to the
+ *  other form we use `data[]` — the MCU-stored state, since those
+ *  values will remain unchanged on the controller after this save.
+ * ===================================================== */
+
+function dutySumExceedsBeforeMain() {
+    const duty    = parseInt($("#boost-duty").val()     || 0, 10);
+    const dcCorr  = parseInt($("#boost-dc-corr").val()  || 0, 10);
+    const rpmDuty = parseInt($("#boost-rpm-duty").val() || 0, 10);
+
+    if (duty + dcCorr  > 100) return true;
+    if (duty + rpmDuty > 100) return true;
+
+    // Gear duties are not modified by this form -> use MCU-saved values
+    const gearDuties = [data[241], data[242], data[243], data[244]];
+    for (const gd of gearDuties) {
+        const g = parseInt(gd || 0, 10);
+        if (g + dcCorr  > 100) return true;
+        if (g + rpmDuty > 100) return true;
+    }
+    return false;
+}
+
+function dutySumExceedsBeforeGear() {
+    // DC-corr / RPM-duty are not modified by this form -> use MCU-saved values
+    const dcCorr  = parseInt(data[295] || 0, 10);
+    const rpmDuty = parseInt(data[246] || 0, 10);
+
+    const gearDuties = [
+        parseInt($("#boost-g1-duty").val() || 0, 10),
+        parseInt($("#boost-g2-duty").val() || 0, 10),
+        parseInt($("#boost-g3-duty").val() || 0, 10),
+        parseInt($("#boost-g4-duty").val() || 0, 10)
+    ];
+    for (const gd of gearDuties) {
+        if (gd + dcCorr  > 100) return true;
+        if (gd + rpmDuty > 100) return true;
+    }
+    return false;
+}
+
 function fillData() {
 // === BOOST
     $("#boost-target").value = getInt(data[227], data[226]) - 101;
@@ -1271,6 +1322,11 @@ function boolToMcuByte(checked) {
 function boostSetBtn() {
     if (eInputs('boost-set-btn')) return;
 
+    if (dutySumExceedsBeforeMain()) {
+        serverError(localization.key['boost.duty.warn']);
+        return;
+    }
+
     setDataValue(data, 225, $("#boost-status").checked ? 0 : 1, 'uint8');
     setDataValue(data, 226, parseInt($("#boost-target").val() || 0, 10) + 101, 'uint16');
     setDataValue(data, 228, parseInt($("#boost-duty").val() || 0, 10), 'uint8');
@@ -1315,6 +1371,11 @@ function pidSetBtn() {
 
 function boostGearSetBtn() {
     if (eInputs('boost-gear-set-btn')) return;
+
+    if (dutySumExceedsBeforeGear()) {
+        serverError(localization.key['boost.duty.warn']);
+        return;
+    }
 
     setDataValue(data, 232, boolToMcuByte($("#boost-gear-status").prop("checked")), 'uint8');
 
