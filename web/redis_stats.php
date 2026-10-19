@@ -344,6 +344,9 @@ if ($r === null) {
         $entry = [
             'key' => $def['key'], 'label' => $def['label'],
             'exists' => false, 'length' => 0,
+            'entries_added'     => null,   // Redis 7.0+
+            'max_deleted_id'    => null,   // Redis 7.0+
+            'recorded_first_id' => null,   // Redis 7.0+
             'first_id' => null, 'first_ts' => null,
             'last_id'  => null, 'last_ts'  => null,
             'group' => null, 'lag' => null, 'pending' => null,
@@ -358,23 +361,33 @@ if ($r === null) {
             if (is_array($si)) {
                 $entry['length'] = (int)($si['length'] ?? 0);
 
-                // Разные версии phpredis могут возвращать ключи
-                // 'first-entry' / 'last-entry' или 'first_entry' / 'last_entry',
-                // и в разных вложенных форматах. Достаём id безопасно.
-                $firstRaw = $si['first-entry'] ?? $si['first_entry'] ?? null;
-                $lastRaw  = $si['last-entry']  ?? $si['last_entry']  ?? null;
+                $entry['entries_added'] = isset($si['entries-added']) ? (int)$si['entries-added'] : null;
+                $entry['max_deleted_id'] = $si['max-deleted-entry-id'] ?? $si['max_deleted_entry_id'] ?? null;
 
-                $firstId = null;
-                if (is_array($firstRaw)) {
-                    $firstId = is_array($firstRaw[0] ?? null)
-                        ? ($firstRaw[0][0] ?? null)
-                        : ($firstRaw[0] ?? null);
+                // 1. Пытаемся взять ID напрямую из готовых полей (Redis 7.0+)
+                $firstId = $si['recorded-first-entry-id'] ?? $si['recorded_first_entry_id'] ?? null;
+                $lastId  = $si['last-generated-id'] ?? $si['last_generated_id'] ?? null;
+
+                // 2. Фоллбэк для старых версий Redis (парсим массивы)
+                if ($firstId === null) {
+                    $firstRaw = $si['first-entry'] ?? $si['first_entry'] ?? null;
+                    if (is_array($firstRaw)) {
+                        if (isset($firstRaw[0]) && is_string($firstRaw[0])) {
+                            $firstId = $firstRaw[0];
+                        } else {
+                            $firstId = array_key_first($firstRaw);
+                        }
+                    }
                 }
-                $lastId = null;
-                if (is_array($lastRaw)) {
-                    $lastId = is_array($lastRaw[0] ?? null)
-                        ? ($lastRaw[0][0] ?? null)
-                        : ($lastRaw[0] ?? null);
+                if ($lastId === null) {
+                    $lastRaw = $si['last-entry'] ?? $si['last_entry'] ?? null;
+                    if (is_array($lastRaw)) {
+                        if (isset($lastRaw[0]) && is_string($lastRaw[0])) {
+                            $lastId = $lastRaw[0];
+                        } else {
+                            $lastId = array_key_first($lastRaw);
+                        }
+                    }
                 }
 
                 if (is_string($firstId) && $firstId !== '') {
@@ -1200,7 +1213,7 @@ body {
             <table class="rs-table">
                 <thead>
                     <tr>
-                        <th>Stream</th><th>Length</th><th>Lag</th><th>Pending</th>
+                        <th>Stream</th><th>Length</th><th>Added</th><th>Lag</th><th>Pending</th>
                         <th>Consumers</th><th>First entry</th><th>Last entry</th>
                     </tr>
                 </thead>
@@ -1218,9 +1231,22 @@ body {
                             <?php $noExistMsg = $s['key'] === $dlqKey
                                 ? 'no dead letters yet (good)'
                                 : 'stream does not exist'; ?>
-                            <td colspan="6" class="rs-dim"><?= rs_h($noExistMsg) ?></td>
+                            <td colspan="7" class="rs-dim"><?= rs_h($noExistMsg) ?></td>
                         <?php else: ?>
                             <td><?= (int)$s['length'] ?></td>
+                            <td>
+                                <?php if ($s['entries_added'] !== null): ?>
+                                    <?= number_format($s['entries_added']) ?>
+                                    <?php if ($s['max_deleted_id'] && $s['max_deleted_id'] !== '0-0'): ?>
+                                        <div class="rs-dim" style="font-size:11px"
+                                            title="Trimmed due to MAXLEN">
+                                            trimmed → <?= rs_h($s['max_deleted_id']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="rs-dim" title="Redis 7.0+ required">—</span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <?php if ($s['group'] === null): ?><span class="rs-dim">—</span>
                                 <?php elseif ($s['lag'] === null): ?><span class="rs-dim">?</span>
