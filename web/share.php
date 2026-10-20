@@ -12,125 +12,104 @@ if (!checkRateLimit(5)) {
 
 require_once __DIR__ . '/timezone.php';
 
-if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
-    $uid = $_GET['uid'];
-    $session_id = $_GET['id'];
-    $sig = $_GET['sig'];
+$share_id   = $_GET['u']   ?? null;
+$session_id = $_GET['id']  ?? null;
+$sig        = $_GET['sig'] ?? null;
 
-    $cache_key = "share_data_" . $uid;
-    $user_data = false;
-
-    if ($memcached_connected) {
-        $user_data = $memcached->get($cache_key);
-    }
-
-    if ($user_data === false) {
-        $userqry = $db->execute_query(
-            "SELECT id, user, sessions_filter, time, gap, share_secret FROM users WHERE id=?",
-            [$uid]
-        );
-        if ($userqry->num_rows) {
-            $user_data = $userqry->fetch_assoc();
-            if ($memcached_connected) {
-                try {
-                    $memcached->set($cache_key, $user_data, $db_cache_ttl ?? 3600);
-                } catch (Exception $e) {
-                    error_log(sprintf("Ratel cache error on share: %s (Code: %d)", $e->getMessage(), $e->getCode()));
-                }
-            }
-        } else {
-            header('Location: /catch?c=noshare');
-            exit;
-        }
-    }
-
-    if ($user_data) {
-        $username            = $user_data['user'];
-        $share_secret        = $user_data['share_secret'];
-        $user_time           = $user_data['time'];
-        $user_filter         = $user_data['sessions_filter'];
-        $gap                 = $user_data['gap'];
-        $GLOBALS['user_id']  = (int)$user_data['id'];
-    }
-
-    $GLOBALS['share_sessions_filter'] = (int)$user_filter;
-    setcookie('gap', $gap);
-    setcookie('timeformat', $user_time);
-    $_COOKIE['timeformat'] = $user_time;
-
-    $payload = "uid={$uid}&id={$session_id}";
-    $expected_sig = hash_hmac('sha256', $payload, $share_secret);
-} else {
+if (!is_string($share_id) || $share_id === ''
+    || !is_string($session_id) || $session_id === ''
+    || !is_string($sig) || $sig === '') {
     header('Location: /');
     exit;
 }
 
-$user_id = current_user_id();
-
-if ($username) {
-    $cached_timestamp = null;
-    $current_timestamp = getLastUpdateTimestamp($db, (int)$user_id, $session_id);
-
-    if (!$current_timestamp || !hash_equals($expected_sig, $sig)) {
-        header('Location: /catch?c=noshare');
-        exit;
-    } else {
-        checkRateLimit(5, 3600, true);
-        $_SESSION['share'] = true;
-    }
-
-    // GPS data
-    $gps_cache_key = cache_var_key("gps_data_{$session_id}");
-    $gps_data = false;
-
-    if ($memcached_connected) {
-        $g_cached_data = $memcached->get($gps_cache_key);
-        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($g_cached_data)) {
-            list($gps_data, $cached_timestamp) = $g_cached_data;
-        }
-    }
-
-    if ($gps_data === false || $cached_timestamp !== $current_timestamp) {
-        $gpsQuery = getFilteredGpsQuery((int)$user_id, current_sessions_filter());
-        $gps_time_data = $db->execute_query($gpsQuery, [$session_id]);
-        $geolocs = [];
-        $timearray = [];
-        $i = 0;
-        while ($row = $gps_time_data->fetch_row()) {
-            if (($row[0] != 0) && ($row[1] != 0)) {
-                $geolocs[] = ["lat" => $row[0], "lon" => $row[1], "heading" => $row[2]];
-            }
-            $timearray[$i] = $row[3];
-            $i++;
-        }
-        $gps_data = ['geolocs' => $geolocs, 'timearray' => $timearray];
-        if ($memcached_connected) {
-            try {
-                $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_cache_ttl ?? 3600);
-            } catch (Exception $e) {
-                error_log(sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
-            }
-        }
-    }
-
-    $geolocs   = $gps_data['geolocs'];
-    $timearray = $gps_data['timearray'];
-    $itime     = implode(",", $timearray);
-
-    $mapdata = [];
-    foreach ($geolocs as $d) {
-        $mapdata[] = "[" . sprintf("%.14f", $d['lat']) . "," . sprintf("%.14f", $d['lon']) . "," . sprintf("%.14f", $d['heading']) . "]";
-    }
-    $imapdata = implode(",", $mapdata);
-
-    require_once __DIR__ . '/src/get_columns.php';
-    require_once 'plot.php';
-
-    $db->close();
-} else {
+$user_data = share_lookup_user($db, $share_id);
+if (!$user_data) {
     header('Location: /catch?c=noshare');
     exit;
 }
+
+if ((int)$user_data['s'] === 0) {
+    header('Location: /catch?c=noshare');
+    exit;
+}
+
+$uid                 = $share_id; // variable name kept for SHARE_CONFIG compat
+$username            = $user_data['user'];
+$share_secret        = $user_data['share_secret'];
+$user_time           = $user_data['time'];
+$user_filter         = $user_data['sessions_filter'];
+$gap                 = $user_data['gap'];
+$GLOBALS['user_id']  = (int)$user_data['id'];
+$GLOBALS['share_sessions_filter'] = (int)$user_filter;
+
+setcookie('gap', $gap);
+setcookie('timeformat', $user_time);
+$_COOKIE['timeformat'] = $user_time;
+
+$payload      = share_payload_session($share_id, $session_id);
+$expected_sig = hash_hmac('sha256', $payload, $share_secret);
+
+$user_id           = current_user_id();
+$cached_timestamp  = null;
+$current_timestamp = getLastUpdateTimestamp($db, (int)$user_id, $session_id);
+
+if (!$current_timestamp || !hash_equals($expected_sig, $sig)) {
+    header('Location: /catch?c=noshare');
+    exit;
+}
+
+checkRateLimit(5, 3600, true);
+$_SESSION['share'] = true;
+
+// GPS data
+$gps_cache_key = cache_var_key("gps_data_{$session_id}");
+$gps_data = false;
+
+if ($memcached_connected) {
+    $g_cached_data = $memcached->get($gps_cache_key);
+    if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($g_cached_data)) {
+        list($gps_data, $cached_timestamp) = $g_cached_data;
+    }
+}
+
+if ($gps_data === false || $cached_timestamp !== $current_timestamp) {
+    $gpsQuery = getFilteredGpsQuery((int)$user_id, current_sessions_filter());
+    $gps_time_data = $db->execute_query($gpsQuery, [$session_id]);
+    $geolocs = [];
+    $timearray = [];
+    $i = 0;
+    while ($row = $gps_time_data->fetch_row()) {
+        if (($row[0] != 0) && ($row[1] != 0)) {
+            $geolocs[] = ["lat" => $row[0], "lon" => $row[1], "heading" => $row[2]];
+        }
+        $timearray[$i] = $row[3];
+        $i++;
+    }
+    $gps_data = ['geolocs' => $geolocs, 'timearray' => $timearray];
+    if ($memcached_connected) {
+        try {
+            $memcached->set($gps_cache_key, [$gps_data, $current_timestamp], $db_cache_ttl ?? 3600);
+        } catch (Exception $e) {
+            error_log(sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode()));
+        }
+    }
+}
+
+$geolocs   = $gps_data['geolocs'];
+$timearray = $gps_data['timearray'];
+$itime     = implode(",", $timearray);
+
+$mapdata = [];
+foreach ($geolocs as $d) {
+    $mapdata[] = "[" . sprintf("%.14f", $d['lat']) . "," . sprintf("%.14f", $d['lon']) . "," . sprintf("%.14f", $d['heading']) . "]";
+}
+$imapdata = implode(",", $mapdata);
+
+require_once __DIR__ . '/src/get_columns.php';
+require_once 'plot.php';
+
+$db->close();
 
 include_once __DIR__ . '/src/head.php';
 ?>
@@ -145,7 +124,7 @@ include_once __DIR__ . '/src/head.php';
     <script src="<?php echo version_url('static/js/jquery.flot.time.js'); ?>"></script>
     <script src="<?php echo version_url('static/js/jquery.flot.resize.js'); ?>"></script>
     <script src="<?php echo version_url('static/js/Control.FullScreen.js'); ?>"></script>
-    
+
     <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <div class="fetch-data"></div>
         <div class="container">
@@ -167,7 +146,7 @@ include_once __DIR__ . '/src/head.php';
             </div>
         </div>
     </div>
-    
+
     <div id="right-container" class="col-md-auto col-xs-12">
         <?php if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
             <!-- Variable Select Block -->
@@ -238,7 +217,7 @@ include_once __DIR__ . '/src/head.php';
 <script>
 window.SHARE_CONFIG = <?php echo json_encode([
     'sessionId' => $session_id ?? '',
-    'uid'       => $uid ?? '',
+    'uid'       => $uid ?? '',          // = share_id; kept for share.js compatibility
     'sig'       => $sig ?? '',
     'itime'     => $itime ?? '',
     'imapdata'  => $imapdata ?? '',

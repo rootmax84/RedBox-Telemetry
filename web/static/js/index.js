@@ -772,53 +772,59 @@ function mergeSessions() {
 }
 
 function shareSession() {
-    const uid = APP_CONFIG.uid;
     const id = APP_CONFIG.sessionId;
+    if (!id) return;
+
     $(".fetch-data").css("display", "block");
     $(".share-img").css("pointer-events", "none");
 
     fetch('/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid, id })
+        body: JSON.stringify({ id })
     })
     .then(response => response.json())
     .then(result => {
-        if (result.signature) {
-            const sig = result.signature;
-            const url = `${window.location.origin}/share?uid=${encodeURIComponent(uid)}&id=${encodeURIComponent(id)}&sig=${sig}`;
-            if (navigator.share) {
-                return navigator.share({
-                    text: `${new Date(Number(id)).toLocaleString()}`,
-                    url: url,
-                }).catch((err) => {
-                    if (err.name !== 'AbortError') throw err;
-                }).finally(() => {
-                    $(".fetch-data").css("display", "none");
-                    $(".share-img").css("pointer-events", "auto");
-                });
-            } else {
+        if (!result.signature || !result.share) {
+            throw new Error(result.error || 'Share failed');
+        }
+
+        const sig  = result.signature;
+        const slug = result.share;
+        const url  = `${window.location.origin}/share`
+                   + `?u=${encodeURIComponent(slug)}`
+                   + `&id=${encodeURIComponent(id)}`
+                   + `&sig=${encodeURIComponent(sig)}`;
+
+        if (navigator.share) {
+            return navigator.share({
+                text: `${new Date(Number(id)).toLocaleString()}`,
+                url: url,
+            }).catch((err) => {
+                if (err.name !== 'AbortError') throw err;
+            }).finally(() => {
                 $(".fetch-data").css("display", "none");
                 $(".share-img").css("pointer-events", "auto");
-                let dialogOpt = {
-                    title: localization.key['dialog.confirm'],
-                    message: localization.key['share.dialog.text'],
-                    btnClassSuccessText: localization.key['btn.yes'],
-                    btnClassFailText: localization.key['btn.no'],
-                    btnClassFail: "btn btn-info btn-sm",
-                    onResolve: function () {
-                        copyToClipboard(url);
-                    }
-                };
-                redDialog.make(dialogOpt);
-            }
-        } else {
-            $(".fetch-data").css("display", "none");
-            serverError(result.error);
+            });
         }
+
+        $(".fetch-data").css("display", "none");
+        $(".share-img").css("pointer-events", "auto");
+
+        redDialog.make({
+            title: localization.key['dialog.confirm'],
+            message: localization.key['share.dialog.text'],
+            btnClassSuccessText: localization.key['btn.yes'],
+            btnClassFailText: localization.key['btn.no'],
+            btnClassFail: "btn btn-info btn-sm",
+            onResolve: function () {
+                copyToClipboard(url);
+            }
+        });
     })
     .catch(err => {
         $(".fetch-data").css("display", "none");
+        $(".share-img").css("pointer-events", "auto");
         serverError(err);
     });
 }

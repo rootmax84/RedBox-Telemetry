@@ -1,11 +1,16 @@
 <?php
 require_once __DIR__ . '/src/helpers.php';
 
-if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
+$share_id = $_GET['u'] ?? $_GET['uid'] ?? null;
+
+if (isset($_GET['id'], $_GET['sig'])
+    && is_string($share_id) && $share_id !== ''
+    && is_string($_GET['id']) && $_GET['id'] !== ''
+    && is_string($_GET['sig']) && $_GET['sig'] !== ''
+) {
     $_SESSION['torque_logged_in'] = true;
     require_once __DIR__ . '/src/db.php';
 
-    $uid = $_GET['uid'];
     $sid = $_GET['id'];
     $sig = $_GET['sig'];
 
@@ -14,50 +19,32 @@ if (isset($_GET['uid'], $_GET['id'], $_GET['sig'])) {
         exit;
     }
 
-    $cache_key = "share_plot_" . $uid;
-    $user_data = false;
-
-    if ($memcached_connected) {
-        $user_data = $memcached->get($cache_key);
+    $user_data = share_lookup_user($db, $share_id);
+    if (!$user_data) {
+        header('Location: /catch?c=noshare');
+        exit;
     }
 
-    if ($user_data === false) {
-        $userqry = $db->execute_query(
-            "SELECT id, user, sessions_filter, share_secret FROM users WHERE id=?",
-            [$uid]
-        );
-        if ($userqry->num_rows) {
-            $user_data = $userqry->fetch_assoc();
-            if ($memcached_connected) {
-                try {
-                    $memcached->set($cache_key, $user_data, $db_cache_ttl ?? 3600);
-                } catch (Exception $e) {
-                    error_log(sprintf("Ratel cache error on share plot: %s (Code: %d)", $e->getMessage(), $e->getCode()));
-                }
-            }
-        } else {
-            header('Location: /catch?c=noshare');
-            exit;
-        }
+    if ((int)$user_data['s'] === 0) {
+        header('Location: /catch?c=noshare');
+        exit;
     }
 
-    if ($user_data) {
-        $username            = $user_data['user'];
-        $share_secret        = $user_data['share_secret'];
-        $user_filter         = $user_data['sessions_filter'];
-        $GLOBALS['user_id']  = (int)$user_data['id'];
-    }
-
+    $username            = $user_data['user'];
+    $share_secret        = $user_data['share_secret'];
+    $user_filter         = $user_data['sessions_filter'];
+    $GLOBALS['user_id']  = (int)$user_data['id'];
     $GLOBALS['share_sessions_filter'] = (int)$user_filter;
 
-    $payload = "uid={$uid}&id={$sid}";
+    $payload      = share_payload_session($share_id, $sid);
     $expected_sig = hash_hmac('sha256', $payload, $share_secret);
+
     if (!hash_equals($expected_sig, $sig)) {
         header('Location: /catch?c=noshare');
         exit;
-    } else {
-        checkRateLimit(5, 3600, true);
     }
+
+    checkRateLimit(5, 3600, true);
 } else {
     require_once __DIR__ . '/src/db.php';
 }
@@ -209,7 +196,6 @@ if (isset($_GET["id"])) {
             $sessionqry = $db->execute_query($query, [$session_id]);
             $raw = $sessionqry->fetch_all(MYSQLI_ASSOC);
 
-            // Распаковка JSON в плоский формат, как раньше
             $session_data = [];
             foreach ($raw as $rawRow) {
                 $d = decode_log_data($rawRow['data']);
