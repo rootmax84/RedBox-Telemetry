@@ -785,8 +785,9 @@ function rs_badge(int|string $v, int $warnAt, int $errAt, string $suffix = ''): 
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/redis.png">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=0.8">
 <title>Redis statistics</title>
 
 <script>
