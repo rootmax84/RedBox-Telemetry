@@ -964,6 +964,35 @@ input[type="checkbox"]:disabled:checked::after {
   display: inline-block;
 }
 
+.leaflet-control-heading-toggle {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.leaflet-control-heading-toggle:hover {
+  background-color: #f4f4f4;
+}
+
+.leaflet-touch .leaflet-control-heading-toggle {
+  height: 30px;
+  width: 30px;
+}
+
+.leaflet-control-heading-toggle svg {
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.leaflet-control-heading-toggle.heading-toggle-off {
+  opacity: 0.35;
+}
+
+.leaflet-control-heading-toggle.heading-toggle-off:hover {
+  opacity: 0.7;
+}
+
 .leaflet-control-coordinates, .heat-data, .hotline-legend-canvas {
   background-clip: padding-box;
   border: 2px solid rgba(0, 0, 0, 0.2);

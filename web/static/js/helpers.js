@@ -27,6 +27,16 @@ let chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
 let chart_fillGradient = localStorage.getItem(`${username}-chart_fillGradient`) === "true";
 let chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
 
+// Heading arrows toggle (persisted per-user)
+let headingArrowsEnabled = (() => {
+    try {
+        const saved = localStorage.getItem(`${username}-heading_arrows`);
+        return saved === null ? true : saved !== 'false';
+    } catch (e) {
+        return true;
+    }
+})();
+
 // Выносим ctime в глобальную область видимости, чтобы использовать везде
 function ctime(t) {
     let date = new Date(t);
@@ -875,6 +885,46 @@ let initMapLeaflet = () => {
 
     if (!uid && !sid && !sig) addControlsToZoomContainer(map);
 
+    // Heading arrows toggle (works in all modes)
+    (function addHeadingArrowsToggle() {
+        const zoomControl = document.querySelector('.leaflet-control-zoom');
+        if (!zoomControl) return;
+
+        const btn = L.DomUtil.create('a', 'leaflet-control-heading-toggle');
+        btn.href = 'javascript:void(0)';
+        btn.setAttribute('role', 'button');
+        btn.setAttribute('aria-label', 'Toggle heading arrows');
+
+        btn.innerHTML =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">'
+          +   '<path fill="none" stroke="currentColor" stroke-linecap="round" '
+          +         'stroke-linejoin="round" stroke-width="2.5" '
+          +         'd="M3 11l19-9-9 19-2-8-8-2z"/>'
+          + '</svg>';
+
+        btn.classList.toggle('heading-toggle-off', !headingArrowsEnabled);
+
+        L.DomEvent.on(btn, 'mousedown', function (e) {
+            L.DomEvent.preventDefault(e);
+            L.DomEvent.stopPropagation(e);
+
+            headingArrowsEnabled = !headingArrowsEnabled;
+            try {
+                localStorage.setItem(`${username}-heading_arrows`, String(headingArrowsEnabled));
+            } catch (_) {}
+
+            btn.classList.toggle('heading-toggle-off', !headingArrowsEnabled);
+            updateHeadingArrows();
+        });
+
+        const streamBtn = zoomControl.querySelector('.leaflet-control-zoom-stream');
+        if (streamBtn) {
+            zoomControl.insertBefore(btn, streamBtn);
+        } else {
+            zoomControl.appendChild(btn);
+        }
+    })();
+
     // ---------------------- Hotline layer group ----------------------
     let hotlineLayers = L.layerGroup().addTo(map); // will contain hotline for each segment
     window.currentDataSource = null;
@@ -963,8 +1013,12 @@ let initMapLeaflet = () => {
      * - Caps the total number of arrows at MAX_ARROWS to maintain performance.
      */
     function updateHeadingArrows() {
+        if (!headingArrowsLayer) return;
         headingArrowsLayer.clearLayers();
+        if (!headingArrowsEnabled) return;
+
         const indices = window.currentMapSlicedIndices;   // original indices of visible points
+
         const coords = window.currentMapSlicedCoords;     // [lat, lng] of visible points
         if (!indices || !coords || coords.length === 0) return;
 
