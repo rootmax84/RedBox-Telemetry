@@ -222,12 +222,10 @@ if ($action !== null) {
                     // Whitelist шаблонов кэша RatelCache.
                     // НЕ трогает: telemetry:uploads, ratel:heavy_tasks,
                     // ratel:dead_letters, ratel:task:*, ratel:user_tasks:*,
-                    // ratel:attempts:*, worker:hb:*
+                    // ratel:attempts:*, worker:hb:*, u*_varver
                     $patterns = [
                         'user_data_*',
                         'user_api_data_*',
-                        'session_data_*',
-                        'gps_data_*',
                         'fav_data_*',
                         'profiles_list_*',
                         'years_list_*',
@@ -251,6 +249,9 @@ if ($action !== null) {
                         'rate_backoff:block:*',
                         'new_session_*',
                         'api_rate_limit_*',
+                        // --- Per-user версионированные ключи (session_data, gps_data, session_id) ---
+                        // Удаляет u1_vv0_*, u1_vv1_* и т.д. Не трогает u1_varver.
+                        'u*_vv*_*',
                     ];
 
                     $deleted = 0;
