@@ -57,55 +57,64 @@ $(document).ready(function () {
 
     if (!document.getElementById('plot_data')) return;
 
-    let plotData = $('#plot_data');
-    let lastValue = plotData.val() || [];
+    const initPlotData = () => {
+        let plotData = $('#plot_data');
+        let lastValue = plotData.val() || [];
 
-    let debounceTimer;
-    function handleChange() {
-        const newValue = plotDataChoices.getValue(true) || [];
-        if (JSON.stringify(newValue) !== JSON.stringify(lastValue)) {
-            lastValue = newValue;
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
+        let debounceTimer;
+        function handleChange() {
+            const newValue = plotDataChoices.getValue(true) || [];
+            if (JSON.stringify(newValue) !== JSON.stringify(lastValue)) {
+                lastValue = newValue;
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    updCharts();
+                }, 1500);
+            }
+        }
+
+        const observer = new MutationObserver(() => {
+            if (!lastValue.length && $('#placeholder')[0] != undefined) {
                 updCharts();
-            }, 1500);
-        }
+            }
+        });
+        const targetNode = $('#right-container')[0];
+        if (targetNode) observer.observe(targetNode, {childList: true, subtree: true});
+
+        plotDataChoices = new Choices('#plot_data', {
+            removeItemButton: true,
+            placeholder: true,
+            shouldSort: false,
+            itemSelectText: null,
+            maxItemCount: 10,
+            maxItemText: (maxItemCount) => {
+                return `${localization.key['overdata']} ${maxItemCount}`;
+            },
+            noResultsText: localization.key['vars.nores'] || 'Oops, nothing found!',
+            placeholderValue: localization.key['vars.placeholder'] || 'Choose data...',
+            classNames: {
+                containerInner: ['choices__inner', 'choices__inner__plot'],
+            },
+        });
+
+        choicesReady();
+
+        plotData.on('change', handleChange);
+        updCharts();
+        $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
+        resizeSplitter();
+    };
+
+    if (typeof l10n_loaded !== 'undefined' && l10n_loaded) {
+        initPlotData();
+    } else {
+        const iv = setInterval(() => {
+            if (typeof l10n_loaded !== 'undefined' && l10n_loaded) {
+                clearInterval(iv);
+                initPlotData();
+            }
+        }, 100);
     }
-
-    const observer = new MutationObserver((mutations) => {
-        if (!lastValue.length && $('#placeholder')[0] != undefined) {
-            updCharts();
-        }
-    });
-
-    const targetNode = $('#right-container')[0];
-
-    if (targetNode) {
-        observer.observe(targetNode, {childList: true, subtree: true});
-    }
-
-    plotDataChoices = new Choices('#plot_data', {
-        removeItemButton: true,
-        placeholder: true,
-        shouldSort: false,
-        itemSelectText: null,
-        maxItemCount: 10,
-        maxItemText: (maxItemCount) => {
-            return `${localization.key['overdata']} ${maxItemCount}`;
-        },
-        noResultsText: localization.key['vars.nores'] || 'Oops, nothing found!',
-        placeholderValue: localization.key['vars.placeholder'] || 'Choose data...',
-        classNames: {
-            containerInner: ['choices__inner', 'choices__inner__plot'],
-        },
-    });
-
-    choicesReady();
-
-    plotData.on('change', handleChange);
-    updCharts();
-    $(".copyright").html(`&copy; 2019-${(new Date).getFullYear()} RedBox Automotive`);
-    resizeSplitter();
 });
 
 // --------------------------------------------------------------
