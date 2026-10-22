@@ -898,7 +898,7 @@ let initMapLeaflet = () => {
         btn.innerHTML =
             '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">'
           +   '<path fill="none" stroke="currentColor" stroke-linecap="round" '
-          +         'stroke-linejoin="round" stroke-width="2.5" '
+          +         'stroke-linejoin="round" stroke-width="3" '
           +         'd="M3 11l19-9-9 19-2-8-8-2z"/>'
           + '</svg>';
 
