@@ -41,11 +41,18 @@ $request_method     = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $is_state_changing  = in_array($request_method, ['POST', 'PUT', 'DELETE', 'PATCH'], true);
 
 if ($is_state_changing && !in_array($current_script, $csrf_exempt_scripts, true)) {
-    $csrf_token = $_POST['csrf_token']
-               ?? $_SERVER['HTTP_X_CSRF_TOKEN']
-               ?? '';
+    $csrf_token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    $csrf_valid = ($csrf_token !== '' && verify_csrf_token($csrf_token));
 
-    if ($csrf_token === '' || !verify_csrf_token($csrf_token)) {
+    // Логин с протухшей сессией:
+    //   - сессия уже gc'd (csrf_token = '') — типичный случай после пары часов;
+    //   - сессия ещё жива, но токен старше 3600с — редкий, но тоже случай.
+    // В обоих — CSRF проверять нечего: состояния в сессии нет.
+    $is_login_attempt = isset($_POST['user'], $_POST['pass']) && !$logged_in;
+    $csrf_token_stale = empty($_SESSION['csrf_token'])
+        || (time() - (int)($_SESSION['csrf_token_time'] ?? 0)) > 3600;
+
+    if (!$csrf_valid && !($is_login_attempt && $csrf_token_stale)) {
         $auth_fail('csrffailed', 401, 'csrffailed');
     }
 }
