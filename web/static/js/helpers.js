@@ -517,6 +517,17 @@ function doPlot(position) {
         plot.clearSelection();
     });
     //End Trim by plot Select
+
+    plot.hooks.draw.push(function (plot) {
+        const $placeholder = plot.getPlaceholder();
+        const $legend      = $placeholder.find('.legend');
+        if (!$legend.length) return;
+
+        const plotOffset = plot.getPlotOffset();
+        const maxH = $placeholder.height() - plotOffset.top - plotOffset.bottom - 10;
+
+        $legend.css('max-height', Math.max(60, maxH) + 'px');
+    });
 }
 
 let updCharts = (last = false)=>{

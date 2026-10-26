@@ -1735,3 +1735,17 @@ input[type="text"] {
     .search-form-row .search-field--value    { flex: 1 1 calc(70% - 4px); }
     .search-form-row .search-field--submit   { flex: 1 1 100%; }
 }
+
+.legend {
+    max-height: calc(100% - 60px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    word-break: break-word;
+    padding-right: 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.legend::-webkit-scrollbar {
+    display: none;
+}
