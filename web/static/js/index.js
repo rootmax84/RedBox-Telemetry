@@ -47,7 +47,7 @@ $(document).ready(function () {
         placeholder: true,
         shouldSort: false,
         itemSelectText: null,
-        maxItemCount: 10,
+        maxItemCount: 20,
         maxItemText: (maxItemCount) => {
             return `${localization.key['overdata']} ${maxItemCount}`;
         },

@@ -165,3 +165,21 @@ function getCellValue(row, index) {
 }
 
 } $(function() { sortPID(); });
+
+const MAX_FAVORITES = 20;
+
+document.addEventListener('change', function (e) {
+    const el = e.target;
+    if (!el || !el.matches) return;
+    if (!el.matches('input[type="checkbox"][id^="favorite:"]')) return;
+    if (!el.checked) return;
+
+    const checkedCount = document.querySelectorAll(
+        'input[type="checkbox"][id^="favorite:"]:checked'
+    ).length;
+
+    if (checkedCount > MAX_FAVORITES) {
+        el.checked = false;
+        xhrResponse(`${localization.key['overdata']} ${MAX_FAVORITES}`);
+    }
+});

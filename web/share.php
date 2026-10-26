@@ -165,7 +165,7 @@ include_once __DIR__ . '/src/head.php';
                             }
                             if ($is_matched) {
                                 echo ' selected';
-                            } elseif ($xcol['colfavorite'] == 1 && $fav_selected_count < 10) {
+                            } elseif ($xcol['colfavorite'] == 1 && $fav_selected_count < 20) {
                                 echo ' selected';
                                 $fav_selected_count++;
                             }
