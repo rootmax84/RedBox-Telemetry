@@ -1743,9 +1743,38 @@ input[type="text"] {
     word-break: break-word;
     padding-right: 4px;
     scrollbar-width: none;
-    -ms-overflow-style: none;
 }
 
 .legend::-webkit-scrollbar {
     display: none;
+}
+
+.chart-with-legend {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: stretch;
+    width: 100%;
+}
+.chart-with-legend .demo-container {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.chart-with-legend #legend-container {
+    display: flex;
+    flex: 0 0 200px;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 5px;
+    word-break: break-word;
+    scrollbar-width: none;
+}
+.chart-with-legend #legend-container::-webkit-scrollbar {
+    display: none;
+}
+
+@media screen and (max-width: 55em) {
+    .chart-with-legend { display: block; }
+    .chart-with-legend #legend-container { display: none; }
 }

@@ -376,6 +376,10 @@ function doPlot(position) {
         $("#placeholder").empty();
     }
 
+    const useSideLegend =
+        window.matchMedia('(min-width: 55em)').matches &&
+        $('#legend-container').length > 0;
+
     //asigned the plot to a new variable and new function to update the plot in realtime when using the slider
     chartUpdRange = (a, b) => {
         window.chartRangeStart = a;
@@ -413,8 +417,8 @@ function doPlot(position) {
         legend: {
             position: "nw",
             hideable: true,
-            backgroundOpacity: 0.1,
-            margin: 2
+            margin: 2,
+            container: useSideLegend ? '#legend-container' : null,
         },
         selection: { mode: "x" },
         grid: {
@@ -519,16 +523,41 @@ function doPlot(position) {
     //End Trim by plot Select
 
     plot.hooks.draw.push(function (plot) {
-        const $placeholder = plot.getPlaceholder();
-        const $legend      = $placeholder.find('.legend');
-        if (!$legend.length) return;
+        const $side = $('#legend-container');
+        if ($side.length) {
+            $side.css('max-height', plot.getPlaceholder().height() + 'px');
+        }
 
-        const plotOffset = plot.getPlotOffset();
-        const maxH = $placeholder.height() - plotOffset.top - plotOffset.bottom - 10;
-
-        $legend.css('max-height', Math.max(60, maxH) + 'px');
+        const $inline = plot.getPlaceholder().find('.legend');
+        if ($inline.length) {
+            const off = plot.getPlotOffset();
+            const maxH = plot.getPlaceholder().height() - off.top - off.bottom - 10;
+            $inline.css('max-height', Math.max(60, maxH) + 'px');
+        }
     });
 }
+
+let __legendBreakpointTimer = null;
+let __legendLastMode = window.matchMedia('(min-width: 55em)').matches ? 'side' : 'overlay';
+
+window.addEventListener('resize', () => {
+    clearTimeout(__legendBreakpointTimer);
+    __legendBreakpointTimer = setTimeout(() => {
+        const mode = window.matchMedia('(min-width: 55em)').matches ? 'side' : 'overlay';
+        if (mode === __legendLastMode) return;
+        __legendLastMode = mode;
+
+        if (typeof plot !== 'undefined' && plot && flotData.length) {
+            doPlot("right");
+            const slider = $("#slider-range11");
+            if (slider.hasClass("ui-slider") && jsTimeMap.length) {
+                const v0 = slider.slider("values", 0);
+                const v1 = slider.slider("values", 1);
+                chartUpdRange(jsTimeMap.length - v1 - 1, jsTimeMap.length - v0 - 1);
+            }
+        }
+    }, 200);
+});
 
 let updCharts = (last = false)=>{
     const plotDataSelected = plotDataChoices.getValue(true);
@@ -632,7 +661,14 @@ let updCharts = (last = false)=>{
 
             if ($('#placeholder')[0]==undefined) { //this would only be true the first time we load the chart
                 $('#Chart-Container').empty();
-                $('#Chart-Container').append($('<div>',{class:'demo-container'}).append($('<div>',{id:'placeholder',class:'demo-placeholder'})));
+                $('#Chart-Container').append(
+                    $('<div>', { class: 'chart-with-legend' }).append(
+                        $('<div>', { id: 'legend-container' }),
+                        $('<div>', { class: 'demo-container' }).append(
+                            $('<div>', { id: 'placeholder', class: 'demo-placeholder' })
+                        )
+                    )
+                );
                 doPlot("right");
             } else {
                 // refresh chart data
@@ -2238,7 +2274,7 @@ function resizeSplitter() {
     const containerWidth = containerRect.width;
     const pointerRelativeX = x - containerRect.left;
 
-    const leftMin = 300;
+    const leftMin = 500;
     const rightMin = 300;
     const maxLeft = containerWidth - rightMin;
     const minLeft = leftMin;
