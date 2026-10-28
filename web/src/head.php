@@ -22,6 +22,7 @@ document.documentElement.classList.add('choices-pending');
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://<?php echo $head_host; ?>/static/img/android-chrome-192x192.png">
 <meta property="og:description" content="Go hard!">
+<meta property="og:site_name" content="RedBox Automotive">
 <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
