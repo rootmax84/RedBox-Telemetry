@@ -6,6 +6,9 @@ include_once __DIR__ . '/translations.php';
 $lang = $_COOKIE['lang'] ?? 'en';
 
 if (!checkRateLimit(5)) {
+    if (!isset($_SESSION['torque_user'])) {
+        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
+    }
     header('Location: /catch?c=block');
     exit;
 }
@@ -17,17 +20,26 @@ $sig      = $_GET['sig'] ?? null;
 
 if (!is_string($share_id) || $share_id === ''
     || !is_string($sig) || $sig === '') {
+    if (!isset($_SESSION['torque_user'])) {
+        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
+    }
     header('Location: /');
     exit;
 }
 
 $user_data = share_lookup_user($db, $share_id);
 if (!$user_data) {
+    if (!isset($_SESSION['torque_user'])) {
+        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
+    }
     header('Location: /catch?c=noshare');
     exit;
 }
 
 if ((int)$user_data['s'] === 0) {
+    if (!isset($_SESSION['torque_user'])) {
+        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
+    }
     header('Location: /catch?c=noshare');
     exit;
 }
@@ -41,6 +53,9 @@ $payload      = share_payload_remote($share_id);
 $expected_sig = hash_hmac('sha256', $payload, $share_secret);
 
 if (!hash_equals($expected_sig, $sig)) {
+    if (!isset($_SESSION['torque_user'])) {
+        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
+    }
     header('Location: /catch?c=noshare');
     exit;
 }

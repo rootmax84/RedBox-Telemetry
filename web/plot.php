@@ -15,6 +15,9 @@ if (isset($_GET['id'], $_GET['sig'])
     $sig = $_GET['sig'];
 
     if (!checkRateLimit(5)) {
+        if (!isset($_SESSION['torque_user'])) {
+            unset($_SESSION['torque_logged_in'], $_SESSION['share']);
+        }
         header('Location: /catch?c=block');
         exit;
     }

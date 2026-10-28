@@ -37,7 +37,13 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
 
     if ($user_status === false) {
         $row = $db->execute_query("SELECT s FROM users WHERE user=?", [$username])->fetch_assoc();
-        $user_status = $row['s'];
+
+        if (!$row) {
+            // Нет такого username в БД (share-просмотр, гость, пустой username).
+            return;
+        }
+
+        $user_status = (int)$row['s'];
         if ($memcached_connected) {
             try {
                 $memcached->set($user_status_cache_key, $user_status, $db_cache_meta_ttl ?? 300);
@@ -58,7 +64,7 @@ if (!isset($_SESSION['admin'])) { //admin not need db tables
         setcookie("storage_usage", $db_used, 0, "/");
     }
 
-    if ($user_status == 0) { //Banned
+    if ($user_status === 0) { //Banned
         session_destroy();
         header('Location: /catch?c=disabled');
         die;
