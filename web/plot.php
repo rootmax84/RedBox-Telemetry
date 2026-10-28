@@ -36,7 +36,7 @@ if (isset($_GET['id'], $_GET['sig'])
     $GLOBALS['user_id']  = (int)$user_data['id'];
     $GLOBALS['share_sessions_filter'] = (int)$user_filter;
 
-    $payload      = share_payload_session($share_id, $sid);
+    $payload      = share_payload_session($share_id, $sid, share_gps_flag());
     $expected_sig = hash_hmac('sha256', $payload, $share_secret);
 
     if (!hash_equals($expected_sig, $sig)) {

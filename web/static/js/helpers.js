@@ -577,7 +577,8 @@ let updCharts = (last = false)=>{
         $(".fetch-data").css("display", "block");
         let varPrm = null;
         if (sid && uid && sig) {
-            varPrm = `/plot?id=${sid}&uid=${uid}&sig=${sig}`;
+            const gpsParam = (typeof SHARE_CONFIG !== 'undefined' && SHARE_CONFIG.gps) ? SHARE_CONFIG.gps : '0';
+            varPrm = `/plot?id=${sid}&uid=${uid}&sig=${sig}&gps=${gpsParam}`;
         } else {
             varPrm = last ? `/plot?last&id=${seshidtagValue}` : `/plot?id=${seshidtagValue}`;
         }

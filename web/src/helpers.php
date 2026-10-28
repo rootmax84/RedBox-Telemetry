@@ -1264,14 +1264,26 @@ function share_id_from_secret(string $share_secret): string
     );
 }
 
-function share_payload_session(string $share_id, string $session_id): string
+/**
+ * Payload для share-сессии.
+ */
+function share_payload_session(string $share_id, string $session_id, string $gps): string
 {
-    return "v2|session|{$share_id}|{$session_id}";
+    $gps = ($gps === '1') ? '1' : '0';
+    return "v3|session|{$share_id}|{$session_id}|{$gps}";
 }
 
 function share_payload_remote(string $share_id): string
 {
     return "v2|remote|{$share_id}";
+}
+
+/**
+ * Флаг GPS из URL: '0' или '1'. Отсутствие параметра -> '0' (безопасный дефолт).
+ */
+function share_gps_flag(): string
+{
+    return (isset($_GET['gps']) && $_GET['gps'] === '1') ? '1' : '0';
 }
 
 /**

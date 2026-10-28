@@ -47,7 +47,8 @@ setcookie('gap', $gap);
 setcookie('timeformat', $user_time);
 $_COOKIE['timeformat'] = $user_time;
 
-$payload      = share_payload_session($share_id, $session_id);
+$gps_flag = share_gps_flag();
+$payload = share_payload_session($share_id, $session_id, $gps_flag);
 $expected_sig = hash_hmac('sha256', $payload, $share_secret);
 
 $user_id           = current_user_id();
@@ -63,6 +64,9 @@ checkRateLimit(5, 3600, true);
 $_SESSION['share'] = true;
 
 // GPS data
+// Запрос всегда выполняем: $itime нужен для слайдера независимо от
+// выбора пользователя. А вот $imapdata (координаты трека) собираем
+// только если $gps_flag === '1' — иначе координаты не покидают сервер.
 $gps_cache_key = cache_var_key("gps_data_{$session_id}");
 $gps_data = false;
 
@@ -100,11 +104,16 @@ $geolocs   = $gps_data['geolocs'];
 $timearray = $gps_data['timearray'];
 $itime     = implode(",", $timearray);
 
-$mapdata = [];
-foreach ($geolocs as $d) {
-    $mapdata[] = "[" . sprintf("%.14f", $d['lat']) . "," . sprintf("%.14f", $d['lon']) . "," . sprintf("%.14f", $d['heading']) . "]";
+$imapdata = '';
+if ($gps_flag === '1') {
+    $mapdata = [];
+    foreach ($geolocs as $d) {
+        $mapdata[] = "[" . sprintf("%.14f", $d['lat']) . ","
+                   . sprintf("%.14f", $d['lon']) . ","
+                   . sprintf("%.14f", $d['heading']) . "]";
+    }
+    $imapdata = implode(",", $mapdata);
 }
-$imapdata = implode(",", $mapdata);
 
 require_once __DIR__ . '/src/get_columns.php';
 require_once 'plot.php';
@@ -219,6 +228,7 @@ window.SHARE_CONFIG = <?php echo json_encode([
     'sessionId' => $session_id ?? '',
     'uid'       => $uid ?? '',          // = share_id; kept for share.js compatibility
     'sig'       => $sig ?? '',
+    'gps'       => $gps_flag ?? '0',
     'itime'     => $itime ?? '',
     'imapdata'  => $imapdata ?? '',
 ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;

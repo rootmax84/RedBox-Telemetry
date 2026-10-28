@@ -775,58 +775,81 @@ function shareSession() {
     const id = APP_CONFIG.sessionId;
     if (!id) return;
 
-    $(".fetch-data").css("display", "block");
-    $(".share-img").css("pointer-events", "none");
+    // Наличие GPS в сессии: APP_CONFIG.imapdata приходит с сервера и уже
+    // учитывает sessions_filter. Пустая строка -> GPS нет.
+    const hasGps = typeof APP_CONFIG.imapdata === 'string'
+                && APP_CONFIG.imapdata.length > 0;
 
-    fetch('/sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (!result.signature || !result.share) {
-            throw new Error(result.error || 'Share failed');
-        }
+    function doShare(includeGps) {
+        $(".fetch-data").css("display", "block");
+        $(".share-img").css("pointer-events", "none");
 
-        const sig  = result.signature;
-        const slug = result.share;
-        const url  = `${window.location.origin}/share`
-                   + `?u=${encodeURIComponent(slug)}`
-                   + `&id=${encodeURIComponent(id)}`
-                   + `&sig=${encodeURIComponent(sig)}`;
+        fetch('/sign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, include_gps: !!includeGps })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (!result.signature || !result.share) {
+                throw new Error(result.error || 'Share failed');
+            }
 
-        if (navigator.share) {
-            return navigator.share({
-                text: `${new Date(Number(id)).toLocaleString()}`,
-                url: url,
-            }).catch((err) => {
-                if (err.name !== 'AbortError') throw err;
-            }).finally(() => {
-                $(".fetch-data").css("display", "none");
-                $(".share-img").css("pointer-events", "auto");
+            const sig  = result.signature;
+            const slug = result.share;
+            const gps  = includeGps ? '1' : '0';
+            const url  = `${window.location.origin}/share`
+                       + `?u=${encodeURIComponent(slug)}`
+                       + `&id=${encodeURIComponent(id)}`
+                       + `&sig=${encodeURIComponent(sig)}`
+                       + `&gps=${gps}`;
+
+            if (navigator.share) {
+                return navigator.share({
+                    text: `${new Date(Number(id)).toLocaleString()}`,
+                    url: url,
+                }).catch((err) => {
+                    if (err.name !== 'AbortError') throw err;
+                }).finally(() => {
+                    $(".fetch-data").css("display", "none");
+                    $(".share-img").css("pointer-events", "auto");
+                });
+            }
+
+            $(".fetch-data").css("display", "none");
+            $(".share-img").css("pointer-events", "auto");
+
+            redDialog.make({
+                title: localization.key['dialog.confirm'],
+                message: localization.key['share.dialog.text'],
+                btnClassSuccessText: localization.key['btn.yes'],
+                btnClassFailText: localization.key['btn.no'],
+                btnClassFail: "btn btn-info btn-sm",
+                onResolve: function () {
+                    copyToClipboard(url);
+                }
             });
-        }
+        })
+        .catch(err => {
+            $(".fetch-data").css("display", "none");
+            $(".share-img").css("pointer-events", "auto");
+            serverError(err);
+        });
+    }
 
-        $(".fetch-data").css("display", "none");
-        $(".share-img").css("pointer-events", "auto");
-
+    if (hasGps) {
         redDialog.make({
-            title: localization.key['dialog.confirm'],
-            message: localization.key['share.dialog.text'],
+            title: localization.key['share.gps.title'],
+            message: localization.key['share.gps.prompt'],
             btnClassSuccessText: localization.key['btn.yes'],
             btnClassFailText: localization.key['btn.no'],
             btnClassFail: "btn btn-info btn-sm",
-            onResolve: function () {
-                copyToClipboard(url);
-            }
+            onResolve: () => doShare(true),
+            onReject:  () => doShare(false)
         });
-    })
-    .catch(err => {
-        $(".fetch-data").css("display", "none");
-        $(".share-img").css("pointer-events", "auto");
-        serverError(err);
-    });
+    } else {
+        doShare(false);
+    }
 }
 
 function addToFavorite() {

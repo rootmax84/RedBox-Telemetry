@@ -58,9 +58,16 @@ $id = isset($data['id']) && $data['id'] !== ''
     ? (string)$data['id']
     : null;
 
-$payload = $id !== null
-    ? share_payload_session($share_id, $id)
-    : share_payload_remote($share_id);
+// GPS: явный '0'|'1' из запроса, дефолт '0' (безопасно).
+// Старый закешированный JS не пришлёт include_gps — получит gps=0.
+$include_gps = (!empty($data['include_gps'])) ? '1' : '0';
+
+if ($id !== null) {
+    $payload = share_payload_session($share_id, $id, $include_gps);
+} else {
+    // share remote — GPS не участвует
+    $payload = share_payload_remote($share_id);
+}
 
 $signature = hash_hmac('sha256', $payload, $secret);
 
