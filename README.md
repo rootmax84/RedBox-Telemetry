@@ -309,6 +309,6 @@ upload_max_filesize = 50M
 ```
 
 ### MISC
-* [API exporter for Prometheus](https://github.com/rootmax84/RedBox-Telemetry/wiki/API-exporter-for-Prometheus)
 * [Grafana Dashboard example](https://github.com/rootmax84/RedBox-Telemetry/wiki/Grafana-Dashboard-example)
 * [API exporter stack example](https://github.com/rootmax84/RedBox-Telemetry/wiki/API-exporter-example)
+* [Upload API](https://github.com/rootmax84/RedBox-Telemetry/wiki/Upload-API)
