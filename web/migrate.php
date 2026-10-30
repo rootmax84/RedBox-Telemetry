@@ -288,6 +288,7 @@ PHP;
  *   1. Redis / Streams     (если нет $redis_enabled)
  *   2. Heavy tasks         (если нет $redis_heavy_stream_key)
  *   3. Worker retry / DLQ  (если нет $worker_max_attempts)
+ *   4. Notifications       (если нет $redis_notifications_stream_key)
  *
  * Порядок важен: сначала Redis-блок, потом heavy_tasks (якорится
  * на $redis_stream_maxlen, которая появляется вместе с Redis-блоком),
@@ -409,6 +410,38 @@ function migrate_creds_params(string $path, bool $dry_run, bool $no_backup): arr
         } else {
             $src .= $dlq_block;
             $added[] = 'worker_dlq appended';
+        }
+    }
+
+    /* ──────────────────────────────────────────────────────
+     * 4. Notifications stream
+     *    Проверка по $redis_notifications_stream_key —
+     *    уникальная строка, больше нигде не вставляется.
+     *
+     *    Якоря (по убыванию приоритета):
+     *      - после $worker_attempt_ttl       (конец DLQ-блока)
+     *      - после $heavy_chunk_pause_us     (если DLQ-блока почему-то нет)
+     *      - перед $salt
+     *      - в конец
+     * ────────────────────────────────────────────────────── */
+    if (strpos($src, '$redis_notifications_stream_key') === false) {
+        $notif_block =
+              "\n// --- Notifications stream (Telegram alerts) ---\n"
+            . "\$redis_notifications_stream_key    = 'ratel:notifications';\n"
+            . "\$redis_notifications_stream_maxlen = 10000;   // ~ MAXLEN, 0 = no limit\n";
+
+        if (preg_match('/^(\$worker_attempt_ttl\s*=\s*[^;]+;.*)$/m', $src, $m)) {
+            $src = str_replace($m[0], $m[0] . "\n" . $notif_block, $src);
+            $added[] = 'notifications stream after $worker_attempt_ttl';
+        } elseif (preg_match('/^(\$heavy_chunk_pause_us\s*=\s*[^;]+;.*)$/m', $src, $m)) {
+            $src = str_replace($m[0], $m[0] . "\n" . $notif_block, $src);
+            $added[] = 'notifications stream after $heavy_chunk_pause_us';
+        } elseif (preg_match('/^(\$salt\s*=)/m', $src, $m)) {
+            $src = str_replace($m[0], $notif_block . "\n" . $m[0], $src);
+            $added[] = 'notifications stream before $salt';
+        } else {
+            $src .= $notif_block;
+            $added[] = 'notifications stream appended';
         }
     }
 

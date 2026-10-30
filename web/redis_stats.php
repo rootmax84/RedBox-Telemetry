@@ -87,12 +87,14 @@ $r = get_redis_connection();
 global $redis_stream_key, $redis_stream_group,
        $redis_stream_maxlen,
        $redis_heavy_stream_key, $redis_dlq_key,
+       $redis_notifications_stream_key,
        $db;
 
-$uploadsKey = $redis_stream_key       ?? 'telemetry:uploads';
-$heavyKey   = $redis_heavy_stream_key ?? 'ratel:heavy_tasks';
-$dlqKey     = $redis_dlq_key          ?? 'ratel:dead_letters';
-$groupName  = $redis_stream_group     ?? 'telemetry-workers';
+$uploadsKey = $redis_stream_key               ?? 'telemetry:uploads';
+$heavyKey   = $redis_heavy_stream_key         ?? 'ratel:heavy_tasks';
+$dlqKey     = $redis_dlq_key                  ?? 'ratel:dead_letters';
+$notifKey   = $redis_notifications_stream_key ?? 'ratel:notifications';
+$groupName  = $redis_stream_group             ?? 'telemetry-workers';
 
 const RS_DEAD_IDLE_SECONDS  = 60;
 const RS_DLQ_ROW_LIMIT      = 500;
@@ -176,6 +178,58 @@ if ($action !== null) {
                     if ($failed > 0) $msg .= ", {$failed} failed";
                     if (count($entries) >= $limit) {
                         $msg .= " (limited to {$limit}; press again for more)";
+                    }
+                    break;
+                }
+
+                case 'replay_one': {
+                    $targetId = preg_replace('/[^0-9-]/', '', $_POST['id'] ?? '');
+                    if (empty($targetId)) {
+                        throw new RuntimeException('Missing message ID');
+                    }
+
+                    $entries = $r->xRange($dlqKey, $targetId, $targetId);
+                    if (empty($entries)) {
+                        throw new RuntimeException("Message {$targetId} not found in DLQ");
+                    }
+
+                    // Универсальный парсинг формата phpredis (5.x vs 6.x)
+                    $first = reset($entries);
+                    $fields = null;
+
+                    if (is_array($first) && isset($first[0]) && isset($first[1]) && is_array($first[1])) {
+                        $fields = $first[1]; // Формат: [[id, [fields...]]]
+                    } elseif (is_array($first)) {
+                        $fields = $first;    // Формат: ['id' => [fields...]]
+                    }
+
+                    if (!$fields) {
+                        throw new RuntimeException('Malformed DLQ entry: fields not found');
+                    }
+
+                    $kv = rs_entry_to_assoc($fields);
+                    $target = !empty($kv['_src_stream']) ? $kv['_src_stream'] : $uploadsKey;
+
+                    $skipped = ['_src_stream', '_src_id', '_error', '_failed_at', '_consumer'];
+                    $out = [];
+                    foreach ($kv as $k => $v) {
+                        if (in_array($k, $skipped, true)) continue;
+                        $out[$k] = $v;
+                    }
+
+                    if (empty($out)) {
+                        throw new RuntimeException('Empty payload after stripping metadata');
+                    }
+
+                    $maxlen = (int)($redis_stream_maxlen ?? 0);
+                    $newId  = $r->xAdd($target, '*', $out, $maxlen, true);
+
+                    if ($newId !== false) {
+                        $r->xDel($dlqKey, [$targetId]);
+                        $ok  = true;
+                        $msg = "Message {$targetId} replayed to {$target}";
+                    } else {
+                        throw new RuntimeException('XADD failed');
                     }
                     break;
                 }
@@ -337,9 +391,10 @@ if ($r === null) {
 
     /* 2. Streams */
     $streamDefs = [
-        ['key' => $uploadsKey, 'label' => 'Uploads',      'group' => $groupName],
-        ['key' => $heavyKey,   'label' => 'Heavy tasks',  'group' => $groupName],
-        ['key' => $dlqKey,     'label' => 'Dead letters', 'group' => null],
+        ['key' => $uploadsKey, 'label' => 'Uploads',       'group' => $groupName],
+        ['key' => $heavyKey,   'label' => 'Heavy tasks',   'group' => $groupName],
+        ['key' => $notifKey,   'label' => 'Notifications', 'group' => $groupName],
+        ['key' => $dlqKey,     'label' => 'Dead letters',  'group' => null],
     ];
     foreach ($streamDefs as $def) {
         $entry = [
@@ -641,10 +696,17 @@ if ($r === null) {
                     if ($id === '' || !is_array($fields)) continue;
                     $kv = rs_entry_to_assoc($fields);
                     $u  = $kv['user'] ?? '';
+                    $preview = $kv['message'] ?? $kv['payload'] ?? $kv['type'] ?? '-';
+                    // Обрезаем до 100 символов для превью
+                    if (mb_strlen($preview) > 100) {
+                        $preview = mb_substr($preview, 0, 100) . '...';
+                    }
+
                     $entry = [
                         'id'         => $id,
                         'user'       => $u !== '' ? $u : '-',
-                        'kind'       => $kv['kind']        ?? '-',
+                        'kind'       => $kv['kind'] ?? $kv['type'] ?? '-',
+                        'message'    => $preview, // <-- НОВОЕ ПОЛЕ
                         'error'      => $kv['_error']      ?? '-',
                         'failed_at'  => (int)($kv['_failed_at'] ?? 0),
                         'src_stream' => $kv['_src_stream'] ?? '-',
@@ -1320,14 +1382,21 @@ body {
             </div>
 
             <?php if (empty($dlqEntries)): ?>
-                <div class="rs-dim" style="margin-top:10px">No messages match filter.</div>
+                <div class="rs-dim" style="margin-top:10px">
+                    <?= $dlqFilter !== '' ? 'No messages match filter.' : 'DLQ is empty.' ?>
+                </div>
             <?php else: ?>
                 <div class="rs-table-wrap" style="margin-top:12px">
                     <table class="rs-table">
                         <thead>
                             <tr>
-                                <th>ID</th><th>User</th><th>Kind</th>
-                                <th>Failed</th><th>Error</th>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Kind</th>
+                                <th>Message / Payload</th>
+                                <th>Failed</th>
+                                <th>Error</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1337,12 +1406,25 @@ body {
                                 <td><?= rs_h($e['user']) ?></td>
                                 <td><?= rs_h($e['kind']) ?></td>
                                 <td>
+                                    <div class="rs-mono" title="<?= rs_h($e['message']) ?>" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        <?= rs_h($e['message']) ?>
+                                    </div>
+                                </td>
+                                <td>
                                     <div><?= rs_h(rs_age($e['failed_at'])) ?></div>
                                     <div class="rs-dim rs-mono">
                                         src: <?= rs_h($e['src_stream']) ?> / <?= rs_h($e['src_id']) ?>
                                     </div>
                                 </td>
                                 <td class="rs-error-cell"><?= rs_h($e['error']) ?></td>
+                                <td>
+                                    <form method="post" style="display:inline" onsubmit="return confirm('Replay this message?');">
+                                        <input type="hidden" name="action" value="replay_one">
+                                        <input type="hidden" name="id" value="<?= rs_h($e['id']) ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <button type="submit" class="rs-btn rs-btn-small">↻ Replay</button>
+                                    </form>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>

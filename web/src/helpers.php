@@ -294,7 +294,8 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid, ?string $t
     $curlOptions = [
         CURLOPT_POST => true,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 15,
+        CURLOPT_CONNECTTIMEOUT_MS => 3000,
+        CURLOPT_TIMEOUT_MS        => 8000,
         CURLOPT_POSTFIELDS => [
             'chat_id' => $tg_chatid,
             'text' => $text,
@@ -342,26 +343,60 @@ function notify(?string $text, ?string $tg_token, ?string $tg_chatid, ?string $t
     // Get HTTP status code
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-    // Check for timeout
+    // curl вернул false — сетевой/транспортный сбой.
+    //
+    // Классификация:
+    //   -1     → transient: retry (timeout, DNS, connection refused,
+    //            reset, TLS handshake, anything else non-obvious)
+    //   null   → permanent: bad URL / unsupported scheme / invalid CA —
+    //            повторять бессмысленно, конфиг не станет валидным сам
+    //
+    // Раньше -1 возвращался ТОЛЬКО на CURLE_OPERATION_TIMEDOUT (28),
+    // из-за чего DNS failure (6) и connection refused (7) — обычные
+    // transient-сценарии при недоступном Telegram — молча уходили
+    // в "config error, dropping".
     if ($response === false) {
         $curlError = curl_errno($ch);
         curl_close($ch);
 
-        // CURLE_OPERATION_TIMEDOUT (28) is the timeout error code
-        if ($curlError === CURLE_OPERATION_TIMEDOUT) {
-            return -1;
+        $permanentErrors = [
+            CURLE_UNSUPPORTED_PROTOCOL,   // 1  — scheme not supported
+            CURLE_URL_MALFORMAT,          // 3  — bad URL (bot token with '/', etc.)
+            CURLE_SSL_CERTPROBLEM,        // 58 — local cert problem
+            CURLE_SSL_CACERT,             // 60 — CA bundle invalid
+            CURLE_SSL_CACERT_BADFILE,     // 77 — CA file unreadable
+        ];
+
+        if (in_array($curlError, $permanentErrors, true)) {
+            return null;
         }
 
-        return null;
+        return -1;
     }
 
     curl_close($ch);
 
-    if ($httpCode === 500) {
+    // HTTP-уровень:
+    //   5xx — сервер Telegram (или прокси) лежит -> transient.
+    if ($httpCode >= 500) {
         return -1;
     }
 
-    return json_decode($response, true);
+    $decoded = json_decode($response, true);
+
+    // Тело не JSON:
+    //   - HTML от прокси/nginx/Cloudflare (блокировка, 403, 502 Gateway)
+    //   - пустой ответ, обрезанное тело
+    // Это НЕ ответ Telegram API. Ретраить имеет смысл — прокси/сеть
+    // могут восстановиться.
+    //
+    // Реальный Telegram всегда отвечает JSON, даже на ошибки:
+    //   {"ok":false,"error_code":403,"description":"..."}
+    if ($decoded === null) {
+        return -1;
+    }
+
+    return $decoded;
 }
 
 /**
@@ -628,6 +663,7 @@ function processSessionStartRecord(
             'tg_token'       => $tg_token,
             'tg_chatid'      => $tg_chatid,
             'tg_socks_proxy' => $tg_socks_proxy,
+            'user'           => $username,
         ];
     }
 

@@ -190,6 +190,12 @@ INLINE FALLBACK (Redis disabled or unavailable):
 | $heavy_task_ttl | TTL of heavy task status, seconds | 86400 |
 | $heavy_chunk_size | Rows per DELETE chunk | 5000 |
 | $heavy_chunk_pause_us | Pause between chunks, microseconds | 100000 |
+| $worker_max_attempts | Transient errors before sending to DLQ | 3 |
+| $redis_dlq_key | Redis Stream key for dead letters | ratel:dead_letters |
+| $worker_dlq_maxlen | Max messages in DLQ Stream (0 = unlimited) | 10000 |
+| $worker_attempt_ttl | TTL for message attempt counter in Redis | 86400 |
+| $redis_notifications_stream_key | Notifications stream key | ratel:notifications |
+| $redis_notifications_stream_maxlen | Max messages in notifications Stream (0 = unlimited) | 10000 |
 | $salt['cost'] | Password hashing cost (4-31, higher = more CPU) | 10 |
 | $admin | Admin username | admin |
 | $admin_timeformat_12 | Use 12-hour time format (false = 24h) | false |

@@ -2,11 +2,12 @@
 /**
  * Redis Streams consumer — телеметрия + тяжёлые задачи в одном воркере.
  *
- * Обслуживает два стрима одним блокирующим XREADGROUP:
+ * Обслуживает три стрима одним блокирующим XREADGROUP:
  *   - $redis_stream_key       (telemetry:uploads)   — обычные аплоады
  *   - $redis_heavy_stream_key (ratel:heavy_tasks)   — удаление сессий/юзера
+ *   - $redis_notifications_stream_key (ratel:notifications) — телеграм уведомления
  *
- * Оба стрима используют одну consumer group ($redis_stream_group).
+ * Стримы используют одну consumer group ($redis_stream_group).
  * Масштабируется как раньше: docker compose up -d --scale worker=N
  *
  * Обработка ошибок:
@@ -95,22 +96,26 @@ require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/translations.php';
 require_once __DIR__ . '/src/upload_processor.php';
 require_once __DIR__ . '/src/heavy_tasks.php';
+require_once __DIR__ . '/src/notifications.php';
 
 // ────────────────────────────────────────────────────────────
 // Config
 // ────────────────────────────────────────────────────────────
-$stream          = $redis_stream_key   ?? 'telemetry:uploads';
-$group           = $redis_stream_group ?? 'telemetry-workers';
-$heavyStream     = $redis_heavy_stream_key ?? 'ratel:heavy_tasks';
+$stream          = $redis_stream_key               ?? 'telemetry:uploads';
+$group           = $redis_stream_group             ?? 'telemetry-workers';
+$heavyStream     = $redis_heavy_stream_key         ?? 'ratel:heavy_tasks';
+$notifStream     = $redis_notifications_stream_key ?? 'ratel:notifications';
 $heavyEnabled    = !empty($heavy_tasks_enabled);
 $blockMs         = 5000;    // XREADGROUP blocking timeout (ms)
 $batchSize       = 20;      // messages per XREADGROUP call
 // Uploads обрабатываются за миллисекунды — короткий idle ок.
 // Heavy задачи (merge, chunked delete) идут минутами, XAUTOCLAIM
 // на них должен срабатывать только если воркер реально умер.
+// Notifications — curl 8-15s + retry-цикл, даём 2 мин.
 $reclaimMinIdleByStream = [
-    $stream      => 15000,     // uploads: 15 s
-    $heavyStream => 600000,    // heavy:   10 min
+    $stream      => 15000,     // uploads:       15 s
+    $heavyStream => 600000,    // heavy:         10 min
+    $notifStream => 120000,    // notifications: 2 min
 ];
 $reclaimBatch    = 10;      // messages per XAUTOCLAIM call
 $statsEvery      = 60;      // seconds between stats log lines
@@ -336,6 +341,14 @@ function worker_process_message(
         try { $redis->xAck($sKey, $group, [$id]); } catch (Throwable $e) {}
         worker_attempts_clear($redis, $sKey, $id);
         return 'ok';
+    } catch (RatelRetryableException $e) {
+        // Transient: Telegram timeout, 429, 5xx и т.п.
+        // Не фатально — attempts++, до $maxAttempts, затем DLQ.
+        $errMsg = $e->getMessage();
+        error_log(sprintf(
+            '[worker] retryable %s/%s [%s]: %s',
+            $sKey, $id, $src, $errMsg
+        ));
     } catch (mysqli_sql_exception $e) {
         $errMsg = $e->getMessage();
         $errno  = (int)$e->getCode();
@@ -430,6 +443,9 @@ function worker_process_message(
 $pollStreams = [$stream];
 if ($heavyEnabled && $heavyStream !== $stream) {
     $pollStreams[] = $heavyStream;
+}
+if ($notifStream !== $stream && $notifStream !== $heavyStream) {
+    $pollStreams[] = $notifStream;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -883,13 +899,19 @@ fwrite(STDOUT, sprintf(
  * ──────────────────────────────────────────────────────────── */
 function worker_dispatch(mysqli $db, string $streamKey, array $fields, ?Redis $redis = null): void
 {
-    global $redis_stream_key, $redis_heavy_stream_key;
+    global $redis_stream_key, $redis_heavy_stream_key, $redis_notifications_stream_key;
 
-    $uploadsKey = $redis_stream_key       ?? 'telemetry:uploads';
-    $heavyKey   = $redis_heavy_stream_key ?? 'ratel:heavy_tasks';
+    $uploadsKey = $redis_stream_key               ?? 'telemetry:uploads';
+    $heavyKey   = $redis_heavy_stream_key         ?? 'ratel:heavy_tasks';
+    $notifKey   = $redis_notifications_stream_key ?? 'ratel:notifications';
 
     if ($streamKey === $heavyKey) {
         heavy_process_task($db, $fields, $redis);
+        return;
+    }
+
+    if ($streamKey === $notifKey) {
+        notifications_process($db, $fields, $redis);
         return;
     }
 

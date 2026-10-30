@@ -13,6 +13,7 @@
 
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/redis.php';
+require_once __DIR__ . '/notifications.php';
 
 function processUpload(mysqli $db, array $ctx, string $kind, $payload): void
 {
@@ -188,7 +189,7 @@ function processBulkRecords(mysqli $db, array $ctx, array $records): void
     cache_pids_after_commit($user_id, $ctx['username'], $pidsResult);
 
     if (!empty($pendingNotifications)) {
-        sendPendingNotifications($pendingNotifications);
+        notifications_dispatch($pendingNotifications);
     }
 }
 
@@ -256,7 +257,7 @@ function processSingleRequest(mysqli $db, array $ctx, array $request): void
         }
 
         if ($notif !== null) {
-            sendPendingNotifications([$notif]);
+            notifications_dispatch([$notif]);
         }
         return;
     }

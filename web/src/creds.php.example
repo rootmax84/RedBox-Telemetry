@@ -46,6 +46,10 @@ $redis_dlq_key       = 'ratel:dead_letters';
 $worker_dlq_maxlen   = 10000;
 $worker_attempt_ttl  = 86400;
 
+// --- Notifications stream (Telegram alerts) ---
+$redis_notifications_stream_key    = 'ratel:notifications';
+$redis_notifications_stream_maxlen = 10000;   // ~ MAXLEN, 0 = no limit
+
 $salt = ['cost' => 10]; //Password salt cost. Min/Max/Default 4/31/10. Higher value = more CPU usage on authorization process
 $admin = "admin";
 $admin_timeformat_12 = false; //Default 24 hours time format for admin
