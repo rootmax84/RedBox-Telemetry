@@ -605,17 +605,14 @@ function processSessionStartRecord(
     $isNewSessionStart = false;
 
     if (!empty($spv['profileName']) && $spv['profileName'] !== 'Not Specified') {
-        $timeend = round(microtime(true) * 1000);
-
         $db->execute_query(
             "UPDATE sessions
                 SET profileName = ?,
-                    ip          = ?,
-                    timeend     = GREATEST(timeend, ?)
+                    ip          = ?
               WHERE user_id     = ?
                 AND session     = ?
                 AND profileName = 'Not Specified'",
-            [$spv['profileName'], $ip, $timeend, $user_id, $sessuploadid]
+            [$spv['profileName'], $ip, $user_id, $sessuploadid]
         );
         $isNewSessionStart = ($db->affected_rows === 1);
 
@@ -623,10 +620,9 @@ function processSessionStartRecord(
             $db->execute_query(
                 "UPDATE sessions
                     SET profileName = ?,
-                        ip          = ?,
-                        timeend     = GREATEST(timeend, ?)
+                        ip          = ?
                   WHERE user_id = ? AND session = ?",
-                [$spv['profileName'], $ip, $timeend, $user_id, $sessuploadid]
+                [$spv['profileName'], $ip, $user_id, $sessuploadid]
             );
         }
     }
