@@ -3,66 +3,66 @@ require_once __DIR__ . '/auth_user.php';
 global $username, $limit;
 
 if (isset($_SESSION['torque_user'])) {
- $username = $_SESSION['torque_user'];
- $limit = $_SESSION['torque_limit'];
+    $username = $_SESSION['torque_user'];
+    $limit    = $_SESSION['torque_limit'];
 }
 
-// MySQL settings
-$db_host = 'mariadb';  // Type mariadb if use docker
-$db_user = 'ratel';    // Enter your MySQL username
-$db_pass = 'ratel';    // Enter your MySQL password
-$db_port = '3306';     // Default port 3306
-$db_name = 'ratel';
-$user_id = $_SESSION['uid'] ?? null;
-$db_engine = 'ROCKSDB'; //Or INNODB. Engine for database tables (Recommended ROCKSDB). Applies to newly created users
-$db_cache_ttl = 3600;
-$db_cache_meta_ttl = 300;
-$def_limit = 100; //Default user db size in sessions count
-$max_upload_requests_per_second = 100; //Upload rate limit
-$max_api_requests_per_second = 10; //API rate limit
+// --- DB settings ---
+$db_host                        = 'mariadb';    // Use 'mariadb' if using Docker
+$db_user                        = 'ratel';      // Enter your DB username
+$db_pass                        = 'ratel';      // Enter your DB password
+$db_port                        = '3306';       // Default port 3306
+$db_name                        = 'ratel';
+$db_engine                      = 'ROCKSDB';    // Or INNODB. Engine for database tables (Recommended: ROCKSDB)
+$user_id                        = $_SESSION['uid'] ?? null;
+$db_cache_ttl                   = 3600;
+$db_cache_meta_ttl              = 300;
+$def_limit                      = 100;          // Default user DB size in sessions count
+$max_upload_requests_per_second = 100;          // Upload rate limit (requests per second)
+$max_api_requests_per_second    = 10;           // API rate limit (requests per second)
 
 // --- Redis / Streams (async upload processing) ---
-$redis_enabled        = true;
-$redis_host           = 'redis';                // docker service name / IP
-$redis_port           = 6379;
-$redis_timeout        = 2.0;
-$redis_password       = '';
-$redis_db             = 0;
-$redis_stream_enabled = true;                   // Use Streams в ul.php
-$redis_stream_key     = 'telemetry:uploads';
-$redis_stream_group   = 'telemetry-workers';
-$redis_stream_maxlen  = 50000;                // ~ MAXLEN, 0 = no limit
-$redis_cache_compression_enabled = true;
+$redis_enabled                   = true;
+$redis_host                      = 'redis';      // Docker service name / IP
+$redis_port                      = 6379;
+$redis_timeout                   = 2.0;
+$redis_password                  = '';
+$redis_db                        = 0;
+$redis_stream_enabled            = true;         // Use Streams in ul.php
+$redis_stream_key                = 'telemetry:uploads';
+$redis_stream_group              = 'telemetry-workers';
+$redis_stream_maxlen             = 50000;        // ~ MAXLEN, 0 = no limit
+$redis_cache_compression_enabled = true;         // Enable zstd/lz4/deflate compression for application cache
 
-// --- Heavy tasks (async delete, обслуживается тем же worker.php) ---
+// --- Heavy tasks (async delete, handled by the same worker.php) ---
 $heavy_tasks_enabled       = true;
 $redis_heavy_stream_key    = 'ratel:heavy_tasks';
-$redis_heavy_stream_maxlen = 10000;   // ~ MAXLEN, 0 = без лимита
-$heavy_task_ttl            = 86400;   // TTL статуса задачи, сек
-$heavy_chunk_size          = 5000;    // строк за один чанк DELETE
-$heavy_chunk_pause_us      = 100000;  // 100ms пауза между чанками
+$redis_heavy_stream_maxlen = 10000;              // ~ MAXLEN, 0 = no limit
+$heavy_task_ttl            = 86400;              // Task status TTL, seconds
+$heavy_chunk_size          = 5000;               // Rows per DELETE chunk
+$heavy_chunk_pause_us      = 100000;             // 100ms pause between chunks (microseconds)
 
-$worker_max_attempts = 3;
+// --- Worker retry / DLQ (dead letter queue) ---
+$worker_max_attempts = 3;                        // Max transient retries before moving to DLQ
 $redis_dlq_key       = 'ratel:dead_letters';
 $worker_dlq_maxlen   = 10000;
 $worker_attempt_ttl  = 86400;
 
 // --- Notifications stream (Telegram alerts) ---
 $redis_notifications_stream_key    = 'ratel:notifications';
-$redis_notifications_stream_maxlen = 10000;   // ~ MAXLEN, 0 = no limit
+$redis_notifications_stream_maxlen = 10000;      // ~ MAXLEN, 0 = no limit
 
-$salt = ['cost' => 10]; //Password salt cost. Min/Max/Default 4/31/10. Higher value = more CPU usage on authorization process
-$admin = "admin";
-$admin_timeformat_12 = false; //Default 24 hours time format for admin
+// --- General settings ---
+$salt                  = ['cost' => 10];         // Password salt cost. Min/Max/Default: 4/31/10. Higher value = more CPU usage on authorization
+$admin                 = "admin";                // Admin login
+$admin_timeformat_12   = false;                  // Default 24 hours time format for admin
+$show_session_length   = true;
+$max_load_avg          = 10;                     // Server load average limit on logs upload. 0 - disabled
+$live_data_rate        = 1000;                   // Live data response in ms
+$results_per_page      = 50;                     // Pagination count of items per page
+$merge_max             = 50000;                  // Merged session datapoints count limit
 
-if ($username == $admin) $_SESSION['admin'] = true;
-
-$show_session_length = true;
-$max_load_avg = 10; //Server load average limit on logs upload. 0 - disabled
-$live_data_rate = 1000; //Live data response in ms
-$results_per_page = 50; //Pagination count of items per page
-$merge_max = 50000; //Merged session datapoints count limit
-
-$tg_socks_proxy = ''; //SOCKS5 proxy address for Telegram API. Format: address:port or username:password@address:port or empty string to disable
-$tg_api_url = ''; //You can use external gateway if Telegram has blocked by pidorases. Example: https://api-url/bot. Empty string - direct connect
-$tg_api_id = ''; //The value of the X-Connection-Id header in the body of the request to the gateway. Required for authorization if it is set on the gateway
+// --- Telegram integration ---
+$tg_socks_proxy = ''; // SOCKS5 proxy address for Telegram API. Format: address:port or username:password@address:port. Empty string = disabled
+$tg_api_url     = ''; // You can use an external gateway if Telegram is blocked. Example: https://api-url/bot. Empty string = direct connect
+$tg_api_id      = ''; // The value of the X-Connection-Id header in the request body to the gateway. Required for authorization if set on the gateway
