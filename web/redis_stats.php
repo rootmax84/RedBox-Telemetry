@@ -238,7 +238,7 @@ if ($action !== null) {
                     $killed  = 0;
                     $skipped = 0;
 
-                    foreach ([$uploadsKey, $heavyKey] as $stream) {
+                    foreach ([$uploadsKey, $heavyKey, $notifKey] as $stream) {
                         try { $cs = $r->xInfo('CONSUMERS', $stream, $groupName); }
                         catch (Throwable $e) { continue; }
                         if (!is_array($cs)) continue;
@@ -475,7 +475,7 @@ if ($r === null) {
     }
 
     /* 3. Consumers */
-    foreach ([$uploadsKey, $heavyKey] as $sKey) {
+    foreach ([$uploadsKey, $heavyKey, $notifKey] as $sKey) {
         try {
             $cs = $r->xInfo('CONSUMERS', $sKey, $groupName);
             if (is_array($cs)) {
@@ -1123,6 +1123,60 @@ body {
 
 .rs-statuses { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 
+/* ── Grouped Consumers Accordion ────────────────────────── */
+.rs-details {
+    background: var(--bg);
+    border: 1px solid var(--table-border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+.rs-details[open] {
+    border-color: var(--link);
+}
+.rs-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 500;
+    background: var(--table-th-bg);
+    list-style: none;
+}
+.rs-summary::-webkit-details-marker {
+    display: none;
+}
+.rs-summary:hover {
+    background: var(--table-hover);
+}
+.rs-summary::before {
+    content: "▶";
+    font-size: 10px;
+    margin-right: 10px;
+    color: var(--dim);
+    transition: transform 0.2s;
+}
+.rs-details[open] .rs-summary::before {
+    transform: rotate(90deg);
+}
+.rs-summary-content {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+}
+.rs-details-inner {
+    padding: 0;
+    border-top: 1px solid var(--table-border);
+}
+.rs-details-inner .rs-table th,
+.rs-details-inner .rs-table td {
+    padding: 8px 16px;
+}
+
 /* ── Mobile / narrow viewports ──────────────────────────── */
 @media (max-width: 700px) {
     body {
@@ -1442,7 +1496,7 @@ body {
     <?php /* 4. Consumers */ ?>
     <div class="rs-card">
         <h2>
-            <span>Consumers <span class="rs-dim">(XINFO CONSUMERS)</span></span>
+            <span>Workers <span class="rs-dim">(Grouped by Consumer)</span></span>
             <?php if ($stats['consumers_dead'] > 0): ?>
                 <form method="post"
                       onsubmit="return confirm('Delete <?= (int)$stats['consumers_dead'] ?> dead consumer(s)? Only consumers with pending=0 and idle > <?= RS_DEAD_IDLE_SECONDS ?>s will be removed.');">
@@ -1458,52 +1512,107 @@ body {
         <?php if (empty($stats['consumers'])): ?>
             <div class="rs-dim">no consumers registered yet</div>
         <?php else: ?>
-            <div class="rs-table-wrap">
-                <table class="rs-table">
-                    <thead>
-                        <tr>
-                            <th>Stream</th><th>Consumer</th><th>Pending</th>
-                            <th>Idle</th><th>State</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($stats['consumers'] as $c): ?>
-                        <?php
-                            $idleSec = intdiv($c['idle_ms'], 1000);
-                            $idleCls = $idleSec < 30 ? 'ok' : ($idleSec < 300 ? 'warn' : 'neutral');
+            <?php
+            $groupedConsumers = [];
+            foreach ($stats['consumers'] as $c) {
+                $name = $c['name'];
+                if (!isset($groupedConsumers[$name])) {
+                    $groupedConsumers[$name] = [
+                        'name'    => $name,
+                        'hb_ttl'  => $c['hb_ttl'],
+                        'streams' => [],
+                        'total_pending' => 0,
+                        'has_busy' => false,
+                        'has_dead' => false,
+                    ];
+                }
+                $groupedConsumers[$name]['streams'][] = $c;
+                $groupedConsumers[$name]['total_pending'] += $c['pending'];
+                if ($c['state'] === 'busy') $groupedConsumers[$name]['has_busy'] = true;
+                if ($c['state'] === 'dead') $groupedConsumers[$name]['has_dead'] = true;
+            }
+            
+            ksort($groupedConsumers);
+            ?>
 
-                            [$stateText, $stateCls] = match ($c['state']) {
-                                'busy'    => ['busy',    'ok'],
-                                'active'  => ['active',  'ok'],
-                                'waiting' => ['waiting', 'neutral'],
-                                'stuck'   => ['stuck',   'err'],
-                                'dead'    => ['dead',    'err'],
-                                default   => [$c['state'], 'neutral'],
-                            };
-                        ?>
-                    <tr>
-                        <td class="rs-mono"><?= rs_h($c['stream']) ?></td>
-                        <td class="rs-mono"><?= rs_h($c['name']) ?></td>
-                        <td><?= rs_badge($c['pending'], 1, 10) ?></td>
-                        <td><span class="rs-badge <?= $idleCls ?>"><?= rs_h(rs_human_duration($idleSec)) ?></span></td>
-                        <td>
-                            <span class="rs-badge <?= $stateCls ?>"><?= rs_h($stateText) ?></span>
-                            <?php if ($c['hb_ttl'] > 0): ?>
-                                <div class="rs-dim" style="font-size:11px">HB: <?= (int)$c['hb_ttl'] ?>s left</div>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
+            <div class="rs-consumers-grouped">
+                <?php foreach ($groupedConsumers as $worker): ?>
+                    <?php 
+                        $overallState = 'active';
+                        $overallCls   = 'ok';
+                        if ($worker['has_busy']) {
+                            $overallState = 'busy';
+                        } elseif ($worker['has_dead']) {
+                            $overallState = 'dead';
+                            $overallCls   = 'err';
+                        } elseif ($worker['total_pending'] > 0) {
+                            $overallState = 'processing';
+                            $overallCls   = 'warn';
+                        }
+                    ?>
+                    <details class="rs-details">
+                        <summary class="rs-summary">
+                            <div class="rs-summary-content">
+                                <span class="rs-mono rs-name" style="min-width: 200px;"><?= rs_h($worker['name']) ?></span>
+                                <span class="rs-badge <?= $overallCls ?>"><?= rs_h($overallState) ?></span>
+                                
+                                <?php if ($worker['hb_ttl'] > 0): ?>
+                                    <span class="rs-dim" style="font-size:12px;">HB: <?= (int)$worker['hb_ttl'] ?>s left</span>
+                                <?php endif; ?>
+                                
+                                <span class="rs-dim" style="font-size:12px;">
+                                    Total Pending: <b><?= (int)$worker['total_pending'] ?></b>
+                                </span>
+                                <span class="rs-dim" style="font-size:12px;">
+                                    Streams: <b><?= count($worker['streams']) ?></b>
+                                </span>
+                            </div>
+                        </summary>
+                        
+                        <div class="rs-details-inner">
+                            <table class="rs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Stream</th><th>Pending</th>
+                                        <th>Idle</th><th>State</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach ($worker['streams'] as $c): ?>
+                                    <?php
+                                        $idleSec = intdiv($c['idle_ms'], 1000);
+                                        $idleCls = $idleSec < 30 ? 'ok' : ($idleSec < 300 ? 'warn' : 'neutral');
+
+                                        [$stateText, $stateCls] = match ($c['state']) {
+                                            'busy'    => ['busy',    'ok'],
+                                            'active'  => ['active',  'ok'],
+                                            'waiting' => ['waiting', 'neutral'],
+                                            'stuck'   => ['stuck',   'err'],
+                                            'dead'    => ['dead',    'err'],
+                                            default   => [$c['state'], 'neutral'],
+                                        };
+                                    ?>
+                                    <tr>
+                                        <td class="rs-mono"><?= rs_h($c['stream']) ?></td>
+                                        <td><?= rs_badge($c['pending'], 1, 10) ?></td>
+                                        <td><span class="rs-badge <?= $idleCls ?>"><?= rs_h(rs_human_duration($idleSec)) ?></span></td>
+                                        <td><span class="rs-badge <?= $stateCls ?>"><?= rs_h($stateText) ?></span></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
                 <?php endforeach; ?>
-                </tbody>
-                </table>
             </div>
-                <div class="rs-dim" style="margin-top:6px">
-                    <b>busy</b> — heartbeat is fresh and the worker is currently processing a heavy task.<br>
-                    <b>active</b> — heartbeat is fresh and the worker read from this stream recently.<br>
-                    <b>waiting</b> — heartbeat is fresh, but the worker has nothing to do on this stream right now (normal when a queue is empty).<br>
-                    <b>dead</b> — heartbeat expired, pending = 0; safe to remove.<br>
-                    <b>stuck</b> — heartbeat expired, but PEL still holds messages; XAUTOCLAIM should pick them up, do not kill.
-                </div>
+
+            <div class="rs-dim" style="margin-top:16px">
+                <b>busy</b> — heartbeat is fresh and the worker is currently processing a heavy task.<br>
+                <b>active</b> — heartbeat is fresh and the worker is alive.<br>
+                <b>waiting</b> — heartbeat is fresh, but the worker has nothing to do right now.<br>
+                <b>dead</b> — heartbeat expired, pending = 0; safe to remove.<br>
+                <b>stuck</b> — heartbeat expired, but PEL still holds messages; XAUTOCLAIM should pick them up.
+            </div>
         <?php endif; ?>
     </div>
 
