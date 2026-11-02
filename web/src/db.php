@@ -112,7 +112,10 @@ if (PHP_SAPI !== 'cli'
 require_once __DIR__ . '/cache.php';
 require_once __DIR__ . '/redis.php';
 
-$memcached = new RatelCache(get_redis_connection());
+$memcached = new RatelCache(
+    get_redis_connection(),
+    $redis_cache_compression_enabled ?? true
+);
 $memcached_connected = $memcached->isConnected();
 
 $db = get_db_connection();

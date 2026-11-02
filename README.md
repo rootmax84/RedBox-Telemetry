@@ -184,6 +184,7 @@ INLINE FALLBACK (Redis disabled or unavailable):
 | $redis_stream_key | Redis Stream key name | telemetry:uploads |
 | $redis_stream_group | Consumer group name for worker | telemetry-workers |
 | $redis_stream_maxlen | Max messages in Stream (~ MAXLEN, 0 = unlimited) | 50000 |
+| $redis_cache_compression_enabled | compress (zstd->lz4->deflate) application cache | true |
 | $heavy_tasks_enabled | Enable heavy async tasks | true |
 | $redis_heavy_stream_key | Redis Stream key for heavy tasks | ratel:heavy_tasks |
 | $redis_heavy_stream_maxlen | Max messages in heavy Stream (0 = unlimited) | 10000 |

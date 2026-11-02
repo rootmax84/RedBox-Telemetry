@@ -1292,11 +1292,34 @@ body {
         </div>
     </div>
 
-    <?php /* 1b. Cache */ ?>
+    <?php /* 1b. Cache */ 
+    $compressionEnabled = $redis_cache_compression_enabled ?? true;
+    $activeAlgo = null;
+    
+    if ($compressionEnabled) {
+        if (function_exists('zstd_compress') && function_exists('zstd_uncompress')) {
+            $activeAlgo = 'zstd';
+        } elseif (function_exists('lz4_compress') && function_exists('lz4_uncompress')) {
+            $activeAlgo = 'lz4';
+        } elseif (function_exists('gzdeflate') && function_exists('gzinflate')) {
+            $activeAlgo = 'gzdeflate';
+        } else {
+            $activeAlgo = 'none';
+        }
+    }
+    ?>
     <div class="rs-card">
         <h2>
             <span>Application cache</span>
-            <span class="rs-dim">(RatelCache over Redis)</span>
+            <span class="rs-dim" style="display:flex; align-items:center; gap:8px;">
+                <?php if (!$compressionEnabled): ?>
+                    <span class="rs-badge neutral" title="Disabled in src/creds.php">Compression: OFF</span>
+                <?php elseif ($activeAlgo === 'none'): ?>
+                    <span class="rs-badge err" title="No compression extensions found in PHP">Compression: ERR (no ext)</span>
+                <?php else: ?>
+                    <span class="rs-badge ok" title="Compression is active">Compression: <?= rs_h($activeAlgo) ?></span>
+                <?php endif; ?>
+            </span>
         </h2>
         <div class="rs-actions">
             <form method="post"

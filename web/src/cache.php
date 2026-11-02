@@ -17,9 +17,37 @@ declare(strict_types=1);
  *     в редком пути cache_flush(null, $keyname) — на практике не
  *     вызывается (там всегда передаётся точный ключ).
  *
+ * ── Селективное сжатие ────────────────────────────────────────
+ *   Управляется флагом $redis_cache_compression_enabled из creds.php.
+ *   По умолчанию включено. Сжимаются только «тяжёлые» значения,
+ *   проходящие через set()/get() — session_data_*, gps_data_*,
+ *   pids_mapping_*, pids_known_*, profiles_list_*, years_list_*.
+ *   Это массивы с повторяющимися строками: 3–8x экономии RAM в Redis.
+ *
+ *   НЕ сжимается:
+ *     - int — хранится как сырая ASCII-строка для INCR/INCRBY.
+ *       increment()/incrementWithTtl() работают с ключом напрямую
+ *       на сервере Redis и не касаются set()/get().
+ *     - значения < COMPRESS_THRESHOLD (1 KB) — overhead не окупается.
+ *     - «плохо сжимаемые» payloads — если сжатый вариант не меньше
+ *       оригинала, сохраняем оригинал (никакого раздувания).
+ *
+ *   Формат сжатого payload: "\x00" + <algo> + <compressed bytes>.
+ *   Первый байт "\x00" не может начинать serialize()-вывод (там всегда
+ *   a:, s:, i:, d:, b:, N;, O:, C:, R:, r:, S:), поэтому старые
+ *   несжатые ключи читаются как раньше — flush не обязателен.
+ *   Флаг можно переключать на лету: get() всегда определяет формат
+ *   по маркеру, а не по текущему значению флага.
+ *
+ *   Алгоритм резолвится один раз на инстанс по приоритету:
+ *     zstd  → lz4  → gzdeflate (zlib встроен в PHP, есть всегда).
+ *   Алгоритм «зашит» в сам payload (байт после маркера), поэтому даже
+ *   после смены алгоритма на хосте старые ключи не сломаются: либо
+ *   прочитаются, либо вернут кеш-мисс, но не бросят исключение.
+ *
  * Использование:
  *   require_once __DIR__ . '/cache.php';
- *   $memcached = new RatelCache(get_redis_connection());
+ *   $memcached = new RatelCache(get_redis_connection(), $redis_cache_compression_enabled ?? true);
  *   $memcached_connected = $memcached->isConnected();
  *
  * Все существующие вызовы $memcached->get()/set()/delete()/increment()
@@ -33,14 +61,38 @@ final class RatelCache
     /** Совместимость с Memcached::RES_NOTFOUND */
     public const RES_NOTFOUND = 16;
 
+    /** Минимальный размер serialize()-payload, при котором включается сжатие. */
+    private const COMPRESS_THRESHOLD = 1024;
+
+    /** Первый байт сжатого payload. Не встречается в serialize()-выводе. */
+    private const MARKER = "\x00";
+
+    /** Идентификаторы алгоритмов сразу после маркера. */
+    private const ALGO_ZSTD    = 'Z';
+    private const ALGO_LZ4     = 'L';
+    private const ALGO_DEFLATE = 'D';
+
     /** @var Redis|null */
     private $redis;
 
     private int $lastResultCode = self::RES_SUCCESS;
 
-    public function __construct($redis)
+    /** Включено ли сжатие (передаётся из creds.php через db.php). */
+    private bool $compressionEnabled;
+
+    /**
+     * Кэш выбранного алгоритма сжатия.
+     * null + algoResolved=false  -> ещё не резолвили
+     * null + algoResolved=true   -> сжатие недоступно (нет ни одного расширения)
+     * 'Z'|'L'|'D'                -> выбранный алгоритм
+     */
+    private ?string $algo = null;
+    private bool $algoResolved = false;
+
+    public function __construct($redis, bool $compressionEnabled = true)
     {
-        $this->redis = $redis;
+        $this->redis              = $redis;
+        $this->compressionEnabled = $compressionEnabled;
     }
 
     public function isConnected(): bool
@@ -73,6 +125,17 @@ final class RatelCache
 
         $this->lastResultCode = self::RES_SUCCESS;
 
+        // Сжатый payload — маркер в первом байте (см. set/compress).
+        // Определяем формат по маркеру, а не по флагу: так переключение
+        // $redis_cache_compression_enabled на лету не ломает уже записанные ключи.
+        // Битый или несовместимый payload трактуем как кеш-мисс.
+        if (is_string($raw) && $raw !== '' && $raw[0] === self::MARKER) {
+            $raw = $this->decompress($raw);
+            if ($raw === false) {
+                return false;
+            }
+        }
+
         // Int храним как raw-число (см. set()). Это позволяет incrBy.
         if (is_string($raw) && preg_match('/^-?\d+$/', $raw)) {
             return (int)$raw;
@@ -97,10 +160,22 @@ final class RatelCache
 
         // Int — единственный тип, который должен поддерживать INCR.
         // Храним без сериализации, чтобы incrBy работал.
+        // НЕ сжимается ни при каких условиях — иначе Redis не сможет
+        // интерпретировать значение как число в INCRBY.
         if (is_int($value)) {
             $raw = (string)$value;
         } else {
             $raw = serialize($value);
+
+            // Сжимаем только крупные payloads и только если реально меньше.
+            // Если алгоритм недоступен или сжатие не дало выигрыша —
+            // сохраняем оригинал (никакого раздувания).
+            if ($this->compressionEnabled && strlen($raw) >= self::COMPRESS_THRESHOLD) {
+                $packed = $this->compress($raw);
+                if ($packed !== false && strlen($packed) < strlen($raw)) {
+                    $raw = $packed;
+                }
+            }
         }
 
         try {
@@ -138,6 +213,10 @@ final class RatelCache
      *     потом increment() в пределах окна;
      *   - cache_flush() — increment() без предварительного set(),
      *     полагаясь на auto-create со значением 1.
+     *
+     * Работает напрямую на сервере Redis, не проходит через set()/get(),
+     * поэтому селективное сжатие на него не влияет. Значение счётчика
+     * всегда остаётся сырой ASCII-строкой.
      */
     public function increment(string $key, int $offset = 1)
     {
@@ -237,5 +316,128 @@ final class RatelCache
             error_log('RatelCache::getAllKeys error: ' . $e->getMessage());
         }
         return $keys;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+     * COMPRESSION INTERNALS
+     *
+     * Все методы ниже — private. Публичный API (get/set/delete/
+     * increment/…) не менялся: сжатие прозрачно для вызывающего кода.
+     * ════════════════════════════════════════════════════════════ */
+
+    /**
+     * Резолвит лучший доступный алгоритм один раз на инстанс.
+     *
+     * Приоритет: zstd (лучший коэффициент при высокой скорости) ->
+     * lz4 (максимальная скорость) → gzdeflate (zlib встроен в PHP,
+     * доступен всегда как безопасный fallback).
+     *
+     * @return string|null null, если ни одно расширение не найдено.
+     */
+    private function resolveAlgo(): ?string
+    {
+        if ($this->algoResolved) {
+            return $this->algo;
+        }
+
+        if (function_exists('zstd_compress') && function_exists('zstd_uncompress')) {
+            $this->algo = self::ALGO_ZSTD;
+        } elseif (function_exists('lz4_compress') && function_exists('lz4_uncompress')) {
+            $this->algo = self::ALGO_LZ4;
+        } elseif (function_exists('gzdeflate') && function_exists('gzinflate')) {
+            $this->algo = self::ALGO_DEFLATE;
+        } else {
+            $this->algo = null;
+        }
+
+        $this->algoResolved = true;
+        return $this->algo;
+    }
+
+    /**
+     * Сжимает serialize()-payload.
+     *
+     * @return string|false  MARKER + algo + compressed bytes, либо false
+     *                       при ошибке или отсутствии алгоритма.
+     */
+    private function compress(string $raw)
+    {
+        $algo = $this->resolveAlgo();
+        if ($algo === null) {
+            return false;
+        }
+
+        try {
+            switch ($algo) {
+                case self::ALGO_ZSTD:
+                    // level 3 — компромисс скорость/сжатие; под нагрузкой
+                    // разница с дефолтным уровнем незначительна по размеру,
+                    // но заметна по CPU.
+                    $out = zstd_compress($raw, 3);
+                    break;
+                case self::ALGO_LZ4:
+                    $out = lz4_compress($raw);
+                    break;
+                case self::ALGO_DEFLATE:
+                    // level 3: ~2x быстрее дефолтного 6, потеря сжатия
+                    // минимальна для типичного JSON-подобного serialize().
+                    $out = gzdeflate($raw, 3);
+                    break;
+                default:
+                    return false;
+            }
+        } catch (Throwable $e) {
+            error_log('RatelCache::compress error: ' . $e->getMessage());
+            return false;
+        }
+
+        if (!is_string($out) || $out === '') {
+            return false;
+        }
+
+        return self::MARKER . $algo . $out;
+    }
+
+    /**
+     * Разжимает payload, созданный compress().
+     *
+     * @return string|false  Разжатый serialize()-payload, либо false при
+     *                       любой ошибке (битый формат, неизвестный алгоритм,
+     *                       отсутствует функция распаковки).
+     */
+    private function decompress(string $raw)
+    {
+        if (strlen($raw) < 3 || $raw[0] !== self::MARKER) {
+            return false;
+        }
+
+        $algo = $raw[1];
+        $body = substr($raw, 2);
+
+        try {
+            switch ($algo) {
+                case self::ALGO_ZSTD:
+                    if (!function_exists('zstd_uncompress')) return false;
+                    $out = zstd_uncompress($body);
+                    break;
+                case self::ALGO_LZ4:
+                    if (!function_exists('lz4_uncompress')) return false;
+                    $out = lz4_uncompress($body);
+                    break;
+                case self::ALGO_DEFLATE:
+                    if (!function_exists('gzinflate')) return false;
+                    // @ — gzinflate() генерирует warning на битом payload,
+                    // а мы всё равно трактуем это как кеш-мисс.
+                    $out = @gzinflate($body);
+                    break;
+                default:
+                    return false;
+            }
+        } catch (Throwable $e) {
+            error_log('RatelCache::decompress error: ' . $e->getMessage());
+            return false;
+        }
+
+        return is_string($out) ? $out : false;
     }
 }

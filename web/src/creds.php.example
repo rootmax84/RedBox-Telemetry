@@ -32,6 +32,7 @@ $redis_stream_enabled = true;                   // Use Streams в ul.php
 $redis_stream_key     = 'telemetry:uploads';
 $redis_stream_group   = 'telemetry-workers';
 $redis_stream_maxlen  = 50000;                // ~ MAXLEN, 0 = no limit
+$redis_cache_compression_enabled = true;
 
 // --- Heavy tasks (async delete, обслуживается тем же worker.php) ---
 $heavy_tasks_enabled       = true;
