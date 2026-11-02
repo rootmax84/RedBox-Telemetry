@@ -81,8 +81,8 @@ services:
             PHP_SESSION_COOKIE_HTTPONLY: "1"
             PHP_MEMORY_LIMIT: "512M"
             PHP_MAX_EXECUTION_TIME: "300"
-            PHP_OPCACHE_JIT: "tracing"
-            PHP_OPCACHE_JIT_BUFFER_SIZE: "128M"
+            PHP_OPCACHE_VALIDATE_TIMESTAMPS: "0"
+            PHP_OPCACHE_REVALIDATE_FREQ: "0"
             PHP_PM: "dynamic"
             PHP_PM_MAX_CHILDREN: "50"
             PHP_PM_START_SERVERS: "2"
@@ -118,8 +118,6 @@ services:
             - ./web:/var/www/html:ro
             - /etc/localtime:/etc/localtime:ro
         environment:
-            DISABLE_NGINX: "1"
-            DISABLE_FPM: "1"
             DB_HOST: mariadb
             PHP_MEMORY_LIMIT: "512M"
             PHP_MAX_EXECUTION_TIME: "0"
