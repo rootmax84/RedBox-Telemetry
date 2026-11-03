@@ -1337,9 +1337,9 @@ body {
             settings, per-user rate-limit counters and session counters.
             <br>
             Preserved:
-            <code>telemetry:uploads</code>,
-            <code>ratel:heavy_tasks</code>,
-            <code>ratel:dead_letters</code>,
+            <code><?= rs_h($uploadsKey) ?></code>,
+            <code><?= rs_h($heavyKey) ?></code>,
+            <code><?= rs_h($dlqKey) ?></code>,
             <code>ratel:task:*</code>,
             <code>ratel:user_tasks:*</code>,
             <code>ratel:attempts:*</code>,
@@ -1573,7 +1573,7 @@ body {
                             $overallCls   = 'warn';
                         }
                     ?>
-                    <details class="rs-details">
+                    <details class="rs-details" data-worker-name="<?= rs_h($worker['name']) ?>">
                         <summary class="rs-summary">
                             <div class="rs-summary-content">
                                 <span class="rs-mono rs-name" style="min-width: 200px;"><?= rs_h($worker['name']) ?></span>
@@ -1937,6 +1937,32 @@ body {
     toast.addEventListener('click', () => {
         clearTimeout(t);
         toast.remove();
+    });
+})();
+
+(function () {
+    const STORAGE_PREFIX = 'rs_worker_open_';
+    const detailsElements = document.querySelectorAll('details.rs-details[data-worker-name]');
+
+    detailsElements.forEach(details => {
+        const workerName = details.getAttribute('data-worker-name');
+        if (!workerName) return;
+
+        const storageKey = STORAGE_PREFIX + workerName;
+
+        // Восстанавливаем состояние при загрузке страницы
+        try {
+            if (sessionStorage.getItem(storageKey) === '1') {
+                details.open = true;
+            }
+        } catch (e) {}
+
+        // Сохраняем состояние при клике (открытии/закрытии)
+        details.addEventListener('toggle', () => {
+            try {
+                sessionStorage.setItem(storageKey, details.open ? '1' : '0');
+            } catch (e) {}
+        });
     });
 })();
 </script>
