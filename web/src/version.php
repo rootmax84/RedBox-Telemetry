@@ -1,2 +1,2 @@
 <?php
-define('RATEL_VERSION', '26.2.1');
+define('RATEL_VERSION', '26.3.0');
