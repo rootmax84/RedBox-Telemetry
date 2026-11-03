@@ -16,8 +16,8 @@ let delSubmitInFlight = false;
 function delSessions() {
     let dialogOpt = {
         title: localization.key['dialog.confirm'],
-        btnClassSuccessText: localization.key['btn.yes'],
-        btnClassFailText: localization.key['btn.no'],
+        btnClassSuccessText: localization.key['dialog.delete'],
+        btnClassFailText: localization.key['dialog.cancel'],
         btnClassFail: "btn btn-info btn-sm",
         message: localization.key['dialog.del.sessions'],
         onResolve: function () {

@@ -664,8 +664,8 @@ function delSession() {
 
     const dialogOpt = {
         title: localization.key['dialog.confirm'],
-        btnClassSuccessText: localization.key['btn.yes'],
-        btnClassFailText:    localization.key['btn.no'],
+        btnClassSuccessText: localization.key['dialog.delete'],
+        btnClassFailText:    localization.key['dialog.cancel'],
         btnClassFail: "btn btn-info btn-sm",
         message: messageText,
         onResolve: function () {
@@ -752,8 +752,8 @@ function exportSession(type) {
 
     let dialogOpt = {
         title: localization.key['dialog.confirm'],
-        btnClassSuccessText: localization.key['btn.yes'],
-        btnClassFailText: localization.key['btn.no'],
+        btnClassSuccessText: localization.key['dialog.export'],
+        btnClassFailText: localization.key['dialog.cancel'],
         btnClassFail: "btn btn-info btn-sm",
         message: messageText,
         onResolve: function () {

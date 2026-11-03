@@ -171,8 +171,8 @@ function initTableSorting(tableSelector) {
 function adminUserDelete(username) {
     let dialogOpt = {
         title: localization.key['dialog.confirm'],
-        btnClassSuccessText: localization.key['btn.yes'],
-        btnClassFailText: localization.key['btn.no'],
+        btnClassSuccessText: localization.key['dialog.delete'],
+        btnClassFailText: localization.key['dialog.cancel'],
         btnClassFail: "btn btn-info btn-sm",
         message: `${localization.key['admin.del.title']} ${username}?`,
         onResolve: function () {

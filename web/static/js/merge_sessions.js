@@ -71,8 +71,8 @@ $(document).ready(() => {
             message: oversize
                 ? `${localization.key['dialog.merge.big.msg']} ${maximum / 1000}k ${localization.key['dialog.merge.big.datapoints']}<br>${localization.key['dialog.merge.big.sel']} ${total / 1000}k`
                 : `${localization.key['dialog.merge.sessions']} (${msDate})?`,
-            btnClassSuccessText: oversize ? "OK" : localization.key['btn.yes'],
-            btnClassFailText: localization.key['btn.no'],
+            btnClassSuccessText: oversize ? "OK" : localization.key['dialog.merge'],
+            btnClassFailText: localization.key['dialog.cancel'],
             btnClassFail: oversize ? "hidden" : "btn btn-info btn-sm",
             onResolve: function () {
                 if (oversize) return;

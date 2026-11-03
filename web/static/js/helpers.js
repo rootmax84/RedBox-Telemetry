@@ -3284,22 +3284,22 @@ let redDialog = {
         noBtn.addEventListener('click', () => this.reject());
 
         // Add keyboard navigation
-        yesBtn.addEventListener('keydown', e => {
-            if (e.key === 'ArrowRight') {
-                this.activeButton = noBtn;
-                noBtn.focus();
-            }
-        });
-
         noBtn.addEventListener('keydown', e => {
-            if (e.key === 'ArrowLeft') {
+            if (e.key === 'ArrowRight') {
                 this.activeButton = yesBtn;
                 yesBtn.focus();
             }
         });
 
+        yesBtn.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') {
+                this.activeButton = noBtn;
+                noBtn.focus();
+            }
+        });
+
         // Assemble the dialog
-        btnWrap.append(yesBtn, ' ', noBtn);
+        btnWrap.append(noBtn, ' ', yesBtn);
         dialogDiv.appendChild(btnWrap);
 
         const overlayDiv = document.createElement('div');
@@ -3321,10 +3321,10 @@ let redDialog = {
             }, 180);
         }, 20);
 
-        // Save active element and focus on Yes button
+        // Save active element and focus on Reject button
         this.activeElement = document.activeElement;
-        yesBtn.focus();
-        this.activeButton = yesBtn;
+        noBtn.focus();
+        this.activeButton = noBtn;
 
         // Return promise
         return new Promise(resolve => {

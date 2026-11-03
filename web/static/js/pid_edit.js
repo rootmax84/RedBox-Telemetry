@@ -82,8 +82,8 @@ $(document).on('keydown paste', '[contenteditable="true"]', function(e) {
 function deletePID(pid) {
     let dialogOpt = {
         title: localization.key['dialog.confirm'],
-        btnClassSuccessText: localization.key['btn.yes'],
-        btnClassFailText: localization.key['btn.no'],
+        btnClassSuccessText: localization.key['dialog.delete'],
+        btnClassFailText: localization.key['dialog.cancel'],
         btnClassFail: "btn btn-info btn-sm",
         message: `${localization.key['dialog.pid.delete']} ${pid}?`,
         onResolve: function() {
