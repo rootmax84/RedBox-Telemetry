@@ -170,6 +170,7 @@ function create_users_table()
         tg_token varchar(50) NULL,
         tg_chatid bigint(20) NULL,
         share_secret char(32) NULL,
+        share_id char(32) CHARACTER SET ascii COLLATE ascii_bin NULL,
         speed enum('No conversion','km to miles','miles to km') NOT NULL DEFAULT 'No conversion',
         temp enum('No conversion','Celsius to Fahrenheit','Fahrenheit to Celsius') NOT NULL DEFAULT 'No conversion',
         pressure enum('No conversion','Psi to Bar','Bar to Psi') NOT NULL DEFAULT 'No conversion',
@@ -185,7 +186,8 @@ function create_users_table()
         last_attempt DATETIME,
         PRIMARY KEY (id),
         UNIQUE KEY user (user),
-        UNIQUE KEY token (token))
+        UNIQUE KEY token (token),
+        UNIQUE KEY idx_users_share_id (share_id))
         ENGINE=".$db_engine." DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     $db->query($table);

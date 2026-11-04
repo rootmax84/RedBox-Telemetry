@@ -30,7 +30,7 @@ if (!$user_id) {
 }
 
 $row = $db->execute_query(
-    "SELECT share_secret FROM users WHERE id = ?",
+    "SELECT share_secret, share_id FROM users WHERE id = ?",
     [$user_id]
 )->fetch_assoc();
 
@@ -41,18 +41,39 @@ if (!$row) {
 }
 
 $secret = (string)($row['share_secret'] ?? '');
+$share_id = (string)($row['share_id'] ?? '');
 
-if ($secret === '') {
-    $secret = bin2hex(random_bytes(16));
+if ($secret === '' || $share_id === '') {
+    $new_secret = bin2hex(random_bytes(16));
+    $new_share_id = share_id_from_secret($new_secret);
+
+    // Условное обновление предотвращает перезапись результата параллельного /sign.
     $db->execute_query(
-        "UPDATE users SET share_secret = ? WHERE id = ?",
-        [$secret, $user_id]
+        "UPDATE users SET share_secret = ?, share_id = ?
+         WHERE id = ? AND (share_id IS NULL OR share_id = '' OR share_secret IS NULL OR share_secret = '')",
+        [$new_secret, $new_share_id, $user_id]
     );
+
+    $row = $db->execute_query(
+        "SELECT share_secret, share_id FROM users WHERE id = ?",
+        [$user_id]
+    )->fetch_assoc();
+    if (!$row) {
+        http_response_code(500);
+        echo json_encode(['error' => 'User not found']);
+        exit;
+    }
+    $secret = (string)($row['share_secret'] ?? '');
+    $share_id = (string)($row['share_id'] ?? '');
+}
+
+if ($secret === '' || !hash_equals(share_id_from_secret($secret), $share_id)) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Invalid share state']);
+    exit;
 }
 
 $_SESSION['share_secret'] = $secret;
-
-$share_id = share_id_from_secret($secret);
 
 $id = isset($data['id']) && $data['id'] !== ''
     ? (string)$data['id']

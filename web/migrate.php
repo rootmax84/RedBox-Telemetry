@@ -933,6 +933,7 @@ function migrate_users_table(mysqli $db, bool $dry_run): void
         'stream_lock'     => "ALTER TABLE `$users_table` ADD COLUMN stream_lock TINYINT(1) NOT NULL DEFAULT 0",
         'sessions_filter' => "ALTER TABLE `$users_table` ADD COLUMN sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
         'share_secret'    => "ALTER TABLE `$users_table` ADD COLUMN share_secret CHAR(32)",
+        'share_id'        => "ALTER TABLE `$users_table` ADD COLUMN share_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL",
         'login_attempts'  => "ALTER TABLE `$users_table` ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
         'last_attempt'    => "ALTER TABLE `$users_table` ADD COLUMN last_attempt DATETIME",
         'api_gps'         => "ALTER TABLE `$users_table` ADD COLUMN api_gps TINYINT(1) NOT NULL DEFAULT 0",
@@ -956,6 +957,23 @@ function migrate_users_table(mysqli $db, bool $dry_run): void
             $added++;
         } catch (mysqli_sql_exception $e) {
             err("[users] ALTER {$col} failed: " . $e->getMessage());
+        }
+    }
+
+    // Нет обратной совместимости: старые share_secret не индексируем и не мигрируем.
+    // Новый share_id выдаётся при следующем POST /sign.
+    if (($dry_run || column_exists($db, $users_table, 'share_id'))
+        && !index_exists($db, $users_table, 'idx_users_share_id')) {
+        if ($dry_run) {
+            out("[users] [dry] would ADD UNIQUE INDEX idx_users_share_id (share_id)");
+        } else {
+            try {
+                $db->query("ALTER TABLE `$users_table` ADD UNIQUE INDEX idx_users_share_id (share_id)");
+                info("[users] added UNIQUE INDEX idx_users_share_id");
+            } catch (mysqli_sql_exception $e) {
+                err("[users] ADD INDEX idx_users_share_id failed: " . $e->getMessage());
+                throw $e;
+            }
         }
     }
 

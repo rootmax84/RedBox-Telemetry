@@ -142,7 +142,11 @@ try {
         // Handle share secret update
         if (isset($_POST['share_secret'])) {
             $secret = bin2hex(random_bytes(16));
-            $db->execute_query("UPDATE users SET share_secret=? WHERE user=?", [$secret, $username]);
+            $share_id = share_id_from_secret($secret);
+            $db->execute_query(
+                "UPDATE users SET share_secret=?, share_id=? WHERE user=?",
+                [$secret, $share_id, $username]
+            );
             $_SESSION['share_secret'] = $secret;
             cache_flush();
             $response = $translations[current_lang()]['share.sec.update'];

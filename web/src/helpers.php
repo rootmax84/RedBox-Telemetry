@@ -1319,75 +1319,30 @@ function share_gps_flag(): string
 }
 
 /**
- * Найти пользователя по публичному share_id.
- * Кэширует только share_id → id, share_secret читается из БД каждый раз,
- * чтобы ротация секрета сразу убивала старые ссылки.
+ * Индексный поиск владельца публичного share_id.
+ * Старые ссылки не поддерживаются: до генерации нового share_id значение NULL.
+ * В отличие от прежней реализации, нет full scan и зависимости от Redis cache.
  */
 function share_lookup_user(mysqli $db, $share_id): ?array
 {
-    global $memcached, $memcached_connected;
-
     if (!is_string($share_id) || !preg_match('/^[a-f0-9]{32}$/', $share_id)) {
         return null;
     }
 
-    $cache_key = 'share_uid_' . $share_id;
-
-    if ($memcached_connected) {
-        try {
-            $cached = $memcached->get($cache_key);
-            if (is_int($cached)) {
-                if ($cached === 0) {
-                    return null;          // negative cache hit
-                }
-                if ($cached > 0) {
-                    $uid = $cached;
-                    goto fetch_row;
-                }
-            }
-        } catch (Throwable $e) { /* ignore */ }
-    }
-
-    // full scan
-    $uid = 0;
-    $r = $db->execute_query(
-        "SELECT id, share_secret FROM users
-          WHERE share_secret IS NOT NULL AND share_secret <> ''"
-    );
-    while ($row = $r->fetch_assoc()) {
-        if (hash_equals(share_id_from_secret($row['share_secret']), $share_id)) {
-            $uid = (int)$row['id'];
-            break;
-        }
-    }
-
-    if ($memcached_connected) {
-        try {
-            $memcached->set($cache_key, $uid, $uid > 0 ? 3600 : 60);
-        } catch (Throwable $e) {}
-    }
-
-    if ($uid === 0) {
-        return null;
-    }
-
-    fetch_row:
     $row = $db->execute_query(
         "SELECT id, user, sessions_filter, time, gap, share_secret, s
            FROM users
-          WHERE id = ?",
-        [$uid]
+          WHERE share_id = ?
+          LIMIT 1",
+        [$share_id]
     )->fetch_assoc();
 
-    if (!$row) {
+    if (!$row || empty($row['share_secret'])) {
         return null;
     }
 
-    if (empty($row['share_secret'])
-        || !hash_equals(share_id_from_secret($row['share_secret']), $share_id)) {
-        if ($memcached_connected) {
-            try { $memcached->delete($cache_key); } catch (Throwable $e) {}
-        }
+    // Дополнительная проверка согласованности полей.
+    if (!hash_equals(share_id_from_secret($row['share_secret']), $share_id)) {
         return null;
     }
 
