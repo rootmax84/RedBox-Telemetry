@@ -4,7 +4,7 @@
         <?php $fav_selected_count = 0;
             foreach ($coldata as $xcol) {
         ?>
-        <option value="<?php echo $xcol['colname']; ?>" <?php
+        <option value="<?php echo escapeHtml($xcol['colname']); ?>" <?php
             $is_matched = false;
             $i = 1;
             while (isset(${'var' . $i})) {
@@ -20,7 +20,7 @@
                 echo ' selected';
                 $fav_selected_count++;
             }
-            ?>><?php echo $xcol['colcomment']; ?></option>
+            ?>><?php echo escapeHtml($xcol['colcomment']); ?></option>
         <?php } ?>
       </select>
     </div>

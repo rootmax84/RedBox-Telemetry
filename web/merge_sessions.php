@@ -295,34 +295,34 @@ if (!empty($mergesession) && !empty($mergesess1)) {
                     while ($x = $sessqry->fetch_array()) {
                     ?>
                         <tr>
-                            <td><input type="checkbox" name="<?php echo $x['session']; ?>" class="session-checkbox" data-sessionsize="<?php echo $x['sessionsize']; ?>" <?php if ($x['session'] == $mergesession) { echo "checked disabled"; } ?>></td>
-                            <td id="start:<?php echo $x['session']; ?>">
+                            <td><input type="checkbox" name="<?php echo escapeHtml($x['session']); ?>" class="session-checkbox" data-sessionsize="<?php echo escapeHtml($x['sessionsize']); ?>" <?php if ($x['session'] == $mergesession) { echo "checked disabled"; } ?>></td>
+                            <td id="start:<?php echo escapeHtml($x['session']); ?>">
                                 <?php
                                 $start_timestamp = intval(substr($x["time"], 0, -3));
                                 $month_num = date('n', $start_timestamp);
                                 $month_key = 'month.' . strtolower(date('M', $start_timestamp));
                                 $translated_month = $translations[$lang][$month_key];
                                 $date = date($_COOKIE['timeformat'] == "12" ? "d, Y h:ia" : "d, Y H:i", $start_timestamp);
-                                echo $translated_month . ' ' . $date;
+                                echo escapeHtml($translated_month . ' ' . $date);
                                 ?>
                             </td>
-                            <td id="end:<?php echo $x['session']; ?>">
+                            <td id="end:<?php echo escapeHtml($x['session']); ?>">
                                 <?php
                                 $end_timestamp = intval(substr($x["timeend"], 0, -3));
                                 $month_num = date('n', $end_timestamp);
                                 $month_key = 'month.' . strtolower(date('M', $end_timestamp));
                                 $translated_month = $translations[$lang][$month_key];
                                 $date = date($_COOKIE['timeformat'] == "12" ? "d, Y h:ia" : "d, Y H:i", $end_timestamp);
-                                echo $translated_month . ' ' . $date;
+                                echo escapeHtml($translated_month . ' ' . $date);
                                 ?>
                             </td>
-                            <td id="length:<?php echo $x['session']; ?>">
+                            <td id="length:<?php echo escapeHtml($x['session']); ?>">
                                 <?php
                                 echo formatDuration((int)$x["time"], (int)$x["timeend"], $lang);
                                 ?>
                             </td>
-                            <td id="size:<?php echo $x['session']; ?>" class="datapoints"><?php echo $x["sessionsize"]; ?></td>
-                            <td id="profile:<?php echo $x['session']; ?>"><?php if ($x["profileName"] == 'Not Specified') { echo $translations[$lang]['profile.ns']; } else { echo $x["profileName"]; } ?></td>
+                            <td id="size:<?php echo escapeHtml($x['session']); ?>" class="datapoints"><?php echo $x["sessionsize"]; ?></td>
+                            <td id="profile:<?php echo escapeHtml($x['session']); ?>"><?php if ($x["profileName"] == 'Not Specified') { echo escapeHtml($translations[$lang]['profile.ns']); } else { echo escapeHtml($x["profileName"]); } ?></td>
                         </tr>
                     <?php
                     }
@@ -351,26 +351,26 @@ if (!empty($mergesession) && !empty($mergesess1)) {
                 $start = max(1, $total_pages - $page_numbers_limit + 1);
             }
             if ($current_page > 1) {
-                echo '<a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=1">&#171;</a> ';
+                echo '<a class="pages" href="/sessions/merge?mergesession=' . rawurlencode((string)$mergesession) . '&page=1">&#171;</a> ';
             }
             if ($current_page > 1) {
                 $previous_page = $current_page - 1;
-                echo '<a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $previous_page . '">&#60;</a> ';
+                echo '<a class="pages" href="/sessions/merge?mergesession=' . rawurlencode((string)$mergesession) . '&page=' . $previous_page . '">&#60;</a> ';
             }
             for ($page = $start; $page <= $end; $page++) {
                 if ($number_of_result < $results_per_page) break;
                 if ($page == $current_page) {
-                    echo '<a class="current-page" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $page . '">' . $page . ' </a>';
+                    echo '<a class="current-page" href="/sessions/merge?mergesession=' . rawurlencode((string)$mergesession) . '&page=' . $page . '">' . $page . ' </a>';
                 } else {
-                    echo '<a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $page . '">' . $page . ' </a>';
+                    echo '<a class="pages" href="/sessions/merge?mergesession=' . rawurlencode((string)$mergesession) . '&page=' . $page . '">' . $page . ' </a>';
                 }
             }
             if ($current_page < $total_pages) {
                 $next_page = $current_page + 1;
-                echo ' <a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $next_page . '">&#62;</a>';
+                echo ' <a class="pages" href="/sessions/merge?mergesession=' . rawurlencode((string)$mergesession) . '&page=' . $next_page . '">&#62;</a>';
             }
             if ($current_page < $total_pages) {
-                echo ' <a class="pages" href="/sessions/merge?mergesession=' . $mergesession . '&page=' . $total_pages . '">&#187;</a>';
+                echo ' <a class="pages" href="/sessions/merge?mergesession=' . rawurlencode((string)$mergesession) . '&page=' . $total_pages . '">&#187;</a>';
             }
             ?>
     </div>

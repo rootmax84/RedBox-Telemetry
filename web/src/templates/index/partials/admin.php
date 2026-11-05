@@ -56,7 +56,7 @@ $i = 0;
 if ($r->num_rows > 0) {
     while ($row = $r->fetch_assoc()) {
         $uid          = (int)$row['id'];
-        $username_row = htmlspecialchars($row['user']);
+        $username_row = $row['user'];
         $isAdmin      = ($username_row == $admin);
         $isDisabled   = ($row['s'] == 0);
         $isUnlimited  = ($row['s'] == -1);
@@ -103,7 +103,7 @@ if ($r->num_rows > 0) {
             );
 
         // Username display
-        $usernameDisplay = $username_row;
+        $usernameDisplay = escapeHtml($username_row);
         $usernameStyle   = "";
         if ($isAdmin) {
             $usernameDisplay .= " (admin)";
@@ -111,15 +111,18 @@ if ($r->num_rows > 0) {
             $usernameStyle = "text-decoration:line-through";
         }
 
-        // Output row
-        echo "<tr onclick='window.location=\"/admin/users?action=edit&user="
-             . urlencode($username_row) . "&limit=" . (int)$row['s'] . "\";'"
-             . " data-username=\"" . $username_row . "\">";
+        // Escape both JavaScript string literals and the enclosing HTML attributes.
+        $editUrl = '/admin/users?' . http_build_query(
+            ['action' => 'edit', 'user' => $username_row, 'limit' => (int)$row['s']],
+            '', '&', PHP_QUERY_RFC3986
+        );
+        echo '<tr onclick="window.location=' . escapeHtml(js_string($editUrl))
+             . '" data-username="' . escapeHtml($username_row) . '">';
         echo "<td>" . $i++ . "</td>";
         echo "<td" . ($usernameStyle ? " style='$usernameStyle'" : "") . ">";
         if (!$isAdmin) {
-            echo "<span class='delete-icon' onclick='event.stopPropagation(); adminUserDelete(\""
-                 . $username_row . "\")'>&times;</span>";
+            echo '<span class="delete-icon" onclick="event.stopPropagation(); adminUserDelete('
+                 . escapeHtml(js_string($username_row)) . ')">&times;</span>';
         }
         echo $usernameDisplay;
         echo "</td>";

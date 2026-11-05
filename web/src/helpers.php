@@ -1,6 +1,18 @@
 <?php
 declare(strict_types=1);
 
+/** Escape untrusted output in HTML text and quoted HTML attributes. */
+function escapeHtml(mixed $value): string
+{
+    return htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+/** Encode a value as a JavaScript string literal; also HTML-escape the result when used in an attribute. */
+function js_string(mixed $value): string
+{
+    return json_encode((string)($value ?? ''), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
+}
+
 /**
  * Count uppercase strings
  */

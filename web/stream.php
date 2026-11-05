@@ -29,7 +29,7 @@ $r = $db->execute_query($query, $params);
 
 if (!$r->num_rows) {
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>"
-       . $translations[current_lang()]['nodata']
+       . escapeHtml($translations[current_lang()]['nodata'])
        . "</span></td></tr>\n\nretry: 5000\n\n";
     die;
 }
@@ -121,7 +121,7 @@ if ($user_settings === false) {
 
 if ($user_settings === false) {
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>"
-       . $translations[current_lang()]['nodata']
+       . escapeHtml($translations[current_lang()]['nodata'])
        . "</span></td></tr>\n\nretry: 5000\n\n";
     die;
 }
@@ -130,7 +130,7 @@ if ($user_settings === false) {
 
 if (empty($s_data) || empty($d_data)) {
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>"
-       . $translations[current_lang()]['stream.empty']
+       . escapeHtml($translations[current_lang()]['stream.empty'])
        . "</span></td></tr>\n\nretry: 5000\n\n";
     die;
 }
@@ -176,14 +176,14 @@ for ($i = 0; $i < count($pid); $i++) {
     $boost_unit = $unitMappings['boost'][$boost]     ?? $currentUnit;
 
     if ($currentPid === 'kff1005') {
-        $data = "<tr hidden><td id='lon'>" . ($row['kff1005'] ?? 0) . "</td></tr>";
+        $data = "<tr hidden><td id='lon'>" . escapeHtml($row['kff1005'] ?? 0) . "</td></tr>";
     } elseif ($currentPid === 'kff1006') {
-        $data = "<tr hidden><td id='lat'>" . ($row['kff1006'] ?? 0) . "</td></tr>";
+        $data = "<tr hidden><td id='lat'>" . escapeHtml($row['kff1006'] ?? 0) . "</td></tr>";
     } elseif ($currentPid === 'kff1007') {
-        $data = "<tr hidden><td id='hdg'>" . ($row['kff1007'] ?? 0) . "</td></tr>";
+        $data = "<tr hidden><td id='hdg'>" . escapeHtml($row['kff1007'] ?? 0) . "</td></tr>";
     } else {
         $value = $row[$currentPid] ?? null;
-        $data  = "<tr><td>{$currentDes}</td>";
+        $data  = "<tr><td>" . escapeHtml($currentDes) . "</td>";
         if ($value === null) {
             $data .= "<td title='No data available' tabindex='0'>-</td>";
         } else {
@@ -232,13 +232,13 @@ function formatValue($pid, $value, $des, $speed, $temp, $pressure, $boost, $id) 
 function formatUnit($pid, $des, $spd_unit, $trip_unit, $temp_unit, $press_unit, $boost_unit, $defaultUnit) {
     return match ($pid) {
         'k1f' => "<td><samp>h:m:s</samp></td>",
-        'kff1202' => "<td><samp>{$boost_unit}</samp></td>",
-        'kff1204','kff120c' => "<td><samp>{$trip_unit}</samp></td>",
+        'kff1202' => "<td><samp>" . escapeHtml($boost_unit) . "</samp></td>",
+        'kff1204','kff120c' => "<td><samp>" . escapeHtml($trip_unit) . "</samp></td>",
         default => match (true) {
-            stripos($des, 'Pressure') !== false && !in_array($pid, ['kb','k33','k32','ka','k23','k22']) => "<td><samp>{$press_unit}</samp></td>",
-            stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false => "<td><samp>{$temp_unit}</samp></td>",
-            stripos($des, 'Speed') !== false => "<td id='spd-unit'><samp>{$spd_unit}</samp></td>",
-            default => "<td><samp>{$defaultUnit}</samp></td>",
+            stripos($des, 'Pressure') !== false && !in_array($pid, ['kb','k33','k32','ka','k23','k22']) => "<td><samp>" . escapeHtml($press_unit) . "</samp></td>",
+            stripos($des, 'Temp') !== false || stripos($des, 'EGT') !== false => "<td><samp>" . escapeHtml($temp_unit) . "</samp></td>",
+            stripos($des, 'Speed') !== false => "<td id='spd-unit'><samp>" . escapeHtml($spd_unit) . "</samp></td>",
+            default => "<td><samp>" . escapeHtml($defaultUnit) . "</samp></td>",
         },
     };
 }
@@ -248,9 +248,9 @@ function outputLastRecordDate($time, $rate) {
     if ($time != '') {
         $seconds = intval($time / 1000);
         $time_format = $_COOKIE['timeformat'] == "12" ? "d.m.Y h:i:sa" : "d.m.Y H:i:s";
-        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>" . $translations[current_lang()]['stream.last'] . date($time_format, $seconds) . "</span></td></tr>";
+        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>" . escapeHtml($translations[current_lang()]['stream.last']) . date($time_format, $seconds) . "</span></td></tr>";
     } else {
-        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>" . $translations[current_lang()]['nodata'] . "</span></td></tr>";
+        $data = "<tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>" . escapeHtml($translations[current_lang()]['nodata']) . "</span></td></tr>";
     }
 
     echo "data: {$data}\n";

@@ -136,8 +136,8 @@ include_once __DIR__ . '/src/head.php';
             </thead>
             <tbody>
                 <?php foreach ($fav_data as $i => $keycol) { ?>
-                    <tr data-sid=<?php echo $keycol['session']; ?>>
-                        <td id="id:<?php echo $keycol['session']; ?>">
+                    <tr data-sid="<?php echo escapeHtml($keycol['session']); ?>">
+                        <td id="id:<?php echo escapeHtml($keycol['session']); ?>">
                             <?php
                                 $start_timestamp = intdiv((int)$keycol['time'], 1000);
                                 $month_num = date('n', $start_timestamp);
@@ -146,9 +146,9 @@ include_once __DIR__ . '/src/head.php';
                                 $date = date($_COOKIE['timeformat'] == "12" ? "d, Y h:ia" : "d, Y H:i", $start_timestamp);
                                 $session_id_str = $translated_month . ' ' . $date;
                             ?>
-                            <span class='delete-icon' onclick="event.stopPropagation(); removeFavorite('<?php echo $keycol['session']; ?>', '<?php echo $session_id_str; ?>')">&times;</span>
+                            <span class='delete-icon' onclick="event.stopPropagation(); removeFavorite(<?php echo escapeHtml(js_string($keycol['session'])); ?>, <?php echo escapeHtml(js_string($session_id_str)); ?>)">&times;</span>
                             <?php
-                                echo $session_id_str;
+                                echo escapeHtml($session_id_str);
                             ?>
                         </td>
                         <td>
@@ -156,9 +156,9 @@ include_once __DIR__ . '/src/head.php';
                                 echo formatDuration((int)$keycol['time'], (int)$keycol['timeend'], $lang);
                             ?>
                         </td>
-                        <td><?php if ($keycol['profileName'] == 'Not Specified') { echo $translations[$lang]['profile.ns']; } else { echo $keycol['profileName']; } ?></td>
-                        <td data-sid="<?php echo $keycol['session']; ?>"><?php echo $keycol['description']; ?></td>
-                        <td><a href="<?php echo '/sessions/'.$keycol['session']; ?>" l10n='fav.open'></a></td>
+                        <td><?php if ($keycol['profileName'] == 'Not Specified') { echo $translations[$lang]['profile.ns']; } else { echo escapeHtml($keycol['profileName']); } ?></td>
+                        <td data-sid="<?php echo escapeHtml($keycol['session']); ?>"><?php echo escapeHtml($keycol['description']); ?></td>
+                        <td><a href="<?php echo '/sessions/'.rawurlencode((string)$keycol['session']); ?>" l10n='fav.open'></a></td>
                     </tr>
                 <?php } ?>
             </tbody>

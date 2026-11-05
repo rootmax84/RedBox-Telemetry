@@ -87,7 +87,7 @@ include_once __DIR__ . '/src/head.php';
         </button>
       </li>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('/adminer?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open(<?php echo escapeHtml(js_string('/adminer?' . http_build_query(['server' => $db_host, 'username' => $db_user, 'db' => $db_name], '', '&', PHP_QUERY_RFC3986))); ?>, '_blank')">
           <span class="icon" id="adminer-img"></span>
           Adminer
         </button>
@@ -114,14 +114,14 @@ if ($_GET['action'] == "edit") {
     $limit = isset($_GET['limit']) ? $_GET['limit'] : null;
 ?>
             <h4 l10n="admin.edit.title"></h4>
-                <input class="form-control" type="text" name="e_login" value="<?php echo htmlspecialchars($user); ?>" maxlength="32" l10n-placeholder="login.login" required autofocus <?php if(isset($user)){?> readonly <?php }?>></br>
+                <input class="form-control" type="text" name="e_login" value="<?php echo escapeHtml($user); ?>" maxlength="32" l10n-placeholder="login.login" required autofocus <?php if(isset($user)){?> readonly <?php }?>></br>
                 <div class="password-toggle">
                     <input class="form-control password-input" type="password" name="e_pass" value="" maxlength="64" l10n-placeholder="login.pwd" autocomplete="new-password">
                     <button type="button" class="password-toggle__btn">
                         <span class="password-toggle__icon"></span>
                     </button>
                 </div><br><br>
-                <input class="form-control" type="number" min="-1" max="100000" name="e_limit" l10n-placeholder="input.limits" value="<?php if($user != $admin) echo htmlspecialchars($limit); ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
+                <input class="form-control" type="number" min="-1" max="100000" name="e_limit" l10n-placeholder="input.limits" value="<?php if($user != $admin) echo escapeHtml($limit); ?>" <?php if($user == $admin){?> readonly <?php }?>></br>
                 <button class="btn btn-info btn-sm" style="width:100%; height:35px" type="submit" l10n="admin.edit.btn"></button>
 <?php
 }

@@ -121,13 +121,13 @@ include_once __DIR__ . '/src/head.php';
             </thead>
             <tbody>
                 <?php foreach ($keydata as $i => $keycol) { ?>
-                    <tr data-pid=<?php echo $keycol['id']; ?>>
-                        <td style="white-space:nowrap" id="id:<?php echo $keycol['id']; ?>"><span class='delete-icon' onclick="event.stopPropagation(); deletePID('<?php echo $keycol['id']; ?>')">&times;</span><?php echo $keycol['id']; ?></td>
-                        <td id="description:<?php echo $keycol['id']; ?>" contenteditable="true"><?php echo $keycol['description']; ?></td>
-                        <td id="units:<?php echo $keycol['id']; ?>" contenteditable="true"><?php echo $keycol['units']; ?></td>
-                        <td><input type="checkbox" id="populated:<?php echo $keycol['id']; ?>"<?php if ($keycol['populated']) echo " checked"; ?>></td>
-                        <td><input type="checkbox" id="stream:<?php echo $keycol['id']; ?>"<?php if ($keycol['stream']) echo " checked"; ?>></td>
-                        <td><input type="checkbox" id="favorite:<?php echo $keycol['id']; ?>"<?php if ($keycol['favorite']) echo " checked"; ?>></td>
+                    <tr data-pid="<?php echo escapeHtml($keycol['id']); ?>">
+                        <td style="white-space:nowrap" id="id:<?php echo escapeHtml($keycol['id']); ?>"><span class='delete-icon' onclick="event.stopPropagation(); deletePID(<?php echo escapeHtml(js_string($keycol['id'])); ?>)">&times;</span><?php echo escapeHtml($keycol['id']); ?></td>
+                        <td id="description:<?php echo escapeHtml($keycol['id']); ?>" contenteditable="true"><?php echo escapeHtml($keycol['description']); ?></td>
+                        <td id="units:<?php echo escapeHtml($keycol['id']); ?>" contenteditable="true"><?php echo escapeHtml($keycol['units']); ?></td>
+                        <td><input type="checkbox" id="populated:<?php echo escapeHtml($keycol['id']); ?>"<?php if ($keycol['populated']) echo " checked"; ?>></td>
+                        <td><input type="checkbox" id="stream:<?php echo escapeHtml($keycol['id']); ?>"<?php if ($keycol['stream']) echo " checked"; ?>></td>
+                        <td><input type="checkbox" id="favorite:<?php echo escapeHtml($keycol['id']); ?>"<?php if ($keycol['favorite']) echo " checked"; ?>></td>
                     </tr>
                 <?php } ?>
             </tbody>

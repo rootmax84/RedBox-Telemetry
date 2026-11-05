@@ -1,6 +1,6 @@
     <div class="row center-block" style="padding-bottom:22px;">
       <!-- Filter the session list by year and month -->
-      <form method="post" class="form-horizontal" action="/url/?id=<?php echo $session_id; ?>">
+      <form method="post" class="form-horizontal" action="/url/?id=<?php echo escapeHtml(rawurlencode((string)$session_id)); ?>">
         <table style="width:100%">
           <tr>
             <!-- Profile Filter -->
@@ -10,7 +10,7 @@
                 <option style="text-align:center" value="ALL"<?php if ($filterprofile == "ALL") echo ' selected'; ?> l10n="profile.any"></option>
                 <?php $i = 0; ?>
                 <?php while(isset($profilearray[$i])) { ?>
-                  <option value="<?php echo $profilearray[$i]; ?>"<?php if ($filterprofile == $profilearray[$i]) echo ' selected'; ?>><?php echo $profilearray[$i]; ?></option>
+                  <option value="<?php echo escapeHtml($profilearray[$i]); ?>"<?php if ($filterprofile == $profilearray[$i]) echo ' selected'; ?>><?php echo escapeHtml($profilearray[$i]); ?></option>
                   <?php $i = $i + 1; ?>
                 <?php } ?>
               </select>
@@ -23,7 +23,7 @@
                 <option style="text-align:center" value="ALL"<?php if ($filteryear == "ALL") echo ' selected'; ?> l10n="year.any"></option>
                 <?php $i = 0; ?>
                 <?php while(isset($yeararray[$i])) { ?>
-                  <option value="<?php echo $yeararray[$i]; ?>"<?php if ($filteryear == $yeararray[$i]) echo ' selected'; ?>><?php echo $yeararray[$i]; ?></option>
+                  <option value="<?php echo escapeHtml($yeararray[$i]); ?>"<?php if ($filteryear == $yeararray[$i]) echo ' selected'; ?>><?php echo escapeHtml($yeararray[$i]); ?></option>
                   <?php $i = $i + 1; ?>
                 <?php } ?>
               </select>
@@ -55,14 +55,14 @@
     <form method="post" class="form-horizontal" action="/url" id="sessionForm">
       <select id="seshidtag" name="seshidtag" class="form-control">
         <?php foreach ($seshdates as $dateid => $datestr) { ?>
-          <option value="<?php echo $dateid; ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>>
+          <option value="<?php echo escapeHtml($dateid); ?>"<?php if ($dateid == $session_id) echo ' selected'; ?>>
             <?php
-              echo $datestr;
-              echo $seshprofile[$dateid];
-              if ($show_session_length) { echo $seshsizes[$dateid]; }
-              echo $seship[$dateid];
-              echo $sesactive[$dateid];
-              if ($dateid == $session_id) echo $translations[$lang]['get.sess.curr'];
+              echo escapeHtml($datestr);
+              echo escapeHtml($seshprofile[$dateid]);
+              if ($show_session_length) { echo escapeHtml($seshsizes[$dateid]); }
+              echo escapeHtml($seship[$dateid]);
+              echo escapeHtml($sesactive[$dateid]);
+              if ($dateid == $session_id) echo escapeHtml($translations[$lang]['get.sess.curr']);
             ?>
           </option>
           <?php if ($dateid == $session_id && $sesfavorite[$dateid] == 1) { ?>
@@ -71,8 +71,8 @@
         <?php } ?>
       </select>
 
-      <input type="hidden" name="selprofile" id="hiddenProfile" value="<?php echo htmlspecialchars($filterprofile); ?>">
-      <input type="hidden" name="selyear" id="hiddenYear" value="<?php echo htmlspecialchars($filteryear); ?>">
-      <input type="hidden" name="selmonth" id="hiddenMonth" value="<?php echo htmlspecialchars($filtermonth); ?>">
+      <input type="hidden" name="selprofile" id="hiddenProfile" value="<?php echo escapeHtml($filterprofile); ?>">
+      <input type="hidden" name="selyear" id="hiddenYear" value="<?php echo escapeHtml($filteryear); ?>">
+      <input type="hidden" name="selmonth" id="hiddenMonth" value="<?php echo escapeHtml($filtermonth); ?>">
     </form>
     </div>

@@ -38,7 +38,7 @@
         </button>
       </li>
       <li role="none">
-        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open('/adminer?server=<?php echo $db_host; ?>&username=<?php echo $db_user; ?>&db=<?php echo $db_name; ?>', '_blank')">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="window.open(<?php echo escapeHtml(js_string('/adminer?' . http_build_query(['server' => $db_host, 'username' => $db_user, 'db' => $db_name], '', '&', PHP_QUERY_RFC3986))); ?>, '_blank')">
           <span class="icon" id="adminer-img"></span>
           Adminer
         </button>

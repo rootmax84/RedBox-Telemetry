@@ -35,16 +35,16 @@ document.documentElement.classList.add('choices-pending');
 <meta name="viewport" content="width=device-width, initial-scale=0.8">
 <title>RedBox Telemetry</title>
 <meta name="description" content="RedBox Telemetry">
-<link rel="stylesheet" href="<?php echo version_url('/static/css/bootstrap.min.css'); ?>">
-<link rel="stylesheet" href="<?php echo version_url('/static/css/choices.min.css'); ?>">
-<link rel="stylesheet" href="<?php echo version_url('/static/css/main.css'); ?>">
-<link rel="stylesheet" href="<?php echo version_url('/static/css/remote.css'); ?>">
-<link rel="stylesheet" href="<?php echo version_url('/static/css/Control.FullScreen.css'); ?>">
+<link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/bootstrap.min.css')); ?>">
+<link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/choices.min.css')); ?>">
+<link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/main.css')); ?>">
+<link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/remote.css')); ?>">
+<link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/Control.FullScreen.css')); ?>">
 <?php if (isset($_SESSION['torque_user']) || isset($_SESSION['share'])) {?>
-<script>let darkCssUrl = "<?php echo version_url('/static/css/dark.css'); ?>";</script>
+<script>let darkCssUrl = <?php echo js_string(version_url('/static/css/dark.css')); ?>;</script>
 <script src="<?php echo version_url('/static/js/theme.js'); ?>"></script>
 <?php } if (isset($_SESSION['admin'])) {?>
-<link rel="stylesheet" href="<?php echo version_url('/static/css/admin.css'); ?>">
+<link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/admin.css')); ?>">
 <script src="<?php echo version_url('/static/js/admin.js'); ?>"></script>
 <?php } ?>
 <script src="<?php echo version_url('/static/js/jquery.min.js'); ?>"></script>
@@ -53,7 +53,7 @@ document.documentElement.classList.add('choices-pending');
 <script src="<?php echo version_url('/static/js/jquery-ui.touch-punch.min.js'); ?>"></script>
 <script src="<?php echo version_url('/static/js/jquery.peity.min.js'); ?>"></script>
 <script src="<?php echo version_url('/static/js/choices.min.js'); ?>"></script>
-<link rel="stylesheet" href="<?php echo version_url('/static/css/leaflet.css'); ?>">
+<link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/leaflet.css')); ?>">
 <script src="<?php echo version_url('/static/js/leaflet.js'); ?>"></script>
 <script src="<?php echo version_url('/static/js/leaflet.hotline.min.js'); ?>"></script>
 <script src="<?php echo version_url('/static/js/coords.js'); ?>"></script>

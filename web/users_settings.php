@@ -101,12 +101,12 @@
 		<form method="POST" action="/settings/save" onsubmit="return submitForm(this);">
 		<div class="settings--cell">
 		    <div class="password-toggle">
-			<input class="form-control password-input" type="password" name="tg_token" l10n-placeholder="user.tg.token" maxlength="64" autocomplete="new-password" value="<?php echo $token; ?>">
+			<input class="form-control password-input" type="password" name="tg_token" l10n-placeholder="user.tg.token" maxlength="64" autocomplete="new-password" value="<?php echo escapeHtml($token); ?>">
 			<button type="button" class="password-toggle__btn">
 			    <span class="password-toggle__icon"></span>
 			</button>
 		    </div>
-		 <input class="form-control" type="number" name="tg_chatid" l10n-placeholder="user.tg.id" autocomplete="new-password" value="<?php echo $chatid; ?>">
+		 <input class="form-control" type="number" name="tg_chatid" l10n-placeholder="user.tg.id" autocomplete="new-password" value="<?php echo escapeHtml($chatid); ?>">
 		</div>
 		 <div class="cntr"><button class="btn btn-info btn-sm" type="submit" l10n="btn.save"></button></div>
 		</form>

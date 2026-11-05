@@ -177,7 +177,7 @@ include_once __DIR__ . '/src/head.php';
             <div class="row center-block" style="padding-bottom:10px;">
                 <select multiple id="plot_data">
                     <?php $var1 = ""; $fav_selected_count = 0; foreach ($coldata as $xcol) { ?>
-                        <option value="<?php echo $xcol['colname']; ?>" <?php
+                        <option value="<?php echo escapeHtml($xcol['colname']); ?>" <?php
                             $is_matched = false;
                             $i = 1;
                             while (isset(${'var' . $i})) {
@@ -194,7 +194,7 @@ include_once __DIR__ . '/src/head.php';
                                 $fav_selected_count++;
                             }
                             ?>>
-                                <?php echo $xcol['colcomment']; ?>
+                                <?php echo escapeHtml($xcol['colcomment']); ?>
                             </option>
                         <?php } ?>
                 </select>

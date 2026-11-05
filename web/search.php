@@ -130,9 +130,9 @@ include_once __DIR__ . '/src/head.php';
 
                     <div class="search-field search-field--range">
                         <select id="rangeSelect" name="range" class="form-control choices-select">
-                            <option value="" disabled><?= $translations[$lang]['search.range.label'] ?></option>
-                            <option value="day" selected><?= $translations[$lang]['search.range.day'] ?></option>
-                            <option value="month"><?= $translations[$lang]['search.range.month'] ?></option>
+                            <option value="" disabled><?= escapeHtml($translations[$lang]['search.range.label']) ?></option>
+                            <option value="day" selected><?= escapeHtml($translations[$lang]['search.range.day']) ?></option>
+                            <option value="month"><?= escapeHtml($translations[$lang]['search.range.month']) ?></option>
                             <?php foreach ($years as $y): ?>
                                 <option value="<?= $y ?>"><?= $y ?></option>
                             <?php endforeach; ?>
@@ -141,9 +141,9 @@ include_once __DIR__ . '/src/head.php';
 
                     <div class="search-field search-field--pid">
                         <select id="pidSelect" name="pid" class="form-control choices-select" required>
-                            <option value="" disabled selected><?= $translations[$lang]['search.select_pid'] ?></option>
+                            <option value="" disabled selected><?= escapeHtml($translations[$lang]['search.select_pid']) ?></option>
                             <?php foreach ($pids as $pid): ?>
-                                <option value="<?= htmlspecialchars($pid['id']) ?>"><?= htmlspecialchars($pid['description']) ?></option>
+                                <option value="<?= escapeHtml($pid['id']) ?>"><?= escapeHtml($pid['description']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -163,7 +163,7 @@ include_once __DIR__ . '/src/head.php';
                     </div>
 
                     <div class="search-field search-field--submit">
-                        <button type="submit" class="btn btn-info btn-sm"><?= $translations[$lang]['search.find'] ?></button>
+                        <button type="submit" class="btn btn-info btn-sm"><?= escapeHtml($translations[$lang]['search.find']) ?></button>
                     </div>
 
                 </div>
@@ -174,20 +174,20 @@ include_once __DIR__ . '/src/head.php';
             <table class="table table-del-merge-pid" id="results-table" style="display:none;">
                 <thead>
                     <tr>
-                        <th><?= $translations[$lang]['s.table.start'] ?></th>
-                        <th><?= $translations[$lang]['s.table.end'] ?></th>
-                        <th><?= $translations[$lang]['s.table.datapoints'] ?></th>
-                        <th><?= $translations[$lang]['sel.profile'] ?></th>
-                        <th><?= $translations[$lang]['fav.url'] ?></th>
+                        <th><?= escapeHtml($translations[$lang]['s.table.start']) ?></th>
+                        <th><?= escapeHtml($translations[$lang]['s.table.end']) ?></th>
+                        <th><?= escapeHtml($translations[$lang]['s.table.datapoints']) ?></th>
+                        <th><?= escapeHtml($translations[$lang]['sel.profile']) ?></th>
+                        <th><?= escapeHtml($translations[$lang]['fav.url']) ?></th>
                     </tr>
                 </thead>
                 <tbody id="results-body"></tbody>
             </table>
             <div id="no-more" style="text-align:center; padding:20px; display:none;">
-                <span class="label label-default"><?= $translations[$lang]['search.no_more'] ?></span>
+                <span class="label label-default"><?= escapeHtml($translations[$lang]['search.no_more']) ?></span>
             </div>
             <div id="no-results" style="text-align:center; display:none;">
-                <span class="label label-default"><?= $translations[$lang]['search.no_results'] ?></span>
+                <span class="label label-default"><?= escapeHtml($translations[$lang]['search.no_results']) ?></span>
             </div>
         </div>
     </div>
