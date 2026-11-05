@@ -607,12 +607,21 @@ function processSessionStartRecord(
     $sesskeys[]   = 'id';
     $sessvalues[] = $id;
 
-    $sql = "INSERT INTO sessions (user_id, " . quote_names($sesskeys) . ", sessionsize)
-            VALUES (" . (int)$user_id . ", " . quote_values($sessvalues) . ", 0)
-            ON DUPLICATE KEY UPDATE
-                id      = VALUES(id),
-                timeend = GREATEST(timeend, VALUES(timeend))";
-    $db->execute_query($sql);
+    $db->execute_query(
+        "INSERT INTO sessions
+            (user_id, session, time, timeend, id, sessionsize)
+         VALUES (?, ?, ?, ?, ?, 0)
+         ON DUPLICATE KEY UPDATE
+            id = VALUES(id),
+            timeend = GREATEST(timeend, VALUES(timeend))",
+        [
+            $user_id,
+            $sessuploadid,
+            $sesstime,
+            $sesstime,
+            $id
+        ]
+    );
 
     $isNewSessionStart = false;
 
