@@ -94,7 +94,7 @@ function main(array $argv): int
 
 function dispatch(mysqli $db, string $cmd, array $args): int
 {
-    [$pos, $opts] = parseArgs($args, ['password', 'limit']);
+    [$pos, $opts] = parseArgs($args, ['password', 'limit', 'user', 'id', 'profile']);
 
     switch ($cmd) {
         case 'admin:reset':
@@ -113,6 +113,12 @@ function dispatch(mysqli $db, string $cmd, array $args): int
             return cmdUserToggle($db, $pos, $opts, false);
         case 'user:enable':
             return cmdUserToggle($db, $pos, $opts, true);
+        case 'orphans:scan':
+            return cmdOrphansScan($db, $pos, $opts);
+        case 'orphans:clean':
+            return cmdOrphansClean($db, $pos, $opts);
+        case 'orphans:recover':
+            return cmdOrphansRecover($db, $pos, $opts);
         case 'maintenance:on':
             return cmdMaintenance($pos, $opts, true);
         case 'maintenance:off':
@@ -400,6 +406,583 @@ function deleteByUserId(mysqli $db, string $table, int $uid): int
     $stmt->close();
 
     return $affected;
+}
+
+/* ════════════════════════════════════════════════════════════
+ * ORPHANS
+ * ════════════════════════════════════════════════════════════ */
+
+/**
+ * Найти сессии без логов: rows в `sessions`, для которых нет
+ * ни одной строки в `logs` с той же парой (user_id, session).
+ *
+ * @return array{total:int, by_user:array<int,int>}
+ */
+function orphansScanSessions(mysqli $db, ?int $uid): array
+{
+    $sql = "SELECT s.user_id, COUNT(*) AS cnt
+              FROM sessions s
+              LEFT JOIN logs l
+                     ON l.user_id = s.user_id
+                    AND l.session = s.session
+             WHERE l.session IS NULL";
+
+    if ($uid !== null) {
+        $sql .= " AND s.user_id = " . (int)$uid;
+    }
+    $sql .= " GROUP BY s.user_id ORDER BY s.user_id";
+
+    $r = $db->query($sql);
+    if (!$r) {
+        throw new RuntimeException("orphans scan (sessions) failed: " . $db->error);
+    }
+
+    $total  = 0;
+    $byUser = [];
+    while ($row = $r->fetch_assoc()) {
+        $u = (int)$row['user_id'];
+        $c = (int)$row['cnt'];
+        $byUser[$u] = $c;
+        $total += $c;
+    }
+    $r->free();
+
+    return [
+        'total'   => $total,
+        'by_user' => $byUser,
+    ];
+}
+
+/**
+ * Найти логи без сессий.
+ *
+ * @return array{
+ *     total_rows:int,
+ *     total_sessions:int,
+ *     by_user:array<int, array{user_id:int, session:int, rows:int}>
+ * }
+ */
+function orphansScanLogs(mysqli $db, ?int $uid): array
+{
+    $sql = "SELECT l.user_id, l.session, COUNT(*) AS cnt
+              FROM logs l
+              LEFT JOIN sessions s
+                     ON s.user_id = l.user_id
+                    AND s.session = l.session
+             WHERE s.session IS NULL";
+
+    if ($uid !== null) {
+        $sql .= " AND l.user_id = " . (int)$uid;
+    }
+    $sql .= " GROUP BY l.user_id, l.session ORDER BY l.user_id, l.session";
+
+    $r = $db->query($sql);
+    if (!$r) {
+        throw new RuntimeException("orphans scan (logs) failed: " . $db->error);
+    }
+
+    $totalRows     = 0;
+    $totalSessions = 0;
+    $byUser        = [];
+    while ($row = $r->fetch_assoc()) {
+        $item = [
+            'user_id' => (int)$row['user_id'],
+            'session' => (int)$row['session'],
+            'rows'    => (int)$row['cnt'],
+        ];
+        $byUser[] = $item;
+        $totalRows += $item['rows'];
+        $totalSessions++;
+    }
+    $r->free();
+
+    return [
+        'total_rows'     => $totalRows,
+        'total_sessions' => $totalSessions,
+        'by_user'        => $byUser,
+    ];
+}
+
+/**
+ * Удалить сессии без логов (anti-join через LEFT JOIN … IS NULL).
+ * Возвращает число удалённых строк sessions.
+ */
+function orphansDeleteSessions(mysqli $db, ?int $uid): int
+{
+    $sql = "DELETE s FROM sessions s
+              LEFT JOIN logs l
+                     ON l.user_id = s.user_id
+                    AND l.session = s.session
+             WHERE l.session IS NULL";
+
+    if ($uid !== null) {
+        $sql .= " AND s.user_id = " . (int)$uid;
+    }
+
+    if (!$db->query($sql)) {
+        throw new RuntimeException("orphans delete (sessions) failed: " . $db->error);
+    }
+
+    return (int)$db->affected_rows;
+}
+
+/**
+ * Удалить логи без сессий (anti-join через LEFT JOIN … IS NULL).
+ * Возвращает число удалённых строк logs.
+ */
+function orphansDeleteLogs(mysqli $db, ?int $uid): int
+{
+    $sql = "DELETE l FROM logs l
+              LEFT JOIN sessions s
+                     ON s.user_id = l.user_id
+                    AND l.session = l.session
+             WHERE s.session IS NULL";
+
+    if ($uid !== null) {
+        $sql .= " AND l.user_id = " . (int)$uid;
+    }
+
+    if (!$db->query($sql)) {
+        throw new RuntimeException("orphans delete (logs) failed: " . $db->error);
+    }
+
+    return (int)$db->affected_rows;
+}
+
+/**
+ * Создать недостающие строки в `sessions` для orphan-логов.
+ *
+ * Для каждой пары (user_id, session), присутствующей в `logs`,
+ * но отсутствующей в `sessions`, вставляется строка:
+ *
+ *   id          = $sessionId          (по умолчанию '-')
+ *   profileName = $profileName        (по умолчанию 'Orphan sessions')
+ *   description = '-'
+ *   ip          = '0.0.0.0'
+ *   sessionsize = COUNT(*) строк logs этой сессии
+ *   session     = l.session
+ *   time        = MIN(l.time)
+ *   timeend     = MAX(l.time)
+ *   favorite    = 0
+ *
+ * INSERT IGNORE — защита от гонки с параллельным upload/повторным
+ * вызовом recover: если сессия успела появиться, вставка тихо
+ * пропускается, существующие данные не перетираются.
+ *
+ * @return int число реально вставленных строк sessions
+ */
+function orphansRecoverSessions(
+    mysqli $db,
+    ?int $uid,
+    string $sessionId,
+    string $profileName
+): int {
+    $sql = "INSERT IGNORE INTO sessions
+                (user_id, id, profileName, description, ip, sessionsize, session, time, timeend, favorite)
+            SELECT
+                l.user_id,
+                ?,
+                ?,
+                '-',
+                '0.0.0.0',
+                COUNT(*),
+                l.session,
+                MIN(l.time),
+                MAX(l.time),
+                0
+              FROM logs l
+              LEFT JOIN sessions s
+                     ON s.user_id = l.user_id
+                    AND s.session = l.session
+             WHERE s.session IS NULL";
+
+    if ($uid !== null) {
+        $sql .= " AND l.user_id = " . (int)$uid;
+    }
+    $sql .= " GROUP BY l.user_id, l.session";
+
+    $stmt = $db->prepare($sql);
+    if (!$stmt) {
+        throw new RuntimeException("prepare failed for orphans recover: " . $db->error);
+    }
+
+    $stmt->bind_param('ss', $sessionId, $profileName);
+    if (!$stmt->execute()) {
+        $err = $stmt->error;
+        $stmt->close();
+        throw new RuntimeException("orphans recover failed: " . $err);
+    }
+
+    $affected = (int)$stmt->affected_rows;
+    $stmt->close();
+
+    return $affected;
+}
+
+/**
+ * Валидация значения для sessions.id (VARCHAR(32)).
+ *
+ * @throws RuntimeException при некорректном значении
+ */
+function validateSessionId($raw): string
+{
+    if ($raw === true) {
+        throw new RuntimeException("--id requires a value (use --id=VALUE)");
+    }
+
+    $v = trim((string)$raw);
+
+    if ($v === '') {
+        throw new RuntimeException("--id cannot be empty");
+    }
+    if (preg_match('/[\x00-\x1F\x7F]/', $v)) {
+        throw new RuntimeException("--id contains control characters or newlines");
+    }
+    if (mb_strlen($v) > 32) {
+        throw new RuntimeException(
+            "--id must be at most 32 characters (got " . mb_strlen($v) . ")"
+        );
+    }
+
+    return $v;
+}
+
+/**
+ * Валидация значения для sessions.profileName (VARCHAR(128)).
+ *
+ * @throws RuntimeException при некорректном значении
+ */
+function validateProfileName($raw): string
+{
+    if ($raw === true) {
+        throw new RuntimeException("--profile requires a value (use --profile=VALUE)");
+    }
+
+    $v = trim((string)$raw);
+
+    if ($v === '') {
+        throw new RuntimeException("--profile cannot be empty");
+    }
+    if (preg_match('/[\x00-\x1F\x7F]/', $v)) {
+        throw new RuntimeException("--profile contains control characters or newlines");
+    }
+    if (mb_strlen($v) > 128) {
+        throw new RuntimeException(
+            "--profile must be at most 128 characters (got " . mb_strlen($v) . ")"
+        );
+    }
+
+    return $v;
+}
+
+function cmdOrphansScan(mysqli $db, array $pos, array $opts): int
+{
+    return orphansImpl($db, $opts, 'scan');
+}
+
+function cmdOrphansClean(mysqli $db, array $pos, array $opts): int
+{
+    return orphansImpl($db, $opts, 'clean');
+}
+
+function cmdOrphansRecover(mysqli $db, array $pos, array $opts): int
+{
+    return orphansImpl($db, $opts, 'recover');
+}
+
+/**
+ * Общая реализация orphans:* — один и тот же скан, разные действия.
+ *
+ * @param string $mode 'scan' | 'clean' | 'recover'
+ */
+function orphansImpl(mysqli $db, array $opts, string $mode): int
+{
+    $isScan    = ($mode === 'scan');
+    $isClean   = ($mode === 'clean');
+    $isRecover = ($mode === 'recover');
+    $jsonMode  = isset($opts['json']);
+
+    if (!usersTableExists($db)) {
+        e("[error] users table does not exist");
+        return 1;
+    }
+
+    /* ── Recover-only options: --id / --profile ──
+     * Разрешены ТОЛЬКО для orphans:recover. Для scan/clean —
+     * отвергаем с ошибкой, чтобы не было ложных ожиданий.
+     * ── */
+    $recoverId          = '-';
+    $recoverProfileName = 'Orphan sessions';
+
+    if (isset($opts['id']) || isset($opts['profile'])) {
+        if (!$isRecover) {
+            e("[error] --id and --profile are only valid with orphans:recover");
+            return 2;
+        }
+
+        try {
+            if (isset($opts['id'])) {
+                $recoverId = validateSessionId($opts['id']);
+            }
+            if (isset($opts['profile'])) {
+                $recoverProfileName = validateProfileName($opts['profile']);
+            }
+        } catch (Throwable $ex) {
+            e("[error] " . $ex->getMessage());
+            return 2;
+        }
+    }
+
+    /* ── Optional user filter ── */
+    $uid   = null;
+    $uname = null;
+    if (isset($opts['user'])) {
+        $uname = (string)$opts['user'];
+        $u = findUser($db, $uname);
+        if (!$u) {
+            e("[error] user '$uname' not found");
+            return 1;
+        }
+        $uid = (int)$u['id'];
+    }
+
+    $filterLabel = ($uid === null) ? "(all users)" : "user='$uname' (id=$uid)";
+
+    if (!$jsonMode) {
+        o("");
+        o("Scanning orphans $filterLabel ...");
+        o("");
+    }
+
+    /* ── Scan ── */
+    try {
+        $sessOrphans = orphansScanSessions($db, $uid);
+        $logOrphans  = orphansScanLogs($db, $uid);
+    } catch (Throwable $ex) {
+        e("[error] scan failed: " . $ex->getMessage());
+        return 1;
+    }
+
+    /* ── JSON mode: emit before any action ── */
+    if ($jsonMode) {
+        $payload = [
+            'mode'   => $mode,
+            'filter' => [
+                'user_id'  => $uid,
+                'username' => $uname,
+            ],
+            'orphan_sessions' => $sessOrphans,
+            'orphan_logs'     => $logOrphans,
+        ];
+        if ($isRecover) {
+            $payload['recover_options'] = [
+                'id'          => $recoverId,
+                'profileName' => $recoverProfileName,
+            ];
+        }
+        echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        echo "\n";
+    } else {
+        /* ── Human-readable ── */
+        if ($sessOrphans['total'] === 0) {
+            o("Sessions without logs:  none");
+        } else {
+            o(sprintf("Sessions without logs:  %d", $sessOrphans['total']));
+            foreach ($sessOrphans['by_user'] as $u => $c) {
+                o(sprintf("  user_id=%-6d  %d session(s)", $u, $c));
+            }
+        }
+        o("");
+
+        if ($logOrphans['total_sessions'] === 0) {
+            o("Logs without sessions:  none");
+        } else {
+            o(sprintf(
+                "Logs without sessions:  %d session(s), %d row(s)",
+                $logOrphans['total_sessions'],
+                $logOrphans['total_rows']
+            ));
+            foreach ($logOrphans['by_user'] as $item) {
+                o(sprintf(
+                    "  user_id=%-6d session=%-20d  %d row(s)",
+                    $item['user_id'],
+                    $item['session'],
+                    $item['rows']
+                ));
+            }
+        }
+        o("");
+
+        if ($isRecover) {
+            o(sprintf(
+                "Recover options:  id='%s', profileName='%s'",
+                $recoverId,
+                $recoverProfileName
+            ));
+            o("");
+        }
+    }
+
+    /* ═══════════ scan: только статистика ═══════════ */
+    if ($isScan) {
+        if (!$jsonMode && ($sessOrphans['total'] > 0 || $logOrphans['total_sessions'] > 0)) {
+            o("Hints:");
+            if ($logOrphans['total_sessions'] > 0) {
+                o("  • orphans:recover — create missing sessions for orphan logs (fixes them)");
+            }
+            if ($sessOrphans['total'] > 0) {
+                o("  • orphans:clean   — delete orphan sessions (and orphan logs)");
+            }
+            o("");
+        }
+        return 0;
+    }
+
+    /* ═══════════ recover: создать sessions для orphan-логов ═══════════ */
+    if ($isRecover) {
+        if ($logOrphans['total_sessions'] === 0) {
+            o("Nothing to recover.");
+            if ($sessOrphans['total'] > 0) {
+                o("Note: sessions without logs cannot be recovered; use orphans:clean to delete them.");
+            }
+            return 0;
+        }
+
+        if (isset($opts['dry-run'])) {
+            o(sprintf(
+                "[dry-run] would create %d session row(s) for %d orphan log row(s) " .
+                "[id='%s', profileName='%s']",
+                $logOrphans['total_sessions'],
+                $logOrphans['total_rows'],
+                $recoverId,
+                $recoverProfileName
+            ));
+            if ($sessOrphans['total'] > 0) {
+                o("Note: sessions without logs cannot be recovered; use orphans:clean to delete them.");
+            }
+            return 0;
+        }
+
+        if (!isset($opts['force'])) {
+            if (!isInteractive()) {
+                e("Non-interactive session: pass --force to proceed.");
+                e(sprintf(
+                    "Reason: this will create %d session row(s) in `sessions` " .
+                    "for orphan logs (id='%s', profileName='%s').",
+                    $logOrphans['total_sessions'],
+                    $recoverId,
+                    $recoverProfileName
+                ));
+                return 1;
+            }
+            $q = sprintf(
+                "Create %d session row(s) in `sessions` for orphan logs " .
+                "(id='%s', profileName='%s')?",
+                $logOrphans['total_sessions'],
+                $recoverId,
+                $recoverProfileName
+            );
+            if (!confirm($q, false)) {
+                e("Aborted.");
+                return 1;
+            }
+        }
+
+        o("");
+        o("Recovering orphan log sessions ...");
+
+        try {
+            $created = orphansRecoverSessions($db, $uid, $recoverId, $recoverProfileName);
+        } catch (Throwable $ex) {
+            e("[error] recover failed: " . $ex->getMessage());
+            return 1;
+        }
+
+        o("");
+        o(sprintf(
+            "✔ Created %d session row(s) for orphan logs (id='%s', profileName='%s')",
+            $created,
+            $recoverId,
+            $recoverProfileName
+        ));
+
+        if ($created !== $logOrphans['total_sessions']) {
+            o("");
+            o("Note: created count differs from scan " .
+              "(sessions appeared between scan and insert; they were skipped).");
+        }
+
+        if ($sessOrphans['total'] > 0) {
+            o("");
+            o(sprintf(
+                "Note: %d session(s) without logs still need orphans:clean to be removed.",
+                $sessOrphans['total']
+            ));
+        }
+
+        return 0;
+    }
+
+    /* ═══════════ clean: удалить сирот ═══════════ */
+    if ($isClean) {
+        if ($sessOrphans['total'] === 0 && $logOrphans['total_rows'] === 0) {
+            o("Nothing to clean.");
+            return 0;
+        }
+
+        if (isset($opts['dry-run'])) {
+            o("[dry-run] would delete the above orphans");
+            return 0;
+        }
+
+        if (!isset($opts['force'])) {
+            if (!isInteractive()) {
+                e("Non-interactive session: pass --force to proceed.");
+                e(sprintf(
+                    "Reason: this will delete %d orphan session(s) and %d orphan log row(s) permanently.",
+                    $sessOrphans['total'],
+                    $logOrphans['total_rows']
+                ));
+                return 1;
+            }
+            $q = sprintf(
+                "Delete %d orphan session(s) and %d orphan log row(s) permanently?",
+                $sessOrphans['total'],
+                $logOrphans['total_rows']
+            );
+            if (!confirm($q, false)) {
+                e("Aborted.");
+                return 1;
+            }
+        }
+
+        o("");
+        o("Deleting orphans ...");
+
+        try {
+            $deletedLogs     = orphansDeleteLogs($db, $uid);
+            $deletedSessions = orphansDeleteSessions($db, $uid);
+        } catch (Throwable $ex) {
+            e("[error] clean failed: " . $ex->getMessage());
+            return 1;
+        }
+
+        o("");
+        o(sprintf("✔ Deleted %d orphan log row(s)", $deletedLogs));
+        o(sprintf("✔ Deleted %d orphan session(s)", $deletedSessions));
+
+        if ($deletedLogs !== $logOrphans['total_rows']
+            || $deletedSessions !== $sessOrphans['total']) {
+            o("");
+            o("Note: delete counts differ from scan (data changed between scan and delete).");
+        }
+
+        return 0;
+    }
+
+    /* unreachable */
+    e("[error] unknown orphans mode: $mode");
+    return 1;
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -932,6 +1515,41 @@ USERS
     user:enable <username>             Restore s to default or --limit=N
         --limit=N
         --dry-run
+
+ORPHANS
+    orphans:scan                       Find orphan sessions/logs, print stats (read-only)
+    orphans:recover                    Create sessions for orphan logs
+    orphans:clean                      Delete orphan sessions and/or orphan logs
+
+    Common options:
+        --user=USERNAME                Only consider this user (faster, uses indexes)
+        --json                         Output scan result as JSON
+
+    orphans:recover only:
+        --id=VALUE                     sessions.id for new rows (default: '-', max 32 chars)
+        --profile=VALUE                sessions.profileName for new rows
+                                       (default: 'Orphan sessions', max 128 chars)
+        --dry-run                      Show plan, don't touch DB
+        --force                        Skip confirmation
+
+    orphans:clean only:
+        --dry-run                      Show plan, don't touch DB
+        --force                        Skip confirmation
+
+    Definitions:
+        Sessions without logs — row in `sessions` with no rows in `logs`
+                                for the same (user_id, session).
+                                Only orphans:clean can remove these.
+        Logs without sessions — rows in `logs` with no matching row in
+                                `sessions` for the same (user_id, session).
+                                orphans:recover creates the missing session row.
+                                orphans:clean deletes these log rows.
+
+    Race-safety:
+        All operations re-evaluate the anti-join at execution time.
+        If new data appears between scan and action, it is not touched.
+        orphans:recover uses INSERT IGNORE, so a session that appeared
+        concurrently is left intact (its metadata is not overwritten).
 
 MAINTENANCE
     maintenance:on                     Enable maintenance mode
