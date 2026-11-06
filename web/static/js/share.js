@@ -7,6 +7,8 @@ sig = SHARE_CONFIG.sig;
 
 let streamBtn_svg = null;
 let stream = false;
+// Same loading lifecycle as regular sessions; stream requests do not re-arm it.
+window.sessionInitialLoad = window.createSessionInitialLoad(Boolean(SHARE_CONFIG.imapdata));
 
 // --------------------------------------------------------------
 // Plot data + language switch (was: first inline <script>)
@@ -190,23 +192,19 @@ if (!window.rawPath.length) {
 
     initMap = initMapLeaflet;
 
-    const checkTranslationsCache = () => {
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('translations-cache-')) {
-                return true;
-            }
-        }
-        return false;
-    };
-
     const initMapLogic = () => {
-        jsCBinitMap = () => $(document).ready(initMap);
+        jsCBinitMap = () => $(document).ready(() => {
+            try {
+                initMap();
+            } finally {
+                window.sessionInitialLoad.markMapReady();
+            }
+        });
         jsCBinitMap();
     };
 
     const intervalId = setInterval(() => {
-        if (checkTranslationsCache()) {
+        if (typeof l10n_loaded !== 'undefined' && l10n_loaded) {
             clearInterval(intervalId);
             initMapLogic();
         }

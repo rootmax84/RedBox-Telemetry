@@ -1,5 +1,40 @@
 'use strict';
 
+// Initial-session loading coordination, shared by the regular page and /share.
+// Keep Flot/Leaflet containers in the layout while their content is hidden.
+window.createSessionInitialLoad = function (mapRequired) {
+    return {
+        chartReady: false,
+        mapReady: !mapRequired,
+        finished: false,
+        queued: false,
+        tryReveal() {
+            if (this.finished || this.queued || !this.chartReady || !this.mapReady) return;
+            this.queued = true;
+            const check = () => {
+                if (typeof plot !== 'undefined' && plot &&
+                    typeof plot.isDrawing === 'function' && plot.isDrawing()) {
+                    requestAnimationFrame(check);
+                    return;
+                }
+                requestAnimationFrame(() => {
+                    this.finished = true;
+                    document.documentElement.classList.remove('session-initial-loading');
+                });
+            };
+            requestAnimationFrame(check);
+        },
+        markChartReady() {
+            this.chartReady = true;
+            this.tryReveal();
+        },
+        markMapReady() {
+            this.mapReady = true;
+            this.tryReveal();
+        }
+    };
+};
+
 function choicesReady() {
     document.documentElement.classList.remove('choices-pending');
 }
@@ -587,8 +622,13 @@ let updCharts = (last = false)=>{
         $('#Chart-Container').empty();
         $('#Chart-Container').append(noChart);
         $('#Summary-Container').empty();
+        if (!last && window.sessionInitialLoad) window.sessionInitialLoad.markChartReady();
     } else {
-        $(".fetch-data").css("display", "block");
+        // During the initial session load, the centered session loader is the
+        // only progress indicator. The navbar spinner is for later requests.
+        if (!document.documentElement.classList.contains('session-initial-loading')) {
+            $(".fetch-data").css("display", "block");
+        }
         let varPrm = null;
         if (sid && uid && sig) {
             const gpsParam = (typeof SHARE_CONFIG !== 'undefined' && SHARE_CONFIG.gps) ? SHARE_CONFIG.gps : '0';
@@ -783,6 +823,7 @@ let updCharts = (last = false)=>{
                 $(this).text(averagedDataString);
                 $(this).peity('line', { width: '50' });
             });
+            if (window.sessionInitialLoad) window.sessionInitialLoad.markChartReady();
         }).catch(err => {
             const noChart = $('<div>',{class:'chart-label'}).append($('<span>',{class:'label label-warning'}).html(localization.key['nodata'] ?? 'No data'));
             $('#Chart-Container').empty();
@@ -790,6 +831,7 @@ let updCharts = (last = false)=>{
             $('#Summary-Container').empty();
             $(".fetch-data").css("display", "none");
             console.error(err);
+            if (!last && window.sessionInitialLoad) window.sessionInitialLoad.markChartReady();
         });
     }
 }

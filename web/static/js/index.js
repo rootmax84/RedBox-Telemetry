@@ -5,6 +5,11 @@
    stopPlotUpdates, handleSliderInit, alarm, rebuildMapFromRawPath,
    mapUpdRange, APP_CONFIG */
 
+// Shared with share.js: initial fetch, table processing, map setup and
+// progressive Flot rendering must all finish before the page is revealed.
+const sessionInitialLoad = window.createSessionInitialLoad(Boolean(APP_CONFIG.imapdata));
+window.sessionInitialLoad = sessionInitialLoad;
+
 // =============================================================
 // 1. Page bootstrap (was: first inline <script> in <body>)
 // =============================================================
@@ -1078,7 +1083,13 @@ if (!rawPath.length) {
     window.chartRangeEnd = 0;
 
     initMap = initMapLeaflet;
-    jsCBinitMap = () => $(document).ready(initMap);
+    jsCBinitMap = () => $(document).ready(() => {
+        try {
+            initMap();
+        } finally {
+            sessionInitialLoad.markMapReady();
+        }
+    });
     jsCBinitMap();
 }
 

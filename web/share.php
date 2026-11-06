@@ -135,6 +135,7 @@ require_once 'plot.php';
 
 $db->close();
 
+// Shared and regular sessions use the same initial-load state.
 include_once __DIR__ . '/src/head.php';
 ?>
 
@@ -169,6 +170,10 @@ include_once __DIR__ . '/src/head.php';
                 </a>
             </div>
         </div>
+    </div>
+
+    <div id="session-initial-loader" role="status" aria-live="polite" aria-label="Loading session">
+        <span class="session-initial-spinner" aria-hidden="true"></span>
     </div>
 
     <div id="right-container" class="col-md-auto col-xs-12">

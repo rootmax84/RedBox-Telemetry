@@ -5,6 +5,11 @@ extract($data, EXTR_SKIP);
 <body>
 <?php include __DIR__ . '/partials/flot-scripts.php'; ?>
 <?php include __DIR__ . '/partials/navbar.php'; ?>
+<?php if (!isset($_SESSION['admin']) && !empty($session_id)) { ?>
+<div id="session-initial-loader" role="status" aria-live="polite" aria-label="Loading session">
+    <span class="session-initial-spinner" aria-hidden="true"></span>
+</div>
+<?php } ?>
 <?php include __DIR__ . '/partials/menu.php'; ?>
 
 <div id="right-container" class="col-md-auto col-xs-12">

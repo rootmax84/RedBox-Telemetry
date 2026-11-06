@@ -1778,3 +1778,40 @@ input[type="text"] {
     .chart-with-legend { display: block; }
     .chart-with-legend #legend-container { display: none; }
 }
+
+/* Initial session load: keep the layout measurable for Flot/Leaflet, but
+   never expose unfinished controls, plots or splitter handles. */
+html.session-initial-loading #right-container {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#session-initial-loader { display: none; }
+html.session-initial-loading #session-initial-loader {
+  position: fixed;
+  inset: 44px 0 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--session-loading-background, #fff);
+  pointer-events: auto;
+}
+.session-initial-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #dedede;
+  border-top-color: #961911;
+  border-radius: 50%;
+  animation: session-initial-spin .8s linear infinite;
+}
+@keyframes session-initial-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .session-initial-spinner { animation: none; border-top-color: #961911; }
+}
+
+/* The initial session loader replaces the navbar request spinner.
+   Also covers other startup requests (e.g. the session filter list). */
+html.session-initial-loading .fetch-data {
+  display: none !important;
+}

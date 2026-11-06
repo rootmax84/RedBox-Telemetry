@@ -16,6 +16,9 @@ $head_host = htmlspecialchars($_SERVER['HTTP_HOST'] ?? '', ENT_QUOTES, 'UTF-8');
 <head>
 <script>
 document.documentElement.classList.add('choices-pending');
+<?php if (!isset($_SESSION['admin']) && !empty($session_id) ) { ?>
+document.documentElement.classList.add('session-initial-loading');
+<?php } ?>
 </script>
 <script src="<?php echo version_url('/static/js/localization.js'); ?>"></script>
 <meta property="og:title" content="RedBox Telemetry">
