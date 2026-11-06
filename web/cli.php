@@ -94,7 +94,10 @@ function main(array $argv): int
 
 function dispatch(mysqli $db, string $cmd, array $args): int
 {
-    [$pos, $opts] = parseArgs($args, ['password', 'limit', 'user', 'id', 'profile']);
+    [$pos, $opts] = parseArgs($args, [
+        'password', 'limit', 'user', 'id', 'profile',
+        'batch-size', 'batch-pause',
+    ]);
 
     switch ($cmd) {
         case 'admin:reset':
@@ -291,6 +294,36 @@ function parseArgs(array $args, array $valueOpts = []): array
     }
 
     return [$pos, $opts];
+}
+
+/**
+ * Разбор целочисленной опции с обязательным значением и границами.
+ *
+ * Бросает RuntimeException на --opt без значения, не-число и выход за
+ * пределы. Значение возвращается как int — интерполяция в SQL безопасна.
+ */
+function parseBatchIntOpt(array $opts, string $name, int $default, int $min, int $max): int
+{
+    if (!array_key_exists($name, $opts)) {
+        return $default;
+    }
+
+    $raw = $opts[$name];
+
+    if ($raw === true) {
+        throw new RuntimeException("--$name requires a value (use --$name=VALUE)");
+    }
+    if (!is_numeric($raw)) {
+        throw new RuntimeException("--$name must be an integer");
+    }
+
+    $val = (int)$raw;
+
+    if ($val < $min || $val > $max) {
+        throw new RuntimeException("--$name must be between $min and $max (got $val)");
+    }
+
+    return $val;
 }
 
 function promptPassword(array $opts): ?string
@@ -504,49 +537,143 @@ function orphansScanLogs(mysqli $db, ?int $uid): array
 }
 
 /**
- * Удалить сессии без логов (anti-join через LEFT JOIN … IS NULL).
- * Возвращает число удалённых строк sessions.
+ * Удалить сессии без логов.
+ *
+ * Батчинг: DELETE не поддерживает multi-table LIMIT, поэтому используем
+ * материализованную derived table + tuple IN по PK (user_id, session).
+ * Внутренний SELECT с LIMIT N материализуется (не может быть влит
+ * оптимизатором), внешний DELETE удаляет ровно N строк — по индексу.
+ *
+ * Итог агрегируется по батчам. Пауза между батчами даёт InnoDB purge
+ * догнать undo/binlog и снижает длительность row-lock'ов.
+ *
+ * @return int суммарно удалено строк sessions
  */
-function orphansDeleteSessions(mysqli $db, ?int $uid): int
-{
-    $sql = "DELETE s FROM sessions s
-              LEFT JOIN logs l
-                     ON l.user_id = s.user_id
-                    AND l.session = s.session
-             WHERE l.session IS NULL";
+function orphansDeleteSessions(
+    mysqli $db,
+    ?int $uid,
+    int $batchSize = 1000,
+    int $batchPauseMs = 0
+): int {
+    $batchSize = max(1, $batchSize);
 
-    if ($uid !== null) {
-        $sql .= " AND s.user_id = " . (int)$uid;
+    $uidClause = ($uid !== null) ? " AND s.user_id = ?" : "";
+
+    $sql = "DELETE FROM sessions
+              WHERE (user_id, session) IN (
+                SELECT user_id, session FROM (
+                    SELECT s.user_id, s.session
+                      FROM sessions s
+                      LEFT JOIN logs l
+                             ON l.user_id = s.user_id
+                            AND l.session = s.session
+                     WHERE l.session IS NULL
+                     $uidClause
+                     LIMIT $batchSize
+                ) AS batch
+              )";
+
+    $total = 0;
+
+    while (true) {
+        $stmt = $db->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException("prepare failed for batch delete (sessions): " . $db->error);
+        }
+
+        if ($uid !== null) {
+            $stmt->bind_param('i', $uid);
+        }
+
+        if (!$stmt->execute()) {
+            $err = $stmt->error;
+            $stmt->close();
+            throw new RuntimeException("batch delete (sessions) failed: " . $err);
+        }
+
+        $affected = (int)$stmt->affected_rows;
+        $stmt->close();
+
+        $total += $affected;
+
+        if ($affected < $batchSize) {
+            break;
+        }
+
+        if ($batchPauseMs > 0) {
+            usleep($batchPauseMs * 1000);
+        }
     }
 
-    if (!$db->query($sql)) {
-        throw new RuntimeException("orphans delete (sessions) failed: " . $db->error);
-    }
-
-    return (int)$db->affected_rows;
+    return $total;
 }
 
 /**
- * Удалить логи без сессий (anti-join через LEFT JOIN … IS NULL).
- * Возвращает число удалённых строк logs.
+ * Удалить логи без сессий.
+ *
+ * Аналогично orphansDeleteSessions(): материализованная derived table
+ * с LIMIT + tuple IN по PK (user_id, time), т.к. multi-table DELETE
+ * не поддерживает LIMIT.
+ *
+ * @return int суммарно удалено строк logs
  */
-function orphansDeleteLogs(mysqli $db, ?int $uid): int
-{
-    $sql = "DELETE l FROM logs l
-              LEFT JOIN sessions s
-                     ON s.user_id = l.user_id
-                    AND l.session = l.session
-             WHERE s.session IS NULL";
+function orphansDeleteLogs(
+    mysqli $db,
+    ?int $uid,
+    int $batchSize = 1000,
+    int $batchPauseMs = 0
+): int {
+    $batchSize = max(1, $batchSize);
 
-    if ($uid !== null) {
-        $sql .= " AND l.user_id = " . (int)$uid;
+    $uidClause = ($uid !== null) ? " AND l.user_id = ?" : "";
+
+    $sql = "DELETE FROM logs
+              WHERE (user_id, time) IN (
+                SELECT user_id, time FROM (
+                    SELECT l.user_id, l.time
+                      FROM logs l
+                      LEFT JOIN sessions s
+                             ON s.user_id = l.user_id
+                            AND s.session = l.session
+                     WHERE s.session IS NULL
+                     $uidClause
+                     LIMIT $batchSize
+                ) AS batch
+              )";
+
+    $total = 0;
+
+    while (true) {
+        $stmt = $db->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException("prepare failed for batch delete (logs): " . $db->error);
+        }
+
+        if ($uid !== null) {
+            $stmt->bind_param('i', $uid);
+        }
+
+        if (!$stmt->execute()) {
+            $err = $stmt->error;
+            $stmt->close();
+            throw new RuntimeException("batch delete (logs) failed: " . $err);
+        }
+
+        $affected = (int)$stmt->affected_rows;
+        $stmt->close();
+
+        $total += $affected;
+
+        if ($affected < $batchSize) {
+            break;
+        }
+
+        if ($batchPauseMs > 0) {
+            usleep($batchPauseMs * 1000);
+        }
     }
 
-    if (!$db->query($sql)) {
-        throw new RuntimeException("orphans delete (logs) failed: " . $db->error);
-    }
-
-    return (int)$db->affected_rows;
+    return $total;
 }
 
 /**
@@ -733,6 +860,23 @@ function orphansImpl(mysqli $db, array $opts, string $mode): int
         }
     }
 
+    /* ── Clean-only options: --batch-size / --batch-pause ──
+     * Для scan/recover эти опции не имеют смысла — молча игнорируем,
+     * чтобы не ломать совместимость с существующими скриптами.
+     * ── */
+    $batchSize     = 1000;
+    $batchPauseMs  = 0;
+
+    if ($isClean) {
+        try {
+            $batchSize    = parseBatchIntOpt($opts, 'batch-size',  1000, 1,       1000000);
+            $batchPauseMs = parseBatchIntOpt($opts, 'batch-pause', 0,    0,       3600000);
+        } catch (Throwable $ex) {
+            e("[error] " . $ex->getMessage());
+            return 2;
+        }
+    }
+
     /* ── Optional user filter ── */
     $uid   = null;
     $uname = null;
@@ -780,6 +924,12 @@ function orphansImpl(mysqli $db, array $opts, string $mode): int
                 'profileName' => $recoverProfileName,
             ];
         }
+        if ($isClean) {
+            $payload['batch_options'] = [
+                'batch_size'      => $batchSize,
+                'batch_pause_ms'  => $batchPauseMs,
+            ];
+        }
         echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         echo "\n";
     } else {
@@ -818,6 +968,15 @@ function orphansImpl(mysqli $db, array $opts, string $mode): int
                 "Recover options:  id='%s', profileName='%s'",
                 $recoverId,
                 $recoverProfileName
+            ));
+            o("");
+        }
+
+        if ($isClean) {
+            o(sprintf(
+                "Batch options:    size=%d, pause=%dms",
+                $batchSize,
+                $batchPauseMs
             ));
             o("");
         }
@@ -930,8 +1089,23 @@ function orphansImpl(mysqli $db, array $opts, string $mode): int
             return 0;
         }
 
+        $totalLogs     = $logOrphans['total_rows'];
+        $totalSessions = $sessOrphans['total'];
+        $approxBatches = (int)ceil(max(1, $totalLogs) / $batchSize)
+                       + (int)ceil(max(1, $totalSessions) / $batchSize);
+
         if (isset($opts['dry-run'])) {
-            o("[dry-run] would delete the above orphans");
+            o(sprintf(
+                "[dry-run] would delete %d orphan log row(s) and %d orphan session row(s)",
+                $totalLogs,
+                $totalSessions
+            ));
+            o(sprintf(
+                "          in ~%d batch(es) of %d (pause %dms between batches)",
+                $approxBatches,
+                $batchSize,
+                $batchPauseMs
+            ));
             return 0;
         }
 
@@ -939,16 +1113,20 @@ function orphansImpl(mysqli $db, array $opts, string $mode): int
             if (!isInteractive()) {
                 e("Non-interactive session: pass --force to proceed.");
                 e(sprintf(
-                    "Reason: this will delete %d orphan session(s) and %d orphan log row(s) permanently.",
-                    $sessOrphans['total'],
-                    $logOrphans['total_rows']
+                    "Reason: this will delete %d orphan session(s) and %d orphan log row(s) " .
+                    "permanently (in batches of %d).",
+                    $totalSessions,
+                    $totalLogs,
+                    $batchSize
                 ));
                 return 1;
             }
             $q = sprintf(
-                "Delete %d orphan session(s) and %d orphan log row(s) permanently?",
-                $sessOrphans['total'],
-                $logOrphans['total_rows']
+                "Delete %d orphan session(s) and %d orphan log row(s) permanently " .
+                "(in batches of %d)?",
+                $totalSessions,
+                $totalLogs,
+                $batchSize
             );
             if (!confirm($q, false)) {
                 e("Aborted.");
@@ -957,13 +1135,22 @@ function orphansImpl(mysqli $db, array $opts, string $mode): int
         }
 
         o("");
-        o("Deleting orphans ...");
+        o(sprintf(
+            "Deleting orphans in batches of %d%s ...",
+            $batchSize,
+            $batchPauseMs > 0 ? " (pause {$batchPauseMs}ms)" : ""
+        ));
+        o("");
 
         try {
-            $deletedLogs     = orphansDeleteLogs($db, $uid);
-            $deletedSessions = orphansDeleteSessions($db, $uid);
+            $deletedLogs     = orphansDeleteLogs($db, $uid, $batchSize, $batchPauseMs);
+            $deletedSessions = orphansDeleteSessions($db, $uid, $batchSize, $batchPauseMs);
         } catch (Throwable $ex) {
             e("[error] clean failed: " . $ex->getMessage());
+            e(sprintf(
+                "[error] partial: logs deleted so far, sessions not touched " .
+                "(re-run is safe: anti-join re-evaluated from scratch)."
+            ));
             return 1;
         }
 
@@ -1519,7 +1706,7 @@ USERS
 ORPHANS
     orphans:scan                       Find orphan sessions/logs, print stats (read-only)
     orphans:recover                    Create sessions for orphan logs
-    orphans:clean                      Delete orphan sessions and/or orphan logs
+    orphans:clean                      Delete orphan sessions and/or orphan logs (batched)
 
     Common options:
         --user=USERNAME                Only consider this user (faster, uses indexes)
@@ -1533,6 +1720,10 @@ ORPHANS
         --force                        Skip confirmation
 
     orphans:clean only:
+        --batch-size=N                 Rows per DELETE statement (default: 1000)
+                                       Range: 1..1,000,000
+        --batch-pause=MS               Pause between batches, milliseconds (default: 0)
+                                       Range: 0..3,600,000
         --dry-run                      Show plan, don't touch DB
         --force                        Skip confirmation
 
@@ -1550,6 +1741,23 @@ ORPHANS
         If new data appears between scan and action, it is not touched.
         orphans:recover uses INSERT IGNORE, so a session that appeared
         concurrently is left intact (its metadata is not overwritten).
+        orphans:clean re-evaluates the anti-join per batch: a session
+        that loses its only log between two batches will be caught by
+        the next sessions batch (delete order: logs first, sessions next).
+
+    Batching (orphans:clean):
+        MySQL/MariaDB do not support `LIMIT` on multi-table DELETE,
+        so each batch is a single-table DELETE driven by a materialized
+        derived table:
+            DELETE FROM t WHERE <pk> IN (
+                SELECT <pk> FROM ( SELECT ... LIMIT N ) AS batch
+            )
+        Between batches, InnoDB is given time to catch up on purge,
+        binlog, and replica apply. Row-locks are held for one batch
+        only, so cron/backup/monitor statements are not blocked for
+        the whole run. If the process is killed mid-run, re-running
+        the command is safe: the anti-join is re-evaluated from
+        scratch and no double-delete is possible.
 
 MAINTENANCE
     maintenance:on                     Enable maintenance mode
