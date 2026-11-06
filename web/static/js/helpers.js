@@ -333,20 +333,20 @@ function updateSummaryTable() {
         const data = heatMap.get(label);
 
         if (data && data.length > 0) {
-            const sortedData = [...data].sort((a, b) => {
-                const ta = Array.isArray(a) ? a[0] : 0;
-                const tb = Array.isArray(b) ? b[0] : 0;
-                return ta - tb;
-            });
-
-            const values = sortedData
-                .map(point => Array.isArray(point) ? point[1] : point)
-                .filter(v => typeof v === 'number' && !isNaN(v));
+            // Single pass, no sorting and no enormous spread argument list.
+            const values = [];
+            let min = Infinity, max = -Infinity, sum = 0;
+            for (const point of data) {
+                const v = Array.isArray(point) ? point[1] : point;
+                if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+                values.push(v);
+                if (v < min) min = v;
+                if (v > max) max = v;
+                sum += v;
+            }
 
             if (values.length > 0) {
-                const min = Math.min(...values);
-                const max = Math.max(...values);
-                const mean = Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 100) / 100;
+                const mean = Math.round((sum / values.length) * 100) / 100;
 
                 cells[1].textContent = min;
                 cells[2].textContent = max;
@@ -387,6 +387,7 @@ function doPlot(position) {
         let dataSet = [];
         flotData.forEach(i => dataSet.push({label: i.label, data: i.data.slice(a, b)})); // probably b + 1, for updateSummaryTable() mean accuracy
         plot.setData(dataSet);
+        plot.setupGrid(); // Required when the selection changes axis ranges.
         plot.draw();
         heatData = dataSet;
     };
@@ -397,10 +398,22 @@ function doPlot(position) {
             axisLabel: ' ',
             tickFormatter: function(val, axis) {
                 if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) return "";
-                const processedTimes = Object.keys(window.realTimeInfo.timeMapping).map(Number);
-                const nearestProcessedTime = processedTimes.reduce((prev, curr) => 
-                    Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
-                );
+                // Cache sorted timestamps; a linear scan per tick is O(N).
+                const mapping = window.realTimeInfo.timeMapping;
+                if (!window.realTimeInfo.tickTimes) {
+                    window.realTimeInfo.tickTimes = Object.keys(mapping).map(Number).sort((a, b) => a - b);
+                }
+                const times = window.realTimeInfo.tickTimes;
+                if (!times.length) return '';
+                let lo = 0, hi = times.length;
+                while (lo < hi) {
+                    const mid = (lo + hi) >>> 1;
+                    if (times[mid] < val) lo = mid + 1;
+                    else hi = mid;
+                }
+                const nearestProcessedTime = lo === 0 ? times[0] :
+                    lo === times.length ? times[times.length - 1] :
+                    (val - times[lo - 1] <= times[lo] - val ? times[lo - 1] : times[lo]);
                 const realTime = window.realTimeInfo.timeMapping[nearestProcessedTime];
                 let date = new Date(realTime);
                 return date.toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU', {
@@ -409,10 +422,11 @@ function doPlot(position) {
                 });
             }
         } ],
-        yaxes: [ { axisLabel: "" }, {
+        yaxes: [ { axisLabel: "", smallNegativeThreshold: 1 }, {
             alignTicksWithAxis: position == "right" ? 1 : null,
             position: position,
-            axisLabel: ""
+            axisLabel: "",
+            smallNegativeThreshold: 1
         } ],
         legend: {
             position: "nw",
@@ -671,12 +685,10 @@ let updCharts = (last = false)=>{
                     )
                 );
                 doPlot("right");
-            } else {
-                // refresh chart data
-                plot.setData(flotData);
-                plot.setupGrid();
-                plot.draw();
             }
+            // chartUpdRange() below calls setData(), setupGrid() and draw()
+            // exactly once. Do not pre-process flotData a second time here:
+            // this path is also used by the 10-second real-time stream poll.
             //always update the chart trimmed range when plotting new data
             const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];
             chartUpdRange(a,b);

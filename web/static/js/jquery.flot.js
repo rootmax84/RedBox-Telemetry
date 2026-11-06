@@ -536,6 +536,7 @@ Licensed under the MIT license.
                 },
                 yaxis: {
                     autoscaleMargin: 0.02,
+                    smallNegativeThreshold: null, // optional Y-axis baseline clamp for values in [-threshold, 0)
                     position: "left" // or "right"
                 },
                 xaxes: [],
@@ -598,6 +599,13 @@ Licensed under the MIT license.
                 interaction: {
                     redrawOverlayInterval: 1000/60 // time between updates, -1 means in same flow
                 },
+                // Progressive Canvas rendering: all samples are drawn, none are discarded.
+                progressive: {
+                    enabled: true,
+                    threshold: 8000, // total points before switching to incremental draw
+                    chunkSize: 4000, // points processed in a single Canvas operation
+                    frameBudget: 8 // maximum milliseconds spent drawing per animation frame
+                },
                 hooks: {}
             },
         surface = null,     // the canvas for the plot itself
@@ -612,6 +620,7 @@ Licensed under the MIT license.
             processRawData: [],
             processDatapoints: [],
             processOffset: [],
+            processAxisLabels: [],
             drawBackground: [],
             drawSeries: [],
             draw: [],
@@ -621,10 +630,25 @@ Licensed under the MIT license.
         },
         plot = this;
 
+        // Must exist before the constructor's first synchronous draw().
+        var progressiveFrame = null;
+        var progressiveToken = 0;
+        // The progressive renderer paints off-screen. Until a complete frame is
+        // available, the last committed frame stays visible without flicker.
+        var progressiveBuffer = null;
+        var progressiveContext = null;
+        // Progress indicator lives outside the drawing canvases: updating it
+        // never invalidates a completed frame or intercepts plot interaction.
+        var progressiveIndicator = null;
+        var progressiveIndicatorDelay = null;
+        var progressiveIndicatorHide = null;
+
         // public functions
         plot.setData = setData;
         plot.setupGrid = setupGrid;
         plot.draw = draw;
+        plot.cancelProgressiveDraw = cancelProgressiveDraw;
+        plot.isDrawing = function () { return progressiveFrame !== null; };
         plot.getPlaceholder = function() { return placeholder; };
         plot.getCanvas = function() { return surface.element; };
         plot.getPlotOffset = function() { return plotOffset; };
@@ -678,6 +702,7 @@ Licensed under the MIT license.
             plot = null;
         };
         plot.resize = function () {
+            cancelProgressiveDraw();
         	var width = placeholder.width(),
         		height = placeholder.height();
             surface.resize(width, height);
@@ -851,6 +876,7 @@ Licensed under the MIT license.
         }
 
         function setData(d) {
+            cancelProgressiveDraw();
             series = parseData(d);
             fillInSeriesOptions();
             processData();
@@ -1258,7 +1284,8 @@ Licensed under the MIT license.
                 }
 
                 updateAxis(s.xaxis, xmin, xmax);
-                updateAxis(s.yaxis, ymin, ymax);
+                if (!s._hiddenByLegend)
+                    updateAxis(s.yaxis, ymin, ymax);
             }
 
             $.each(allAxes(), function (_, axis) {
@@ -1329,6 +1356,10 @@ Licensed under the MIT license.
         }
 
         function shutdown() {
+            cancelProgressiveDraw();
+            if (progressiveIndicator && progressiveIndicator.parentNode)
+                progressiveIndicator.parentNode.removeChild(progressiveIndicator);
+            progressiveIndicator = null;
             if (redrawTimeout)
                 clearTimeout(redrawTimeout);
 
@@ -1549,6 +1580,7 @@ Licensed under the MIT license.
         }
 
         function setupGrid() {
+            cancelProgressiveDraw();
             var i, axes = allAxes(), showGrid = options.grid.show;
 
             // Initialize the plot's offset from the edge of the canvas
@@ -1594,6 +1626,10 @@ Licensed under the MIT license.
                     // find labelWidth/Height for axis
                     measureTickLabels(axis);
                 });
+
+                // Plug-ins may reserve space after tick measurement, before
+                // axis boxes are allocated. This avoids a second draw().
+                executeHooks(hooks.processAxisLabels, [allocatedAxes]);
 
                 // with all dimensions calculated, we can compute the
                 // axis bounding boxes, start from the outside
@@ -1660,8 +1696,29 @@ Licensed under the MIT license.
                     }
                 }
             }
+            // For telemetry values such as Boost (-0.87 Bar), optionally keep
+            // the shared Y-axis at zero rather than producing a large negative
+            // tick due to autoscale padding. Do not change the datapoints.
+            // The rule applies only to automatic Y ranges and only when the
+            // actual minimum is within the configured negative tolerance.
+            if (shouldClampSmallNegativeAxis(axis)) {
+                min = 0;
+                if (max <= min) {
+                    max = 1;
+                }
+            }
+
             axis.min = min;
             axis.max = max;
+        }
+
+        function shouldClampSmallNegativeAxis(axis) {
+            var threshold = axis.options.smallNegativeThreshold;
+            return axis.direction === "y" &&
+                axis.options.min == null &&
+                typeof threshold === "number" && isFinite(threshold) && threshold > 0 &&
+                axis.datamin != null && isFinite(axis.datamin) &&
+                axis.datamin < 0 && axis.datamin >= -threshold;
         }
 
         function setupTickGeneration(axis) {
@@ -1844,41 +1901,239 @@ Licensed under the MIT license.
                 if (axis.options.max == null && ticks.length > 1)
                     axis.max = Math.max(axis.max, ticks[ticks.length - 1].v);
             }
+            // Tick alignment or plugin-supplied ticks must not override the
+            // near-zero baseline set during automatic range calculation.
+            if (shouldClampSmallNegativeAxis(axis)) {
+                axis.min = 0;
+                if (axis.max <= 0) axis.max = 1;
+            }
+        }
+
+        function clearProgressTimers() {
+            if (progressiveIndicatorDelay !== null) {
+                clearTimeout(progressiveIndicatorDelay);
+                progressiveIndicatorDelay = null;
+            }
+            if (progressiveIndicatorHide !== null) {
+                clearTimeout(progressiveIndicatorHide);
+                progressiveIndicatorHide = null;
+            }
+        }
+
+        function ensureProgressIndicator() {
+            if (progressiveIndicator) return;
+            // A transparent, pointer-events-free indicator is deliberately
+            // independent of the buffered graph canvas.
+            var element = document.createElement("span");
+            element.className = "flot-render-spinner";
+            element.setAttribute("role", "status");
+            element.setAttribute("aria-label", "Rendering graph");
+            element.style.cssText = "position:absolute;top:12px;right:14px;z-index:20;" +
+                "display:none;width:16px;height:16px;box-sizing:border-box;" +
+                "border:2px solid rgba(110,125,145,.25);border-top-color:#708295;" +
+                "border-radius:50%;pointer-events:none;user-select:none;" +
+                "opacity:0;transition:opacity 180ms ease;" +
+                "animation:flot-render-spin .7s linear infinite;";
+            if (!document.getElementById("flot-render-progress-style")) {
+                var style = document.createElement("style");
+                style.id = "flot-render-progress-style";
+                style.textContent = "@keyframes flot-render-spin {to{transform:rotate(360deg)}}" +
+                    "@media (prefers-reduced-motion: reduce){.flot-render-spinner{animation:none!important}}";
+                (document.head || document.documentElement).appendChild(style);
+            }
+            placeholder[0].appendChild(element);
+            progressiveIndicator = element;
+        }
+
+        function resetProgressIndicator() {
+            clearProgressTimers();
+            if (!progressiveIndicator) return;
+            progressiveIndicator.style.opacity = "0";
+            progressiveIndicator.style.display = "none";
+        }
+
+        function scheduleProgressIndicator(token) {
+            // The spinner never appears for a render completed within 180 ms.
+            progressiveIndicatorDelay = setTimeout(function () {
+                progressiveIndicatorDelay = null;
+                if (token !== progressiveToken) return;
+                ensureProgressIndicator();
+                progressiveIndicator.style.display = "block";
+                void progressiveIndicator.offsetWidth;
+                progressiveIndicator.style.opacity = "1";
+            }, 180);
+        }
+
+        function completeProgressIndicator(token) {
+            if (progressiveIndicatorDelay !== null) {
+                clearTimeout(progressiveIndicatorDelay);
+                progressiveIndicatorDelay = null;
+            }
+            if (!progressiveIndicator || progressiveIndicator.style.display === "none") return;
+            progressiveIndicator.style.opacity = "0";
+            progressiveIndicatorHide = setTimeout(function () {
+                progressiveIndicatorHide = null;
+                if (token !== progressiveToken) return;
+                progressiveIndicator.style.display = "none";
+            }, 190);
+        }
+
+        // Keep the original Flot public API and all plugin hooks. Canvas work
+        // is split across frames, but only complete frames are presented.
+        function cancelProgressiveDraw() {
+            ++progressiveToken;
+            resetProgressIndicator();
+            if (progressiveFrame !== null) {
+                window.cancelAnimationFrame(progressiveFrame);
+                progressiveFrame = null;
+            }
+            // A cancelled draw must not leave plugin callbacks pointing to an
+            // incomplete backing store.
+            if (surface) ctx = surface.context;
+        }
+
+        function finishDraw(token, buffered) {
+            executeHooks(hooks.draw, [ctx]);
+            // Plugins such as axislabels may synchronously trigger a new draw.
+            // The older frame must never overwrite it.
+            if (token !== progressiveToken) return;
+            if (options.grid.show && options.grid.aboveData)
+                drawGrid();
+            if (token !== progressiveToken) return;
+
+            if (buffered) {
+                var visibleContext = surface.context;
+                ctx = visibleContext;
+                // Use device pixels for an exact copy, including on HiDPI.
+                visibleContext.save();
+                visibleContext.setTransform(1, 0, 0, 1, 0, 0);
+                visibleContext.clearRect(0, 0, surface.element.width, surface.element.height);
+                visibleContext.drawImage(progressiveBuffer, 0, 0);
+                visibleContext.restore();
+            }
+            surface.render();
+            triggerRedrawOverlay();
+            if (token === progressiveToken && buffered)
+                completeProgressIndicator(token);
         }
 
         function draw() {
+            cancelProgressiveDraw();
+            var token = progressiveToken;
+            var config = options.progressive || {};
+            var total = 0, i;
+            if (config.enabled !== false) {
+                for (i = 0; i < series.length; ++i) {
+                    if (!series[i].lines.show && !series[i].points.show && !series[i].bars.show)
+                        continue;
+                    var dp = series[i].datapoints;
+                    if (dp && dp.pointsize)
+                        total += Math.floor(dp.points.length / dp.pointsize);
+                }
+            }
+            var buffered = config.enabled !== false &&
+                total >= (config.threshold || 12000) &&
+                !!window.requestAnimationFrame;
+            if (buffered) scheduleProgressIndicator(token);
 
-            surface.clear();
+            if (buffered) {
+                // Do not resize or clear the visible canvas. That is what
+                // previously caused an empty/half-painted graph to flash.
+                var width = surface.element.width;
+                var height = surface.element.height;
+                if (!progressiveBuffer) {
+                    progressiveBuffer = document.createElement("canvas");
+                }
+                if (progressiveBuffer.width !== width)
+                    progressiveBuffer.width = width;
+                if (progressiveBuffer.height !== height)
+                    progressiveBuffer.height = height;
+                progressiveContext = progressiveBuffer.getContext("2d");
+                progressiveContext.setTransform(surface.pixelRatio, 0, 0,
+                                                surface.pixelRatio, 0, 0);
+                ctx = progressiveContext;
+                ctx.clearRect(0, 0, surface.width, surface.height);
+            } else {
+                ctx = surface.context;
+                surface.clear();
+            }
 
             executeHooks(hooks.drawBackground, [ctx]);
-
             var grid = options.grid;
-
-            // draw background, if any
             if (grid.show && grid.backgroundColor)
                 drawBackground();
-
-            if (grid.show && !grid.aboveData) {
+            if (grid.show && !grid.aboveData)
                 drawGrid();
+
+            // Preserve original synchronous behavior on small plots.
+            if (!buffered) {
+                for (i = 0; i < series.length; ++i) {
+                    executeHooks(hooks.drawSeries, [ctx, series[i]]);
+                    drawSeries(series[i]);
+                }
+                finishDraw(token, false);
+                return;
             }
 
-            for (var i = 0; i < series.length; ++i) {
-                executeHooks(hooks.drawSeries, [ctx, series[i]]);
-                drawSeries(series[i]);
+            // Draw all samples, without thinning, on an invisible canvas.
+            // Commit exactly once when the complete image is available.
+            var seriesIndex = 0;
+            var pointIndex = 0;
+            var initialized = false;
+            var chunkSize = Math.max(64, Math.floor(config.chunkSize || 3000));
+            var frameBudget = Math.max(1, Math.min(16, config.frameBudget || 8));
+
+            function drawFrame() {
+                progressiveFrame = null;
+                if (token !== progressiveToken) return;
+                ctx = progressiveContext;
+                var deadline = (window.performance ? performance.now() : Date.now()) + frameBudget;
+
+                while (seriesIndex < series.length) {
+                    var s = series[seriesIndex];
+                    if (!initialized) {
+                        executeHooks(hooks.drawSeries, [ctx, s]);
+                        if (token !== progressiveToken) return;
+                        initialized = true;
+                    }
+                    var dp = s.datapoints;
+                    var source = dp.points;
+                    var ps = dp.pointsize;
+                    var count = ps ? Math.floor(source.length / ps) : 0;
+
+                    if (!s.lines.show && !s.points.show && !s.bars.show) {
+                        pointIndex = count;
+                    } else if (pointIndex < count) {
+                        var until = Math.min(count, pointIndex + chunkSize);
+                        // Include one preceding sample to preserve line joins.
+                        // The visible canvas never sees these partial pieces.
+                        var from = s.lines.show && pointIndex > 0 ? pointIndex - 1 : pointIndex;
+                        var subset = source.slice(from * ps, until * ps);
+                        var original = dp.points;
+                        try {
+                            dp.points = subset;
+                            drawSeries(s);
+                        } finally {
+                            dp.points = original;
+                        }
+                        pointIndex = until;
+                    }
+                    if (pointIndex >= count) {
+                        ++seriesIndex;
+                        pointIndex = 0;
+                        initialized = false;
+                    }
+                    if ((window.performance ? performance.now() : Date.now()) >= deadline)
+                        break;
+                }
+                if (token !== progressiveToken) return;
+                if (seriesIndex < series.length) {
+                    progressiveFrame = window.requestAnimationFrame(drawFrame);
+                } else {
+                    finishDraw(token, true);
+                }
             }
-
-            executeHooks(hooks.draw, [ctx]);
-
-            if (grid.show && grid.aboveData) {
-                drawGrid();
-            }
-
-            surface.render();
-
-            // A draw implies that either the axes or data have changed, so we
-            // should probably update the overlay highlights as well.
-
-            triggerRedrawOverlay();
+            progressiveFrame = window.requestAnimationFrame(drawFrame);
         }
 
         function extractRange(ranges, coord) {
