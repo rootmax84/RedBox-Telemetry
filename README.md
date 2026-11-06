@@ -147,10 +147,10 @@ INLINE FALLBACK (Redis disabled or unavailable):
   </tr>
   <tr>
     <td>
-      <img width="100%" src="https://github.com/user-attachments/assets/645e918c-b5b6-4c5c-b93f-166c362b5f0d">
+      <img width="100%" src="https://github.com/user-attachments/assets/441089e5-c830-4687-9100-f8098e7ce332">
     </td>
     <td>
-      <img width="100%" src="https://github.com/user-attachments/assets/14558153-0b48-4bf7-a113-7e13724e60d6">
+      <img width="100%" src="https://github.com/user-attachments/assets/7ea8c64f-cc12-4900-8e46-416b7e482321">
     </td>
   </tr>
 </table>
