@@ -52,7 +52,7 @@ $r = $db->query(
       LIMIT " . (int)$page_first_result . "," . (int)$results_per_page
 );
 
-$i = 0;
+$i = 1;
 if ($r->num_rows > 0) {
     while ($row = $r->fetch_assoc()) {
         $uid          = (int)$row['id'];
