@@ -2,6 +2,10 @@
 require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/plot_cache.php';
 
+// In-memory spool limits; php://temp spills to disk only above these sizes.
+const RATEL_PLOT_SERIES_RAM_LIMIT = 256 * 1024; // 256 KiB per metric
+const RATEL_PLOT_RESPONSE_RAM_LIMIT = 6 * 1024 * 1024; // 6 MiB final JSON
+
 $share_id = $_GET['u'] ?? $_GET['uid'] ?? null;
 
 if (isset($_GET['id'], $_GET['sig'])
@@ -280,7 +284,7 @@ if (isset($_GET["id"])) {
 
         // Hold small series in RAM; spill individual series larger than 256 KiB
         // to disk automatically. At most 20 series = ~5 MiB stream RAM.
-        $file = fopen('php://temp/maxmemory:262144', 'w+b');
+        $file = fopen('php://temp/maxmemory:' . RATEL_PLOT_SERIES_RAM_LIMIT, 'w+b');
         if ($file === false) {
             throw new RuntimeException('Unable to create plot spool stream');
         }
@@ -364,9 +368,9 @@ if (isset($_GET["id"])) {
         return;
     }
 
-    // Keep small JSON responses in RAM; spill above 1 MiB to disk.
+    // Keep small JSON responses in RAM; spill above 6 MiB to disk.
     // The full response is never materialized as a PHP string/array.
-    $response = fopen('php://temp/maxmemory:1048576', 'w+b');
+    $response = fopen('php://temp/maxmemory:' . RATEL_PLOT_RESPONSE_RAM_LIMIT, 'w+b');
     if ($response === false) {
         throw new RuntimeException('Unable to create plot response stream');
     }
