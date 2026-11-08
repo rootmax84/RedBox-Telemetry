@@ -117,3 +117,7 @@ input:checked + .slider {
 #heavyTaskIndicator {
   filter: invert(1) hue-rotate(180deg);
 }
+
+.session-initial-spinner {
+  border-top-color: #222;
+}
