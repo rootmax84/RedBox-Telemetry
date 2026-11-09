@@ -2095,6 +2095,7 @@ if ('serviceWorker' in navigator) {
 }
 
 function toggle_dark() {
+ if (typeof username !== 'string' || !username.trim()) return;
 document.querySelector('html').style.transition = ".2s"
  switch (localStorage.getItem(`${username}-theme`)) {
   case "default":

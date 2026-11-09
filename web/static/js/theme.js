@@ -7,6 +7,10 @@ function waitForUsername(callback) {
 }
 
 waitForUsername(() => {
+  if (typeof username !== 'string' || !username.trim()) {
+    return;
+  }
+
   if (!localStorage.getItem(`${username}-theme`)) {
     localStorage.setItem(`${username}-theme`, "default");
   }
