@@ -1601,7 +1601,7 @@ body {
             <?php if ($explorer['enabled']): ?><a href="/admin/redis#redis-explorer" class="rs-btn rs-btn-ghost">Reset</a><?php endif; ?>
         </form>
         <div class="rs-dim" style="margin-bottom:10px">Search uses Redis SCAN; SCAN returns variable-size batches; results are collected over multiple iterations (bounded).
-            Contents are fetched only when you select a key. TTL −1 means no expiry; −2 means expired.</div>
+            Contents are fetched only when you select a key. TTL: ∞ &mdash; no expiration; expired &mdash; key no longer exists.</div>
         <?php if ($explorer['enabled']): ?>
             <div class="rs-dim" style="margin-bottom:10px">Redis DB: <?= $explorer['dbsize'] === null ? 'n/a' : number_format($explorer['dbsize']) ?> keys;
                 <?= (int)$explorer['steps'] ?> SCAN iterations in this request.
