@@ -79,6 +79,84 @@ function rs_entry_to_assoc(array $fields): array {
     return $kv;
 }
 
+/* ── Safe, bounded Redis key inspection ── */
+const RS_EXPLORER_COUNT = 100;
+const RS_EXPLORER_VALUE_BYTES = 4096;
+const RS_EXPLORER_ITEMS = 25;
+const RS_EXPLORER_MAX_STEPS = 40; // Prevent long-running requests even on huge databases
+const RS_MEMORY_SAMPLE_LIMIT = 2000;
+const RS_MEMORY_MAX_STEPS = 80;
+
+function rs_key_type_name(int $type): string {
+    return match ($type) {
+        Redis::REDIS_STRING => 'string',
+        Redis::REDIS_SET => 'set',
+        Redis::REDIS_LIST => 'list',
+        Redis::REDIS_ZSET => 'zset',
+        Redis::REDIS_HASH => 'hash',
+        defined('Redis::REDIS_STREAM') ? constant('Redis::REDIS_STREAM') : 6 => 'stream',
+        default => 'unknown',
+    };
+}
+
+function rs_key_metadata(Redis $redis, string $key): array {
+    $type = rs_key_type_name((int)$redis->type($key));
+    $ttl = (int)$redis->ttl($key);
+    $memory = null;
+    try {
+        $v = $redis->rawCommand('MEMORY', 'USAGE', $key);
+        if (is_numeric($v)) $memory = (int)$v;
+    } catch (Throwable $e) { /* MEMORY USAGE is optional */ }
+    return ['key' => $key, 'type' => $type, 'ttl' => $ttl, 'memory' => $memory];
+}
+
+function rs_clip_value(mixed $value, int $limit = RS_EXPLORER_VALUE_BYTES): string {
+    if (!is_string($value)) {
+        $value = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($value === false) return '[unable to encode value]';
+    }
+    $length = strlen($value);
+    if ($length > $limit) $value = substr($value, 0, $limit) . "\n… [truncated; original: {$length} bytes]";
+    if (!mb_check_encoding($value, 'UTF-8')) {
+        return '[binary data, base64 preview] ' . base64_encode(substr($value, 0, min($limit, 1024)));
+    }
+    return $value;
+}
+
+function rs_read_key_preview(Redis $redis, string $key, string $type): array {
+    $limit = RS_EXPLORER_ITEMS;
+    switch ($type) {
+        case 'string':
+            $length = (int)$redis->strLen($key);
+            $value = $redis->getRange($key, 0, RS_EXPLORER_VALUE_BYTES - 1);
+            return ['total' => $length . ' bytes', 'content' => rs_clip_value((string)$value) .
+                ($length > RS_EXPLORER_VALUE_BYTES ? "\n… [value truncated]" : '')];
+        case 'hash':
+            $cursor = null;
+            $data = $redis->hScan($key, $cursor, null, $limit);
+            $out = [];
+            foreach (is_array($data) ? array_slice($data, 0, $limit, true) : [] as $field => $value) {
+                $out[(string)$field] = rs_clip_value($value);
+            }
+            return ['total' => (int)$redis->hLen($key) . ' fields', 'content' => rs_clip_value($out, 16000)];
+        case 'list':
+            $data = $redis->lRange($key, 0, $limit - 1);
+            return ['total' => (int)$redis->lLen($key) . ' items', 'content' => rs_clip_value(array_map('rs_clip_value', is_array($data) ? $data : []), 16000)];
+        case 'set':
+            $cursor = null;
+            $data = $redis->sScan($key, $cursor, null, $limit);
+            return ['total' => (int)$redis->sCard($key) . ' members', 'content' => rs_clip_value(array_map('rs_clip_value', is_array($data) ? array_slice($data, 0, $limit) : []), 16000)];
+        case 'zset':
+            $data = $redis->zRange($key, 0, $limit - 1, true);
+            return ['total' => (int)$redis->zCard($key) . ' members', 'content' => rs_clip_value($data ?: [], 16000)];
+        case 'stream':
+            $data = $redis->xRevRange($key, '+', '-', $limit);
+            return ['total' => (int)$redis->xLen($key) . ' entries', 'content' => rs_clip_value($data ?: [], 16000)];
+        default:
+            return ['total' => '—', 'content' => 'Unsupported or expired key'];
+    }
+}
+
 /* ────────────────────────────────────────────────────────────
  * Redis connection + config
  * ──────────────────────────────────────────────────────────── */
@@ -142,10 +220,15 @@ if ($action !== null) {
                     $replayed = 0;
                     $failed   = 0;
 
-                    foreach ($entries as $e) {
-                        $id     = $e[0] ?? null;
-                        $fields = $e[1] ?? null;
-                        if (!$id || !is_array($fields)) { $failed++; continue; }
+                    foreach ($entries as $entryId => $e) {
+                         if (is_string($entryId) && is_array($e)) {
+                             $id = $entryId;
+                             $fields = $e;
+                         } else {
+                             $id = $e[0] ?? null;
+                             $fields = $e[1] ?? null;
+                         }
+                         if (!$id || !is_array($fields)) { $failed++; continue; }
 
                         $kv = rs_entry_to_assoc($fields);
                         if (empty($kv)) { $failed++; continue; }
@@ -273,7 +356,8 @@ if ($action !== null) {
                 }
 
                 case 'purge_cache': {
-                    // Whitelist шаблонов кэша RatelCache.
+                    // Data cache only. Never delete rate limits, locks, worker coordination,
+                    // stream/task metadata or heartbeats from this maintenance action.
                     // НЕ трогает: telemetry:uploads, ratel:heavy_tasks,
                     // ratel:dead_letters, ratel:task:*, ratel:user_tasks:*,
                     // ratel:attempts:*, worker:hb:*, u*_varver
@@ -283,7 +367,6 @@ if ($action !== null) {
                         'fav_data_*',
                         'profiles_list_*',
                         'years_list_*',
-                        'stream_lock_*',
                         'user_settings_*',
                         'user_status_*',
                         'pids_mapping_*',
@@ -292,17 +375,12 @@ if ($action !== null) {
                         'stream_pids_d_*',
                         'api_conv_*',
                         'api_pids_*',
-                        'worker_user_*',
                         'columns_data_pids_*',
                         'session_count_*',
                         'pids_known_*',
                         'share_data_*',
                         'share_plot_*',
-                        'rate_limit_*',
-                        'rate_limit:block:*',
-                        'rate_backoff:block:*',
                         'new_session_*',
-                        'api_rate_limit_*',
                         // --- Per-user версионированные ключи (session_data, gps_data, session_id) ---
                         // Удаляет u1_vv0_*, u1_vv1_* и т.д. Не трогает u1_varver.
                         'u*_vv*_*',
@@ -385,6 +463,11 @@ if ($r === null) {
                 'maxmemory'        => (int)($info['maxmemory']         ?? 0),
                 'clients'          => (int)($info['connected_clients'] ?? 0),
                 'total_commands'   => (int)($info['total_commands_processed'] ?? 0),
+                'keyspace_hits' => (int)($info['keyspace_hits'] ?? 0),
+                'keyspace_misses' => (int)($info['keyspace_misses'] ?? 0),
+                'evicted_keys' => (int)($info['evicted_keys'] ?? 0),
+                'expired_keys' => (int)($info['expired_keys'] ?? 0),
+                'mem_fragmentation_ratio' => $info['mem_fragmentation_ratio'] ?? null,
             ];
         }
     } catch (Throwable $e) {}
@@ -789,6 +872,155 @@ if ($r === null) {
     $stats['per_user'] = $perUser;
 }
 
+/* ── A SCAN result can be empty while its cursor is nonzero. ── */
+function rs_scan_page(Redis $redis, string $pattern, int $startCursor, int $limit, int $maxSteps): array {
+    // PhpRedis SCAN iterator must be NULL on the first call, not integer 0.
+    $cursor = $startCursor === 0 ? null : $startCursor;
+    $found = [];
+    $steps = 0;
+    $error = null;
+    do {
+        $previous = $cursor;
+        // PhpRedis may return false for empty batches; use SCAN_RETRY where available,
+        // but still advance explicitly to avoid extension/version-specific behavior.
+        $batch = $redis->scan($cursor, $pattern, min(500, max(100, $limit * 2)));
+        $steps++;
+        if ($batch === false && $cursor === $previous && $cursor !== 0) {
+            $error = 'SCAN returned no data without advancing the cursor.';
+            break;
+        }
+        if (is_array($batch)) {
+            foreach ($batch as $key) {
+                $found[(string)$key] = (string)$key;
+            }
+        }
+    } while ($cursor !== 0 && count($found) < $limit && $steps < $maxSteps);
+    if ($steps === 1 && !$found && $cursor === null) {
+        $error = 'SCAN did not start: Redis extension or connection may have rejected the request.';
+    }
+    return ['keys' => array_slice(array_values($found), 0, $limit), 'cursor' => (int)$cursor,
+            'more' => $cursor !== 0 && $cursor !== null, 'steps' => $steps, 'error' => $error];
+}
+
+function rs_key_category(string $key): string {
+    if (str_starts_with($key, 'worker:') || str_starts_with($key, 'stream_lock_')) return 'Workers / locks';
+    if (str_starts_with($key, 'rate_limit') || str_starts_with($key, 'api_rate_limit') || str_starts_with($key, 'rate_backoff:')) return 'Rate limiting';
+    if (str_starts_with($key, 'ratel:') || str_starts_with($key, 'telemetry:')) return 'Streams / tasks';
+    if (str_starts_with($key, 'share_plot_') || str_starts_with($key, 'share_data_') || preg_match('/^u\d+_vv\d+_/', $key)) return 'Sessions / plots';
+    if (preg_match('/^u\d+_varver$/', $key)) return 'Version counters';
+    if (str_starts_with($key, 'user_') || str_starts_with($key, 'fav_') || str_starts_with($key, 'profiles_')) return 'User cache';
+    return 'Other';
+}
+
+/* Strictly bounded, on-demand approximate inventory. Never run on auto refresh. */
+function rs_memory_breakdown(Redis $redis): array {
+    // NULL is required for the first phpredis SCAN request.
+    $cursor = null; $steps = 0; $sampled = 0; $groups = [];
+    do {
+        $batch = $redis->scan($cursor, '*', 100);
+        $steps++;
+        if (is_array($batch)) {
+            foreach ($batch as $key) {
+                $key = (string)$key;
+                $group = rs_key_category($key);
+                if (!isset($groups[$group])) $groups[$group] = ['keys' => 0, 'bytes' => 0, 'unknown' => 0];
+                $groups[$group]['keys']++;
+                try {
+                    $bytes = $redis->rawCommand('MEMORY', 'USAGE', $key, 'SAMPLES', '5');
+                    if (is_numeric($bytes)) $groups[$group]['bytes'] += (int)$bytes;
+                    else $groups[$group]['unknown']++;
+                } catch (Throwable $e) { $groups[$group]['unknown']++; }
+                $sampled++;
+                if ($sampled >= RS_MEMORY_SAMPLE_LIMIT) break;
+            }
+        }
+    } while ($cursor !== 0 && $steps < RS_MEMORY_MAX_STEPS && $sampled < RS_MEMORY_SAMPLE_LIMIT);
+    uasort($groups, fn($a, $b) => $b['bytes'] <=> $a['bytes']);
+    return ['groups' => $groups, 'sampled' => $sampled, 'complete' => $cursor === 0,
+            'steps' => $steps, 'error' => ($sampled === 0 && $cursor === null) ? 'SCAN returned no data; check Redis permissions and connection.' : null];
+}
+
+/* Decompress only when explicitly requested, with a strict output ceiling.
+   No unserialize() or arbitrary JSON conversion of binary values. */
+function rs_decode_cache_preview(Redis $redis, string $key): array {
+    if (rs_key_type_name((int)$redis->type($key)) !== 'string') {
+        return ['type' => 'unsupported', 'content' => 'Decoding is available only for string keys.'];
+    }
+    $length = (int)$redis->strLen($key);
+    if ($length > 65536) {
+        return ['type' => 'too large', 'content' => 'Stored value exceeds 64 KiB. Decoding is disabled for large objects to protect PHP memory.'];
+    }
+    $data = $redis->get($key);
+    if (!is_string($data)) return ['type' => 'unavailable', 'content' => 'Value not available'];
+    $kind = 'plain';
+    // RatelCache encoding: NUL + Z/L/D + compressed PHP serialize() bytes.
+    if (strlen($data) >= 3 && $data[0] === "\x00") {
+        $algo = $data[1];
+        $body = substr($data, 2);
+        $kind = match ($algo) { 'Z' => 'RatelCache / zstd', 'L' => 'RatelCache / lz4', 'D' => 'RatelCache / deflate', default => 'RatelCache / unknown' };
+        // The external zstd/lz4 decoders have no reliable output-size bound.
+        // We deliberately do not call them on untrusted compressed data here.
+        if ($algo === 'D') {
+            $decoded = @gzinflate($body, 1048576);
+            if (!is_string($decoded)) return ['type' => $kind, 'content' => 'Deflate decode failed or exceeded 1 MiB.'];
+            $data = $decoded;
+        } else {
+            return ['type' => $kind, 'content' => 'Compressed payload identified. zstd/lz4 decompression is disabled in the admin page because the available functions have no output-size limit.'];
+        }
+    } elseif (str_starts_with($data, "\x1f\x8b")) {
+        $kind = 'gzip';
+        $decoded = @gzdecode($data, 1048576);
+        if (!is_string($decoded)) return ['type' => $kind, 'content' => 'Decompression failed or exceeded 1 MiB.'];
+        $data = $decoded;
+    }
+    if (strlen($data) > 1048576) return ['type' => $kind, 'content' => 'Output exceeds 1 MiB.'];
+    if (preg_match('/^(?:a|s|i|d|b|N|O|C|R|r):|^N;/', $data)) {
+        $kind .= ' / PHP serialized';
+        // Return textual serialize representation, avoiding unserialize() entirely.
+    }
+    return ['type' => $kind, 'content' => rs_clip_value($data, 16384)];
+}
+
+$explorer = ['enabled' => false, 'pattern' => '*', 'keys' => [], 'cursor' => '0',
+             'more' => false, 'steps' => 0, 'error' => null, 'selected' => null,
+             'preview' => null, 'decoded' => null, 'dbsize' => null];
+$memoryBreakdown = null;
+if ($r !== null && (isset($_GET['redis_browse']) || isset($_GET['redis_key']))) {
+    $explorer['enabled'] = true;
+    $pattern = trim((string)($_GET['redis_pattern'] ?? '*'));
+    $explorer['pattern'] = substr($pattern !== '' ? $pattern : '*', 0, 200);
+    try {
+        $explorer['dbsize'] = (int)$r->dbSize();
+        if (isset($_GET['redis_browse'])) {
+            $cursorInput = (string)($_GET['redis_cursor'] ?? '0');
+            $cursor = preg_match('/^\d{1,20}$/D', $cursorInput) ? (int)$cursorInput : 0;
+            $page = rs_scan_page($r, $explorer['pattern'], $cursor, RS_EXPLORER_COUNT, RS_EXPLORER_MAX_STEPS);
+            $explorer['cursor'] = (string)$page['cursor'];
+            $explorer['more'] = $page['more'];
+            $explorer['steps'] = $page['steps'];
+            $explorer['error'] = $page['error'];
+            sort($page['keys'], SORT_STRING);
+            foreach ($page['keys'] as $key) {
+                try { $explorer['keys'][] = rs_key_metadata($r, $key); }
+                catch (Throwable $e) { /* expired between SCAN and TYPE */ }
+            }
+        }
+        if (isset($_GET['redis_key'])) {
+            $key = (string)$_GET['redis_key'];
+            if (strlen($key) > 1024 || $key === '') throw new RuntimeException('Invalid Redis key');
+            $meta = rs_key_metadata($r, $key);
+            if ($meta['type'] === 'unknown') throw new RuntimeException('Key does not exist or expired');
+            $explorer['selected'] = $meta;
+            $explorer['preview'] = rs_read_key_preview($r, $key, $meta['type']);
+            if (isset($_GET['redis_decode'])) $explorer['decoded'] = rs_decode_cache_preview($r, $key);
+        }
+    } catch (Throwable $e) { $explorer['error'] = $e->getMessage(); }
+}
+if ($r !== null && isset($_GET['redis_memory'])) {
+    try { $memoryBreakdown = rs_memory_breakdown($r); }
+    catch (Throwable $e) { $memoryBreakdown = ['error' => $e->getMessage()]; }
+}
+
 /* ────────────────────────────────────────────────────────────
  * DLQ filtered view (GET ?user=...)
  * ──────────────────────────────────────────────────────────── */
@@ -1177,6 +1409,11 @@ body {
     padding: 8px 16px;
 }
 
+.rs-explorer-form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+.rs-explorer-form input { flex:1; min-width:180px; padding:7px 10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-fg); border-radius:6px; }
+.rs-explorer-preview { white-space:pre-wrap; overflow-wrap:anywhere; max-height:350px; overflow:auto; padding:12px; background:var(--table-th-bg); border:1px solid var(--table-border); border-radius:6px; font-size:12px; }
+.rs-explorer-key { overflow-wrap:anywhere; }
+
 /* ── Mobile / narrow viewports ──────────────────────────── */
 @media (max-width: 700px) {
     body {
@@ -1289,6 +1526,11 @@ body {
                         : '<span class="rs-dim">unlimited</span>' ?></span></div>
             <div><span class="rs-lbl">Clients</span><span><?= (int)($stats['info']['clients'] ?? 0) ?></span></div>
             <div><span class="rs-lbl">Total commands</span><span><?= number_format((int)($stats['info']['total_commands'] ?? 0)) ?></span></div>
+            <?php $hits = (int)($stats['info']['keyspace_hits'] ?? 0); $misses = (int)($stats['info']['keyspace_misses'] ?? 0); ?>
+            <div><span class="rs-lbl">Cache hit rate</span><span><?= ($hits + $misses) > 0 ? number_format(100 * $hits / ($hits + $misses), 1) . '%' : 'n/a' ?></span></div>
+            <div><span class="rs-lbl">Cache hits / misses</span><span><?= number_format($hits) ?> / <?= number_format($misses) ?></span></div>
+            <div><span class="rs-lbl">Evicted / expired</span><span><?= number_format((int)($stats['info']['evicted_keys'] ?? 0)) ?> / <?= number_format((int)($stats['info']['expired_keys'] ?? 0)) ?></span></div>
+            <div><span class="rs-lbl">Memory fragmentation</span><span><?= rs_h((string)($stats['info']['mem_fragmentation_ratio'] ?? 'n/a')) ?></span></div>
         </div>
     </div>
 
@@ -1334,7 +1576,7 @@ body {
         </div>
         <div class="rs-dim" style="margin-top:8px">
             Removes cached user rows, session/GPS data, PID mappings, favorites,
-            settings, per-user rate-limit counters and session counters.
+            settings and session data caches. Rate limits, locks and worker state are preserved.
             <br>
             Preserved:
             <code><?= rs_h($uploadsKey) ?></code>,
@@ -1343,8 +1585,99 @@ body {
             <code>ratel:task:*</code>,
             <code>ratel:user_tasks:*</code>,
             <code>ratel:attempts:*</code>,
-            <code>worker:hb:*</code>.
+            <code>worker:hb:*</code>, <code>stream_lock_*</code>,
+            <code>rate_limit_*</code>, <code>worker_user_*</code>.
         </div>
+    </div>
+
+    <?php /* 1c. On-demand key explorer */ ?>
+    <div class="rs-card" id="redis-explorer">
+        <h2><span>Redis Key Explorer</span><span class="rs-dim">read-only · SCAN · bounded previews</span></h2>
+        <form method="get" action="/admin/redis#redis-explorer" class="rs-explorer-form">
+            <input type="hidden" name="redis_browse" value="1">
+            <input type="text" name="redis_pattern" value="<?= rs_h($explorer['pattern']) ?>"
+                   placeholder="Key pattern, e.g. share_plot_*" maxlength="200" aria-label="Redis key pattern">
+            <button type="submit" class="rs-btn">Search keys</button>
+            <?php if ($explorer['enabled']): ?><a href="/admin/redis#redis-explorer" class="rs-btn rs-btn-ghost">Reset</a><?php endif; ?>
+        </form>
+        <div class="rs-dim" style="margin-bottom:10px">Search uses Redis SCAN; SCAN returns variable-size batches; results are collected over multiple iterations (bounded).
+            Contents are fetched only when you select a key. TTL −1 means no expiry; −2 means expired.</div>
+        <?php if ($explorer['enabled']): ?>
+            <div class="rs-dim" style="margin-bottom:10px">Redis DB: <?= $explorer['dbsize'] === null ? 'n/a' : number_format($explorer['dbsize']) ?> keys;
+                <?= (int)$explorer['steps'] ?> SCAN iterations in this request.
+                <?php if ($explorer['more']): ?>More keys may remain; use Next batch.<?php endif; ?>
+            </div>
+        <?php endif; ?>
+        <?php if ($explorer['error']): ?>
+            <div class="rs-err-inline"><?= rs_h($explorer['error']) ?></div>
+        <?php endif; ?>
+        <?php if ($explorer['selected'] !== null): ?>
+            <?php $item = $explorer['selected']; ?>
+            <div class="rs-details-inner" style="margin-bottom:12px">
+                <div class="rs-grid" style="margin-bottom:8px">
+                    <div><span class="rs-lbl">Key</span><code class="rs-explorer-key"><?= rs_h($item['key']) ?></code></div>
+                    <div><span class="rs-lbl">Type</span><span class="rs-badge neutral"><?= rs_h($item['type']) ?></span></div>
+                    <div><span class="rs-lbl">TTL</span><?= $item['ttl'] === -1 ? 'no expiry' : ($item['ttl'] >= 0 ? (int)$item['ttl'] . 's' : 'expired') ?></div>
+                    <div><span class="rs-lbl">Memory</span><?= $item['memory'] === null ? 'n/a' : rs_h(rs_human_bytes($item['memory'])) ?></div>
+                </div>
+                <div class="rs-dim">Preview: <?= rs_h($explorer['preview']['total']) ?> (limited to <?= RS_EXPLORER_ITEMS ?> items or <?= RS_EXPLORER_VALUE_BYTES ?> bytes per value)</div>
+                <pre class="rs-explorer-preview"><?= rs_h($explorer['preview']['content']) ?></pre>
+                <?php if ($item['type'] === 'string'): ?>
+                    <a class="rs-btn rs-btn-small" href="?<?= rs_h(http_build_query(['redis_key' => $item['key'], 'redis_pattern' => $explorer['pattern'], 'redis_decode' => 1])) ?>#redis-explorer">Try decoding</a>
+                    <?php if ($explorer['decoded'] !== null): ?>
+                        <div class="rs-dim" style="margin-top:10px">Decoded preview (<?= rs_h($explorer['decoded']['type']) ?>):</div>
+                        <pre class="rs-explorer-preview"><?= rs_h($explorer['decoded']['content']) ?></pre>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+        <?php if (isset($_GET['redis_browse'])): ?>
+            <?php if (empty($explorer['keys'])): ?>
+                <div class="rs-dim">No matching keys found in this search<?= $explorer['more'] ? ' segment; try Next batch' : '' ?>.</div>
+            <?php else: ?>
+                <div class="rs-table-wrap"><table class="rs-table"><thead><tr>
+                    <th>Key</th><th>Type</th><th>TTL</th><th>Memory usage</th><th>Contents</th>
+                </tr></thead><tbody>
+                <?php foreach ($explorer['keys'] as $item): ?>
+                    <tr>
+                        <td class="rs-mono rs-explorer-key"><?= rs_h($item['key']) ?></td>
+                        <td><?= rs_h($item['type']) ?></td>
+                        <td><?= $item['ttl'] === -1 ? '∞' : ($item['ttl'] >= 0 ? (int)$item['ttl'] . 's' : 'expired') ?></td>
+                        <td><?= $item['memory'] === null ? 'n/a' : rs_h(rs_human_bytes($item['memory'])) ?></td>
+                        <td><a class="rs-btn rs-btn-small" href="?<?= rs_h(http_build_query(['redis_key' => $item['key'], 'redis_pattern' => $explorer['pattern']])) ?>#redis-explorer">Inspect</a></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody></table></div>
+            <?php endif; ?>
+            <?php if ($explorer['more']): ?>
+                <div style="margin-top:10px"><a class="rs-btn" href="?<?= rs_h(http_build_query(['redis_browse' => 1, 'redis_pattern' => $explorer['pattern'], 'redis_cursor' => $explorer['cursor']])) ?>#redis-explorer">Next batch →</a></div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+
+    <?php /* 1d. Memory categories, opt-in due to MEMORY USAGE costs */ ?>
+    <div class="rs-card" id="redis-memory">
+        <h2>Cache Memory Breakdown <span class="rs-dim">on-demand · sampled</span></h2>
+        <p class="rs-dim">Groups Redis keys by name prefix and estimates their memory usage using MEMORY USAGE.
+            Samples at most <?= RS_MEMORY_SAMPLE_LIMIT ?> keys per request. Values are not read.</p>
+        <a class="rs-btn" href="?redis_memory=1#redis-memory">Analyze memory</a>
+        <?php if (isset($memoryBreakdown['error'])): ?>
+            <div class="rs-err-inline"><?= rs_h($memoryBreakdown['error']) ?></div>
+        <?php elseif ($memoryBreakdown !== null): ?>
+            <p class="rs-dim">Inspected <?= number_format($memoryBreakdown['sampled']) ?> keys
+                in <?= (int)$memoryBreakdown['steps'] ?> SCAN steps.
+                <?= $memoryBreakdown['complete'] ? 'Full scan completed.' : 'Partial sample — not a full database total.' ?>
+            </p>
+            <?php if (!empty($memoryBreakdown['error'])): ?><div class="rs-err-inline"><?= rs_h($memoryBreakdown['error']) ?></div><?php endif; ?>
+            <div class="rs-table-wrap"><table class="rs-table"><thead><tr>
+                <th>Category</th><th>Keys in sample</th><th>Memory in sample</th><th>Unknown sizes</th>
+            </tr></thead><tbody>
+            <?php foreach ($memoryBreakdown['groups'] as $label => $group): ?>
+                <tr><td><?= rs_h($label) ?></td><td><?= number_format($group['keys']) ?></td>
+                    <td><?= rs_h(rs_human_bytes($group['bytes'])) ?></td><td><?= $group['unknown'] ?></td></tr>
+            <?php endforeach; ?>
+            </tbody></table></div>
+        <?php endif; ?>
     </div>
 
     <?php /* 2. Streams */ ?>
@@ -1869,6 +2202,9 @@ body {
     }
 
     cb.checked = localStorage.getItem(KEY) === '1';
+    if (new URLSearchParams(location.search).has('redis_key') || new URLSearchParams(location.search).has('redis_browse') || new URLSearchParams(location.search).has('redis_memory')) {
+        cb.checked = false; // Inspection results should not reload underneath the admin.
+    }
     cb.addEventListener('change', () => {
         localStorage.setItem(KEY, cb.checked ? '1' : '0');
         start();
