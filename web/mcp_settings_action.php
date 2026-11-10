@@ -14,7 +14,8 @@ function mcp_error_l10n_key(string $message): string
         'Unknown action' => 'mcp.error.action',
         'Select at least one access scope' => 'mcp.error.scopes_empty',
         'Unknown access scope' => 'mcp.error.scopes_invalid',
-        'Invalid token parameters (expiry 1–365 days)' => 'mcp.error.params',
+        'Invalid token name (1–80 characters)' => 'mcp.error.name',
+        'Invalid token validity (7–365 days)' => 'mcp.error.params',
         'Maximum of 5 active MCP tokens' => 'mcp.error.limit',
         default => 'mcp.error.generic',
     };
@@ -83,37 +84,13 @@ if (!verify_csrf_token((string)($_POST['csrf_token'] ?? ''))) {
 
 $uid = (int)$_SESSION['uid'];
 $action = (string)($_POST['action'] ?? '');
-$tokenId = (int)($_POST['token_id'] ?? 0);
-$ajaxTokenAction = in_array($action, ['revoke', 'delete_expired'], true)
-    && strcasecmp((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''), 'XMLHttpRequest') === 0;
-$responseStatus = 200;
-
 try {
     $notice = mcp_settings_dispatch($db, $uid, $action, $_POST);
 } catch (InvalidArgumentException $e) {
-    $responseStatus = 400;
     $notice = mcp_error_l10n_key($e->getMessage());
 } catch (Throwable $e) {
     error_log('MCP settings operation failed: ' . $e->getMessage());
-    $responseStatus = 500;
     $notice = 'mcp.error.unavailable';
-}
-
-if ($ajaxTokenAction) {
-    // Send a localized JSON response to xhrResponse/serverError without disclosing secrets.
-    require_once __DIR__ . '/translations.php';
-    $lang = current_lang();
-    $message = (string)($translations[$lang][$notice] ?? $translations['en'][$notice] ?? $notice);
-
-    header('Content-Type: application/json; charset=utf-8');
-    header('Cache-Control: no-store');
-    http_response_code($responseStatus);
-    echo json_encode([
-        'ok' => $responseStatus === 200,
-        'message' => $message,
-        'token_id' => $responseStatus === 200 ? $tokenId : null,
-    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
-    exit;
 }
 
 $_SESSION['mcp_notice'] = $notice;

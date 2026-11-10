@@ -133,12 +133,20 @@ include_once __DIR__ . '/src/head.php';
         <div class="settings-unit mcp-secret">
             <h4 l10n="mcp.secret.title"><?= $h($t('mcp.secret.title')) ?></h4>
             <h6 class="mcp-description" l10n="mcp.secret.help"><?= $h($t('mcp.secret.help')) ?></h6>
-            <input id="mcp-new-token" type="text" class="form-control mcp-token-input"
-                   value="<?= $h($newToken) ?>" readonly
-                   aria-label="<?= $h($t('mcp.secret.title')) ?>" autocomplete="off" spellcheck="false">
-            <div class="cntr">
-                <button type="button" class="btn btn-info btn-sm" onclick="copyMcpToken()"
-                        l10n="mcp.copy_token"><?= $h($t('mcp.copy_token')) ?></button>
+            <div class="mcp-token-field">
+                <input id="mcp-new-token" type="text" class="form-control mcp-token-input"
+                       value="<?= $h($newToken) ?>" readonly
+                       aria-label="<?= $h($t('mcp.secret.title')) ?>" autocomplete="off" spellcheck="false">
+                <button type="button" class="mcp-copy-token" onclick="copyMcpToken()"
+                        title="<?= $h($t('mcp.copy_token')) ?>"
+                        aria-label="<?= $h($t('mcp.copy_token')) ?>">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none"
+                         stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                         stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+                        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
+                    </svg>
+                </button>
             </div>
         </div>
         <hr>

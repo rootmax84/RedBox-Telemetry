@@ -35,9 +35,18 @@ final class McpSecurity
     public static function generate(mysqli $db, int $uid, string $label, array $scopes, int $days): string
     {
         $label = trim($label);
-        if ($uid < 1 || $label === '' || strlen($label) > 80 || $days < 1 || $days > 365) {
-            throw new InvalidArgumentException('Invalid token parameters (expiry 1–365 days)');
+        // MariaDB VARCHAR(80) limits Unicode characters, not UTF-8 bytes.
+        // preg_match_all() works without the optional mbstring extension.
+        $labelLength = strlen($label) <= 320 ? preg_match_all('/./us', $label) : false;
+
+        if ($uid < 1 || $labelLength === false || $labelLength < 1 || $labelLength > 80) {
+            throw new InvalidArgumentException('Invalid token name (1–80 characters)');
         }
+
+        if ($days < 7 || $days > 365) {
+            throw new InvalidArgumentException('Invalid token validity (7–365 days)');
+        }
+
         $scopes = self::validScopes($scopes);
         $row = $db->execute_query(
             'SELECT COUNT(*) AS cnt FROM mcp_tokens WHERE user_id=? AND revoked_at IS NULL AND expires_at > NOW()',

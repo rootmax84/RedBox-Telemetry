@@ -6,10 +6,50 @@
 .mcp-settings p { overflow-wrap: anywhere; }
 .mcp-settings .mcp-wide { width: min(1060px, 94%); }
 .mcp-settings .mcp-alert { border-left: 3px solid #3993c1; padding: 10px 12px; margin: 14px 0; }
+.mcp-settings .mcp-token-field {
+  position: relative;
+  width: 100%;
+  margin: 12px 0;
+}
 .mcp-settings .mcp-secret .mcp-token-input {
-  font-family: monospace; font-size: 13px; box-sizing: border-box;
-  width: 100%; min-width: 0; height: 36px; overflow-x: auto;
-  white-space: nowrap; margin: 12px 0; resize: none;
+  font-family: monospace;
+  font-size: 13px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding-right: 47px;
+  overflow-x: auto;
+  white-space: nowrap;
+  margin: 0;
+  resize: none;
+}
+.mcp-settings .mcp-copy-token {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  opacity: .75;
+  cursor: pointer;
+}
+.mcp-settings .mcp-copy-token:hover {
+  background: rgba(128, 128, 128, .15);
+  opacity: 1;
+}
+.mcp-settings .mcp-copy-token:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+  opacity: 1;
 }
 .mcp-settings .mcp-field { margin: 12px 0; }
 .mcp-settings .mcp-field input, .mcp-settings .mcp-field select { margin-top: 6px; }
