@@ -67,6 +67,13 @@ $router->any('/api/token',  'get_token.php');
 // MCP: separate bearer tokens / never use the legacy device API token.
 $router->any('/mcp', 'mcp.php');
 
+// Public metadata and isolated OAuth token exchange (no browser cookies).
+$router->get('/.well-known/oauth-protected-resource', 'mcp_oauth_metadata.php');
+$router->get('/.well-known/oauth-protected-resource/mcp', 'mcp_oauth_metadata.php');
+$router->get('/.well-known/oauth-authorization-server', 'mcp_oauth_metadata.php');
+$router->any('/oauth/authorize', 'mcp_oauth_authorize.php');
+$router->post('/oauth/token', 'mcp_oauth_token.php');
+
 // ════════════════════════════════════════════════════════════
 //  Async tasks
 // ════════════════════════════════════════════════════════════

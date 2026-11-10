@@ -185,6 +185,13 @@ function processBulkRecords(mysqli $db, array $ctx, array $records): void
         throw $e;
     }
 
+    // Session-start records may change a profile without adding datapoints.
+    // Invalidate after commit; ordinary telemetry packets still use the
+    // sessionsize/time signature instead of flushing on every upload.
+    if ($sessionStartRecords !== []) {
+        cache_flush();
+    }
+
     // ─── После commit'а — обновить кэши PID'ов ───
     cache_pids_after_commit($user_id, $ctx['username'], $pidsResult);
 
@@ -255,6 +262,9 @@ function processSingleRequest(mysqli $db, array $ctx, array $request): void
             $db->rollback();
             throw $e;
         }
+
+        // A profile update may leave session count and time bounds unchanged.
+        cache_flush();
 
         if ($notif !== null) {
             notifications_dispatch([$notif]);

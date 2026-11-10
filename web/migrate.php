@@ -826,6 +826,42 @@ CREATE TABLE IF NOT EXISTS mcp_tokens (
     KEY mcp_user_tokens (user_id, revoked_at, expires_at)
 ) ENGINE={$engine} DEFAULT CHARSET=utf8mb4",
 
+        'mcp_oauth_codes' => "
+CREATE TABLE IF NOT EXISTS mcp_oauth_codes (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    code_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    client_id VARCHAR(512) NOT NULL,
+    redirect_uri VARCHAR(1024) NOT NULL,
+    resource VARCHAR(512) NOT NULL,
+    scopes VARCHAR(255) NOT NULL,
+    code_challenge VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    expires_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY oauth_code_hash (code_hash),
+    KEY oauth_codes_user (user_id, expires_at)
+) ENGINE={$engine} DEFAULT CHARSET=utf8mb4",
+
+        'mcp_oauth_tokens' => "
+CREATE TABLE IF NOT EXISTS mcp_oauth_tokens (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    client_id VARCHAR(512) NOT NULL,
+    resource VARCHAR(512) NOT NULL,
+    scopes VARCHAR(255) NOT NULL,
+    access_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    refresh_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL,
+    refresh_expires_at DATETIME NOT NULL,
+    revoked_at DATETIME NULL,
+    last_used_at DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY oauth_access_hash (access_hash),
+    UNIQUE KEY oauth_refresh_hash (refresh_hash),
+    KEY oauth_tokens_user (user_id, revoked_at)
+) ENGINE={$engine} DEFAULT CHARSET=utf8mb4",
+
         'logs' => "
 CREATE TABLE IF NOT EXISTS logs (
     user_id BIGINT UNSIGNED NOT NULL,
@@ -851,7 +887,7 @@ CREATE TABLE IF NOT EXISTS logs (
             exit(1);
         }
     }
-    info("[ddl] shared tables ready ({$engine}): pids, sessions, logs, mcp_tokens");
+    info("[ddl] shared tables ready ({$engine}): pids, sessions, logs, mcp_tokens, mcp_oauth_codes, mcp_oauth_tokens");
 }
 
 /* ══════════════════════════════════════════════════════════

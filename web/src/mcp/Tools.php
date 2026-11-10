@@ -87,6 +87,7 @@ final class McpTools
             $out[$name] = [
                 'scopes' => $scopes,
                 'schema' => ['name' => $name, 'description' => $description, 'inputSchema' => $schema,
+                    '_meta' => ['securitySchemes' => [['type' => 'oauth2', 'scopes' => $scopes]]],
                     'annotations' => ['readOnlyHint' => true,
                         'destructiveHint' => false, 'openWorldHint' => false]],
             ];

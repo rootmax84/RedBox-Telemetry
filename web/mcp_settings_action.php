@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/mcp/Security.php';
+require_once __DIR__ . '/src/mcp/OAuth.php';
 
 /** Map safe validation errors to the application's existing localized messages. */
 function mcp_error_l10n_key(string $message): string
@@ -11,6 +12,7 @@ function mcp_error_l10n_key(string $message): string
     return match ($message) {
         'Invalid token id' => 'mcp.error.token_id',
         'Token has not expired' => 'mcp.error.not_expired',
+        'OAuth connection was not found' => 'mcp.error.token_id',
         'Unknown action' => 'mcp.error.action',
         'Select at least one access scope' => 'mcp.error.scopes_empty',
         'Unknown access scope' => 'mcp.error.scopes_invalid',
@@ -56,11 +58,21 @@ function mcp_settings_remove_token(mysqli $db, int $uid, int $tokenId, bool $exp
     return $expiredOnly ? 'mcp.notice.deleted' : 'mcp.notice.revoked';
 }
 
+function mcp_settings_revoke_oauth(mysqli $db, int $uid, int $tokenId): string
+{
+    if ($tokenId < 1) {
+        throw new InvalidArgumentException('Invalid token id');
+    }
+    McpOAuth::revoke($db, $uid, $tokenId);
+    return 'mcp.oauth.notice.revoked';
+}
+
 function mcp_settings_dispatch(mysqli $db, int $uid, string $action, array $input): string
 {
     return match ($action) {
         'toggle' => mcp_settings_toggle($db, $uid, $input),
         'create' => mcp_settings_create($db, $uid, $input),
+        'oauth_revoke' => mcp_settings_revoke_oauth($db, $uid, (int)($input['token_id'] ?? 0)),
         'revoke' => mcp_settings_remove_token($db, $uid, (int)($input['token_id'] ?? 0), false),
         'delete_expired' => mcp_settings_remove_token($db, $uid, (int)($input['token_id'] ?? 0), true),
         default => throw new InvalidArgumentException('Unknown action'),

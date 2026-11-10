@@ -20,6 +20,12 @@ $tokens = $db->execute_query(
     [$uid]
 )->fetch_all(MYSQLI_ASSOC);
 
+$oauthConnections = $db->execute_query(
+    'SELECT id,client_id,scopes,created_at,expires_at,refresh_expires_at,last_used_at '
+    . 'FROM mcp_oauth_tokens WHERE user_id=? AND revoked_at IS NULL AND refresh_expires_at>NOW() '
+    . 'ORDER BY id DESC LIMIT 50', [$uid]
+)->fetch_all(MYSQLI_ASSOC);
+
 $notice = (string)($_SESSION['mcp_notice'] ?? '');
 unset($_SESSION['mcp_notice']);
 $newToken = (string)($_SESSION['mcp_new_token'] ?? '');
@@ -46,6 +52,10 @@ include_once __DIR__ . '/src/head.php';
 <?php require __DIR__ . '/src/templates/loading_overlays.php'; ?>
 
 <div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+    <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
+         <div class="new-session"><a href='/' l10n='sess.new'></a></div>
+         <div class="storage-usage-img"></div>
+    <?php } ?>
     <div class="container">
         <div id="theme-switch"></div>
         <div class="navbar-header">
@@ -279,11 +289,53 @@ include_once __DIR__ . '/src/head.php';
             </table>
         </div>
     </div>
+    <hr>
+    <div class="settings-unit mcp-wide">
+        <h4 l10n="mcp.oauth.connections.title"><?= $h($t('mcp.oauth.connections.title')) ?></h4>
+        <?php if (empty($mcp_oauth_issuer)): ?>
+            <p class="mcp-description" l10n="mcp.oauth.not_configured"><?= $h($t('mcp.oauth.not_configured')) ?></p>
+        <?php endif; ?>
+        <div class="mcp-table-wrap">
+            <table class="table table-bordered table-condensed">
+                <thead><tr>
+                    <th l10n="mcp.oauth.client"><?= $h($t('mcp.oauth.client')) ?></th>
+                    <th l10n="mcp.table.scopes"><?= $h($t('mcp.table.scopes')) ?></th>
+                    <th l10n="mcp.table.created"><?= $h($t('mcp.table.created')) ?></th>
+                    <th l10n="mcp.oauth.refresh_expires"><?= $h($t('mcp.oauth.refresh_expires')) ?></th>
+                    <th l10n="mcp.table.action"><?= $h($t('mcp.table.action')) ?></th>
+                </tr></thead>
+                <tbody>
+                    <?php foreach ($oauthConnections as $connection): ?>
+                        <tr>
+                            <td style="overflow-wrap:anywhere"><?= $h($connection['client_id']) ?></td>
+                            <td><?= $h(str_replace(' ', ' · ', $connection['scopes'])) ?></td>
+                            <td><?= $h($connection['created_at']) ?></td>
+                            <td><?= $h($connection['refresh_expires_at']) ?></td>
+                            <td>
+                                <form method="post" action="/settings/mcp/tokens"
+                                      onsubmit="return confirmMcp(event, 'mcp.oauth.confirm.revoke')">
+                                    <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+                                    <input type="hidden" name="action" value="oauth_revoke">
+                                    <input type="hidden" name="token_id" value="<?= (int)$connection['id'] ?>">
+                                    <button class="btn btn-danger btn-sm" type="submit"
+                                            l10n="mcp.revoke"><?= $h($t('mcp.revoke')) ?></button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (!$oauthConnections): ?>
+                        <tr><td colspan="5" l10n="mcp.oauth.empty"><?= $h($t('mcp.oauth.empty')) ?></td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script>
 window.MCP_TEXT_FALLBACK = <?= json_encode([
     'mcp.confirm.revoke' => $t('mcp.confirm.revoke'),
+    'mcp.oauth.confirm.revoke' => $t('mcp.oauth.confirm.revoke'),
     'mcp.confirm.delete' => $t('mcp.confirm.delete'),
     'mcp.notice.deleted' => $t('mcp.notice.deleted'),
     'mcp.error.not_expired' => $t('mcp.error.not_expired'),

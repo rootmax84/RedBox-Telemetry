@@ -11,6 +11,7 @@ if (!defined('RATEL_API_REQUEST')) {
 // MariaDB or Redis is unavailable. In particular, scanners send GET /mcp.
 require_once __DIR__ . '/src/creds.php';
 require_once __DIR__ . '/src/mcp/Security.php';
+require_once __DIR__ . '/src/mcp/OAuth.php';
 require_once __DIR__ . '/src/mcp/Protocol.php';
 require_once __DIR__ . '/src/mcp/Transport.php';
 
@@ -154,10 +155,17 @@ function mcp_call_tool(mysqli $db, array $auth, array $params, ?RatelCache $redi
             'isError' => false,
         ];
     } catch (InvalidArgumentException | McpAccessException $e) {
-        return [
+        $result = [
             'content' => [['type' => 'text', 'text' => $e->getMessage()]],
             'isError' => true,
         ];
+        if ($e instanceof McpAccessException && ($auth['token_kind'] ?? '') === 'oauth') {
+            // An OAuth client can request an expanded grant when a scope is absent.
+            $result['_meta']['mcp/www_authenticate'] = [
+                McpOAuth::challenge('insufficient_scope') . ', error_description="Additional MCP permissions required"',
+            ];
+        }
+        return $result;
     }
 }
 
@@ -206,6 +214,16 @@ function mcp_dispatch(
     };
 }
 
+/** Advertise OAuth only when configured; legacy manual Bearer remains valid. */
+function mcp_auth_challenge(string $error = 'invalid_token'): void
+{
+    try {
+        header('WWW-Authenticate: ' . McpOAuth::challenge($error));
+    } catch (Throwable $e) {
+        header('WWW-Authenticate: Bearer realm="RedBox MCP"');
+    }
+}
+
 // Deny browser cross-origin access (DNS-rebinding protection).
 $origin = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
 if ($origin !== '') {
@@ -232,7 +250,7 @@ if (($mcp_require_https ?? true) && !$secure && !$isLocal) {
 try {
     McpSecurity::bearerToken();
 } catch (McpAccessException $e) {
-    header('WWW-Authenticate: Bearer realm="RedBox MCP"');
+    mcp_auth_challenge();
     mcp_json(['error' => $e->getMessage()], 401);
 }
 
@@ -250,7 +268,7 @@ try {
     $auth = McpSecurity::authenticate($db);
 } catch (McpAccessException $e) {
     if ($e->httpStatus === 401) {
-        header('WWW-Authenticate: Bearer realm="RedBox MCP"');
+        mcp_auth_challenge();
     }
     mcp_json(['error' => $e->getMessage()], $e->httpStatus);
 } catch (Throwable $e) {
@@ -274,13 +292,15 @@ $redis = new RatelCache(get_redis_connection(), $redis_cache_compression_enabled
 
 try {
     McpSecurity::rateLimit($auth, $redis);
+    $table = ($auth['token_kind'] ?? 'manual') === 'oauth' ? 'mcp_oauth_tokens' : 'mcp_tokens';
     $db->execute_query(
-        'UPDATE mcp_tokens SET last_used_at=NOW() WHERE id=? AND (last_used_at IS NULL OR last_used_at < DATE_SUB(NOW(),INTERVAL 60 SECOND))',
+        "UPDATE {$table} SET last_used_at=NOW() WHERE id=? "
+        . 'AND (last_used_at IS NULL OR last_used_at < DATE_SUB(NOW(),INTERVAL 60 SECOND))',
         [$auth['token_id']]
     );
 } catch (McpAccessException $e) {
     if ($e->httpStatus === 401) {
-        header('WWW-Authenticate: Bearer realm="RedBox MCP"');
+        mcp_auth_challenge();
     }
 
     mcp_json(['error' => $e->getMessage()], $e->httpStatus);

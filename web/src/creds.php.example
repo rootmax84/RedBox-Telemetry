@@ -22,6 +22,14 @@ $max_upload_requests_per_second = 100;          // Upload rate limit (requests p
 $max_api_requests_per_second    = 10;           // API rate limit (requests per second)
 
 // --- MCP (independent remote Bearer credentials) ---
+// OAuth server issuer (public HTTPS origin, NO trailing slash); empty disables OAuth only.
+$mcp_oauth_issuer              = '';           // Public HTTPS issuer origin; required to enable OAuth
+// Exact trusted CIMD metadata URLs; '*' matches one path segment (not a domain).
+// Keep the list small: each URL may be fetched by the OAuth server over HTTPS.
+$mcp_oauth_allowed_clients     = [
+    'https://chatgpt.com/oauth/client.json',
+    'https://chatgpt.com/oauth/*/client.json',
+];
 $mcp_require_https             = true;         // Reject remote MCP over plain HTTP
 $mcp_trust_forwarded_proto     = false;        // True ONLY behind a trusted TLS reverse proxy
 $mcp_max_requests_per_second   = 15;           // Per-token rate limit; 1–1000 requests/sec

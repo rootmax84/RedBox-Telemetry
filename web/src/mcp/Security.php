@@ -85,7 +85,7 @@ final class McpSecurity
             }
         }
 
-        if (!preg_match('/^Bearer (rbxmcp_[a-f0-9]{64})$/i', trim($header), $matches)) {
+        if (!preg_match('/^Bearer ((?:rbxmcp_|rbxo_)[a-f0-9]{64})$/i', trim($header), $matches)) {
             throw new McpAccessException('Missing or invalid MCP bearer token', 401);
         }
 
@@ -95,6 +95,11 @@ final class McpSecurity
     public static function authenticate(mysqli $db): array
     {
         $token = self::bearerToken();
+        if (str_starts_with($token, 'rbxo_')) {
+            require_once __DIR__ . '/OAuth.php';
+            return McpOAuth::authenticate($db, $token);
+        }
+
         $result = $db->execute_query(
             'SELECT t.id AS token_id, t.user_id, t.scopes, u.user, u.s, u.mcp_enabled '
             . 'FROM mcp_tokens t JOIN users u ON u.id=t.user_id '
@@ -116,6 +121,8 @@ final class McpSecurity
             $scopes[] = 'remote:read';
         }
         $auth['scopes'] = $scopes;
+        $auth['token_kind'] = 'manual';
+        $auth['cache_identity'] = 'manual:' . $auth['token_id'];
         if ($auth['scopes'] === []) {
             throw new McpAccessException('MCP token has no supported scopes', 401);
         }
@@ -153,12 +160,13 @@ final class McpSecurity
     public static function rateLimit(array $auth, ?RatelCache $cache): void
     {
         $id = (int)$auth['token_id'];
+        $identity = ($auth['token_kind'] ?? 'manual') === 'oauth' ? 'oauth_' . $id : (string)$id;
         // Configurable MCP limit; independent from device API rate limiting.
         $limit = max(1, min(1000, (int)($GLOBALS['mcp_max_requests_per_second'] ?? 15)));
         $allowed = true;
         if ($cache !== null && $cache->isConnected()) {
             try {
-                $n = $cache->incrementWithTtl("mcp_rl_{$id}", 1, 1);
+                $n = $cache->incrementWithTtl("mcp_rl_{$identity}", 1, 1);
                 if ($n !== false) {
                     $allowed = $n <= $limit;
                     if (!$allowed) {
@@ -172,7 +180,7 @@ final class McpSecurity
                 // Falls back to a file lock if Redis temporarily fails.
             }
         }
-        $path = sys_get_temp_dir() . '/ratel_mcp_rl_' . $id;
+        $path = sys_get_temp_dir() . '/ratel_mcp_rl_' . $identity;
         $fp = @fopen($path, 'c+');
         if ($fp === false || !flock($fp, LOCK_EX)) {
             throw new McpAccessException('Rate limiter unavailable', 503);

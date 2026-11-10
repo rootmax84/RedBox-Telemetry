@@ -29,7 +29,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - Simple API for fetching latest metrics
 - API exporter for Prometheus/Grafana integration
 - Localized UI (EN/RU/ES/DE)
-- Built-in MCP server (2026-07-28 spec): read-only telemetry, PID analytics, live metrics, session comparison, GPS and RedManage configuration diagnostics, with scoped Bearer tokens
+- Built-in MCP server (2026-07-28 spec): read-only telemetry, PID analytics, live metrics, session comparison, GPS and RedManage configuration diagnostics, with scoped manual Bearer tokens and optional OAuth 2.1 / CIMD
 - and more...
 
 ### Architecture
@@ -41,7 +41,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 ```text
   RedBox / Torque / OBD devices       Web browser             AI / MCP client
                 |                         |                           |
-         telemetry upload           HTTPS web UI               HTTPS + Bearer
+         telemetry upload           HTTPS web UI               HTTPS + Bearer / OAuth
                 |                         |                     (read-only MCP)
                 +-------------------------+---------------------------+
                                           |
@@ -52,7 +52,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
                               |     nginx + PHP-FPM   |
                               |                       |
                               | /api/upload /settings |
-                              | /plot       /mcp      |
+                              | /plot  /mcp  /oauth/*  |
                               +-----+------------+----+
                                     |            |
                         SQL/storage |            | shared cache / queues
@@ -73,8 +73,8 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
                                                         worker x N
 ```
 
-- **MCP**: `/mcp` exposes 21 read-only tools: 16 telemetry/live/comparison/GPS tools and 5 RedManage configuration/boost/PID analysis tools, plus two resources and two prompts. Per-user token scopes: `telemetry:read`, `telemetry:live`, `location:read`, `remote:read`. **No MCP configuration writes or device-control commands are exposed.** RedManage controls remain available only in the web UI.
-- **Data storage**: sessions, PID catalogs, telemetry logs and hashed MCP credentials are stored in MariaDB. MCP authentication checks the database, including after token deletion.
+- **MCP**: `/mcp` exposes 21 read-only tools: 16 telemetry/live/comparison/GPS tools and 5 RedManage configuration/boost/PID analysis tools, plus two resources and two prompts. Optional OAuth 2.1 (PKCE S256, allowlisted CIMD clients, short-lived tokens and refresh rotation) shares the existing Bearer verification and permissions. Per-user scopes: `telemetry:read`, `telemetry:live`, `location:read`, `remote:read`. **No MCP configuration writes or device-control commands are exposed.**
+- **Data storage**: sessions, PID catalogs, telemetry logs and hashed manual MCP tokens, OAuth authorization codes and access/refresh token hashes are stored in MariaDB. MCP authentication checks the database, including after token deletion.
 - **Redis (shared)**: backs the regular application cache (`RatelCache`, including session/profile/PID metadata), the chunked plot JSON cache, and MCP query results and per-token rate limiting. Redis Streams also handle telemetry uploads, heavy tasks and notifications. MCP telemetry reads fall back to MariaDB when the Redis cache is unavailable.
 - **Worker**: processes upload, heavy-task and notification Streams; upload and relevant task results are persisted in MariaDB.
 
@@ -95,6 +95,8 @@ INLINE FALLBACK (Redis disabled or unavailable):
 
 ```
 </details>
+
+**OAuth 2.1 (optional):** configure `$mcp_oauth_issuer` in `web/src/creds.php` as the public HTTPS origin (for example, `https://telemetry.example.com`). Behind a trusted TLS reverse proxy enable `$mcp_trust_forwarded_proto = true`. OAuth endpoints are `/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`, `/oauth/authorize`, and `/oauth/token`. Run migrations on standalone upgrades; Docker runs them automatically. Allowed CIMD metadata URLs are configured with `$mcp_oauth_allowed_clients` in `creds.php` (default: two ChatGPT URLs). Exact HTTPS URLs are recommended; `*` can match one path segment, never a domain.
 
 ### Standalone installation requirements:
 - PHP8.2+
@@ -180,6 +182,8 @@ INLINE FALLBACK (Redis disabled or unavailable):
 | $def_limit | Default user database size limit (session count) | 100 |
 | $max_upload_requests_per_second | Upload rate limit (requests/sec) | 100 |
 | $max_api_requests_per_second | API rate limit (requests/sec) | 10 |
+| $mcp_oauth_issuer | Public HTTPS OAuth issuer; leave empty to disable OAuth and keep manual Bearer tokens | empty |
+| $mcp_oauth_allowed_clients | Allowlist of exact HTTPS CIMD client metadata URLs (optional single-path-segment wildcard); `[]` disables CIMD clients | ChatGPT stable and per-connection URLs |
 | $mcp_require_https | Require HTTPS for remote MCP Bearer requests | true |
 | $mcp_trust_forwarded_proto | Trust `X-Forwarded-Proto` only behind a trusted TLS reverse proxy | false |
 | $mcp_max_requests_per_second | MCP requests/sec per token (Redis or file fallback; 1–1000) | 15 |
