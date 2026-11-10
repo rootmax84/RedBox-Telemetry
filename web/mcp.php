@@ -26,6 +26,21 @@ function mcp_json(array $payload, int $status = 200): never
     exit;
 }
 
+/**
+ * Normalize untrusted values before writing them to a single log line.
+ * Removes line breaks, control characters and Unicode line separators.
+ */
+function mcp_log_safe(string $value): string
+{
+    $clean = preg_replace(
+        '/[\x00-\x1F\x7F]|\xC2[\x80-\x9F]|\xE2\x80[\xA8\xA9]/',
+        ' ',
+        $value
+    );
+
+    return substr($clean ?? '[invalid log value]', 0, 256);
+}
+
 function mcp_error(mixed $id, int $code, string $message, int $status = 200, ?array $data = null): never
 {
     $error = ['code' => $code, 'message' => $message];
@@ -227,7 +242,7 @@ try {
 try {
     $db = mcp_open_database();
 } catch (Throwable $e) {
-    error_log('MCP database connection failed: ' . $e->getMessage());
+    error_log('MCP database connection failed: ' . mcp_log_safe($e->getMessage()));
     mcp_json(['error' => 'MCP authentication unavailable'], 503);
 }
 
@@ -239,7 +254,7 @@ try {
     }
     mcp_json(['error' => $e->getMessage()], $e->httpStatus);
 } catch (Throwable $e) {
-    error_log('MCP authentication failure: ' . $e->getMessage());
+    error_log('MCP authentication failure: ' . mcp_log_safe($e->getMessage()));
     mcp_json(['error' => 'MCP authentication unavailable'], 503);
 }
 
@@ -270,7 +285,7 @@ try {
 
     mcp_json(['error' => $e->getMessage()], $e->httpStatus);
 } catch (Throwable $e) {
-    error_log('MCP authentication failure: ' . $e->getMessage());
+    error_log('MCP authentication failure: ' . mcp_log_safe($e->getMessage()));
     mcp_json(['error' => 'MCP authentication unavailable'], 503);
 }
 
@@ -348,6 +363,6 @@ try {
 } catch (InvalidArgumentException | McpAccessException $e) {
     mcp_error($id, -32602, $e->getMessage());
 } catch (Throwable $e) {
-    error_log('MCP internal failure (' . $rpcMethod . '): ' . $e->getMessage());
+    error_log('MCP internal failure (' . mcp_log_safe($rpcMethod) . '): ' . mcp_log_safe($e->getMessage()));
     mcp_error($id, -32603, 'Internal MCP error', 500);
 }
