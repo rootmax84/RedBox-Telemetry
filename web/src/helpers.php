@@ -1226,8 +1226,13 @@ function cache_pids_after_commit(int $user_id, string $username, array $result):
         }
     }
 
-    if (!empty($result['inserted']) && $username !== '') {
-        cache_flush(null, "columns_data_pids_{$username}");
+    if (!empty($result['inserted'])) {
+        // Invalidate MCP PID catalogs after new PIDs are committed, without
+        // flushing the heavy analytics cache for every ordinary live upload.
+        if ($memcached_connected && $user_id > 0) {
+            $memcached->increment("u{$user_id}_varver", 1);
+        }
+        if ($username !== '') cache_flush(null, "columns_data_pids_{$username}");
     }
 }
 

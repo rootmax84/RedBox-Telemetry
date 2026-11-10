@@ -21,6 +21,20 @@ $def_limit                      = 100;          // Default user DB size in sessi
 $max_upload_requests_per_second = 100;          // Upload rate limit (requests per second)
 $max_api_requests_per_second    = 10;           // API rate limit (requests per second)
 
+// --- MCP (independent remote Bearer credentials) ---
+$mcp_require_https             = true;         // Reject remote MCP over plain HTTP
+$mcp_trust_forwarded_proto     = false;        // True ONLY behind a trusted TLS reverse proxy
+$mcp_max_requests_per_second   = 15;           // Per-token rate limit; 1–1000 requests/sec
+$mcp_db_connect_timeout        = 3;            // MariaDB connection deadline for MCP (seconds, 1–10)
+// MCP caching uses existing Redis/RatelCache and the per-user cache version.
+$mcp_cache_enabled             = true;         // Falls back to direct DB reads if Redis is down
+$mcp_cache_catalog_ttl         = 120;          // PID catalog (seconds)
+$mcp_cache_sessions_ttl        = 15;           // Session list and last-session resource
+$mcp_cache_analytics_ttl       = 600;          // Historical stats, anomalies, events, routes, graphs
+$mcp_cache_live_ttl            = 2;            // Live readings and device status (seconds)
+$mcp_cache_max_bytes           = 131072;       // Maximum uncompressed payload to cache (128 KiB)
+$mcp_cache_lock_ttl            = 15;           // Stampede-prevention lock TTL (seconds)
+
 // --- Redis / Streams (async upload processing) ---
 $redis_enabled                   = true;
 $redis_host                      = 'redis';      // Docker service name / IP

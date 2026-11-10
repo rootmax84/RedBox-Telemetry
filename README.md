@@ -29,6 +29,7 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
 - Simple API for fetching latest metrics
 - API exporter for Prometheus/Grafana integration
 - Localized UI (EN/RU/ES/DE)
+- Built-in MCP server (2026-07-28 spec): read-only telemetry, PID analytics, live metrics, session comparison, GPS and RedManage configuration diagnostics, with scoped Bearer tokens
 - and more...
 
 ### Architecture
@@ -37,42 +38,45 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
     
 ## General
 
+```text
+  RedBox / Torque / OBD devices       Web browser             AI / MCP client
+                |                         |                           |
+         telemetry upload           HTTPS web UI               HTTPS + Bearer
+                |                         |                     (read-only MCP)
+                +-------------------------+---------------------------+
+                                          |
+                                  TLS reverse proxy
+                                          |
+                              +-----------v-----------+
+                              |          web          |
+                              |     nginx + PHP-FPM   |
+                              |                       |
+                              | /api/upload /settings |
+                              | /plot       /mcp      |
+                              +-----+------------+----+
+                                    |            |
+                        SQL/storage |            | shared cache / queues
+                                    |            |
+                         +----------v----+  +----v--------------------------+
+                         |    MariaDB    |  |           Redis               |
+                         | (RocksDB /    |  |                                |
+                         |   InnoDB)     |  | Application cache (RatelCache) |
+                         | users, logs,  |  | Plot JSON / chunk cache        |
+                         | sessions,     |  | MCP query cache & rate limits  |
+                         | pids, tokens  |  | Streams: uploads, heavy tasks, |
+                         +-------^-------+  |          notifications         |
+                                 |          +----------------+---------------+
+                                 |                           |
+                                 | persist uploads / tasks   | XREADGROUP
+                                 +---------------------------+
+                                                             |
+                                                        worker x N
 ```
-                    ┌──────────────┐
-   Devices -------> │              │
-   (Torque,         │   Internet   │
-    RedManage,      |              |
-    etc)            │              │
-                    └──────┬───────┘
-   Browser ────────────────┤
-                           │
-                           ▼
-                 ┌───────────────────┐
-                 │     ratel_web     │
-                 │  nginx + php-fpm  │
-                 └─────────┬─────────┘
-                           │
-                           ▼
-        ╔══════════════════════════════════╗
-        ║         ratel_network            ║
-        ║                                  ║
-        ║   ┌──────────┐   ┌────────────┐  ║
-        ║   │  Redis   │   │  MariaDB   │  ║
-        ║   │          │   │ (RocksDB)  │  ║
-        ║   │ • cache  │   │            │  ║
-        ║   │ • streams│   │  users     │  ║
-        ║   │ • heavy  │   │  sessions  │  ║
-        ║   │ • rate   │   │  logs      │  ║
-        ║   │   limit  │   │  pids      │  ║
-        ║   └────▲─────┘   └─────▲──────┘  ║
-        ║        │               │         ║
-        ║        │               │         ║
-        ║   ┌────┴───────────────┴─────┐   ║
-        ║   │      worker.php × N      │   ║
-        ║   │  (streams → MariaDB)     │   ║
-        ║   └──────────────────────────┘   ║
-        ╚══════════════════════════════════╝
-```
+
+- **MCP**: `/mcp` exposes 21 read-only tools: 16 telemetry/live/comparison/GPS tools and 5 RedManage configuration/boost/PID analysis tools, plus two resources and two prompts. Per-user token scopes: `telemetry:read`, `telemetry:live`, `location:read`, `remote:read`. **No MCP configuration writes or device-control commands are exposed.** RedManage controls remain available only in the web UI.
+- **Data storage**: sessions, PID catalogs, telemetry logs and hashed MCP credentials are stored in MariaDB. MCP authentication checks the database, including after token deletion.
+- **Redis (shared)**: backs the regular application cache (`RatelCache`, including session/profile/PID metadata), the chunked plot JSON cache, and MCP query results and per-token rate limiting. Redis Streams also handle telemetry uploads, heavy tasks and notifications. MCP telemetry reads fall back to MariaDB when the Redis cache is unavailable.
+- **Worker**: processes upload, heavy-task and notification Streams; upload and relevant task results are persisted in MariaDB.
 
 ## Fast path vs inline fallback
 
@@ -111,11 +115,14 @@ INLINE FALLBACK (Redis disabled or unavailable):
 3. Open ./web/src/creds.php file
 4. Fill MySQL settings and choose database engine (InnoDB or RocksDB if available)
 5. Change admin login if needed - $admin variable
-6. Create empty file with name 'install' in root folder of installation (Make sure web-server have write rights on folder)
-7. Sign in with admin login and admin password (default password: admin) (Users table will be created while sign in)
-8. Create new user in admin panel and change admin password
-9. For upload data from Torque PRO/RedManage use URL - https://your.site/api/upload
-10. Done!
+6. **Run the database migrations once from the `web` directory:** `cd web && php migrate.php --auto` (check the exit code; it must be zero). This creates the shared telemetry and MCP tables. Re-run after standalone upgrades; the migration is idempotent.
+7. Create empty file with name 'install' in root folder of installation (Make sure web-server have write rights on folder)
+8. Sign in with admin login and admin password (default password: admin) (Users table will be created while sign in)
+9. Create new user in admin panel and change admin password
+10. For upload data from Torque PRO/RedManage use URL - https://your.site/api/upload
+11. Done!
+
+**Docker installations:** do **not** run `php migrate.php --auto` manually; the container startup already runs migrations.
 
 ### Installation docker:
 0. Install Docker Engine and docker-compose from your distro repository
@@ -168,12 +175,22 @@ INLINE FALLBACK (Redis disabled or unavailable):
 | $db_name | Database name | ratel |
 | $user_id | Current user ID (from session) | $_SESSION['uid'] ?? null |
 | $db_engine | Table engine (ROCKSDB or INNODB) | ROCKSDB |
-| $db_innodb_compression | Enable row compression for InnoDB | false |
 | $db_cache_ttl | Redis cache TTL in seconds | 3600 |
 | $db_cache_meta_ttl | Redis metadata cache TTL (seconds) | 300 |
 | $def_limit | Default user database size limit (session count) | 100 |
 | $max_upload_requests_per_second | Upload rate limit (requests/sec) | 100 |
 | $max_api_requests_per_second | API rate limit (requests/sec) | 10 |
+| $mcp_require_https | Require HTTPS for remote MCP Bearer requests | true |
+| $mcp_trust_forwarded_proto | Trust `X-Forwarded-Proto` only behind a trusted TLS reverse proxy | false |
+| $mcp_max_requests_per_second | MCP requests/sec per token (Redis or file fallback; 1–1000) | 15 |
+| $mcp_db_connect_timeout | MCP database connection timeout (seconds; 1–10) | 3 |
+| $mcp_cache_enabled | Enable Redis MCP query cache, with direct-DB fallback | true |
+| $mcp_cache_catalog_ttl | MCP PID catalog cache TTL (seconds) | 120 |
+| $mcp_cache_sessions_ttl | MCP session list/metadata cache TTL (seconds) | 15 |
+| $mcp_cache_analytics_ttl | MCP historical analytics including boost/PID analysis cache TTL (seconds) | 600 |
+| $mcp_cache_live_ttl | MCP last-known live readings cache TTL (seconds) | 2 |
+| $mcp_cache_max_bytes | Maximum uncompressed result payload stored in Redis (bytes) | 131072 |
+| $mcp_cache_lock_ttl | MCP duplicate-computation lock TTL (seconds) | 15 |
 | $redis_enabled | Master switch for Redis integration | true |
 | $redis_host | Redis host address (redis for Docker) | redis |
 | $redis_port | Redis port | 6379 |
@@ -208,6 +225,12 @@ INLINE FALLBACK (Redis disabled or unavailable):
 | $tg_socks_proxy | SOCKS5 proxy for Telegram API | (empty) |
 | $tg_api_url | Custom Telegram API gateway URL | (empty) |
 | $tg_api_id | X-Connection-Id header for gateway auth | (empty) |
+
+**MCP behind a reverse proxy:** leave `$mcp_require_https = true`. Set
+`$mcp_trust_forwarded_proto = true` **only** when TLS terminates at a trusted
+proxy that overwrites `X-Forwarded-Proto` and the PHP backend cannot be reached
+directly from the internet. Configure the remaining MCP variables in your own
+`web/src/creds.php`; do not overwrite that file during an upgrade.
 
 ### Typical nginx host configuration for standalone installation:
 ```

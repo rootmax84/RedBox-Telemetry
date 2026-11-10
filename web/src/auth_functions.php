@@ -91,10 +91,26 @@ function update_login_attempts($user, $success) {
 }
 
 //Auth user by user/pass
+/** Admin account is identified by the configured login, never by its session quota (s=0). */
+function is_admin_account(string $authenticatedUser, string $configuredAdmin): bool
+{
+    return $configuredAdmin !== '' && hash_equals($configuredAdmin, $authenticatedUser);
+}
+
+/** Assign the session role exclusively from a password-verified account name. */
+function assign_authenticated_role(string $authenticatedUser, string $configuredAdmin): void
+{
+    if (is_admin_account($authenticatedUser, $configuredAdmin)) {
+        $_SESSION['admin'] = true;
+    } else {
+        unset($_SESSION['admin']);
+    }
+}
+
 function auth_user()
 {
     $db = get_db_connection();
-    global $live_data_rate;
+    global $live_data_rate, $admin;
 
     // ── Clean install: файл `install` создаётся startup-скриптом контейнера,
     //    удаляется после первого успешного захода на страницу логина.
@@ -121,6 +137,10 @@ function auth_user()
     } else {
         $row = $userqry->fetch_assoc();
         if (password_verify($pass, $row["pass"])) {
+            // A fresh authenticated session must not inherit a previous role.
+            // The built-in administrator is created with s=0 by design;
+            // db_limits.php skips the disabled-user check only for this role.
+            assign_authenticated_role((string)$row['user'], (string)($admin ?? ''));
             $_SESSION['torque_user'] = $row["user"];
             $_SESSION['torque_limit'] = $row["s"];
             setcookie("stream", true);
@@ -181,6 +201,7 @@ function create_users_table()
         stream_lock tinyint(1) NOT NULL DEFAULT 0,
         sessions_filter tinyint(1) NOT NULL DEFAULT 1,
         api_gps tinyint(1) NOT NULL DEFAULT 0,
+        mcp_enabled tinyint(1) NOT NULL DEFAULT 0,
         mcu_data varchar(2048) NULL,
         login_attempts tinyint UNSIGNED DEFAULT 0,
         last_attempt DATETIME,

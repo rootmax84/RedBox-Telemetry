@@ -809,6 +809,23 @@ CREATE TABLE IF NOT EXISTS sessions (
     KEY favorite_index (user_id, favorite)
 ) ENGINE={$engine} DEFAULT CHARSET=utf8mb4",
 
+        'mcp_tokens' => "
+CREATE TABLE IF NOT EXISTS mcp_tokens (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    label VARCHAR(80) NOT NULL,
+    token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    token_prefix VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    scopes VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL,
+    revoked_at DATETIME NULL,
+    last_used_at DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY mcp_token_hash (token_hash),
+    KEY mcp_user_tokens (user_id, revoked_at, expires_at)
+) ENGINE={$engine} DEFAULT CHARSET=utf8mb4",
+
         'logs' => "
 CREATE TABLE IF NOT EXISTS logs (
     user_id BIGINT UNSIGNED NOT NULL,
@@ -834,7 +851,7 @@ CREATE TABLE IF NOT EXISTS logs (
             exit(1);
         }
     }
-    info("[ddl] shared tables ready ({$engine}): pids, sessions, logs");
+    info("[ddl] shared tables ready ({$engine}): pids, sessions, logs, mcp_tokens");
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -937,6 +954,7 @@ function migrate_users_table(mysqli $db, bool $dry_run): void
         'login_attempts'  => "ALTER TABLE `$users_table` ADD COLUMN login_attempts TINYINT UNSIGNED DEFAULT 0",
         'last_attempt'    => "ALTER TABLE `$users_table` ADD COLUMN last_attempt DATETIME",
         'api_gps'         => "ALTER TABLE `$users_table` ADD COLUMN api_gps TINYINT(1) NOT NULL DEFAULT 0",
+        'mcp_enabled'     => "ALTER TABLE `$users_table` ADD COLUMN mcp_enabled TINYINT(1) NOT NULL DEFAULT 0",
         'lang'            => "ALTER TABLE `$users_table` ADD COLUMN lang ENUM('en','ru','es','de') NOT NULL DEFAULT 'en' AFTER gap",
         'mcu_data'        => "ALTER TABLE `$users_table` ADD COLUMN mcu_data VARCHAR(2048) NULL AFTER sessions_filter",
     ];

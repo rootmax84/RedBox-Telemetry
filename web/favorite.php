@@ -30,6 +30,10 @@ try {
             $updatedCount++;
         }
 
+        if ($updatedCount > 0) {
+            cache_flush();
+        }
+
         echo json_encode([
             'status' => 'success',
             'updated' => $updatedCount
@@ -56,6 +60,8 @@ try {
           WHERE user_id = ? AND session = ?",
         [$favorite_value, current_user_id(), $session_id]
     );
+
+    cache_flush();
 
     echo json_encode([
         'status' => 'success',

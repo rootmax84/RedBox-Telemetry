@@ -160,6 +160,11 @@ if (isset($delsession)) {
         </button>
       </li>
       <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/settings/mcp'">
+          <span class="icon" id="mcp-img"></span><span l10n="func.mcp">MCP</span>
+        </button>
+      </li>
+      <li role="none">
         <button class="menu-item" role="menuitem" tabindex="-1" onclick="showHints()">
           <span class="icon" id="hint-img"></span>
           <span l10n="hint.button"></span>

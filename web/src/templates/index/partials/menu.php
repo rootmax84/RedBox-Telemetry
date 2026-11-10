@@ -102,10 +102,15 @@
           <span l10n="func.settings"></span>
         </button>
       </li>
-      <li role="none">
+<li role="none">
         <button class="menu-item" role="menuitem" tabindex="-1" onclick="remoteRa()">
           <span class="icon" id="remote-ra-rbx-img"></span>
           <span l10n="func.remote"></span>
+        </button>
+      </li>
+      <li role="none">
+        <button class="menu-item" role="menuitem" tabindex="-1" onclick="location.href='/settings/mcp'">
+          <span class="icon" id="mcp-img"></span><span l10n="func.mcp">MCP</span>
         </button>
       </li>
       <li role="none">

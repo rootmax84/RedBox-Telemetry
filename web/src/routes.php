@@ -18,6 +18,8 @@ $router->any ('/search',              'search.php');
 $router->post('/search/query',        'search_processor.php');
 $router->any ('/favorites',           'fav_sessions.php');
 $router->any ('/settings',            'users_settings.php');
+$router->get ('/settings/mcp',        'mcp_settings.php');
+$router->post('/settings/mcp/tokens', 'mcp_settings_action.php');
 $router->post('/settings/save',       'users_handler.php');
 $router->any ('/settings/remote',     'users_remote.php');
 $router->any ('/settings/token',      'users_handler.php');   // ?get_token || ?renew_token
@@ -61,6 +63,9 @@ $router->any('/upload', 'ul.php'); // Legacy path
 $router->any('/api/remote', 'remote.php');
 $router->any('/api/stream', 'stream_json.php');
 $router->any('/api/token',  'get_token.php');
+
+// MCP: separate bearer tokens / never use the legacy device API token.
+$router->any('/mcp', 'mcp.php');
 
 // ════════════════════════════════════════════════════════════
 //  Async tasks

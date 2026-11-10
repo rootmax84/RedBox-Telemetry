@@ -1815,3 +1815,8 @@ html.session-initial-loading #session-initial-loader {
 html.session-initial-loading .fetch-data {
   display: none !important;
 }
+
+/* MCP uses a network icon distinct from device API token / RedManage. */
+#mcp-img {
+    --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a3 3 0 0 0-2.81 4.04L5.85 9.25a3 3 0 1 0 1.42 1.41l3.33-3.2a3.1 3.1 0 0 0 2.8 0l3.33 3.2a3 3 0 1 0 1.42-1.41l-3.34-3.21A3 3 0 0 0 12 2m-6 9a1 1 0 1 1 0 2a1 1 0 0 1 0-2m12 0a1 1 0 1 1 0 2a1 1 0 0 1 0-2M12 16a3 3 0 0 0-2.83 2H7a3 3 0 1 0 0 2h2.17a3 3 0 0 0 5.66 0H17a3 3 0 1 0 0-2h-2.17A3 3 0 0 0 12 16m0 2a1 1 0 1 1 0 2a1 1 0 0 1 0-2'/%3E%3C/svg%3E");
+}

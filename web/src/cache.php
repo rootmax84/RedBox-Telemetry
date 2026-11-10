@@ -188,6 +188,33 @@ final class RatelCache
         }
     }
 
+    /** Non-blocking distributed lock for MCP analytics. Returns an ownership token. */
+    public function acquireLock(string $key, int $ttl = 15): ?string
+    {
+        if (!$this->redis instanceof Redis) return null;
+        try {
+            $owner = bin2hex(random_bytes(16));
+            return $this->redis->set($key, $owner, ['nx', 'ex' => max(1, $ttl)]) ? $owner : null;
+        } catch (Throwable $e) {
+            error_log('RatelCache lock error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /** Only the lock holder may release a distributed lock. */
+    public function releaseLock(string $key, string $owner): void
+    {
+        if (!$this->redis instanceof Redis) return;
+        try {
+            $this->redis->eval(
+                "if redis.call('GET',KEYS[1])==ARGV[1] then return redis.call('DEL',KEYS[1]) else return 0 end",
+                [$key, $owner], 1
+            );
+        } catch (Throwable $e) {
+            error_log('RatelCache unlock error: ' . $e->getMessage());
+        }
+    }
+
     public function delete(string $key): bool
     {
         if (!$this->redis instanceof Redis) {

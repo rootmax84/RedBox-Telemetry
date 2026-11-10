@@ -60,6 +60,8 @@ set_exception_handler(function($exception) {
     $script = basename($_SERVER['SCRIPT_FILENAME'] ?? '');
     $is_api = in_array($script, [
         'stream_json.php',
+        'mcp.php',
+        'mcp_settings_action.php',
         'ul.php',
         'remote.php',
         'get_token.php',
