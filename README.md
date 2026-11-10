@@ -73,11 +73,6 @@ Forked from Open Torque Viewer. Refactored and adapted for RedBox Automotive dev
                                                         worker x N
 ```
 
-- **MCP**: `/mcp` exposes 21 read-only tools: 16 telemetry/live/comparison/GPS tools and 5 RedManage configuration/boost/PID analysis tools, plus two resources and two prompts. Optional OAuth 2.1 (PKCE S256, allowlisted CIMD clients, short-lived tokens and refresh rotation) shares the existing Bearer verification and permissions. Per-user scopes: `telemetry:read`, `telemetry:live`, `location:read`, `remote:read`. **No MCP configuration writes or device-control commands are exposed.**
-- **Data storage**: sessions, PID catalogs, telemetry logs and hashed manual MCP tokens, OAuth authorization codes and access/refresh token hashes are stored in MariaDB. MCP authentication checks the database, including after token deletion.
-- **Redis (shared)**: backs the regular application cache (`RatelCache`, including session/profile/PID metadata), the chunked plot JSON cache, and MCP query results and per-token rate limiting. Redis Streams also handle telemetry uploads, heavy tasks and notifications. MCP telemetry reads fall back to MariaDB when the Redis cache is unavailable.
-- **Worker**: processes upload, heavy-task and notification Streams; upload and relevant task results are persisted in MariaDB.
-
 ## Fast path vs inline fallback
 
 ```

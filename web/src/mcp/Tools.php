@@ -3,6 +3,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/Cache.php';
 require_once __DIR__ . '/RemoteSchema.php';
 require_once __DIR__ . '/RemoteData.php';
+require_once __DIR__ . '/RemoteBehavior.php';
+require_once __DIR__ . '/RemoteArchitecture.php';
 final class McpTools
 {
     private const READ = ['telemetry:read'];
@@ -62,12 +64,16 @@ final class McpTools
             ['find_route_events', 'Get threshold excursions with GPS points at event onset.', self::GPS,
                 $s($sid + $pid + $range + ['operator' => ['type' => 'string', 'enum' => ['gt', 'gte', 'lt', 'lte']],
                         'threshold' => ['type' => 'number'], 'max_events' => $int('1–100')], ['session_id', 'pid', 'threshold'])],
-            ['get_remote_schema', 'Read-only RedManage field catalogue: engineering meaning, units, byte decoding, groups and dependencies. No writes.', self::REMOTE,
+            ['get_remote_schema', 'Read-only RedManage catalogue: groups, engineering units, stored-code options, dependent conditions and calibration. No writes.', self::REMOTE,
                 $s(['group' => ['type' => 'string', 'enum' => array_keys(McpRemoteSchema::GROUPS)]])],
-            ['get_remote_settings', 'Read decoded current RedManage settings, server timestamp and configuration warnings. Never changes settings.', self::REMOTE,
+            ['get_remote_settings', 'Read decoded RedManage settings with effective engineering units, human-readable mode labels, PG logic conditions, boost MAP limits, and PWM fan thresholds. Never changes settings.', self::REMOTE,
                 $s(['group' => ['type' => 'string', 'enum' => array_keys(McpRemoteSchema::GROUPS)]])],
             ['get_remote_explanation', 'Explain a named RedManage field, relationships and relevant cautions. Keys from get_remote_schema.', self::REMOTE,
                 $s(['key' => $str('Exact dotted field key from get_remote_schema')], ['key'])],
+            ['get_remote_behavior', 'Read-only behaviour guide for boost, PID, fan and protection. Explains interacting settings and diagnostic limitations without MCU equations or source; includes current saved settings when a topic is selected.', self::REMOTE,
+                $s(['topic' => ['type' => 'string', 'enum' => array_keys(McpRemoteBehavior::TOPICS)]])],
+            ['get_remote_architecture', 'Read-only architecture map of RedManage MCU: signal sources, acquisition, ECU/OBD1, analog/DS, RPM, gear, boost, PID, fan, protection, PG0/PG1, PIM, UART, dashboard, persistence and telemetry provenance. Call first for system-wide questions; no firmware code or algorithms.', self::REMOTE,
+                $s(['component' => ['type' => 'string', 'enum' => array_keys(McpRemoteArchitecture::COMPONENTS)]])],
             ['analyze_boost_behavior', 'Read-only paired RPM/boost analysis near selected engine RPM. Requires correct PIDs and matching engineering units; never prescribe duty or target changes.', self::REMOTE_ANALYSIS,
                 $s($sid + ['rpm_pid' => $str('RPM PID from list_metrics'),
                     'pressure_pid' => $str('Boost pressure PID from list_metrics'),
@@ -75,7 +81,7 @@ final class McpTools
                     'center_rpm' => $int('RPM center; default 5000'),
                     'rpm_window' => $int('Half-width of RPM interval; default 200')] + $range,
                     ['session_id', 'rpm_pid', 'pressure_pid'])],
-            ['analyze_pid_response', 'Read-only observed pressure response: rise/fall, overshoot and oscillation clues; identify transients, not tuning prescriptions.', self::REMOTE_ANALYSIS,
+            ['analyze_pid_response', 'Read-only pressure statistics, rise/fall slopes and optional target error. Does not calculate validated overshoot or settling time; never prescribes PID gain changes.', self::REMOTE_ANALYSIS,
                 $s($sid + ['pressure_pid' => $str('Pressure PID from list_metrics'),
                     'rpm_pid' => $str('Optional RPM PID from list_metrics'),
                     'target_pid' => $str('Optional time-aligned controller target PID; must have same pressure unit'),
@@ -134,10 +140,36 @@ final class McpTools
             'get_remote_schema' => McpRemoteSchema::catalog(self::remoteGroup($args)),
             'get_remote_settings' => (new McpRemoteData($db, $auth))->settings(self::remoteGroup($args)),
             'get_remote_explanation' => McpRemoteSchema::explain(self::remoteKey($args)),
+            'get_remote_behavior' => self::remoteBehavior($db, $auth, $args),
+            'get_remote_architecture' => self::remoteArchitecture($args),
             'analyze_boost_behavior' => (new McpRemoteData($db, $auth))->analyzeBoost($service, $args),
             'analyze_pid_response' => (new McpRemoteData($db, $auth))->analyzePid($service, $args),
         };
         return (new McpCache($db, $auth, $redis))->remember($name, $args, $compute);
+    }
+
+    private static function remoteBehavior(mysqli $db, array $auth, array $args): array
+    {
+        $topic = $args['topic'] ?? null;
+        if ($topic !== null && !is_string($topic)) {
+            throw new InvalidArgumentException('topic must be a string');
+        }
+
+        $behavior = McpRemoteBehavior::describe($topic);
+        if ($topic !== null) {
+            $behavior['saved_configuration'] = (new McpRemoteData($db, $auth))->settings($topic);
+        }
+
+        return $behavior;
+    }
+
+    private static function remoteArchitecture(array $args): array
+    {
+        $component = $args['component'] ?? null;
+        if ($component !== null && !is_string($component)) {
+            throw new InvalidArgumentException('component must be a string');
+        }
+        return McpRemoteArchitecture::describe($component);
     }
 
     private static function remoteGroup(array $args): ?string

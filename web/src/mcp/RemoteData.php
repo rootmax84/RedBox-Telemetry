@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/RemoteBehavior.php';
 
 require_once __DIR__ . '/RemoteSchema.php';
 
@@ -58,13 +59,31 @@ final class McpRemoteData
         }
         $values = McpRemoteSchema::decode($configuration['bytes'], $group);
         $allValues = $group === null ? $values : McpRemoteSchema::decode($configuration['bytes']);
+        $derived = [];
+        if ($group === null || $group === 'fan') {
+            $derived['fan_pwm'] = McpRemoteSchema::fanPwmSummary($allValues);
+        }
+        if ($group === null || $group === 'boost') {
+            $derived['boost_mode'] = McpRemoteSchema::boostModeSummary($allValues);
+        }
+        if ($group === null || $group === 'logic') {
+            $derived['logic_conditions'] = McpRemoteSchema::logicConditions($allValues);
+        }
+
         return [
             'available' => true,
             'group' => $group,
             'settings_updated_ms' => $configuration['updated_ms'],
             'values' => $values,
+            'units' => McpRemoteSchema::units($group, $allValues),
+            'value_labels' => McpRemoteSchema::valueLabels($values, $group),
+            'derived' => $derived,
             'warnings' => McpRemoteSchema::warnings($allValues),
             'read_only' => true,
+            'architecture_reference' => ['tool' => 'get_remote_architecture', 'component' => null],
+            'behavior_reference' => $group !== null && array_key_exists($group, McpRemoteBehavior::TOPICS)
+                ? ['tool' => 'get_remote_behavior', 'topic' => $group]
+                : ['tool' => 'get_remote_behavior', 'topics' => array_keys(McpRemoteBehavior::TOPICS)],
             'caution' => 'Values are stored device configuration, not live hardware confirmation. Firmware and sensor calibration must be verified before interpreting them.',
         ];
     }
