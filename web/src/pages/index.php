@@ -157,29 +157,6 @@ if (isset($sids[0])) {
     }
     $imapdata = implode(",", $mapdata);
 
-    // stream_lock
-    $stream_lock_cache_key = "stream_lock_" . $username;
-    $stream_lock = false;
-
-    if ($memcached_connected) {
-        $s_cached_data = $memcached->get($stream_lock_cache_key);
-        if ($memcached->getResultCode() === RatelCache::RES_SUCCESS && is_array($s_cached_data)) {
-            list($stream_lock, $cached_timestamp) = $s_cached_data;
-        }
-    }
-
-    if ($stream_lock === false || $cached_timestamp !== $current_timestamp) {
-        $stream_lock = $db->execute_query("SELECT stream_lock FROM users WHERE user=?", [$username])->fetch_row()[0];
-        if ($memcached_connected) {
-            try {
-                $memcached->set($stream_lock_cache_key, [$stream_lock, $current_timestamp], $db_cache_meta_ttl ?? 300);
-            } catch (Exception $e) {
-                $errorMessage = sprintf("Ratel cache error for user %s: %s (Code: %d)", $username, $e->getMessage(), $e->getCode());
-                error_log($errorMessage);
-            }
-        }
-    }
-
     // id
     $session_id_cache_key = cache_var_key("session_id_{$session_id}");
     $id = false;
@@ -220,7 +197,6 @@ return [
     'var1'                 => $var1,
     'imapdata'             => $imapdata ?? '',
     'itime'                => $itime ?? '',
-    'stream_lock'          => $stream_lock ?? 0,
     'id'                   => $id ?? null,
     'seshdates'            => $seshdates ?? [],
     'seshsizes'            => $seshsizes ?? [],

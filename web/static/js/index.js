@@ -105,6 +105,8 @@ $(document).ready(function () {
     updCharts();
     if (window.history.replaceState) window.history.replaceState(null, null, window.location.href);
     resizeSplitter();
+    streamColumn.init();
+    initStreamDensity();
     markActiveSess();
     markCurrSess();
 
@@ -156,50 +158,338 @@ const noSleep = new NoSleep();
 let streamBtn_svg = null;
 let stream = false;
 let src = null;
+let streamMapFullscreen = false;
+let streamPanelAnchor = null;
+function streamText(key) {
+    return localization.key[key] || key;
+}
 
-function dataToggleCore() {
-    updatePlot(function () {
-        if ($("#data").is(":hidden")) {
-            handleSliderInit();
-            $("#data").show();
-            $("#data_toggle").html(localization.key['collapse']);
-            const streamUrl = "/sessions/stream" +
-                (APP_CONFIG.streamLock > 0
-                    ? '?id=' + encodeURIComponent(APP_CONFIG.sessionId)
-                    : '');
-            src = new EventSource(streamUrl);
-            src.onmessage = e => { $("#stream").html(e.data); };
-            alarm.muted = false;
-            noSleep.enable();
-            stream = true;
-            startPlotUpdates();
-        } else {
-            $("#data").hide();
-            $("#data_toggle").html(localization.key['expand']);
-            src.close();
-            alarm.muted = true;
-            noSleep.disable();
-            stream = false;
-            stopPlotUpdates();
-            if (rawPath.length) {
-                rebuildMapFromRawPath();
-                if (window.MapData && window.MapData.flatCoords.length > 0) {
-                    mapUpdRange(0, window.MapData.flatCoords.length - 1);
-                }
-            }
+function syncStreamControls() {
+    document.querySelectorAll('.stream-power').forEach(button => {
+        const label = streamText(stream ? 'stream.stop' : 'stream.start');
+        button.setAttribute('aria-pressed', String(stream));
+        button.setAttribute('aria-label', label);
+        button.title = label;
+        button.querySelector('path').setAttribute('d', stream ? 'M5 5h14v14H5z' : 'M5 4v16l15-8z');
+    });
+    if (streamBtn_svg !== null) {
+        streamBtn_svg.style.color = stream ? '#008000' : 'inherit';
+        const button = streamBtn_svg.closest('a');
+        if (button) {
+            button.setAttribute('aria-pressed', String(stream));
+            button.title = streamText(stream ? 'stream.stop' : 'stream.start');
         }
-        if (streamBtn_svg !== null) streamBtn_svg.style.color = stream ? '#008000' : 'inherit';
+    }
+}
+
+// Allow resizing the stream column without coupling it to the GPS map splitter.
+// Saved in CSS pixels per account so switching sessions (including no-GPS ones)
+// retains the preference. The active width is always clamped to both pane minima.
+const streamColumn = (() => {
+    const MIN_STREAM_WIDTH = 330;
+    const MAX_STREAM_WIDTH = 430;
+    // The table viewport reserves 8px for its scrollbar. Keep the chosen
+    // width equal to the visible table, not the enclosing grid track.
+    const SCROLLBAR_GUTTER = 8;
+    // Reserve room for both chart and map where GPS exists; without GPS
+    // only the chart needs a minimum width.
+    const MIN_MAIN_WIDTH = document.getElementById('map') ? 820 : 500;
+    const DEFAULT_WIDTH = 380;
+    const STORAGE_KEY = `${username}-stream_panel_width`;
+    let workspace, handle;
+    let preferredWidth = DEFAULT_WIDTH;
+    let activePointer = null;
+    let dragStartX = 0;
+    let dragStartWidth = 0;
+    let frame = null;
+    let observer = null;
+    let originalUserSelect = '';
+
+    function bounds() {
+        const computed = getComputedStyle(workspace);
+        const gap = parseFloat(computed.columnGap) || 0;
+        const handleWidth = handle.getBoundingClientRect().width || 12;
+        return {
+            min: MIN_STREAM_WIDTH,
+            max: Math.min(MAX_STREAM_WIDTH,
+                Math.max(MIN_STREAM_WIDTH, workspace.clientWidth - MIN_MAIN_WIDTH - handleWidth - gap * 2 - SCROLLBAR_GUTTER))
+        };
+    }
+
+    function applyWidth() {
+        if (!workspace || !handle) return;
+        // The panel is stacked on narrower pages; retain its preference for wide layouts.
+        const { min, max } = bounds();
+        const width = Math.min(max, Math.max(min, preferredWidth));
+        workspace.style.setProperty('--stream-panel-width', `${width}px`);
+        handle.setAttribute('aria-valuenow', String(Math.round(width)));
+        handle.setAttribute('aria-valuemax', String(Math.round(max)));
+    }
+
+    function scheduleWidth() {
+        if (frame !== null) return;
+        frame = requestAnimationFrame(() => {
+            frame = null;
+            applyWidth();
+            // Flot already tracks its placeholder via ResizeObserver.
+            // Only keep the map tiles aligned during dragging, if a map exists.
+            if (typeof map !== 'undefined' && map) map.invalidateSize();
+        });
+    }
+
+    function saveWidth() {
+        try { localStorage.setItem(STORAGE_KEY, String(Math.round(preferredWidth))); }
+        catch (_) { /* Storage can be disabled; resizing still works. */ }
+    }
+
+    function setWidth(width, persist = false) {
+        const { min, max } = bounds();
+        preferredWidth = Math.min(max, Math.max(min, width));
+        scheduleWidth();
+        if (persist) saveWidth();
+    }
+
+    function reset() {
+        preferredWidth = DEFAULT_WIDTH;
+        try { localStorage.removeItem(STORAGE_KEY); } catch (_) { /* Optional. */ }
+        scheduleWidth();
+    }
+
+    function stopDrag(event) {
+        if (activePointer === null || event.pointerId !== activePointer) return;
+        activePointer = null;
+        handle.classList.remove('is-dragging');
+        document.body.style.userSelect = originalUserSelect;
+        if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+        saveWidth();
+        // A single final redraw / bounds update after a drag, not on every pointer move.
+        if (typeof mapResize === 'function') mapResize();
+    }
+
+    function init() {
+        workspace = document.querySelector('.session-workspace');
+        handle = document.getElementById('stream-resizer');
+        if (!workspace || !handle) return;
+        try {
+            const saved = Number(localStorage.getItem(STORAGE_KEY));
+            if (Number.isFinite(saved) && saved > 0) {
+                // Migrate widths saved before the new 320–420px limits.
+                preferredWidth = Math.min(MAX_STREAM_WIDTH, Math.max(MIN_STREAM_WIDTH, saved));
+            }
+        } catch (_) { /* Optional. */ }
+        applyWidth();
+        observer = new ResizeObserver(scheduleWidth);
+        observer.observe(workspace);
+
+        handle.addEventListener('pointerdown', event => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            if (!stream || streamMapFullscreen || getComputedStyle(handle).display === 'none') return;
+            event.preventDefault();
+            activePointer = event.pointerId;
+            dragStartX = event.clientX;
+            dragStartWidth = parseFloat(getComputedStyle(workspace).getPropertyValue('--stream-panel-width')) || DEFAULT_WIDTH;
+            originalUserSelect = document.body.style.userSelect;
+            document.body.style.userSelect = 'none';
+            handle.classList.add('is-dragging');
+            handle.setPointerCapture(event.pointerId);
+        });
+        handle.addEventListener('pointermove', event => {
+            if (activePointer !== event.pointerId) return;
+            setWidth(dragStartWidth + dragStartX - event.clientX);
+        });
+        handle.addEventListener('pointerup', stopDrag);
+        handle.addEventListener('pointercancel', stopDrag);
+        handle.addEventListener('lostpointercapture', event => {
+            if (activePointer === event.pointerId) stopDrag(event);
+        });
+        handle.addEventListener('dblclick', reset);
+        handle.addEventListener('keydown', event => {
+            const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+            if (!keys.includes(event.key)) return;
+            event.preventDefault();
+            const { min, max } = bounds();
+            if (event.key === 'Home') setWidth(min, true);
+            else if (event.key === 'End') setWidth(max, true);
+            else setWidth(preferredWidth + (event.key === 'ArrowLeft' ? 20 : -20), true);
+        });
+    }
+
+    return { init, refresh: scheduleWidth };
+})();
+
+// The SSE response already includes a last-record badge as its final table row.
+// Mirror it in the timeline slot, without changing the date formatting or
+// creating a second source of truth. CSS shows only one copy at a time:
+// centered below the chart on wide layouts; below the table otherwise.
+function syncStreamLastRecord() {
+    const slot = document.getElementById('stream-last-record-inline');
+    const workspace = document.querySelector('.session-workspace');
+    if (!slot || !workspace) return;
+    const lastRow = document.querySelector('#stream > tr:last-child');
+    const label = lastRow && lastRow.querySelector('.label.label-default, .label.label-warning');
+    if (label) {
+        slot.replaceChildren(label.cloneNode(true));
+        slot.hidden = false;
+        workspace.classList.add('stream-has-last-record');
+    } else {
+        slot.replaceChildren();
+        slot.hidden = true;
+        workspace.classList.remove('stream-has-last-record', 'stream-record-at-slider');
+    }
+}
+
+// Only side-by-side Stream and the fullscreen-map overlay have a height limit.
+// Compact their rows if needed; the bottom table always keeps its full height.
+function updateStreamDensity() {
+    const panel = document.getElementById('stream-panel');
+    const viewport = document.getElementById('data');
+    if (!panel || !viewport || panel.hidden || !stream) return;
+    const workspace = document.querySelector('.session-workspace');
+    const page = document.querySelector('.session-page');
+    const canUseSliderSlot = workspace && page &&
+        workspace.classList.contains('stream-enabled') &&
+        workspace.classList.contains('stream-has-last-record') &&
+        !streamMapFullscreen && page.clientWidth >= 1280;
+
+    panel.classList.remove('stream-compact');
+    // Only the side column or fullscreen-map overlay has a height limit.
+    // The table below the chart must keep its natural height and let the page scroll.
+    const constrained = streamMapFullscreen || !!(workspace &&
+        workspace.classList.contains('stream-enabled') && page && page.clientWidth >= 1280);
+    if (!constrained) {
+        if (workspace) workspace.classList.remove('stream-record-at-slider');
+        return;
+    }
+    // First check the available height with the timestamp under the chart.
+    // If even compact data rows overflow, leave the badge below the table.
+    if (workspace) workspace.classList.toggle('stream-record-at-slider', !!canUseSliderSlot);
+    if (viewport.scrollHeight > viewport.clientHeight + 1) {
+        panel.classList.add('stream-compact');
+    }
+    if (canUseSliderSlot && viewport.scrollHeight > viewport.clientHeight + 1) {
+        workspace.classList.remove('stream-record-at-slider');
+    }
+}
+
+function initStreamDensity() {
+    const viewport = document.getElementById('data');
+    if (!viewport) return;
+    let frame = null;
+    const observer = new ResizeObserver(() => {
+        if (frame !== null) return;
+        frame = requestAnimationFrame(() => {
+            frame = null;
+            updateStreamDensity();
+        });
+    });
+    observer.observe(viewport);
+}
+
+// Keep a single table/SSE connection when moving between page and map.
+function setStreamMapFullscreen(mapInstance, enabled) {
+    const panel = document.getElementById('stream-panel');
+    if (!panel) return;
+    streamMapFullscreen = enabled;
+    const page = document.querySelector('.session-page');
+    if (page) page.classList.toggle('map-fullscreen', enabled);
+    if (enabled) {
+        if (!streamPanelAnchor) {
+            streamPanelAnchor = document.createComment('stream-panel-position');
+            panel.before(streamPanelAnchor);
+        }
+        panel.classList.add('stream-map-overlay');
+        mapInstance.getContainer().appendChild(panel);
+    } else {
+        panel.classList.remove('stream-map-overlay');
+        if (streamPanelAnchor) {
+            streamPanelAnchor.replaceWith(panel);
+            streamPanelAnchor = null;
+        }
+    }
+    syncStreamLayout();
+    mapInstance.invalidateSize();
+}
+
+function syncStreamLayout() {
+    const panel = document.getElementById('stream-panel');
+    const workspace = document.querySelector('.session-workspace');
+    if (panel) panel.hidden = !stream;
+    if (workspace) workspace.classList.toggle('stream-enabled', stream && !streamMapFullscreen);
+    streamColumn.refresh();
+    // Reflow existing chart/map canvases after allocating or releasing the column.
+    requestAnimationFrame(() => {
+        updateStreamDensity();
+        if (typeof plot !== 'undefined' && plot) {
+            plot.resize();
+            plot.setupGrid();
+            plot.draw();
+        }
+        if (typeof mapResize === 'function') mapResize();
     });
 }
 
-let lastCallTime = 0;
-
-function dataToggle() {
-    const now = Date.now();
-    if (now - lastCallTime < 2000) {
+function dataToggleCore() {
+    if (!APP_CONFIG.hasSession || APP_CONFIG.isAdmin) return;
+    if (stream) {
+        stream = false;
+        if (src) src.close();
+        src = null;
+        alarm.muted = true;
+        noSleep.disable();
+        stopPlotUpdates();
+        if (rawPath.length) {
+            rebuildMapFromRawPath();
+            if (window.MapData && window.MapData.flatCoords.length > 0) {
+                mapUpdRange(0, window.MapData.flatCoords.length - 1);
+            }
+        }
+        syncStreamControls();
+        syncStreamLastRecord();
+        syncStreamLayout();
         return;
     }
-    lastCallTime = now;
+
+    // Set state synchronously so rapid clicks cannot create duplicate connections.
+    const connection = new EventSource('/sessions/stream?id=' + encodeURIComponent(APP_CONFIG.sessionId));
+    src = connection;
+    stream = true;
+    // Show once per activation, until the first SSE response replaces the row.
+    const streamBody = document.getElementById('stream');
+    const loadingRow = document.createElement('tr');
+    const loadingCell = document.createElement('td');
+    loadingCell.colSpan = 3;
+    loadingCell.className = 'stream-loading';
+    const loadingLabel = document.createElement('span');
+    loadingLabel.className = 'label label-success';
+    loadingLabel.textContent = streamText('stream.fetch.label');
+    loadingCell.appendChild(loadingLabel);
+    loadingRow.appendChild(loadingCell);
+    streamBody.replaceChildren(loadingRow);
+    syncStreamLastRecord();
+    syncStreamLayout();
+    syncStreamControls();
+    connection.onmessage = event => {
+        if (src !== connection || !stream) return;
+        const viewport = document.getElementById('data');
+        const scrollTop = viewport.scrollTop;
+        $('#stream').html(event.data);
+        syncStreamLastRecord();
+        updateStreamDensity();
+        viewport.scrollTop = scrollTop;
+    };
+    alarm.muted = false;
+    try {
+        const waking = noSleep.enable();
+        if (waking && typeof waking.then === 'function') {
+            waking.then(() => { if (!stream) noSleep.disable(); }).catch(() => {});
+        }
+    } catch (_) { /* Wake lock support must not prevent streaming. */ }
+    handleSliderInit();
+    updatePlot();
+    startPlotUpdates();
+}
+
+function dataToggle() {
     dataToggleCore();
 }
 

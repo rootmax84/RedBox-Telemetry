@@ -23,16 +23,3 @@
     <div id="nogps"></div>
 <?php   } ?>
 </div>
-
-<!-- slider -->
-<div class="slider-container">
-  <input type="text" id="slider-time" readonly>
-  <div id="slider-range11"></div>
-</div>
-<br>
-
-<!-- Data Summary Block -->
-    <div id="Summary-Container" class="row center-block" style="user-select:text;">
-      <div style="display:flex; justify-content:center;">
-      </div>
-    </div>

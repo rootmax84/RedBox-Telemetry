@@ -982,8 +982,25 @@ function migrate_users_table(mysqli $db, bool $dry_run): void
         return;
     }
 
+    $removed = 0;
+
+    // Streaming is always scoped to the selected session now.
+    if (column_exists($db, $users_table, 'stream_lock')) {
+        if ($dry_run) {
+            out("[users] [dry] would DROP COLUMN stream_lock");
+        } else {
+            try {
+                $db->query("ALTER TABLE `$users_table` DROP COLUMN stream_lock");
+                info("[users] dropped column: stream_lock");
+                $removed++;
+            } catch (mysqli_sql_exception $e) {
+                err("[users] DROP COLUMN stream_lock failed: " . $e->getMessage());
+                throw $e;
+            }
+        }
+    }
+
     $migrations = [
-        'stream_lock'     => "ALTER TABLE `$users_table` ADD COLUMN stream_lock TINYINT(1) NOT NULL DEFAULT 0",
         'sessions_filter' => "ALTER TABLE `$users_table` ADD COLUMN sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
         'share_secret'    => "ALTER TABLE `$users_table` ADD COLUMN share_secret CHAR(32)",
         'share_id'        => "ALTER TABLE `$users_table` ADD COLUMN share_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL",
@@ -1045,7 +1062,7 @@ function migrate_users_table(mysqli $db, bool $dry_run): void
         }
     }
 
-    if ($added === 0 && !$dry_run) {
+    if ($added === 0 && $removed === 0 && !$dry_run) {
         out("[users] no column changes needed");
     }
 }

@@ -3,8 +3,8 @@
     require_once __DIR__ . '/src/db_limits.php';
 
     //Conversion and gap settings etc
-    $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,gap,stream_lock,sessions_filter,api_gps FROM users WHERE user=?", [$username])->fetch_row();
-    [$token, $chatid, $speed, $temp, $pressure, $boost, $time, $gap, $stream_lock, $sessions_filter, $api_gps] = $setqry;
+    $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,gap,sessions_filter,api_gps FROM users WHERE user=?", [$username])->fetch_row();
+    [$token, $chatid, $speed, $temp, $pressure, $boost, $time, $gap, $sessions_filter, $api_gps] = $setqry;
 
     $db->close();
 
@@ -169,13 +169,6 @@
 		            <option value="20000"<?php if ($gap == "20000") echo ' selected'; ?> l10n="user.conv.gap.20"></option>
 		            <option value="30000"<?php if ($gap == "30000") echo ' selected'; ?> l10n="user.conv.gap.30"></option>
 		            <option value="60000"<?php if ($gap == "60000") echo ' selected'; ?> l10n="user.conv.gap.60"></option>
-		        </select>
-		      </div>
-		      <div>
-		        <label for="stream_lock" l10n="user.set.lock"></label>
-		        <select id="stream_lock" class="form-control" name="stream_lock">
-		            <option value="0"<?php if ($stream_lock == "0") echo ' selected'; ?> l10n="btn.no"></option>
-		            <option value="1"<?php if ($stream_lock == "1") echo ' selected'; ?> l10n="btn.yes"></option>
 		        </select>
 		      </div>
 		      <div>

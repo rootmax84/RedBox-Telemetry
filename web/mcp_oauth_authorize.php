@@ -62,7 +62,8 @@ try {
             McpOAuth::redirect($request, ['error' => 'access_denied']);
         }
         $selected = $_POST['scopes'] ?? [];
-        $code = McpOAuth::authorize($db, $uid, $request, $selected);
+        // Unrequested read-only scopes are allowed only after explicit selection on this consent page.
+        $code = McpOAuth::authorize($db, $uid, $request, $selected, true);
         McpOAuth::redirect($request, ['code' => $code]);
     } else {
         http_response_code(405);
@@ -94,7 +95,11 @@ $csrf = generate_csrf_token();
 body {margin:0;background:#1b1b1b;color:#eee;font:15px Arial,sans-serif;}
 main {max-width:540px;margin:8vh auto;padding:30px;background:#292929;border-radius:8px;box-sizing:border-box;}
 h1 {font-size:23px;margin:0 0 12px;}p {line-height:1.5;color:#bbb;}
-.scope {display:block;margin:14px 0;}input {accent-color:#961911;}
+.scope {display:flex;align-items:flex-start;gap:9px;margin:14px 0;cursor:pointer;}
+.scope input {margin:3px 0 0;flex:0 0 auto;accent-color:#961911;}
+.scope-details {display:block;min-width:0;}
+.scope-description {display:block;margin-top:3px;color:#bbb;font-size:13px;line-height:1.45;}
+.scope-optional {display:block;margin-top:4px;font-size:12px;color:#aaa;}
 .actions {display:flex;justify-content:flex-end;gap:10px;margin-top:24px;}
 button {padding:10px 18px;color:#fff;background:#961911;border:0;border-radius:5px;cursor:pointer;}
 button.secondary {background:#555;}
@@ -107,8 +112,18 @@ small {color:#aaa;}
 <p><?= $h($t('mcp.oauth.consent.signed')) ?> <strong><?= $h($_SESSION['torque_user']) ?></strong>. <?= $h($t('mcp.oauth.consent.explain')) ?></p>
 <form method="post" action="/oauth/authorize">
 <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
-<?php foreach ($request['scopes'] as $scope): ?>
-<label class="scope"><input type="checkbox" name="scopes[]" value="<?= $h($scope) ?>" checked> <?= $h($scope) ?></label>
+<?php foreach (McpSecurity::SCOPES as $scope): ?>
+<?php $requested = in_array($scope, $request['scopes'], true); ?>
+<label class="scope">
+<input type="checkbox" name="scopes[]" value="<?= $h($scope) ?>" <?= $requested ? 'checked' : '' ?>>
+<span class="scope-details">
+<strong><?= $h($scope) ?></strong>
+<span class="scope-description"><?= $h($t('mcp.scope.' . $scope)) ?></span>
+<?php if (!$requested): ?>
+<small class="scope-optional"><?= $h($t('mcp.oauth.consent.optional')) ?></small>
+<?php endif; ?>
+</span>
+</label>
 <?php endforeach; ?>
 <p><small><?= $h($t('mcp.oauth.consent.readonly')) ?></small></p>
 <div class="actions">

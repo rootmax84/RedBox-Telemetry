@@ -250,10 +250,15 @@ final class McpOAuth
         exit;
     }
 
-    public static function authorize(mysqli $db, int $uid, array $request, array $scopes): string
+    public static function authorize(
+        mysqli $db, int $uid, array $request, array $scopes, bool $consentedToAdditionalScopes = false
+    ): string
     {
         $scopes = McpSecurity::validScopes($scopes);
-        if (array_diff($scopes, $request['scopes']) !== []) {
+        // Default: do not grant anything outside the client's OAuth request.
+        // The verified interactive consent form may explicitly opt in to more
+        // server-supported read-only scopes; the token response reports the actual grant.
+        if (!$consentedToAdditionalScopes && array_diff($scopes, $request['scopes']) !== []) {
             throw new InvalidArgumentException('Requested scope exceeds client authorization');
         }
         $code = 'rbxc_' . bin2hex(random_bytes(32));

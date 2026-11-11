@@ -198,7 +198,6 @@ function create_users_table()
         time enum('24','12') NOT NULL DEFAULT '24',
         gap enum('5000','10000','20000','30000','60000') NOT NULL DEFAULT '5000',
         lang enum('en','ru','es','de') NOT NULL DEFAULT 'en',
-        stream_lock tinyint(1) NOT NULL DEFAULT 0,
         sessions_filter tinyint(1) NOT NULL DEFAULT 1,
         api_gps tinyint(1) NOT NULL DEFAULT 0,
         mcp_enabled tinyint(1) NOT NULL DEFAULT 0,

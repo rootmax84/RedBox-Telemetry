@@ -1022,7 +1022,7 @@ input[type="checkbox"]:disabled:checked::after {
   width: 100%;
   overflow: hidden;
   flex-direction: row;
-  gap: 4px;
+  gap: 8px;
   box-sizing: border-box;
 }
 
@@ -1039,7 +1039,8 @@ input[type="checkbox"]:disabled:checked::after {
 }
 
 .resizer {
-  width: 10px;
+  width: 12px;
+  flex: 0 0 12px;
   height: 150px;
   background: #e6e6e6;
   border-radius: 5px;
@@ -1048,7 +1049,6 @@ input[type="checkbox"]:disabled:checked::after {
   align-self: center;
   margin-left: -4px;
   transition: height .25s ease, background .25s ease;
-  transform: translateY(-20px);
 }
 
 .resizer::before {
@@ -1275,29 +1275,6 @@ input[type="checkbox"]:disabled:checked::after {
 
 .delete-icon:hover {
   transform: scale(1.7);
-}
-
-.stream-lock-container {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #fff;
-  width: 24px;
-  text-align: center;
-}
-
-.stream-lock {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M17 9V7c0-2.8-2.2-5-5-5S7 4.2 7 7v2c-1.7 0-3 1.3-3 3v7c0 1.7 1.3 3 3 3h10c1.7 0 3-1.3 3-3v-7c0-1.7-1.3-3-3-3M9 7c0-1.7 1.3-3 3-3s3 1.3 3 3v2H9z'/%3E%3C/svg%3E");
-  background-color: #acabac;
-  -webkit-mask-image: var(--svg);
-  mask-image: var(--svg);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
 }
 
 .new-session {
@@ -1819,4 +1796,161 @@ html.session-initial-loading .fetch-data {
 /* MCP uses a network icon distinct from device API token / RedManage. */
 #mcp-img {
     --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a3 3 0 0 0-2.81 4.04L5.85 9.25a3 3 0 1 0 1.42 1.41l3.33-3.2a3.1 3.1 0 0 0 2.8 0l3.33 3.2a3 3 0 1 0 1.42-1.41l-3.34-3.21A3 3 0 0 0 12 2m-6 9a1 1 0 1 1 0 2a1 1 0 0 1 0-2m12 0a1 1 0 1 1 0 2a1 1 0 0 1 0-2M12 16a3 3 0 0 0-2.83 2H7a3 3 0 1 0 0 2h2.17a3 3 0 0 0 5.66 0H17a3 3 0 1 0 0-2h-2.17A3 3 0 0 0 12 16m0 2a1 1 0 1 1 0 2a1 1 0 0 1 0-2'/%3E%3C/svg%3E");
+}
+
+/* Stream: navbar control and an optional, unframed data column. */
+.stream-power {
+  position: fixed; top: 10px; z-index: 1;
+  width: 24px; height: 24px; padding: 0; border: 0;
+  background: transparent; color: #5d5d5d; opacity: .5;
+  cursor: pointer; line-height: 0; transition: opacity .25s;
+}
+.stream-power:hover { opacity: .8; }
+.stream-power[aria-pressed="true"] { color: #008000; opacity: .8; }
+.stream-power:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 2px; }
+.session-page { container-type: inline-size; container-name: session-page; }
+.session-workspace { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.session-main, .session-summary { min-width: 0; }
+.stream-panel { min-width: 0; margin-bottom: 20px; }
+/* The stream divider belongs to the workspace, not the chart/map pair. */
+.stream-resizer { display: none; }
+.stream-panel[hidden] { display: none !important; }
+.stream-bottom-heading { cursor: default; }
+/* Hidden except when Stream occupies a separate right-side column. */
+.stream-last-record-inline { display: none; text-align: center; }
+.stream-last-record-inline .label { font-size: 14px; font-weight: normal; }
+.session-page > .copyright { text-align: center; }
+.stream-panel .live-data { width: 100%; table-layout: fixed; margin: 0; font-size: 12px; }
+.stream-panel .live-data th:first-child { width: 52%; }
+.stream-panel .live-data th:nth-child(2) { width: 28%; }
+.stream-panel .live-data td, .stream-panel .live-data th { overflow-wrap: anywhere; }
+@container session-page (min-width: 1280px) {
+  .stream-bottom-heading { display: none; }
+  .session-workspace.stream-enabled {
+    /* The 8px scrollbar gutter is outside the user-adjustable table width. */
+    grid-template-columns: minmax(0, 1fr) 12px clamp(328px, calc(var(--stream-panel-width, 380px) + 8px), 428px);
+    column-gap: 8px;
+  }
+  .session-main { grid-column: 1; grid-row: 1; }
+  .session-summary { grid-column: 1 / -1; grid-row: 2; }
+  /* Reuse the timeline's center position for the last streamed record.
+     The original row stays visible when columns stack or the map is fullscreen. */
+  .session-workspace.stream-enabled.stream-record-at-slider .stream-last-record-inline:not([hidden]) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 42px;
+    padding-top: 12px;
+  }
+  .session-workspace.stream-enabled.stream-record-at-slider .stream-panel #stream > tr:last-child {
+    display: none;
+  }
+  .session-workspace.stream-enabled > .stream-resizer {
+    display: block; grid-column: 2; grid-row: 1; align-self: stretch;
+    width: 12px; min-height: 150px; position: relative;
+    cursor: col-resize; touch-action: none; user-select: none;
+  }
+  .session-workspace.stream-enabled > .stream-panel {
+    grid-column: 3; grid-row: 1; align-self: stretch;
+    position: relative; min-height: 0; margin: 0;
+  }
+}
+
+/* An easy-to-grab handle matching the chart/map splitter. */
+.stream-resizer::before {
+  content: ''; position: absolute; top: 50%; left: 0;
+  width: 12px; height: 150px; transform: translateY(-50%);
+  background: #e6e6e6; border-radius: 5px;
+  transition: background .2s ease, height .2s ease;
+}
+.stream-resizer::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 4px; height: 4px; transform: translate(-50%, -50%);
+  background: #999; border-radius: 50%;
+  box-shadow: 0 -10px #999, 0 10px #999;
+}
+.stream-resizer:hover::before,
+.stream-resizer:focus-visible::before,
+.stream-resizer.is-dragging::before { background: #d5d5d5; height: 180px; }
+.stream-resizer:focus-visible { outline: 2px solid #777; outline-offset: 2px; border-radius: 5px; }
+
+/* Inline-size containment otherwise traps the fixed fullscreen map in the page. */
+.session-page.map-fullscreen { container-type: normal; }
+.stream-panel.stream-map-overlay {
+  position: absolute; top: 10px; right: 55px; z-index: 1000;
+  width: 380px; max-width: calc(100% - 110px);
+  margin: 0; padding: 8px; border-radius: 5px;
+  background: rgba(255, 255, 255, .5); backdrop-filter: blur(5px);
+  cursor: default;
+  /* Show the same translucent map underneath the sticky header as the rows. */
+  --stream-header-bg: transparent;
+}
+.stream-map-overlay .stream-bottom-heading { display: none; }
+
+/* Scroll only the data viewport; keep its table header and reading position. */
+.stream-panel {
+  --stream-header-bg: #eee;
+  --stream-header-rule: #eee;
+  --stream-scroll-track: #f3f3f3;
+  --stream-scroll-thumb: #b5b5b5;
+  --stream-scroll-hover: #909090;
+}
+/* Stacked/bottom Stream is part of the page: show every row and let the
+   document scroll normally with a wheel or finger over the table. */
+.stream-panel #data {
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior-y: auto;
+  scrollbar-gutter: auto;
+  touch-action: pan-x pan-y;
+}
+.stream-panel #data:focus-visible { outline: 1px solid var(--stream-scroll-hover); outline-offset: 2px; }
+.stream-panel .live-data { border-collapse: separate; border-spacing: 0; }
+.stream-panel .live-data thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--stream-header-bg);
+  border-bottom: 0;
+  box-shadow: inset 0 -2px var(--stream-header-rule);
+}
+.stream-panel .live-data thead th:first-child { border-top-left-radius: 5px; }
+.stream-panel .live-data thead th:last-child { border-top-right-radius: 5px; }
+/* Apply only when all data rows do not fit the available stream height. */
+.stream-panel.stream-compact .live-data tbody td { padding-top: 5px; padding-bottom: 5px; }
+/* Keep the last-record badge away from the rule of the preceding PID row. */
+.stream-panel .live-data tbody > tr:last-child > td { padding-top: 12px; }
+.stream-loading { text-align: center; }
+.stream-panel #data::-webkit-scrollbar { width: 8px; height: 8px; }
+.stream-panel #data::-webkit-scrollbar-track { background: var(--stream-scroll-track); border-radius: 8px; }
+.stream-panel #data::-webkit-scrollbar-thumb {
+  background: var(--stream-scroll-thumb); border-radius: 8px;
+  border: 2px solid var(--stream-scroll-track);
+}
+.stream-panel #data::-webkit-scrollbar-thumb:hover { background: var(--stream-scroll-hover); }
+.stream-panel #data::-webkit-scrollbar-corner { background: transparent; }
+@supports selector(::-webkit-scrollbar) {
+  .stream-panel #data { scrollbar-width: auto; scrollbar-color: auto; }
+}
+@container session-page (min-width: 1280px) {
+  /* Absolute contents cannot enlarge the row: its height comes from the chart/map. */
+  .session-workspace.stream-enabled > .stream-panel #data {
+    position: absolute; inset: 0; max-height: none;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--stream-scroll-thumb) var(--stream-scroll-track);
+    scrollbar-gutter: stable;
+  }
+  /* Table height is a minimum: overflowing rows retain their natural size. */
+  .session-workspace.stream-enabled > .stream-panel .live-data { height: 100%; }
+  .session-workspace.stream-enabled > .stream-panel .live-data thead,
+  .session-workspace.stream-enabled > .stream-panel .live-data tbody > tr:last-child { height: 1px; }
+  .session-workspace.stream-enabled > .stream-panel .live-data td { vertical-align: middle; }
+}
+/* Fullscreen map keeps its own bounded, scrollable Stream overlay. */
+.stream-panel.stream-map-overlay #data {
+  max-height: calc(100vh - 66px);
+  max-height: calc(100dvh - 66px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--stream-scroll-thumb) var(--stream-scroll-track);
+  scrollbar-gutter: stable;
 }

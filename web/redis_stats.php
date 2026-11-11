@@ -903,7 +903,7 @@ function rs_scan_page(Redis $redis, string $pattern, int $startCursor, int $limi
 }
 
 function rs_key_category(string $key): string {
-    if (str_starts_with($key, 'worker:') || str_starts_with($key, 'stream_lock_')) return 'Workers / locks';
+    if (str_starts_with($key, 'worker:')) return 'Workers / locks';
     if (str_starts_with($key, 'rate_limit') || str_starts_with($key, 'api_rate_limit') || str_starts_with($key, 'rate_backoff:')) return 'Rate limiting';
     if (str_starts_with($key, 'ratel:') || str_starts_with($key, 'telemetry:')) return 'Streams / tasks';
     if (str_starts_with($key, 'share_plot_') || str_starts_with($key, 'share_data_') || preg_match('/^u\d+_vv\d+_/', $key)) return 'Sessions / plots';
@@ -1585,7 +1585,7 @@ body {
             <code>ratel:task:*</code>,
             <code>ratel:user_tasks:*</code>,
             <code>ratel:attempts:*</code>,
-            <code>worker:hb:*</code>, <code>stream_lock_*</code>,
+            <code>worker:hb:*</code>,
             <code>rate_limit_*</code>, <code>worker_user_*</code>.
         </div>
     </div>

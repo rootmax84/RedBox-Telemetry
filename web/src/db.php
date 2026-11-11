@@ -250,7 +250,6 @@ function cache_flush($token = null, $keyname = null)
         $fixed_keys = [
             "profiles_list_{$username}",
             "years_list_{$username}",
-            "stream_lock_{$username}",
             "user_settings_{$username}",
             "user_status_{$username}",
             "pids_mapping_{$username}",

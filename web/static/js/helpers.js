@@ -946,6 +946,25 @@ let initMapLeaflet = () => {
         layers: [osm]
     });
 
+    if (typeof setStreamMapFullscreen === 'function') {
+        map.on('enterFullscreen', () => setStreamMapFullscreen(map, true));
+        map.on('exitFullscreen', () => setStreamMapFullscreen(map, false));
+        const panel = document.getElementById('stream-panel');
+        if (panel) {
+            L.DomEvent.disableClickPropagation(panel);
+            L.DomEvent.disableScrollPropagation(panel);
+        }
+        // Pseudo-fullscreen does not receive the browser's native Escape handling.
+        const exitStreamFullscreen = event => {
+            if (event.key === 'Escape' && map._isFullscreen &&
+                map.fullscreenControl.options.forcePseudoFullscreen) {
+                map.toggleFullscreen();
+            }
+        };
+        document.addEventListener('keydown', exitStreamFullscreen);
+        map.once('unload', () => document.removeEventListener('keydown', exitStreamFullscreen));
+    }
+
     // ---------- Create a pane for heading arrows ----------
     // the arrows do not capture mouse events and block hotline tooltips.
     map.createPane('headingPane');
@@ -974,15 +993,17 @@ let initMapLeaflet = () => {
         // save to global variable if needed (defined above)
         if (typeof streamBtn_svg !== 'undefined') streamBtn_svg = svg;
 
-        L.DomEvent.on(streamButton, 'mousedown', function(e) {
+        L.DomEvent.on(streamButton, 'click', function(e) {
             L.DomEvent.preventDefault(e);
             L.DomEvent.stopPropagation(e);
             dataToggle();
-            if (map._isFullscreen) {
-                $('html, body').animate({ scrollTop: $(document).height() });
-            }
+
         });
+        streamButton.setAttribute('role', 'button');
+        streamButton.setAttribute('aria-pressed', 'false');
+        streamButton.title = localization.key['stream.start'] || 'Start stream';
         zoomControl.appendChild(streamButton);
+        if (typeof syncStreamControls === 'function') syncStreamControls();
     };
 
     if (!uid && !sid && !sig) addControlsToZoomContainer(map);
@@ -2806,6 +2827,16 @@ function showToken() {
 }
 
 function rebuildMapFromRawPath() {
+    // Stream teardown rebuilds the Leaflet map. If it is in pseudo-fullscreen,
+    // map.remove() disposes the control but leaves the fullscreen CSS class on
+    // #map. The replacement control then starts with _isFullscreen=false, so
+    // the first click only changes its icon instead of exiting fullscreen.
+    // Exit through the existing control before removal (also restores the
+    // Stream overlay to its anchor), then restore fullscreen on the new map.
+    const restorePseudoFullscreen = !!(map && map._isFullscreen &&
+        map.fullscreenControl?.options.forcePseudoFullscreen);
+    if (restorePseudoFullscreen) map.toggleFullscreen();
+
     if (map) {
         map.remove();
         map = null;
@@ -2857,6 +2888,9 @@ function rebuildMapFromRawPath() {
     window.MapData.origToFlat = origToFlat;
 
     initMapLeaflet();
+    if (restorePseudoFullscreen && map?.fullscreenControl) {
+        map.toggleFullscreen();
+    }
 
     setTimeout(() => {
         const heatSelect = document.getElementById('heat-dataSourceSelect');

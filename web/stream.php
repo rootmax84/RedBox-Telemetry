@@ -15,19 +15,18 @@ header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
 
 $user_id    = current_user_id();
-$session_id = filter_var($_GET['id'] ?? null, FILTER_SANITIZE_NUMBER_INT) ?: null;
+// A stream always belongs to the selected session; never fall back to another one.
+$session_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, [
+    'options' => ['min_range' => 1],
+]) ?: null;
 
-$query  = "SELECT time, data FROM logs WHERE user_id = ?";
-$params = [$user_id];
-if ($session_id) {
-    $query   .= " AND session = ?";
-    $params[] = $session_id;
-}
-$query .= " ORDER BY time DESC LIMIT 1";
+$r = $session_id === null ? null : $db->execute_query(
+    "SELECT time, data FROM logs WHERE user_id = ? AND session = ? ORDER BY time DESC LIMIT 1",
+    [$user_id, $session_id]
+);
 
-$r = $db->execute_query($query, $params);
+if ($r === null || !$r->num_rows) {
 
-if (!$r->num_rows) {
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>"
        . escapeHtml($translations[current_lang()]['nodata'])
        . "</span></td></tr>\n\nretry: 5000\n\n";
@@ -84,17 +83,10 @@ if ($d_data === false) {
 
 /* ─── Session id (RedManage / TorqueLog) ─── */
 
-if ($session_id) {
-    $id = $db->execute_query(
-        "SELECT id FROM sessions WHERE user_id = ? AND session = ?",
-        [$user_id, $session_id]
-    )->fetch_row()[0] ?? null;
-} else {
-    $id = $db->execute_query(
-        "SELECT id FROM sessions WHERE user_id = ? ORDER BY timeend DESC LIMIT 1",
-        [$user_id]
-    )->fetch_row()[0] ?? null;
-}
+$id = $db->execute_query(
+    "SELECT id FROM sessions WHERE user_id = ? AND session = ?",
+    [$user_id, $session_id]
+)->fetch_row()[0] ?? null;
 
 /* ─── Units settings ─── */
 
@@ -120,6 +112,7 @@ if ($user_settings === false) {
 }
 
 if ($user_settings === false) {
+
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-warning'>"
        . escapeHtml($translations[current_lang()]['nodata'])
        . "</span></td></tr>\n\nretry: 5000\n\n";
@@ -129,6 +122,7 @@ if ($user_settings === false) {
 [$speed, $temp, $pressure, $boost] = $user_settings;
 
 if (empty($s_data) || empty($d_data)) {
+
     echo "data: <tr><td colspan='3' style='text-align:center;font-size:14px'><span class='label label-default'>"
        . escapeHtml($translations[current_lang()]['stream.empty'])
        . "</span></td></tr>\n\nretry: 5000\n\n";
@@ -197,6 +191,7 @@ for ($i = 0; $i < count($pid); $i++) {
 }
 
 outputLastRecordDate($time_raw, $live_data_rate);
+
 
 /* ─── Helpers ─── */
 

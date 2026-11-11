@@ -6,19 +6,19 @@ include_once __DIR__ . '/translations.php';
 
 function handleUserSettings($db, $translations, $username, $admin) {
     if (!isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'],
-          $_POST['time'], $_POST['gap'], $_POST['stream_lock'],
+          $_POST['time'], $_POST['gap'],
           $_POST['sessions_filter'], $_POST['api_gps']) || $username == $admin) {
         return false;
     }
 
     $params = [
         $_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'],
-        $_POST['time'], $_POST['gap'], $_POST['stream_lock'],
+        $_POST['time'], $_POST['gap'],
         $_POST['sessions_filter'], $_POST['api_gps'], current_lang(), $username
     ];
 
     $db->execute_query(
-        "UPDATE users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, stream_lock=?, sessions_filter=?, api_gps=?, lang=? WHERE user=?",
+        "UPDATE users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, sessions_filter=?, api_gps=?, lang=? WHERE user=?",
         $params
     );
 
