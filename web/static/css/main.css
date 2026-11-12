@@ -1882,7 +1882,7 @@ html.session-initial-loading .fetch-data {
   margin: 0; padding: 8px; border-radius: 5px;
   background: rgba(255, 255, 255, .5); backdrop-filter: blur(5px);
   cursor: default;
-  /* Show the same translucent map underneath the sticky header as the rows. */
+  /* Keep the map visible through the header until it scrolls away. */
   --stream-header-bg: transparent;
 }
 .stream-map-overlay .stream-bottom-heading { display: none; }
@@ -1945,12 +1945,35 @@ html.session-initial-loading .fetch-data {
   .session-workspace.stream-enabled > .stream-panel .live-data tbody > tr:last-child { height: 1px; }
   .session-workspace.stream-enabled > .stream-panel .live-data td { vertical-align: middle; }
 }
-/* Fullscreen map keeps its own bounded, scrollable Stream overlay. */
+/* Fullscreen map: the header scrolls with the metrics instead of covering them.
+   Keep the sticky header in the regular Stream side column. */
+.stream-panel.stream-map-overlay .live-data thead th {
+  position: static;
+  z-index: auto;
+}
+/* Fullscreen map keeps its own bounded Stream overlay, with an unobtrusive
+   translucent thumb and a transparent track over the map. */
 .stream-panel.stream-map-overlay #data {
+  --stream-scroll-track: transparent;
+  --stream-scroll-thumb: rgba(70, 70, 70, .42);
+  --stream-scroll-hover: rgba(70, 70, 70, .68);
   max-height: calc(100vh - 66px);
   max-height: calc(100dvh - 66px);
   overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--stream-scroll-thumb) var(--stream-scroll-track);
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--stream-scroll-thumb) transparent;
   scrollbar-gutter: stable;
+}
+.stream-panel.stream-map-overlay #data::-webkit-scrollbar { width: 8px; height: 8px; }
+.stream-panel.stream-map-overlay #data::-webkit-scrollbar-thumb {
+  border-color: transparent;
+  background-clip: padding-box;
+}
+/* Chromium supports both standards-based and WebKit scrollbar styling.
+   Prefer the existing WebKit pseudo-element rules there, including hover. */
+@supports selector(::-webkit-scrollbar) {
+  .stream-panel.stream-map-overlay #data {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
 }
