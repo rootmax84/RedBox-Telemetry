@@ -360,14 +360,12 @@ function updateStreamDensity() {
         if (workspace) workspace.classList.remove('stream-record-at-slider');
         return;
     }
-    // First check the available height with the timestamp under the chart.
-    // If even compact data rows overflow, leave the badge below the table.
+    // The last-record badge belongs in the slider slot whenever Stream is in
+    // its side column, regardless of whether its table needs a scrollbar.
+    // Overflow must affect only the density/scrolling of live-data rows.
     if (workspace) workspace.classList.toggle('stream-record-at-slider', !!canUseSliderSlot);
     if (viewport.scrollHeight > viewport.clientHeight + 1) {
         panel.classList.add('stream-compact');
-    }
-    if (canUseSliderSlot && viewport.scrollHeight > viewport.clientHeight + 1) {
-        workspace.classList.remove('stream-record-at-slider');
     }
 }
 
