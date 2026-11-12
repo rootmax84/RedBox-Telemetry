@@ -87,7 +87,7 @@ const handleSliderInit = () => {
         // Сбрасываем сохранённое выделение
         cutStart = null;
         cutEnd = null;
-        initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
+        if (jsTimeMap.length) initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
     }
 };
 
@@ -730,8 +730,13 @@ let updCharts = (last = false)=>{
             // exactly once. Do not pre-process flotData a second time here:
             // this path is also used by the 10-second real-time stream poll.
             //always update the chart trimmed range when plotting new data
-            const [a,b] = [jsTimeMap.length-$('#slider-range11').slider("values",1)-1,jsTimeMap.length-$('#slider-range11').slider("values",0)-1];
-            chartUpdRange(a,b);
+            // The slider is hidden while streaming and may contain old bounds.
+            // Always show every point, including samples received after activation.
+            const [a, b] = stream
+                ? [0, jsTimeMap.length]
+                : [jsTimeMap.length - $('#slider-range11').slider("values", 1) - 1,
+                   jsTimeMap.length - $('#slider-range11').slider("values", 0) - 1];
+            chartUpdRange(a, b);
             updateSummaryTable();
             if (typeof currentDataSource !== 'undefined' && currentDataSource !== null && heatData && heatData[currentDataSource]) {
                 updateHotline(currentDataSource);
@@ -1888,7 +1893,6 @@ let initSlider = (jsTimeMap, start, end) => {
 
     if ($("#slider-range11").hasClass("ui-slider")) {
         $("#slider-range11").slider("destroy");
-        initSlider(jsTimeMap, start, end);
     }
 
     const [sessStart, sessEnd] = [jsTimeMap[0], jsTimeMap.at(-1)];

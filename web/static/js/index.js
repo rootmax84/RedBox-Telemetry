@@ -437,16 +437,28 @@ function dataToggleCore() {
         alarm.muted = true;
         noSleep.disable();
         stopPlotUpdates();
+        // Refresh the slider bounds after streaming (new points may have arrived).
+        handleSliderInit();
         if (rawPath.length) {
             rebuildMapFromRawPath();
             if (window.MapData && window.MapData.flatCoords.length > 0) {
-                mapUpdRange(0, window.MapData.flatCoords.length - 1);
+                // mapUpdRange uses original GPS indices, not filtered flatCoords indices.
+                mapUpdRange(0, rawPath.length - 1);
             }
         }
         syncStreamControls();
         syncStreamLastRecord();
         syncStreamLayout();
         return;
+    }
+
+    // Reset the selected interval while stream is still false: handleSliderInit()
+    // deliberately ignores resets in stream mode. Restore the complete GPS
+    // track too, since the graph and map are trimmed independently.
+    handleSliderInit();
+    if (plot) plot.clearSelection();
+    if (rawPath.length && typeof mapUpdRange === 'function') {
+        mapUpdRange(0, rawPath.length - 1);
     }
 
     // Set state synchronously so rapid clicks cannot create duplicate connections.
@@ -484,7 +496,6 @@ function dataToggleCore() {
             waking.then(() => { if (!stream) noSleep.disable(); }).catch(() => {});
         }
     } catch (_) { /* Wake lock support must not prevent streaming. */ }
-    handleSliderInit();
     updatePlot();
     startPlotUpdates();
 }
