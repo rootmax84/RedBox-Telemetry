@@ -79,15 +79,31 @@ function ctime(t) {
     return date.toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU');
 }
 
+// One reset path for double-click, long tap and Stream transitions.
+// Rebuilding the slider only changes its handles; it does not fire slidechange,
+// so the chart and map must explicitly be restored to the full session.
 const handleSliderInit = () => {
-    if (!stream) {
-        // Reset map indexes
-        mapIndexStart = 0;
-        mapIndexEnd = jsTimeMap.length - 1;
-        // Сбрасываем сохранённое выделение
-        cutStart = null;
-        cutEnd = null;
-        if (jsTimeMap.length) initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
+    if (stream || !jsTimeMap.length) return;
+
+    cutStart = null;
+    cutEnd = null;
+    mapIndexStart = 0;
+    // GPS indices refer to rawPath, which need not match the chart's sample count.
+    mapIndexEnd = window.rawPath?.length ? window.rawPath.length - 1 : jsTimeMap.length - 1;
+    initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
+
+    if (plot && typeof chartUpdRange === 'function' && flotData.length) {
+        if (typeof plot.clearSelection === 'function') plot.clearSelection();
+        // slice() in chartUpdRange is end-exclusive: include the last sample.
+        chartUpdRange(0, jsTimeMap.length);
+        updateSummaryTable();
+    } else if (plot && typeof plot.clearSelection === 'function') {
+        plot.clearSelection();
+    }
+
+    if (window.rawPath?.length && window.MapData?.flatCoords?.length &&
+        typeof mapUpdRange === 'function') {
+        updateMapWithRangePreservingHeatline(0, window.rawPath.length - 1);
     }
 };
 

@@ -435,29 +435,19 @@ function dataToggleCore() {
         alarm.muted = true;
         noSleep.disable();
         stopPlotUpdates();
-        // Refresh the slider bounds after streaming (new points may have arrived).
+        // Rebuild the map before restoring the full range; streaming may have
+        // added GPS points, and handleSliderInit also refreshes the chart.
+        if (rawPath.length) rebuildMapFromRawPath();
         handleSliderInit();
-        if (rawPath.length) {
-            rebuildMapFromRawPath();
-            if (window.MapData && window.MapData.flatCoords.length > 0) {
-                // mapUpdRange uses original GPS indices, not filtered flatCoords indices.
-                mapUpdRange(0, rawPath.length - 1);
-            }
-        }
         syncStreamControls();
         syncStreamLastRecord();
         syncStreamLayout();
         return;
     }
 
-    // Reset the selected interval while stream is still false: handleSliderInit()
-    // deliberately ignores resets in stream mode. Restore the complete GPS
-    // track too, since the graph and map are trimmed independently.
+    // Use the same full-range reset as double-click/long tap, before stream
+    // becomes true (the reset handler deliberately ignores stream mode).
     handleSliderInit();
-    if (plot) plot.clearSelection();
-    if (rawPath.length && typeof mapUpdRange === 'function') {
-        mapUpdRange(0, rawPath.length - 1);
-    }
 
     // Set state synchronously so rapid clicks cannot create duplicate connections.
     const connection = new EventSource('/sessions/stream?id=' + encodeURIComponent(APP_CONFIG.sessionId));
