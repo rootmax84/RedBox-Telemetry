@@ -82,9 +82,9 @@ if ($filetype == "kml") {
         $d = decode_log_data($data);
         $lon = $d['kff1005'] ?? 0;
         $lat = $d['kff1006'] ?? 0;
-        $alt = $d['kff1007'] ?? 0;
+        // kff1007 is bearing, not altitude. No elevation is recorded here.
         if ($lon == 0 || $lat == 0) continue;
-        echo "$lon,$lat,$alt\n";
+        echo "$lon,$lat\n";
         flush();
     }
 
@@ -167,7 +167,7 @@ if ($filetype == "rbx") {
                   'k10','k11','ke','k2112','k2100','k2113','k21cc','kff1214',
                   'kff1218','k78','k2111','k2119','k1f','k2118','k2120',
                   'k2122','k2124','k21e1','k21e2','k2125','k2126','kff1238',
-                  'k21fa','kff1006','kff1005','kff1001','kff120c'];
+                  'k21fa','kff1006','kff1005','kff1001','kff1007','kff120c'];
 
     $filename = "rbx_log_" . $session_id . ($is_cut ? "_cut" : "") . ".txt";
     header('Content-Type: application/txt');
@@ -178,7 +178,7 @@ if ($filetype == "rbx") {
         $d = decode_log_data($data);
         $d['time'] = $time;
         if ($first) {
-            echo "TIME ECT EOT IAT ATF AAT EXT SPD RPM MAP MAF TPS IGN INJ INJD IAC AFR O2S O2S2 EGT EOP FP ERT MHS BSTD FAN GEAR BS1 BS2 PG0 PG1 VLT RLC GLAT GLON GSPD ODO\n";
+            echo "TIME ECT EOT IAT ATF AAT EXT SPD RPM MAP MAF TPS IGN INJ INJD IAC AFR O2S O2S2 EGT EOP FP ERT MHS BSTD FAN GEAR BS1 BS2 PG0 PG1 VLT RLC GLAT GLON GSPD GBRN ODO\n";
             flush();
             $first = false;
         }

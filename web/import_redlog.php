@@ -1,5 +1,5 @@
 <?php
-const REDLOG_HEADER = "TIME ECT EOT IAT ATF AAT EXT SPD RPM MAP MAF TPS IGN INJ INJD IAC AFR O2S O2S2 EGT EOP FP ERT MHS BSTD FAN GEAR BS1 BS2 PG0 PG1 VLT RLC GLAT GLON GSPD ODO\n";
+const REDLOG_HEADER = "TIME ECT EOT IAT ATF AAT EXT SPD RPM MAP MAF TPS IGN INJ INJD IAC AFR O2S O2S2 EGT EOP FP ERT MHS BSTD FAN GEAR BS1 BS2 PG0 PG1 VLT RLC GLAT GLON GSPD GBRN ODO\n";
 
 // ────────────────────────────────────────────────────────────
 // Streaming (NDJSON) — включается заголовком X-Stream: 1
@@ -196,16 +196,13 @@ try {
             die;
         }
         else {
-            $data = str_replace(REDLOG_HEADER, "", $data);
-            $data = str_replace("\n", ' ', $data);
-            $data = explode(" ", $data);
+            $values = trim(substr($data, strlen(REDLOG_HEADER)));
+            $data = $values === '' ? [] : preg_split('/\s+/', $values);
 
             $session = $data[0] - 1000;
-            $size = count(file($target_file[$f])) - 1;
+            $size = intdiv(count($data), 38);
             $time = $data[0];
-
-            $last_index = array_key_last($data);
-            $time_end = $data[$last_index - 37] ?? $data[$last_index] ?? $time;
+            $time_end = $data[count($data) - 38];
         }
 
         try {
@@ -298,7 +295,7 @@ try {
         try {
             $db->begin_transaction();
 
-            for ($i = 0; $i < $total - 1; $i += 37) {
+            for ($i = 0; $i < $total; $i += 38) {
                 $time    = $data[$i];
                 $ect     = $data[$i + 1];
                 $eot     = $data[$i + 2];
@@ -336,7 +333,8 @@ try {
                 $glat    = $data[$i + 33];
                 $glon    = $data[$i + 34];
                 $gspd    = $data[$i + 35];
-                $odo     = $data[$i + 36];
+                $gbrn    = $data[$i + 36];
+                $odo     = $data[$i + 37];
 
                 $pids = [
                     'kff1005' => $glon,
@@ -375,6 +373,7 @@ try {
                     'k21e2'   => $bs2,
                     'k2126'   => $pg1,
                     'kff1001' => $gspd,
+                    'kff1007' => $gbrn,
                     'kff120c' => $odo,
                 ];
 
