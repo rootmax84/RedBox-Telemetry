@@ -136,7 +136,7 @@ INLINE FALLBACK (Redis disabled or unavailable):
 2. Restore this backup to docker mariadb container: ```docker exec -i ratel_mariadb sh -c 'exec mariadb -uroot -p$password --database $database_name' < /some/path/backup.sql```
 
 ### Demo:
-[Click it](https://demo.redbox.pw/ratel/)
+[Shared session, without menu, controls, MCP, etc. Only chart with map](https://log.redbox.pw/share?u=4300b2c73d55368945761030951a14cf&id=1786112624927&sig=525248492cbe3af140ef6b70e4bcf795791cc05a3990f8625ca07d51fdea3e2f&gps=1)
 
 ### Screenshots:
 
