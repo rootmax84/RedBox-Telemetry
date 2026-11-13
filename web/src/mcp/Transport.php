@@ -51,21 +51,35 @@ final class McpTransport
         $params = $request['params'] ?? [];
         $method = (string)$request['method'];
         $meta = is_array($params['_meta'] ?? null) ? $params['_meta'] : [];
+        $hasBodyVersion = array_key_exists('io.modelcontextprotocol/protocolVersion', $meta);
         $bodyVersion = $meta['io.modelcontextprotocol/protocolVersion'] ?? null;
+        $hasModernCapabilities = array_key_exists('io.modelcontextprotocol/clientCapabilities', $meta);
         $headerVersion = trim((string)($server['HTTP_MCP_PROTOCOL_VERSION'] ?? ''));
 
+        // Compare every explicitly supplied per-request protocol version, including
+        // mixed-era requests. Never let a legacy header bypass modern metadata.
+        if ($hasBodyVersion && (!is_string($bodyVersion) || $headerVersion !== $bodyVersion)) {
+            throw new McpProtocolViolation('MCP protocol version header/body mismatch', -32020);
+        }
+
+        if ($hasModernCapabilities && $headerVersion !== self::MODERN_VERSION
+            && ($headerVersion === '' || in_array($headerVersion, self::SUPPORTED_VERSIONS, true))) {
+            throw new McpProtocolViolation('Modern client metadata requires modern protocol version', -32020);
+        }
+
         if ($headerVersion === '') {
-            // Old clients without MCP-Protocol-Version may still initialize.
-            // A modern client must not silently fall back when its header is missing.
-            if ($bodyVersion !== null || $method === 'server/discover') {
+            // MCP 2025-03-26 predates the mandatory HTTP version header.
+            // Do not silently downgrade a modern discover request.
+            if ($method === 'server/discover' || $hasBodyVersion) {
                 throw new McpProtocolViolation('Missing MCP-Protocol-Version header', -32020);
             }
-
-            $requestedVersion = $method === 'initialize' ? ($params['protocolVersion'] ?? null) : null;
-            return is_string($requestedVersion) && in_array($requestedVersion, self::SUPPORTED_VERSIONS, true)
-                && $requestedVersion !== self::MODERN_VERSION
-                ? $requestedVersion
-                : '2025-11-25';
+            if ($method === 'initialize' && ($params['protocolVersion'] ?? null) === self::MODERN_VERSION) {
+                throw new McpProtocolViolation(
+                    'Unsupported protocol version', -32022, 400,
+                    ['supported' => self::SUPPORTED_VERSIONS, 'requested' => self::MODERN_VERSION]
+                );
+            }
+            return '2025-03-26';
         }
 
         if (!in_array($headerVersion, self::SUPPORTED_VERSIONS, true)) {
@@ -129,6 +143,74 @@ final class McpTransport
         if ($actual !== $expected) {
             throw new McpProtocolViolation('Mcp-Name header/body mismatch', -32020);
         }
+    }
+
+    /**
+     * Validate browser Origin against the public MCP origin (not just hostname).
+     * OAuth deployments already configure a canonical public issuer. For manual
+     * Bearer installs, the HTTP Host must be restricted by the web server.
+     */
+    public static function originAllowed(
+        string $origin,
+        array $server,
+        bool $trustForwardedProto = false,
+        string $publicIssuer = ''
+    ): bool {
+        if ($origin === '') {
+            // Server-to-server MCP requests usually have no Origin header.
+            return true;
+        }
+
+        $actual = self::parseOrigin($origin);
+        if ($actual === null) {
+            return false;
+        }
+
+        if ($publicIssuer !== '') {
+            $expected = self::parseOrigin(rtrim($publicIssuer, '/'));
+            return $expected !== null && $actual === $expected;
+        }
+
+        $rawHost = (string)($server['HTTP_HOST'] ?? '');
+        if ($rawHost === '' || strpbrk($rawHost, "/@?#\\ \t\r\n") !== false) {
+            return false;
+        }
+        $https = (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off')
+            || ($trustForwardedProto && ($server['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $expected = self::parseOrigin(($https ? 'https://' : 'http://') . $rawHost);
+        return $expected !== null && $actual === $expected;
+    }
+
+    /** Strictly parse an HTTP Origin; default ports are equivalent. */
+    private static function parseOrigin(string $value): ?array
+    {
+        if ($value === '' || preg_match('/[\x00-\x20\x7f]/', $value)) {
+            return null;
+        }
+        $parts = parse_url($value);
+        if (!is_array($parts) || !isset($parts['scheme'], $parts['host'])
+            || isset($parts['user']) || isset($parts['pass'])
+            || isset($parts['path']) || isset($parts['query']) || isset($parts['fragment'])
+        ) {
+            return null;
+        }
+        $scheme = strtolower($parts['scheme']);
+        $host = strtolower($parts['host']);
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return null;
+        }
+        // Reject authorities parse_url accepts but browsers never emit as Origins.
+        if (!preg_match('/^https?:\/\/(?:\[[0-9a-fA-F:.]+\]|[a-zA-Z0-9.-]+)(?::[0-9]{1,5})?$/iD', $value)) {
+            return null;
+        }
+        if ($host[0] === '[' && !filter_var(trim($host, '[]'), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            return null;
+        }
+        $port = $parts['port'] ?? ($scheme === 'https' ? 443 : 80);
+        if ($port < 1 || $port > 65535) {
+            return null;
+        }
+        return [$scheme, $host, $port];
     }
 
     /** Decode the official =?base64?…?= sentinel for non-ASCII/unsafe values. */

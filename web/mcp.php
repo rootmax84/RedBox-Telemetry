@@ -17,7 +17,7 @@ require_once __DIR__ . '/src/mcp/Transport.php';
 
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
-header('Vary: Authorization');
+header('Vary: Authorization, MCP-Protocol-Version, Mcp-Method, Mcp-Name');
 
 function mcp_json(array $payload, int $status = 200): never
 {
@@ -207,19 +207,20 @@ function mcp_auth_challenge(string $error = 'invalid_token'): void
     }
 }
 
-// Deny browser cross-origin access (DNS-rebinding protection).
-$origin = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
-if ($origin !== '') {
-    $originHost = parse_url($origin, PHP_URL_HOST);
-    $requestHost = explode(':', (string)($_SERVER['HTTP_HOST'] ?? ''))[0];
-
-    if (!is_string($originHost) || strcasecmp($originHost, $requestHost) !== 0) {
-        mcp_json(['error' => 'Cross-origin MCP requests are forbidden'], 403);
-    }
+// Validate the complete browser Origin, including scheme and effective port.
+// OAuth installs use the configured public issuer as the trusted origin;
+// manual-token installs must also restrict Host at the reverse proxy/vhost.
+if (!McpTransport::originAllowed(
+    (string)($_SERVER['HTTP_ORIGIN'] ?? ''),
+    $_SERVER,
+    (bool)($mcp_trust_forwarded_proto ?? false),
+    (string)($mcp_oauth_issuer ?? '')
+)) {
+    mcp_json(['error' => 'Cross-origin MCP requests are forbidden'], 403);
 }
 
 // The forwarded scheme is trusted only when explicitly configured for a TLS proxy.
-$host = explode(':', (string)($_SERVER['HTTP_HOST'] ?? ''))[0];
+$host = parse_url('http://' . (string)($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST) ?: '';
 $isLocal = in_array(strtolower($host), ['localhost', '127.0.0.1', '[::1]', '::1'], true);
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
     || ((bool)($mcp_trust_forwarded_proto ?? false) && ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
@@ -362,6 +363,9 @@ if ($isNotification) {
 try {
     $result = mcp_dispatch($rpcMethod, $db, $auth, $params, $redis, $protocol, $modern, $id);
     $result = McpProtocol::decorateResult($rpcMethod, $result, $modern);
+    if ($modern) {
+        header('Cache-Control: ' . McpProtocol::httpCacheControl($result));
+    }
     mcp_json(['jsonrpc' => '2.0', 'id' => $id, 'result' => $result]);
 } catch (InvalidArgumentException | McpAccessException $e) {
     mcp_error($id, -32602, $e->getMessage());

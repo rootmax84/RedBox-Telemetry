@@ -86,6 +86,17 @@ final class McpProtocol
         ];
     }
 
+    /** Align HTTP freshness with MCP cache metadata; never share private data. */
+    public static function httpCacheControl(array|stdClass $result): string
+    {
+        $value = $result instanceof stdClass ? (array)$result : $result;
+        $ttl = $value['ttlMs'] ?? 0;
+        if (($value['cacheScope'] ?? null) !== 'private' || !is_int($ttl) || $ttl < 1000) {
+            return 'no-store';
+        }
+        return 'private, max-age=' . intdiv($ttl, 1000);
+    }
+
     public static function decorateResult(string $method, array|stdClass $result, bool $modern): array|stdClass
     {
         if (!$modern || $method === 'server/discover') {
