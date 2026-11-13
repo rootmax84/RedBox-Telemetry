@@ -43,11 +43,11 @@ final class McpRemoteSchema
         $add('boost.enabled', 'boost', 'Boost control enabled', 225, 'enabled_unless_one', '', 1, 0, null,
             'RedManage treats every value except 1 as enabled; normal stored values are 0 (enabled) and 1 (disabled).');
         $add('boost.target_kpa', 'boost', 'Base target boost pressure', 226, 'u16', 'kPa', 1, -101, [0, 999],
-            'Displayed RedManage boost value. Not a target-vs-RPM map; confirm gauge/absolute basis before comparing with telemetry.', ['boost.gear_enabled', 'boost.map_mode']);
+            'RedManage displays gauge boost pressure: MCU Setpoint is absolute kPa (this value + 101). This is the base target, not a target-vs-RPM map; gear selection can override it. Do not compare directly to a gauge or absolute telemetry PID without unit conversion.', ['boost.gear_enabled', 'boost.map_mode']);
         $add('boost.start_kpa', 'boost', 'Boost control start', 229, 'u8', 'kPa', 5, 0, null,
-            'At this pressure the solenoid is fully closed (100% duty) before PID regulation.', ['boost.threshold_kpa']);
+            'RedManage displays gauge kPa; the MCU compares ABSOLUTE Input_MAP to 101 + this value. Feedback may begin at/above that absolute MAP after prerequisites. Below start, anti-lag may command full output only above the separate threshold without Rollback.', ['boost.threshold_kpa', 'protection.min_coolant_c', 'protection.min_oil_c', 'protection.min_transmission_c']);
         $add('boost.threshold_kpa', 'boost', 'Boost control threshold', 330, 'u8', 'kPa', 5, 0, null,
-            'Solenoid remains off up to this threshold; it must not exceed boost.start_kpa.', ['boost.start_kpa']);
+            'RedManage displays gauge kPa; MCU compares absolute Input_MAP to 101 + this value. In the below-start region, non-Rollback anti-lag activates at/above that absolute threshold. It is inclusive and must not exceed the start pressure.', ['boost.start_kpa']);
         $add('boost.base_duty_percent', 'boost', 'Base solenoid duty', 228, 'u8', '%', 1, 0, [0, 100],
             'Base duty in the normal boost mode. Duty corrections and gear mode may override effective output.', ['boost.duty_correction_percent', 'boost.rpm_duty_percent', 'boost.gear_enabled']);
         $add('boost.duty_correction_percent', 'boost', 'Duty correction', 295, 'u8', '%', 1, 0, [0, 100],
@@ -59,7 +59,7 @@ final class McpRemoteSchema
         $add('boost.rpm_duty_percent', 'boost', 'RPM duty correction', 246, 'u8', '%', 1, 0, [0, 100],
             'Duty correction over the configured RPM interval; not a target pressure map.', ['boost.rpm_start', 'boost.rpm_end']);
         $add('boost.map_mode', 'boost', 'MAP sensor mode', 264, 'u8', '', 1, 0, [0, 3],
-            '0 = OBD1 (boost control unsupported); 1 = 250 kPa MAP (UI max boost target 150 kPa); 2 = 300 kPa MAP (UI max 200 kPa); 3 = custom MAP (UI max custom high-pressure point minus 100 kPa).');
+            '0 = OBD1 MAP from ECU (the UI does not allow normal boost target editing); 1 = 250 kPa MAP (UI max target 150 kPa); 2 = 300 kPa MAP (UI max 200 kPa); 3 = custom MAP (UI max custom high-pressure point minus 100 kPa). The MCU still reads the configured MAP source; UI restrictions do not prove the physical solenoid is inactive.');
         $add('boost.map_filter', 'boost', 'MAP digital filter', 314, 'u8', '', 1, 0, null,
             'Larger filter values can reduce signal noise but slow the response.', ['pid.kp', 'pid.frequency_hz']);
         $add('boost.solenoid_frequency_code', 'boost', 'Solenoid frequency selection', 323, 'u8', '', 1, 0, [0, 1],
@@ -68,7 +68,7 @@ final class McpRemoteSchema
             'When enabled, the base target/duty fields are disabled by the web UI; gear-specific values take precedence.', ['boost.target_kpa', 'boost.base_duty_percent']);
         for ($gear = 1; $gear <= 4; $gear++) {
             $add("boost.gear{$gear}_target_kpa", 'boost', "Gear {$gear} target pressure", 233 + ($gear - 1) * 2, 'u16', 'kPa', 1, -101, [0, 999],
-                'Requires gear mode and correct BSx gear input assignment.', ['boost.gear_enabled']);
+                'RedManage displays gauge kPa; firmware stores absolute kPa (this value + 101). A selected valid gear profile requires gear mode and correct BSx gear input assignment; unknown gear code 255 does not select a new profile.', ['boost.gear_enabled']);
             $add("boost.gear{$gear}_duty_percent", 'boost', "Gear {$gear} base duty", 240 + $gear, 'u8', '%', 1, 0, [0, 100],
                 'Combined duty corrections must not exceed 100%.', ['boost.rpm_duty_percent']);
         }
@@ -76,7 +76,7 @@ final class McpRemoteSchema
         $add('pid.mode', 'pid', 'PID proportional mode', 211, 'u8', '', 1, 0, [0, 1],
             '0 = proportional on measurement (M); 1 = proportional on error (E). The web UI defaults to E.');
         $add('pid.frequency_hz', 'pid', 'PID sampling frequency', 212, 'u8', 'Hz', 1, 0, [5, 100],
-            'Frequency used to sample MAP and adjust the PID output.');
+            'Frequency limit for PID Compute() in Hz, not the MAP ADC acquisition rate: read_MAP() runs at about 100 Hz independently. The PID call occurs only when boost feedback is active and outside deadband.');
         $add('pid.deadband_kpa', 'pid', 'PID deadband', 329, 'u8', 'kPa', 1, 0, [0, 25],
             'No correction when target-minus-measured pressure is inside this band; small values can amplify noise.', ['boost.map_filter']);
         foreach (['kp' => 213, 'ki' => 217, 'kd' => 221] as $gain => $offset) {
@@ -98,17 +98,20 @@ final class McpRemoteSchema
         ] as $name => [$offset, $scale, $bias, $unit]) {
             $uiMax = str_starts_with($name, 'min_') ? 100 : ($name === 'max_egt_c' ? 1000 : 125);
             $add("protection.{$name}", 'protection', str_replace('_', ' ', ucfirst($name)), $offset, 'u8', $unit, $scale, $bias,
-                [0, $uiMax], 'Protection threshold; alarms and/or boost reduction may apply. Treat as a safety boundary, not a tuning target.');
+                [0, $uiMax], str_starts_with($name, 'min_')
+                    ? 'Boost run prerequisite (not a Rollback alarm): coolant, oil and transmission minimums are ALL required simultaneously (logical AND) alongside positive boost target/duty and boost enabled. A stored value of 0 °C disables ONLY this temperature check (MCU raw value 40). Actual sensor readings and current mode are required to determine run status.'
+                    : 'Maximum warning/protection threshold; alarms and boost reduction may apply when its enabled condition is met. This is distinct from the three minimum-temperature boost-start gates; never treat it as a tuning target.',
+                str_starts_with($name, 'min_') ? ['boost.enabled', 'boost.target_kpa', 'boost.base_duty_percent'] : []);
         }
         $add('protection.boost_limit_kpa', 'protection', 'Boost pressure limit', 230, 'u16', 'kPa', 1, -101, [0, 999],
-            'Upper pressure protection threshold; do not recommend relaxing it to achieve higher boost.', ['boost.target_kpa']);
+            'Displayed gauge kPa; actual MCU overboost condition compares absolute Input_MAP to this value + 101 kPa. Do not relax protection merely to reach higher boost.', ['boost.target_kpa']);
         $add('protection.afr_limit', 'protection', 'AFR protection threshold', 256, 'u8', 'A/F', 0.1, 0, [0, 22.4],
             'Active under boost; protection may reduce commanded boost when the configured AFR condition is met.');
         foreach (['low_oil_pressure' => 253, 'knock' => 254, 'low_fuel_pressure' => 255] as $name => $offset) {
             $description = match ($name) {
-                'low_oil_pressure' => 'Requires a valid RPM signal; RedManage warns and reduces boost when the low-oil-pressure condition is triggered.',
-                'knock' => 'Knock detection protection is available only in OBD1 mode; it may reduce boost.',
-                'low_fuel_pressure' => 'Enable fuel-pressure protection; correct fuel pressure sensor assignment and calibration are required.',
+                'low_oil_pressure' => 'Enables the high-RPM/low-oil-pressure Rollback check (RPM >= 3000 and oil pressure <= 3 bar). Other engine-run, low-pressure and sensor-plausibility checks are evaluated independently of this switch, when an oil pressure sensor is bound.',
+                'knock' => 'Enables Rollback from the Toyota OBD1 knock flag (OBD_FLAGS1 bit 4); it requires valid ECU flag data. Do not infer knock events from the enabled setting alone.',
+                'low_fuel_pressure' => 'Enables the high-RPM/low-fuel-pressure Rollback check (RPM >= 3000 and fuel pressure < 2.9 bar). Other engine-run low-pressure and low-RPM high-pressure checks remain possible when a fuel pressure sensor is bound.',
             };
             $add("protection.{$name}_enabled", 'protection', str_replace('_', ' ', ucfirst($name)) . ' protection', $offset,
                 'bool', '', 1, 0, null, $description);
@@ -171,9 +174,13 @@ final class McpRemoteSchema
                     default => null,
                 };
                 $description = match ($name) {
-                    'off_delay' => 'Switch-off delay in seconds.',
-                    'on_delay_seconds' => 'Switch-on delay in seconds. Stored in 0.04-second units; current web editor submits whole seconds.',
-                    'on_limit_seconds' => 'Maximum on-time in seconds; can be overridden by loop mode.',
+                    'off_delay' => 'Switch-off wait in seconds after a failed automatic condition (or repeat pulse). During the wait A/B are not re-evaluated, so recovery does not cancel the pending switch-off. Zero turns off on the next PG update.',
+                    'on_delay_seconds' => 'Continuous true-condition delay before activation, counted at approximately 25 Hz (0.04 s per tick). Failed condition resets the counter; zero allows activation on the next eligible evaluation.',
+                    'on_limit_seconds' => 'Nonzero maximum output on-time, counted after the on-delay threshold. With repeat ON this limit is ignored; with repeat OFF a timed-out output stays LOW while conditions remain true.',
+                    'repeat' => 'Repeat mode: cycle the output using switch-on and switch-off delays while conditions stay true. The on-time limit is ignored.',
+                    'engine_running_only' => 'Automatic PG evaluation requires engine running and roughly 5 s after start. Engine stop may force output LOW immediately, without off delay; manual override takes precedence.',
+                    'enabled' => 'Enables PG automatic condition evaluation; a manual override is handled separately.',
+                    'function_code' => '0 = A, 1 = A AND B, 2 = A OR B. Conditions use strict < or > comparisons; equality is false.',
                     'a_threshold', 'b_threshold' => 'Engineering units depend on the corresponding PG variable. See settings.units and derived.logic_conditions.',
                     'a_variable', 'b_variable' => 'Selects the telemetry signal that determines the units and conversion of the corresponding threshold.',
                     default => 'Programmable output condition.',
@@ -199,16 +206,19 @@ final class McpRemoteSchema
         }
         for ($n = 0; $n < 5; $n++) {
             $add("inputs.aux{$n}_assignment", 'inputs', "AUX{$n} assignment", 150 + $n, 'u8', '', 1, 0, [0, 10],
-                'Sensor function assigned to the analog AUX input; check for collisions with other AUX/DS assignments.');
+                'Sensor function assigned to the analog AUX input. Firmware accepts duplicate bindings without resolving them: multiple sources for one logical temperature overwrite the same measurement at different acquisition times; inspect derived.input_sources.');
             $add("inputs.ds{$n}_assignment", 'inputs', "DS{$n} assignment", 156 + $n, 'u8', '', 1, 0, [0, 6],
-                'Sensor function assigned to the DS18B20 input; collisions with other AUX/DS assignments are invalid.');
+                'Logical temperature assigned to a saved DS ROM slot; disabled slots are not polled. The MCU does not reject duplicate assignments across AUX/DS, so values may overwrite each other; inspect derived.input_sources.');
             $add("inputs.ds{$n}_address", 'inputs', "DS{$n} sensor address", 161 + $n * 8, 'hex8', '', 1, 0, null,
-                'Eight-byte DS18B20 sensor identity, not a secret.');
+                'Stored eight-byte ROM identity (DS18B20, DS1822 or DS18S20); its presence is not proof that the sensor is connected, assigned or currently responding.');
             $add("inputs.ds{$n}_status", 'inputs', "DS{$n} status", 398 + $n, 'u8', '', 1, 0, null,
-                '0 = no data; 1 = error; 239 = OK; other value indicates an abnormal or unsupported status.');
+                'Per-slot 1-Wire status sampled by the MCU when the /RM snapshot is requested (not a stored EEPROM setting): 0 = no data/unbound, 1 = error after repeated failures, 239 = normal configuration signature. Other codes need inspection; neither a status nor the registered-address count certifies a currently responsive sensor.');
         }
-        $add('inputs.ds_online_count', 'inputs', 'Online DS sensor count', 403, 'u8', '', 1, 0, [0, 5],
-            'Read-only status count of online DS sensors, not a configurable setting.');
+        $add('inputs.ds_registered_count', 'inputs', 'Registered DS ROM addresses', 403, 'u8', '', 1, 0, [0, 5],
+            'Runtime /RM field ds_avail: number of ROM addresses stored in EEPROM and counted at boot; not an EEPROM setting or live/online count. Includes disconnected and unbound slots.');
+        // Preserve the previous key for existing MCP clients, but do not repeat its misleading semantics.
+        $add('inputs.ds_online_count', 'inputs', 'Deprecated: registered DS ROM addresses', 403, 'u8', '', 1, 0, [0, 5],
+            'Deprecated compatibility alias for inputs.ds_registered_count. This value is ds_avail (stored EEPROM ROMs), NOT the number of sensors currently online.');
 
         $add('calibration.afr_0v', 'calibration', 'AFR calibration at 0 V', 257, 'u16', 'A/F', 0.01, 0, [0, 25],
             'Air/fuel ratio mapped to a 0 V sensor signal.');
@@ -248,7 +258,8 @@ final class McpRemoteSchema
             'pim_output' => [261, 'u8', '%', 1, -100],
             'motor_hours_mode' => [320, 'u8', '', 1, 0],
             'maintenance_mode' => [320, 'u8', '', 1, 0], // Deprecated name: kept for backwards compatibility.
-            'motor_hours' => [394, 'u32_minutes', 'h', 1, 0],
+            'motor_hours_history' => [394, 'u32_minutes', 'h', 1, 0],
+            'motor_hours' => [394, 'u32_minutes', 'h', 1, 0], // Deprecated alias retained for clients.
         ] as $name => [$offset, $codec, $unit, $scale, $bias]) {
             $ranges = [
                 'voltage_correction' => [0, 2.55],
@@ -262,11 +273,12 @@ final class McpRemoteSchema
             $description = match ($name) {
                 'voltage_correction' => 'Voltmeter correction displayed in V (not a dimensionless multiplier).',
                 'speed_multiplier', 'rpm_multiplier' => 'Dimensionless multiplier; 1.00 means no correction.',
-                'pim_mode' => 'PIM output source/mode; PIM output is disabled for manual editing in the web UI when mode is greater than 2.',
+                'pim_mode' => 'PIM PWM output source/mode; mode 0 is static PWM, 1 maps measured MAP, 2 maps ECU MAF, and 3–14 map selected readings. The source-dependent output must not be treated as an independent sensor.',
                 'maintenance_mode' => 'Deprecated name for other.motor_hours_mode; this controls the motor-hours counter, not maintenance mode.',
-                'motor_hours_mode' => '0 = Simple; 1 = Advanced (depends on engine load).',
-                'motor_hours' => 'Recorded accumulated motor hours (whole hours as displayed in RedManage).',
-                'pim_output' => 'Stored PIM output in percent. The web UI disables manual adjustment when PIM mode exceeds 2.',
+                'motor_hours_mode' => '0 = Simple (one counted minute per 60 seconds of engine-run); 1 = Advanced (counter speed depends on measured engine RPM, not engine load: roughly one counted minute every 20–60 seconds).',
+                'motor_hours_history' => 'Historical engine-hours minutes accumulated at counter resets and stored in EEPROM bytes 396–399, shown as completed whole hours. Does NOT include the current running counter.',
+                'motor_hours' => 'Deprecated compatibility alias for other.motor_hours_history. This is historical minutes accumulated on earlier counter resets, converted to whole hours; NOT the current live engine-hours counter.',
+                'pim_output' => 'RedManage UI PIM baseline setting (0–85). Firmware stores this as value + 100 and maps it into PWM output codes; the displayed percent is not a direct physical PWM duty or measured voltage.',
                 default => '',
             };
             $add("other.{$name}", 'other', str_replace('_', ' ', ucfirst($name)), $offset, $codec, $unit, $scale, $bias,
@@ -279,6 +291,8 @@ final class McpRemoteSchema
             }
         }
         $fields['other.maintenance_mode']['deprecated_alias_for'] = 'other.motor_hours_mode';
+        $fields['other.motor_hours']['deprecated_alias_for'] = 'other.motor_hours_history';
+        $fields['inputs.ds_online_count']['deprecated_alias_for'] = 'inputs.ds_registered_count';
 
         return $fields;
     }
@@ -409,6 +423,123 @@ final class McpRemoteSchema
     }
 
     /**
+     * Settings-only interpretation of PG timing. Derived from the 25 Hz MCU
+     * evaluation path, not a live prediction or current output state.
+     *
+     * @param array<string, int|float|bool|string|null> $values
+     * @return array<string, mixed>
+     */
+    public static function logicTiming(array $values): array
+    {
+        $channels = [];
+        for ($i = 0; $i <= 1; $i++) {
+            $prefix = "logic.pg{$i}_";
+            $repeat = (bool)($values[$prefix . 'repeat'] ?? false);
+            $onLimit = (float)($values[$prefix . 'on_limit_seconds'] ?? 0);
+            $channels["pg{$i}"] = [
+                'automatic_enabled' => (bool)($values[$prefix . 'enabled'] ?? false),
+                'engine_running_only' => (bool)($values[$prefix . 'engine_running_only'] ?? false),
+                'on_delay_seconds' => (float)($values[$prefix . 'on_delay_seconds'] ?? 0),
+                'off_delay_seconds' => (float)($values[$prefix . 'off_delay'] ?? 0),
+                'on_limit_seconds' => $onLimit,
+                'on_limit_effective' => !$repeat && $onLimit > 0,
+                'repeat' => $repeat,
+            ];
+        }
+        return [
+            'evaluation_hz' => 25,
+            'channels' => $channels,
+            'on_delay_requires_true_evaluations' => true,
+            'off_delay_rechecks_condition_while_pending' => false,
+            'off_delay_is_cancellable_by_condition_recovery' => false,
+            'manual_override_is_separate' => true,
+            'note' => 'Timing is approximate (25 Hz); the saved configuration is not a measurement of PG output. Consult get_remote_behavior(topic=logic).',
+        ];
+    }
+
+    /**
+     * Which configured AUX and registered DS slots can write each logical temperature.
+     * Firmware uses one shared value per signal and does not reject duplicate assignments.
+     * Stored ROM presence and saved status cannot certify a live connected DS sensor.
+     *
+     * @param array<string, int|float|bool|string|null> $values
+     * @return array<string, mixed>
+     */
+    public static function inputSources(array $values): array
+    {
+        $names = [1 => 'ECT', 2 => 'EOT', 3 => 'IAT', 4 => 'ATF', 5 => 'AAT', 6 => 'EXT'];
+        $sources = [];
+        foreach ($names as $signal) {
+            $sources[$signal] = [];
+        }
+        for ($slot = 0; $slot < 5; $slot++) {
+            $analog = (int)($values["inputs.aux{$slot}_assignment"] ?? 0);
+            if (isset($names[$analog])) {
+                $sources[$names[$analog]][] = "AUX{$slot}";
+            }
+            $ds = (int)($values["inputs.ds{$slot}_assignment"] ?? 0);
+            $address = (string)($values["inputs.ds{$slot}_address"] ?? '');
+            // A saved ROM identity starts with its nonzero family code.
+            $registered = $address !== '' && !str_starts_with($address, '00:');
+            if ($registered && isset($names[$ds])) {
+                $sources[$names[$ds]][] = "DS{$slot}";
+            }
+        }
+        $collisions = [];
+        foreach ($sources as $signal => $assigned) {
+            if (count($assigned) > 1) {
+                $collisions[$signal] = $assigned;
+            }
+        }
+        return [
+            'ds_registered_count' => $values['inputs.ds_registered_count'] ?? null,
+            'ds_count_is_live' => false,
+            'temperatures' => $sources,
+            'duplicate_temperature_assignments' => $collisions,
+            'caution' => 'AUX updates (about 1 Hz) and asynchronous DS updates overwrite the same MCU temperature variable when assignments collide. The saved DS count is not live sensor availability.',
+        ];
+    }
+
+    /**
+     * The three minimum-temperature settings gate normal boost operation with AND.
+     * The MCU stores temperatures with a +40 offset; a decoded 0 °C here is
+     * a deliberate bypass for that individual check, not an observed 0 °C.
+     * This is configuration semantics, never a live boost-enable verdict.
+     *
+     * @param array<string, int|float|bool|string|null> $values
+     * @return array<string, mixed>
+     */
+    public static function boostTemperatureGate(array $values): array
+    {
+        $fields = [
+            'coolant' => 'protection.min_coolant_c',
+            'oil' => 'protection.min_oil_c',
+            'transmission' => 'protection.min_transmission_c',
+        ];
+        $minimums = [];
+        foreach ($fields as $sensor => $key) {
+            $value = $values[$key] ?? null;
+            $minimums[$sensor] = [
+                'setting' => $key,
+                'minimum_c' => is_numeric($value) ? (float)$value : null,
+                'disabled' => is_numeric($value) ? (float)$value === 0.0 : null,
+            ];
+        }
+        return [
+            'operator' => 'AND',
+            'minimums' => $minimums,
+            'rule' => 'ECT >= coolant minimum AND EOT >= oil minimum AND ATF >= transmission minimum; a disabled (0 °C) check is treated as satisfied.',
+            'other_prerequisites' => [
+                'Boost controller enabled',
+                'Selected boost setpoint greater than zero gauge pressure (MCU Setpoint > 101)',
+                'Selected base duty greater than zero (Duty > 0)',
+            ],
+            'applies_to' => 'Eligibility for normal boost output/regulation; not a statement that the solenoid is presently active.',
+            'caution' => 'Saved thresholds are not measured temperatures. Active gear selection, valid inputs, MAP regime, Rollback and short startup output behaviour also matter.',
+        ];
+    }
+
+    /**
      * UI-selected MAP capability, not a recommendation to change boost targets.
      * Values for fixed MAP modes follow limits_boost() in remote.js.
      *
@@ -432,6 +563,17 @@ final class McpRemoteSchema
             'map_mode' => self::valueLabels($values, 'boost')['boost.map_mode'] ?? 'Unknown',
             'boost_control_supported_by_map' => $mapCode >= 1 && $mapCode <= 3,
             'ui_target_limit_kpa' => $uiMax,
+            'pressure_reference' => [
+                'mcu_map_basis' => 'absolute kPa',
+                'ui_settings_basis' => 'gauge kPa (MCU converts with +101 kPa)',
+                'mcu_offset_kpa' => 101,
+                'selected_base_target_absolute_kpa' => is_numeric($values['boost.target_kpa'] ?? null) ? (float)$values['boost.target_kpa'] + 101 : null,
+                'start_absolute_kpa' => is_numeric($values['boost.start_kpa'] ?? null) ? (float)$values['boost.start_kpa'] + 101 : null,
+                'anti_lag_threshold_absolute_kpa' => is_numeric($values['boost.threshold_kpa'] ?? null) ? (float)$values['boost.threshold_kpa'] + 101 : null,
+                'overboost_absolute_kpa' => is_numeric($values['protection.boost_limit_kpa'] ?? null) ? (float)$values['protection.boost_limit_kpa'] + 101 : null,
+                'note' => 'Gear mode can replace the base target; a gauge telemetry PID may require a separate conversion before comparison.',
+            ],
+            'temperature_gate' => self::boostTemperatureGate($values),
             'caution' => 'RedManage displays boost-target values in kPa with an offset of 101; MAP calibration is absolute pressure. Verify pressure reference before comparing with live telemetry.',
         ];
     }

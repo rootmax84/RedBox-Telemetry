@@ -32,24 +32,26 @@ final class McpProtocol
      */
     public static function instructions(): string
     {
-        return 'RedBox Telemetry MCP is read-only. For recorded sessions: find a session with list_sessions, '
-            . 'resolve PID identifiers and raw units with list_metrics, and check get_session_quality '
-            . 'before interpreting measurements. Use original database timestamps (Unix milliseconds), '
-            . 'not the compressed display X axis. Recording gaps are not measured time; inspect '
-            . 'get_session_segments when event duration or data coverage matters. '
-            . 'Check incomplete/scan_truncated and coverage_ratio; do not present partial results '
-            . 'as whole-session conclusions. get_metric_stats gives a sample mean and a time-weighted '
-            . 'mean: choose explicitly according to the question. Do not infer causality from '
-            . 'analyze_metric_relationship or treat statistical anomalies as confirmed faults. '
-            . 'For Rollback, use get_rollback_events and contextual PIDs; a positive Rollback value '
-            . 'does not by itself establish a root cause. For live data, check get_device_status '
-            . 'first: recent uploads do not prove an active connection. For RedManage, start with '
-            . 'get_remote_architecture or get_remote_schema and get_remote_behavior, then examine '
-            . 'get_remote_settings if authorized; never mistake a stored target for observed pressure '
-            . 'or prescribe unverified boost/PID settings. Telemetry uses raw sensor units; verify '
-            . 'that compared PIDs have compatible units and timestamps. Location and RedManage '
-            . 'require separate scopes (location:read and remote:read); absence of permission '
-            . 'is not absence of data. If necessary, full_scan is explicitly opt-in and still bounded.';
+        return 'RedBox Telemetry MCP is read-only. For recorded sessions: list_sessions, list_metrics, '
+            . 'then get_session_quality before analysis; use get_session_segments for recording gaps. '
+            . 'Use raw Unix-millisecond timestamps, not compressed graph time. '
+            . 'Check incomplete/scan_truncated and coverage_ratio; never treat partial results as complete. '
+            . 'get_metric_stats offers sample mean and time-weighted mean; distinguish them. '
+            . 'analyze_metric_relationship is observational, not proof of causality. '
+            . 'For Rollback use get_rollback_events and related sensors; decode independent warning bits. '
+            . 'For live data start with get_device_status; uploads do not prove connection. '
+            . 'For RedManage use get_remote_schema, get_remote_architecture, get_remote_behavior '
+            . 'before get_remote_settings. Boost eligibility requires ECT AND EOT AND ATF; '
+            . 'disabled threshold checks are bypassed. RedManage gauge boost pressures require '
+            . '+101 kPa to compare with MCU absolute MAP. '
+            . 'ds_avail counts registered EEPROM sensor addresses, not sensors online. '
+            . 'Stored motor-hours history is not live run-time; advanced hours use RPM. '
+            . 'PG delays: use get_remote_behavior(topic=logic); off-delay is not cancellable, '
+            . 'repeat bypasses maximum on-time. Do not prescribe unverified tuning or '
+            . 'interpret a configured target as achieved pressure. '
+            . 'Compare engineering units, signal timestamps, and measurement freshness. '
+            . 'GPS and RedManage require separate scopes: location:read and remote:read. '
+            . 'full_scan requires explicit opt-in and remains bounded';
     }
 
     /** Capabilities and guidance must match across legacy initialize and modern discovery. */

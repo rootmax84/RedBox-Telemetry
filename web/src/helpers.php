@@ -178,85 +178,30 @@ function getFilteredQuery(int $user_id, string $streamLimit, int $filterRate): s
 }
 
 /**
- * Checks rate limits for requests based on client IP
- * Running memcached required
+ * Rate-limit requests by client IP using one atomic Redis operation.
  *
- * @param int $limit Maximum number of attempts allowed
- * @param int $period Time period in seconds for the limit
- * @param bool $success If true, resets the counter for successful attempts
- * @return bool True if within limits, false if exceeded
+ * Preserves the existing sliding counter TTL and exponential backoff.
+ * A successful request resets both keys. Redis errors still fail open.
  */
 function checkRateLimit($limit = 10, $period = 3600, $success = false) {
     global $memcached, $memcached_connected;
 
-    // Determine client IP considering possible proxies
+    // Keep the existing IP selection behavior for compatibility.
     $ip = $_SERVER['HTTP_CLIENT_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
-
-    // If IP contains a list of addresses (comma separated), take the first one
     if (strpos($ip, ',') !== false) {
         $ip = trim(explode(',', $ip)[0]);
     }
 
+    if (!$memcached_connected) {
+        return true;
+    }
+
     $rate_key = "rate_limit:block:{$ip}";
     $backoff_key = "rate_backoff:block:{$ip}";
-
-    // If this is a successful request, reset the counter and return true
-    if ($success && $memcached_connected) {
-        try {
-            $memcached->delete($rate_key);
-            $memcached->delete($backoff_key);
-        } catch (Exception $e) {
-            error_log("Ratel cache error clearing rate limit: " . $e->getMessage());
-        }
-        return true;
-    }
-
-    if (!$memcached_connected) {
-        return true; // If memcached is not connected, skip the check
-    }
-
-    try {
-        $attempts = $memcached->get($rate_key);
-        if ($attempts === false) {
-            $attempts = 0;
-        }
-
-        // Check if we need to enforce a backoff period
-        $backoff = $memcached->get($backoff_key);
-        if ($backoff !== false) {
-            $now = time();
-            if ($now < $backoff) {
-                // Still in backoff period, reject request
-                return false;
-            }
-        }
-
-        $attempts++;
-        $memcached->set($rate_key, $attempts, $period);
-
-        if ($attempts > $limit) {
-            // Calculate exponential backoff time
-            // Start with 5 seconds, double with each attempt beyond limit
-            $backoff_seconds = min(1800, 5 * pow(2, $attempts - $limit - 1)); // Cap at 30 minutes
-            $backoff_until = time() + $backoff_seconds;
-
-            // Store the backoff timestamp
-            $memcached->set($backoff_key, $backoff_until, $period);
-
-            return false;
-        }
-
-        // For non-blocked but repeated requests, set a short backoff to slow down attempts
-        if ($attempts > 3) {
-            $short_backoff = time() + ($attempts - 3); // 1 second per attempt beyond 3
-            $memcached->set($backoff_key, $short_backoff, $period);
-        }
-
-        return true;
-    } catch (Exception $e) {
-        error_log("Ratel cache error in rate limiting: " . $e->getMessage());
-        return true; // In case of cache error, don't block access
-    }
+    // null means Redis failed; preserve the previous fail-open policy.
+    return $memcached->checkRateLimitAtomic(
+        $rate_key, $backoff_key, (int)$limit, (int)$period, (bool)$success
+    ) ?? true;
 }
 
 /**
@@ -1232,7 +1177,19 @@ function cache_pids_after_commit(int $user_id, string $username, array $result):
         if ($memcached_connected && $user_id > 0) {
             $memcached->increment("u{$user_id}_varver", 1);
         }
-        if ($username !== '') cache_flush(null, "columns_data_pids_{$username}");
+        // Fixed PID caches are not versioned by u*_varver. Invalidate only
+        // after a commit that actually inserted new PIDs (never per upload).
+        if ($username !== '') {
+            foreach ([
+                "columns_data_pids_{$username}",
+                "pids_mapping_{$username}",
+                "stream_pids_s_{$username}",
+                "stream_pids_d_{$username}",
+                "api_pids_{$username}",
+            ] as $key) {
+                cache_flush(null, $key);
+            }
+        }
     }
 }
 

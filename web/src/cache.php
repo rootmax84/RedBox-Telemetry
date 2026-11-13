@@ -299,6 +299,59 @@ final class RatelCache
     }
 
     /**
+     * Atomically enforce the legacy share-link rate limit and backoff.
+     * Returns null on Redis failure so callers retain fail-open behavior.
+     * Both keys and the sliding TTL are updated within a single EVAL.
+     */
+    public function checkRateLimitAtomic(
+        string $rateKey,
+        string $backoffKey,
+        int $limit,
+        int $period,
+        bool $success = false
+    ): ?bool {
+        if (!$this->redis instanceof Redis) {
+            return null;
+        }
+
+        $script = <<<'LUA'
+if tonumber(ARGV[4]) == 1 then
+    redis.call('DEL', KEYS[1], KEYS[2])
+    return 1
+end
+local now = tonumber(ARGV[3])
+local blocked_until = redis.call('GET', KEYS[2])
+if blocked_until and now < tonumber(blocked_until) then
+    return 0
+end
+local attempts = redis.call('INCR', KEYS[1])
+redis.call('EXPIRE', KEYS[1], ARGV[2])
+local limit = tonumber(ARGV[1])
+local period = tonumber(ARGV[2])
+if attempts > limit then
+    local excess = attempts - limit - 1
+    local seconds = excess >= 9 and 1800 or math.min(1800, 5 * (2 ^ excess))
+    redis.call('SET', KEYS[2], now + seconds, 'EX', period)
+    return 0
+end
+if attempts > 3 then
+    redis.call('SET', KEYS[2], now + attempts - 3, 'EX', period)
+end
+return 1
+LUA;
+
+        try {
+            $result = $this->redis->eval(
+                $script, [$rateKey, $backoffKey, $limit, $period, time(), $success ? 1 : 0], 2
+            );
+            return $result === false ? null : ((int)$result === 1);
+        } catch (Throwable $e) {
+            error_log('RatelCache::checkRateLimitAtomic error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Установить TTL на существующий ключ.
      * Возвращает true, если TTL установлен (ключ существует).
      */

@@ -66,8 +66,15 @@ final class McpRemoteData
         if ($group === null || $group === 'boost') {
             $derived['boost_mode'] = McpRemoteSchema::boostModeSummary($allValues);
         }
+        if ($group === 'protection') {
+            $derived['boost_temperature_gate'] = McpRemoteSchema::boostTemperatureGate($allValues);
+        }
+        if ($group === null || $group === 'inputs') {
+            $derived['input_sources'] = McpRemoteSchema::inputSources($allValues);
+        }
         if ($group === null || $group === 'logic') {
             $derived['logic_conditions'] = McpRemoteSchema::logicConditions($allValues);
+            $derived['logic_timing'] = McpRemoteSchema::logicTiming($allValues);
         }
 
         return [

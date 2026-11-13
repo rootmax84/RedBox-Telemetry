@@ -163,9 +163,9 @@ function rs_read_key_preview(Redis $redis, string $key, string $type): array {
 $r = get_redis_connection();
 
 global $redis_stream_key, $redis_stream_group,
-       $redis_stream_maxlen,
+       $redis_stream_maxlen, $redis_heavy_stream_maxlen,
        $redis_heavy_stream_key, $redis_dlq_key,
-       $redis_notifications_stream_key,
+       $redis_notifications_stream_key, $redis_notifications_stream_maxlen,
        $db;
 
 $uploadsKey = $redis_stream_key               ?? 'telemetry:uploads';
@@ -173,11 +173,21 @@ $heavyKey   = $redis_heavy_stream_key         ?? 'ratel:heavy_tasks';
 $dlqKey     = $redis_dlq_key                  ?? 'ratel:dead_letters';
 $notifKey   = $redis_notifications_stream_key ?? 'ratel:notifications';
 $groupName  = $redis_stream_group             ?? 'telemetry-workers';
+// Use the same MAXLEN for DLQ replay as each stream's regular producer.
+$replayMaxlens = [
+    $uploadsKey => (int)($redis_stream_maxlen ?? 0),
+    $heavyKey   => (int)($redis_heavy_stream_maxlen ?? 10000),
+    $notifKey   => (int)($redis_notifications_stream_maxlen ?? 0),
+];
 
 const RS_DEAD_IDLE_SECONDS  = 60;
 const RS_DLQ_ROW_LIMIT      = 500;
 const RS_PER_USER_ROW_LIMIT = 500;
 const RS_TASK_SCAN_LIMIT    = 5000;
+
+function rs_consumer_is_dead(int $pending, int $idleMs, bool $hasHeartbeat): bool {
+    return $pending === 0 && $idleMs > RS_DEAD_IDLE_SECONDS * 1000 && !$hasHeartbeat;
+}
 
 /* ────────────────────────────────────────────────────────────
  * Action handling (POST → 303 redirect)
@@ -243,7 +253,7 @@ if ($action !== null) {
                         if (empty($out)) { $failed++; continue; }
 
                         try {
-                            $maxlen = (int)($redis_stream_maxlen ?? 0);
+                            $maxlen = $replayMaxlens[$target] ?? (int)($redis_stream_maxlen ?? 0);
                             $newId  = $r->xAdd($target, '*', $out, $maxlen, true);
                             if ($newId !== false) {
                                 $r->xDel($dlqKey, [$id]);
@@ -304,7 +314,7 @@ if ($action !== null) {
                         throw new RuntimeException('Empty payload after stripping metadata');
                     }
 
-                    $maxlen = (int)($redis_stream_maxlen ?? 0);
+                    $maxlen = $replayMaxlens[$target] ?? (int)($redis_stream_maxlen ?? 0);
                     $newId  = $r->xAdd($target, '*', $out, $maxlen, true);
 
                     if ($newId !== false) {
@@ -330,8 +340,11 @@ if ($action !== null) {
                             $name    = (string)($c['name'] ?? '');
                             $pending = (int)($c['pending'] ?? 0);
 
-                            if ($name === '') { $skipped++; continue; }
-                            if ($pending > 0) { $skipped++; continue; }
+                            $idleMs = (int)($c['idle'] ?? 0);
+                            if ($name === '' || $pending > 0 || $idleMs <= RS_DEAD_IDLE_SECONDS * 1000) {
+                                $skipped++;
+                                continue;
+                            }
 
                             // Пока heartbeat жив — не трогаем. Даже если процесс уже убит,
                             // TTL (120s) должен истечь: это окно, за которое воркер мог бы
@@ -340,7 +353,10 @@ if ($action !== null) {
                             try { $hasHb = (bool)$r->exists("worker:hb:{$name}"); }
                             catch (Throwable $e) { $skipped++; continue; }
 
-                            if ($hasHb) { $skipped++; continue; }
+                            if (!rs_consumer_is_dead($pending, $idleMs, $hasHb)) {
+                                $skipped++;
+                                continue;
+                            }
 
                             try {
                                 $r->xGroup('DELCONSUMER', $stream, $groupName, $name);
@@ -380,7 +396,6 @@ if ($action !== null) {
                         'pids_known_*',
                         'share_data_*',
                         'share_plot_*',
-                        'new_session_*',
                         // --- Per-user версионированные ключи (session_data, gps_data, session_id) ---
                         // Удаляет u1_vv0_*, u1_vv1_* и т.д. Не трогает u1_varver.
                         'u*_vv*_*',
@@ -599,8 +614,8 @@ if ($r === null) {
                         $state  = 'stuck';
                         $isDead = false;
                     } else {
-                        $state  = 'dead';
-                        $isDead = true;
+                        $isDead = rs_consumer_is_dead($pending, $idleMs, $hasHb);
+                        $state  = $isDead ? 'dead' : 'waiting';
                     }
 
                     $stats['consumers'][] = [
@@ -873,16 +888,19 @@ if ($r === null) {
 }
 
 /* ── A SCAN result can be empty while its cursor is nonzero. ── */
-function rs_scan_page(Redis $redis, string $pattern, int $startCursor, int $limit, int $maxSteps): array {
-    // PhpRedis SCAN iterator must be NULL on the first call, not integer 0.
-    $cursor = $startCursor === 0 ? null : $startCursor;
+function rs_scan_page(Redis $redis, string $pattern, string $startCursor, int $limit, int $maxSteps): array {
+    // A SCAN batch may contain MORE than COUNT keys. Resume inside that batch
+    // by replaying its preceding cursor and skipping already displayed entries.
+    // This avoids silently losing the overflow without storing server-side state.
+    [$cursorPart, $offsetPart] = array_pad(explode(':', $startCursor, 2), 2, '0');
+    $cursor = (int)$cursorPart === 0 ? null : (int)$cursorPart;
+    $offset = (int)$offsetPart;
     $found = [];
     $steps = 0;
     $error = null;
+
     do {
         $previous = $cursor;
-        // PhpRedis may return false for empty batches; use SCAN_RETRY where available,
-        // but still advance explicitly to avoid extension/version-specific behavior.
         $batch = $redis->scan($cursor, $pattern, min(500, max(100, $limit * 2)));
         $steps++;
         if ($batch === false && $cursor === $previous && $cursor !== 0) {
@@ -890,16 +908,36 @@ function rs_scan_page(Redis $redis, string $pattern, int $startCursor, int $limi
             break;
         }
         if (is_array($batch)) {
-            foreach ($batch as $key) {
-                $found[(string)$key] = (string)$key;
+            $values = array_values($batch);
+            $n = count($values);
+            if ($offset > $n) {
+                $error = 'Redis keys changed during SCAN pagination; restart the search.';
+                break;
+            }
+            for ($i = $offset; $i < $n; $i++) {
+                $key = (string)$values[$i];
+                $found[$key] = $key;
+                if (count($found) >= $limit) {
+                    // An overflow token (cursor:offset) replays exactly this SCAN
+                    // batch on the next HTTP request, instead of dropping its tail.
+                    $next = ($i + 1 < $n)
+                        ? (string)(int)($previous ?? 0) . ':' . ($i + 1)
+                        : (string)(int)$cursor;
+                    return ['keys' => array_values($found), 'cursor' => $next,
+                        'more' => $i + 1 < $n || $cursor !== 0,
+                        'steps' => $steps, 'error' => null];
+                }
             }
         }
-    } while ($cursor !== 0 && count($found) < $limit && $steps < $maxSteps);
+        $offset = 0;
+    } while ($cursor !== 0 && $steps < $maxSteps);
+
     if ($steps === 1 && !$found && $cursor === null) {
         $error = 'SCAN did not start: Redis extension or connection may have rejected the request.';
     }
-    return ['keys' => array_slice(array_values($found), 0, $limit), 'cursor' => (int)$cursor,
-            'more' => $cursor !== 0 && $cursor !== null, 'steps' => $steps, 'error' => $error];
+    return ['keys' => array_values($found), 'cursor' => (string)(int)$cursor,
+        'more' => $cursor !== 0 && $cursor !== null,
+        'steps' => $steps, 'error' => $error];
 }
 
 function rs_key_category(string $key): string {
@@ -916,11 +954,13 @@ function rs_key_category(string $key): string {
 function rs_memory_breakdown(Redis $redis): array {
     // NULL is required for the first phpredis SCAN request.
     $cursor = null; $steps = 0; $sampled = 0; $groups = [];
+    $limitedMidBatch = false;
     do {
         $batch = $redis->scan($cursor, '*', 100);
         $steps++;
         if (is_array($batch)) {
-            foreach ($batch as $key) {
+            $batch = array_values($batch);
+            foreach ($batch as $index => $key) {
                 $key = (string)$key;
                 $group = rs_key_category($key);
                 if (!isset($groups[$group])) $groups[$group] = ['keys' => 0, 'bytes' => 0, 'unknown' => 0];
@@ -931,12 +971,16 @@ function rs_memory_breakdown(Redis $redis): array {
                     else $groups[$group]['unknown']++;
                 } catch (Throwable $e) { $groups[$group]['unknown']++; }
                 $sampled++;
-                if ($sampled >= RS_MEMORY_SAMPLE_LIMIT) break;
+                if ($sampled >= RS_MEMORY_SAMPLE_LIMIT) {
+                    $limitedMidBatch = $index + 1 < count($batch);
+                    break;
+                }
             }
         }
     } while ($cursor !== 0 && $steps < RS_MEMORY_MAX_STEPS && $sampled < RS_MEMORY_SAMPLE_LIMIT);
     uasort($groups, fn($a, $b) => $b['bytes'] <=> $a['bytes']);
-    return ['groups' => $groups, 'sampled' => $sampled, 'complete' => $cursor === 0,
+    return ['groups' => $groups, 'sampled' => $sampled,
+            'complete' => $cursor === 0 && !$limitedMidBatch,
             'steps' => $steps, 'error' => ($sampled === 0 && $cursor === null) ? 'SCAN returned no data; check Redis permissions and connection.' : null];
 }
 
@@ -993,7 +1037,10 @@ if ($r !== null && (isset($_GET['redis_browse']) || isset($_GET['redis_key']))) 
         $explorer['dbsize'] = (int)$r->dbSize();
         if (isset($_GET['redis_browse'])) {
             $cursorInput = (string)($_GET['redis_cursor'] ?? '0');
-            $cursor = preg_match('/^\d{1,20}$/D', $cursorInput) ? (int)$cursorInput : 0;
+            // Offset is bounded; the preceding SCAN cursor and search pattern are
+            // reused only for the next batch, never persisted in the application.
+            $cursor = preg_match('/^\d{1,20}(?::[1-9]\d{0,5})?$/D', $cursorInput)
+                ? $cursorInput : '0';
             $page = rs_scan_page($r, $explorer['pattern'], $cursor, RS_EXPLORER_COUNT, RS_EXPLORER_MAX_STEPS);
             $explorer['cursor'] = (string)$page['cursor'];
             $explorer['more'] = $page['more'];
@@ -1966,7 +2013,7 @@ body {
                 <b>busy</b> — heartbeat is fresh and the worker is currently processing a heavy task.<br>
                 <b>active</b> — heartbeat is fresh and the worker is alive.<br>
                 <b>waiting</b> — heartbeat is fresh, but the worker has nothing to do right now.<br>
-                <b>dead</b> — heartbeat expired, pending = 0; safe to remove.<br>
+                <b>dead</b> — heartbeat expired, pending = 0, idle &gt; <?= RS_DEAD_IDLE_SECONDS ?>s; safe to remove.<br>
                 <b>stuck</b> — heartbeat expired, but PEL still holds messages; XAUTOCLAIM should pick them up.
             </div>
         <?php endif; ?>

@@ -2246,11 +2246,14 @@ if ('serviceWorker' in navigator) {
 }
 
 function toggle_dark() {
- if (typeof username !== 'string' || !username.trim()) return;
-document.querySelector('html').style.transition = ".2s"
- switch (localStorage.getItem(`${username}-theme`)) {
+ const themeUser = (typeof HEAD_CONFIG !== 'undefined' && HEAD_CONFIG.themeUsername)
+   ? HEAD_CONFIG.themeUsername : (typeof username !== 'undefined' ? username : '');
+ if (typeof themeUser !== 'string' || !themeUser.trim()) return;
+ document.querySelector('html').style.transition = ".2s";
+ switch (localStorage.getItem(`${themeUser}-theme`)) {
+  case null:
   case "default":
-   localStorage.setItem(`${username}-theme`, "dark");
+   localStorage.setItem(`${themeUser}-theme`, "dark");
    let head = document.getElementsByTagName('head')[0];
    let link = document.createElement('link');
    link.rel = 'stylesheet';
@@ -2258,9 +2261,9 @@ document.querySelector('html').style.transition = ".2s"
    head.appendChild(link);
   break;
   case "dark":
-   localStorage.setItem(`${username}-theme`, "default");
-   let lNode =  document.querySelector(`link[href*="${darkCssUrl}"]`);
-   lNode.parentNode.removeChild(lNode);
+   localStorage.setItem(`${themeUser}-theme`, "default");
+   let lNode = document.querySelector(`link[href*="${darkCssUrl}"]`);
+   if (lNode) lNode.remove();
   break;
  }
 }

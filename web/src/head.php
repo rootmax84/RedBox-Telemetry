@@ -9,6 +9,10 @@ $l10n_time = $l10n_match[0] ?? '';
 $head_username = (isset($username) && isset($admin) && $username != $admin)
     ? $username
     : '';
+// The admin page keeps the visible username blank, but still needs its own theme key.
+$head_theme_username = isset($_SESSION['admin'])
+    ? (string)($_SESSION['torque_user'] ?? ($admin ?? ''))
+    : $head_username;
 $head_host = htmlspecialchars($_SERVER['HTTP_HOST'] ?? '', ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
@@ -43,7 +47,7 @@ document.documentElement.classList.add('session-initial-loading');
 <link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/main.css')); ?>">
 <link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/remote.css')); ?>">
 <link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/Control.FullScreen.css')); ?>">
-<?php if (isset($_SESSION['torque_user']) || isset($_SESSION['share'])) {?>
+<?php if (isset($_SESSION['torque_user']) || isset($_SESSION['share']) || isset($_SESSION['admin'])) {?>
 <script>let darkCssUrl = <?php echo js_string(version_url('/static/css/dark.css')); ?>;</script>
 <script src="<?php echo version_url('/static/js/theme.js'); ?>"></script>
 <?php } if (isset($_SESSION['admin'])) {?>
@@ -65,6 +69,7 @@ document.documentElement.classList.add('session-initial-loading');
 window.HEAD_CONFIG = <?php echo json_encode([
     'l10nTime'   => $l10n_time,
     'username'   => $head_username,
+    'themeUsername' => $head_theme_username,
     'torqueUser' => isset($_SESSION['torque_user']),
     'authPoll'   => !is_maintenance()
                     && isset($_SESSION['torque_user']),

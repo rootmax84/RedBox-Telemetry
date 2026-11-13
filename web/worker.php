@@ -236,17 +236,26 @@ function worker_attempts_key(string $streamKey, string $msgId): string
 function worker_attempts_incr(Redis $redis, string $streamKey, string $msgId, int $ttl): int
 {
     $key = worker_attempts_key($streamKey, $msgId);
-    $n = (int)$redis->incr($key);
-    if ($n === 1) {
-        $redis->expire($key, $ttl);
+    // INCR and TTL setup are atomic. Repair legacy counters lacking expiry.
+    $script = <<<'LUA'
+local n = redis.call('INCR', KEYS[1])
+if n == 1 or redis.call('TTL', KEYS[1]) == -1 then
+    redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return n
+LUA;
+    $result = $redis->eval($script, [$key, $ttl], 1);
+    if ($result === false) {
+        throw new RuntimeException('Redis retry counter increment failed');
     }
-    return $n;
+    return (int)$result;
 }
 
 function worker_attempts_clear(Redis $redis, string $streamKey, string $msgId): void
 {
     try { $redis->del(worker_attempts_key($streamKey, $msgId)); } catch (Throwable $e) {}
 }
+
 
 /* ────────────────────────────────────────────────────────────
  * DLQ push
@@ -409,8 +418,10 @@ function worker_process_message(
                 $errMsg .= sprintf(' [gave up after %d attempts]', $attempts);
             }
         } catch (Throwable $e) {
-            error_log('[worker] attempts incr failed: ' . $e->getMessage());
-            $toDlq = true; // безопаснее в DLQ, чем залипнуть
+            // A Redis counter failure does not make the message itself invalid.
+            // Leave it pending rather than prematurely moving it to DLQ.
+            error_log('[worker] attempts incr failed: ' . $e->getMessage() . '; left pending');
+            return 'pending';
         }
     }
 
