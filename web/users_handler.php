@@ -2,29 +2,40 @@
 require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/auth_functions.php';
 require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/user_settings_values.php';
 include_once __DIR__ . '/translations.php';
 
 function handleUserSettings($db, $translations, $username, $admin) {
     if (!isset($_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'],
-          $_POST['time'], $_POST['gap'],
+          $_POST['time'],
           $_POST['sessions_filter'], $_POST['api_gps']) || $username == $admin) {
         return false;
     }
 
+    $settings = normalizeUserSettingsValues($_POST);
+    if ($settings === null) {
+        http_response_code(400);
+        return $translations[current_lang()]['set.common.invalid'] ?? 'Invalid settings';
+    }
+
     $params = [
-        $_POST['speed'], $_POST['temp'], $_POST['pressure'], $_POST['boost'],
-        $_POST['time'], $_POST['gap'],
-        $_POST['sessions_filter'], $_POST['api_gps'], current_lang(), $username
+        $settings['speed'], $settings['temp'], $settings['pressure'], $settings['boost'],
+        $settings['time'],
+        $settings['sessions_filter'], $settings['api_gps'], current_lang(), $username
     ];
 
     $db->execute_query(
-        "UPDATE users SET speed=?, temp=?, pressure=?, boost=?, time=?, gap=?, sessions_filter=?, api_gps=?, lang=? WHERE user=?",
+        "UPDATE users SET speed=?, temp=?, pressure=?, boost=?, time=?, sessions_filter=?, api_gps=?, lang=? WHERE user=?",
         $params
     );
 
-    setcookie("timeformat", $_POST['time'] == '1' ? '24' : '12');
-    setcookie("gap", $_POST['gap']);
-    $_SESSION['sessions_filter'] = $_POST['sessions_filter'];
+    // /settings/save is a nested route. Without Path=/, the browser writes
+    // these cookies for /settings only, leaving charts on / with stale values.
+    setcookie('timeformat', $settings['time'], 0, '/');
+    // Remove previously created path-scoped cookies to avoid duplicates.
+    setcookie('timeformat', '', time() - 3600, '/settings');
+    $_COOKIE['timeformat'] = $settings['time'];
+    $_SESSION['sessions_filter'] = (int)$settings['sessions_filter'];
 
     $token = $db->execute_query("SELECT token FROM users WHERE user=?", [$username])->fetch_assoc()["token"];
     cache_flush($token);

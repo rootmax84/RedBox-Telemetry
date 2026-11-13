@@ -94,8 +94,8 @@ const handleSliderInit = () => {
 
     if (plot && typeof chartUpdRange === 'function' && flotData.length) {
         if (typeof plot.clearSelection === 'function') plot.clearSelection();
-        // slice() in chartUpdRange is end-exclusive: include the last sample.
-        chartUpdRange(0, jsTimeMap.length);
+        // chartUpdRange uses inclusive sample indices.
+        chartUpdRange(0, jsTimeMap.length - 1);
         updateSummaryTable();
     } else if (plot && typeof plot.clearSelection === 'function') {
         plot.clearSelection();
@@ -211,98 +211,130 @@ let heatData = [];
 let chartUpdRange = null;
 let mapUpdRange = null;
 
-function processData(data, maxGap = Cookies.get('gap') !== undefined ? Cookies.get('gap') : 5000) {
-    // Set for unique timestamps
+// Determine the expected sampling cadence near each boundary. The telemetry
+// rate can change within a session (10 ms to 30 s), so no fixed timeout works.
+// Looking on both sides prevents a genuine rate change being seen as downtime.
+function localCadence(intervals, index, direction) {
+    const neighbors = [];
+    for (let j = index + direction;
+         j >= 1 && j < intervals.length && neighbors.length < 8;
+         j += direction) {
+        if (Number.isFinite(intervals[j]) && intervals[j] > 0) {
+            neighbors.push(intervals[j]);
+        }
+    }
+    if (!neighbors.length) return null;
+    neighbors.sort((a, b) => a - b);
+    // Lower median is resistant to another nearby outage, especially with
+    // just two known intervals (one valid interval and one long pause).
+    return neighbors[Math.floor((neighbors.length - 1) / 2)];
+}
+
+function processData(data) {
+    // All series share the same transformed X axis. Work from source timestamps
+    // every refresh (including Stream); never compress previously shifted data.
     const timestampSet = new Set();
-    data.forEach(series => series.data.forEach(point => timestampSet.add(point[0])));
+    data.forEach(series => series.data.forEach(point => {
+        if (Number.isFinite(point[0])) timestampSet.add(point[0]);
+    }));
 
-    // Set->sort array
     const allTimestamps = Array.from(timestampSet).sort((a, b) => a - b);
+    if (allTimestamps.length === 0) {
+        return {
+            processedData: data, realStartTime: null, realEndTime: null,
+            processedStartTime: null, processedEndTime: null,
+            realTimestamps: [], processedTimestamps: [],
+            gaps: [], timeMapping: {}
+        };
+    }
 
-    const newTimestamps = [allTimestamps[0]];
-    let timeOffset = 0;
-    let lastTimestamp = allTimestamps[0];
+    const intervals = new Array(allTimestamps.length);
+    for (let i = 1; i < allTimestamps.length; i++) {
+        intervals[i] = allTimestamps[i] - allTimestamps[i - 1];
+    }
 
-    const timeMapping = new Map();
-    timeMapping.set(lastTimestamp, lastTimestamp);
-
+    const timeMapping = new Map([[allTimestamps[0], allTimestamps[0]]]);
     const gaps = [];
+    let timeOffset = 0;
+    let previousProcessed = allTimestamps[0];
+    // Keep distinct Flot X coordinates and unambiguous reverse timestamps.
+    const seamMs = 1;
+    const minimumGapMs = 100; // protects fast sensors from timestamp jitter
+    const cadenceMultiplier = 8; // distinguish a missing batch from jitter
+    // The slowest supported telemetry cadence is one sample per 30 seconds.
+    // With too few points to estimate a cadence, or with several long gaps
+    // clustered together, never leave a multi-minute bridge on the chart.
+    const maximumBridgeMs = 30000 * cadenceMultiplier;
 
     for (let i = 1; i < allTimestamps.length; i++) {
-        const currentTimestamp = allTimestamps[i];
-        const gap = currentTimestamp - lastTimestamp;
-
-        if (gap > maxGap) {
-            timeOffset += gap - maxGap;
-            gaps.push({
-                start: newTimestamps[i-1],
-                end: currentTimestamp - timeOffset,
-                realStart: lastTimestamp,
-                realEnd: currentTimestamp
-            });
+        const gap = intervals[i];
+        if (gap > minimumGapMs) {
+            // Quick path for sparse, steady rates (e.g. 1 sample / 30 s).
+            // Two matching neighboring intervals are evidence of a valid
+            // cadence, so avoid sorting local windows for every data point.
+            const halfGap = gap / 2;
+            const doubleGap = gap * 2;
+            const stableBefore = i >= 3 &&
+                intervals[i - 1] >= halfGap && intervals[i - 1] <= doubleGap &&
+                intervals[i - 2] >= halfGap && intervals[i - 2] <= doubleGap;
+            const stableAfter = i + 2 < intervals.length &&
+                intervals[i + 1] >= halfGap && intervals[i + 1] <= doubleGap &&
+                intervals[i + 2] >= halfGap && intervals[i + 2] <= doubleGap;
+            if (gap <= maximumBridgeMs && (stableBefore || stableAfter)) {
+                const compressed = allTimestamps[i] - timeOffset;
+                timeMapping.set(allTimestamps[i], compressed);
+                previousProcessed = compressed;
+                continue;
+            }
+            const before = localCadence(intervals, i, -1);
+            const after = localCadence(intervals, i, 1);
+            // At least two neighboring intervals are needed to infer cadence.
+            // With only two samples there is no evidence of a true interruption.
+            const knownBefore = Math.min(8, i - 1);
+            const knownAfter = Math.min(8, intervals.length - i - 1);
+            const enoughEvidence = knownBefore + knownAfter >= 2 &&
+                (before !== null || after !== null);
+            // Prefer the slower side on a rate transition, so changing
+            // from 100 Hz to 1/30 Hz does not collapse valid samples.
+            const cadence = enoughEvidence ? Math.max(before || 0, after || 0) : maximumBridgeMs;
+            const threshold = Math.min(maximumBridgeMs,
+                Math.max(minimumGapMs, cadence * cadenceMultiplier));
+            if (gap > threshold) {
+                timeOffset += gap - seamMs;
+                gaps.push({
+                    start: previousProcessed,
+                    end: allTimestamps[i] - timeOffset,
+                    realStart: allTimestamps[i - 1],
+                    realEnd: allTimestamps[i],
+                    threshold
+                });
+            }
         }
-
-        const newTimestamp = currentTimestamp - timeOffset;
-        newTimestamps.push(newTimestamp);
-        timeMapping.set(currentTimestamp, newTimestamp);
-        lastTimestamp = currentTimestamp;
+        const compressed = allTimestamps[i] - timeOffset;
+        timeMapping.set(allTimestamps[i], compressed);
+        previousProcessed = compressed;
     }
 
     const newData = data.map(series => ({
         ...series,
-        data: series.data.map(point => [
-            timeMapping.get(point[0]),
-            point[1]
-        ])
+        data: series.data.map(point => [timeMapping.get(point[0]) ?? point[0], ...point.slice(1)])
     }));
 
-    // timeMapping object, keep order
     const timeMappingObject = {};
-    allTimestamps.forEach(t => {
-        timeMappingObject[timeMapping.get(t)] = t;
-    });
+    for (const timestamp of allTimestamps) {
+        timeMappingObject[timeMapping.get(timestamp)] = timestamp;
+    }
 
     return {
         processedData: newData,
         realStartTime: allTimestamps[0],
         realEndTime: allTimestamps[allTimestamps.length - 1],
-        processedStartTime: newTimestamps[0],
-        processedEndTime: newTimestamps[newTimestamps.length - 1],
-        gaps: gaps,
-        timeMapping: timeMappingObject
+        processedStartTime: timeMapping.get(allTimestamps[0]),
+        processedEndTime: timeMapping.get(allTimestamps[allTimestamps.length - 1]),
+        realTimestamps: allTimestamps,
+        processedTimestamps: allTimestamps.map(t => timeMapping.get(t)),
+        gaps, timeMapping: timeMappingObject
     };
-}
-
-function drawGapLines(plot, ctx) {
-    let axes = plot.getAxes();
-    let plotOffset = plot.getPlotOffset();
-
-    ctx.save();
-    ctx.translate(plotOffset.left, plotOffset.top);
-    ctx.lineWidth = chart_lineWidth;
-    ctx.strokeStyle = 'rgba(255, 0, 0, .2)';
-    ctx.setLineDash([5, 3]);
-
-    window.gapInfo.forEach(gap => {
-        let x1 = axes.xaxis.p2c(gap.start);
-        let x2 = axes.xaxis.p2c(gap.end);
-
-        if (x1 >= 0 && x1 <= plot.width()) {
-            ctx.beginPath();
-            ctx.moveTo(x1, 0);
-            ctx.lineTo(x1, plot.height());
-            ctx.stroke();
-        }
-
-        if (x2 >= 0 && x2 <= plot.width()) {
-            ctx.beginPath();
-            ctx.moveTo(x2, 0);
-            ctx.lineTo(x2, plot.height());
-            ctx.stroke();
-        }
-    });
-
-    ctx.restore();
 }
 
 function findNearestRealTime(processedTime) {
@@ -314,7 +346,8 @@ function findNearestRealTime(processedTime) {
     const timeMapping = window.realTimeInfo.timeMapping;
 
     if (!timeMapping._sortedProcessedTimes || !timeMapping._nearestTimesCache) {
-        timeMapping._sortedProcessedTimes = Object.keys(timeMapping).map(Number).sort((a, b) => a - b);
+        timeMapping._sortedProcessedTimes = window.realTimeInfo.processedTimes ||
+            Object.keys(timeMapping).map(Number).sort((a, b) => a - b);
         timeMapping._nearestTimesCache = {};
     }
 
@@ -336,9 +369,13 @@ function findNearestRealTime(processedTime) {
         }
     }
 
-    const nearestIndex = left;
+    // Points on both sides of a stitched seam remain 1 ms apart. Return the
+    // closest actual database timestamp, including for selection boundaries.
+    const nearestIndex = left > 0 &&
+        (left === processedTimes.length ||
+         processedTime - processedTimes[left - 1] <= processedTimes[left] - processedTime)
+        ? left - 1 : left;
     const nearestProcessedTime = processedTimes[nearestIndex];
-
     nearestTimesCache[processedTime] = timeMapping[nearestProcessedTime];
     return nearestTimesCache[processedTime];
 }
@@ -419,6 +456,99 @@ function updateSummaryTable() {
     });
 }
 
+// Each metric can have its own number of samples. Trim by the shared X
+// coordinate, not by the position inside a particular metric's data array.
+// /plot returns newest-first (descending timestamps). Binary-search the two
+// boundaries to avoid filtering 100k points per series on every slider move.
+function sliceChartDataByTime(points, lower, upper) {
+    if (!points.length) return points;
+    const descending = points[0][0] >= points[points.length - 1][0];
+    let left = 0, right = points.length;
+    if (descending) {
+        while (left < right) {
+            const mid = (left + right) >>> 1;
+            if (points[mid][0] > upper) left = mid + 1;
+            else right = mid;
+        }
+        const start = left;
+        right = points.length;
+        while (left < right) {
+            const mid = (left + right) >>> 1;
+            if (points[mid][0] >= lower) left = mid + 1;
+            else right = mid;
+        }
+        return points.slice(start, left);
+    }
+    // Preserve compatibility with ascending data from other data sources.
+    while (left < right) {
+        const mid = (left + right) >>> 1;
+        if (points[mid][0] < lower) left = mid + 1;
+        else right = mid;
+    }
+    const start = left;
+    right = points.length;
+    while (left < right) {
+        const mid = (left + right) >>> 1;
+        if (points[mid][0] <= upper) left = mid + 1;
+        else right = mid;
+    }
+    return points.slice(start, left);
+}
+
+// The hover/touch guide is separate from the (removed) permanent gap markers.
+// It follows the nearest data point and is disposed with each Flot instance.
+function installChartHoverGuide(placeholder, chart) {
+    const guide = $('<div>').addClass('chart-hover-guide').css({
+        position: 'absolute',
+        borderLeft: `${chart_lineWidth}px dashed rgba(0,0,0,.4)`,
+        pointerEvents: 'none',
+        display: 'none'
+    }).appendTo(placeholder);
+
+    let frame = null;
+    const hide = () => {
+        if (frame !== null) {
+            cancelAnimationFrame(frame);
+            frame = null;
+        }
+        guide.css('display', 'none');
+    };
+
+    const onHover = (event, pos, item) => {
+        if (!item || !Number.isFinite(item.pageX)) {
+            hide();
+            return;
+        }
+        if (frame !== null) cancelAnimationFrame(frame);
+        const pageX = item.pageX;
+        frame = requestAnimationFrame(() => {
+            frame = null;
+            const offset = placeholder.offset();
+            const plotOffset = chart.getPlotOffset();
+            const x = pageX - offset.left;
+            const height = Math.max(0, placeholder.height() - plotOffset.top - plotOffset.bottom);
+            if (x < plotOffset.left || x > placeholder.width() - plotOffset.right || height === 0) {
+                hide();
+                return;
+            }
+            guide.css({
+                left: x + 'px',
+                top: plotOffset.top + 'px',
+                height: height + 'px',
+                display: 'block'
+            });
+        });
+    };
+
+    placeholder.on('plothover.chartHoverGuide plottouchmove.chartHoverGuide', onHover);
+    placeholder.on('mouseleave.chartHoverGuide touchend.chartHoverGuide touchcancel.chartHoverGuide', hide);
+    chart.hooks.shutdown.push(() => {
+        hide();
+        placeholder.off('.chartHoverGuide');
+        guide.remove();
+    });
+}
+
 function doPlot(position) {
     //Remove plot presence
     if (plot) {
@@ -435,8 +565,19 @@ function doPlot(position) {
     chartUpdRange = (a, b) => {
         window.chartRangeStart = a;
         window.chartRangeEnd = b;
-        let dataSet = [];
-        flotData.forEach(i => dataSet.push({label: i.label, data: i.data.slice(a, b)})); // probably b + 1, for updateSummaryTable() mean accuracy
+        const compressedTimes = window.realTimeInfo?.processedTimes || [];
+        const n = compressedTimes.length;
+        if (!n) return;
+        // Chart indices are newest-first; real timestamps in jsTimeMap are
+        // oldest-first. Keep both endpoints inclusive for all metric series.
+        const startIndex = Math.max(0, n - 1 - b);
+        const endIndex = Math.min(n - 1, n - 1 - a);
+        const lower = compressedTimes[startIndex];
+        const upper = compressedTimes[endIndex];
+        const dataSet = flotData.map(series => ({
+            ...series,
+            data: sliceChartDataByTime(series.data, lower, upper)
+        }));
         plot.setData(dataSet);
         plot.setupGrid(); // Required when the selection changes axis ranges.
         plot.draw();
@@ -448,29 +589,22 @@ function doPlot(position) {
             timezone: "browser",
             axisLabel: ' ',
             tickFormatter: function(val, axis) {
-                if (!window.realTimeInfo || !window.realTimeInfo.timeMapping) return "";
-                // Cache sorted timestamps; a linear scan per tick is O(N).
-                const mapping = window.realTimeInfo.timeMapping;
-                if (!window.realTimeInfo.tickTimes) {
-                    window.realTimeInfo.tickTimes = Object.keys(mapping).map(Number).sort((a, b) => a - b);
+                // The X axis is compressed; clock labels MUST come from the
+                // original session timestamps, never from compressed X values.
+                if (!window.realTimeInfo?.timeMapping) return '';
+                const actualTime = findNearestRealTime(val);
+                if (!Number.isFinite(actualTime)) return '';
+                const locale = Cookies.get('timeformat') === '12' ? 'en-US' : 'ru-RU';
+                const range = (axis?.max ?? 0) - (axis?.min ?? 0);
+                const spanReal = window.realTimeInfo.end - window.realTimeInfo.start;
+                const options = {hour: '2-digit', minute: '2-digit'};
+                if (range < 120000) options.second = '2-digit';
+                if (range < 2000) options.fractionalSecondDigits = 3;
+                if (spanReal >= 86400000) {
+                    options.month = '2-digit';
+                    options.day = '2-digit';
                 }
-                const times = window.realTimeInfo.tickTimes;
-                if (!times.length) return '';
-                let lo = 0, hi = times.length;
-                while (lo < hi) {
-                    const mid = (lo + hi) >>> 1;
-                    if (times[mid] < val) lo = mid + 1;
-                    else hi = mid;
-                }
-                const nearestProcessedTime = lo === 0 ? times[0] :
-                    lo === times.length ? times[times.length - 1] :
-                    (val - times[lo - 1] <= times[lo] - val ? times[lo - 1] : times[lo]);
-                const realTime = window.realTimeInfo.timeMapping[nearestProcessedTime];
-                let date = new Date(realTime);
-                return date.toLocaleTimeString(Cookies.get('timeformat') == '12' ? 'en-US' : 'ru-RU', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                });
+                return new Date(actualTime).toLocaleString(locale, options);
             }
         } ],
         yaxes: [ { axisLabel: "", smallNegativeThreshold: 1 }, {
@@ -493,9 +627,6 @@ function doPlot(position) {
             clickable: false,
             borderWidth: 0
         },
-        hooks: {
-            drawOverlay: [drawGapLines]
-        },
         series: {
             points: {
                 radius: parseFloat(chart_lineWidth)
@@ -509,45 +640,7 @@ function doPlot(position) {
         }
     });
 
-    //Hover vertical marker
-    let placeholder = $("#placeholder");
-    let verticalLine = $('<div>').css({
-        position: 'absolute',
-        borderLeft: `${chart_lineWidth}px dashed rgba(0,0,0,.4)`,
-        pointerEvents: 'none',
-        display: 'none'
-    }).appendTo(placeholder);
-
-    let rafId = null;
-    let lastX = null;
-
-    placeholder.bind("plothover plottouchmove", function(event, pos, item) {
-        if (rafId) {
-            cancelAnimationFrame(rafId);
-        }
-
-        rafId = requestAnimationFrame(() => {
-            if (item) {
-                let offset = placeholder.offset();
-                let plotOffset = plot.getPlotOffset();
-                let xPos = item.pageX - offset.left;
-
-                if (lastX !== xPos) {
-                    lastX = xPos;
-                    verticalLine.css({
-                        left: xPos + 'px',
-                        top: plotOffset.top + 'px',
-                        height: (placeholder.height() - plotOffset.bottom - plotOffset.top) + 'px',
-                        display: 'block'
-                    });
-                }
-            } else {
-                lastX = null;
-                verticalLine.css('display', 'none');
-            }
-        });
-    });
-
+    installChartHoverGuide($("#placeholder"), plot);
     chartTooltip();
     //Trim by plot Select
     $("#placeholder").bind("plotselected", (evt,range)=>{
@@ -695,12 +788,29 @@ let updCharts = (last = false)=>{
               end: processedResult.realEndTime,
               processedStart: processedResult.processedStartTime,
               processedEnd: processedResult.processedEndTime,
-              timeMapping: processedResult.timeMapping
+              timeMapping: processedResult.timeMapping,
+              processedTimes: processedResult.processedTimestamps
             };
-            window.gapInfo = processedResult.gaps;
 
-            // update jsTimeMap with real time markers – обязательно сортируем
-            jsTimeMap = Object.values(processedResult.timeMapping).sort((a, b) => a - b);
+            // The slider, map, and selection use original database timestamps.
+            jsTimeMap = processedResult.realTimestamps;
+            if (jsTimeMap.length === 0) {
+                if (plot) {
+                    plot.shutdown();
+                    plot = null;
+                }
+                flotData = [];
+                heatData = [];
+                cutStart = cutEnd = null;
+                $('#Chart-Container').empty().append(
+                    $('<div>', {class: 'chart-label'}).append(
+                        $('<span>', {class: 'label label-warning', text: localization.key['nodata'] ?? 'No data'})
+                    )
+                );
+                $('#Summary-Container').empty();
+                if (window.sessionInitialLoad) window.sessionInitialLoad.markChartReady();
+                return;
+            }
 
             // Если ранее было выделение (cutStart/cutEnd заданы), пересчитываем индексы для нового jsTimeMap
             if (cutStart !== null && cutEnd !== null) {
@@ -749,7 +859,7 @@ let updCharts = (last = false)=>{
             // The slider is hidden while streaming and may contain old bounds.
             // Always show every point, including samples received after activation.
             const [a, b] = stream
-                ? [0, jsTimeMap.length]
+                ? [0, jsTimeMap.length - 1]
                 : [jsTimeMap.length - $('#slider-range11').slider("values", 1) - 1,
                    jsTimeMap.length - $('#slider-range11').slider("values", 0) - 1];
             chartUpdRange(a, b);

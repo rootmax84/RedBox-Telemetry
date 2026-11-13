@@ -104,6 +104,7 @@ h1 {font-size:23px;margin:0 0 12px;}p {line-height:1.5;color:#bbb;}
 button {padding:10px 18px;color:#fff;background:#961911;border:0;border-radius:5px;cursor:pointer;}
 button.secondary {background:#555;}
 small {color:#aaa;}
+@media screen and (max-width: 560px) {main {background:none;margin:0;}}
 </style>
 </head>
 <body>

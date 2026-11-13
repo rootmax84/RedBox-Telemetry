@@ -51,12 +51,11 @@ $username            = $user_data['user'];
 $share_secret        = $user_data['share_secret'];
 $user_time           = $user_data['time'];
 $user_filter         = $user_data['sessions_filter'];
-$gap                 = $user_data['gap'];
 $GLOBALS['user_id']  = (int)$user_data['id'];
 $GLOBALS['share_sessions_filter'] = (int)$user_filter;
 
-setcookie('gap', $gap);
-setcookie('timeformat', $user_time);
+// Shared-session preferences must not overwrite the viewer's account cookies.
+setcookie('timeformat', $user_time, 0, '/share');
 $_COOKIE['timeformat'] = $user_time;
 
 $gps_flag = share_gps_flag();

@@ -129,7 +129,7 @@ function auth_user()
         exit;
     }
 
-    $userqry = $db->execute_query("SELECT id, user, pass, s, time, gap, sessions_filter, share_secret FROM users WHERE user=?", [$user]);
+    $userqry = $db->execute_query("SELECT id, user, pass, s, time, sessions_filter, share_secret FROM users WHERE user=?", [$user]);
 
     if (!$userqry->num_rows) {
         update_login_attempts($user, false);
@@ -144,10 +144,9 @@ function auth_user()
             $_SESSION['torque_user'] = $row["user"];
             $_SESSION['torque_limit'] = $row["s"];
             setcookie("stream", true);
-            setcookie("timeformat", $row["time"]);
+            setcookie("timeformat", $row["time"], 0, "/");
             $_COOKIE['timeformat'] = $row["time"];
             setcookie("tracking-rate", $live_data_rate);
-            setcookie("gap", $row["gap"]);
             $_SESSION['sessions_filter'] = $row["sessions_filter"];
             $_SESSION['uid'] = $row["id"];
             $_SESSION['share_secret'] = $row["share_secret"];
@@ -196,7 +195,6 @@ function create_users_table()
         pressure enum('No conversion','Psi to Bar','Bar to Psi') NOT NULL DEFAULT 'No conversion',
         boost enum('No conversion','Psi to Bar','Bar to Psi') NOT NULL DEFAULT 'No conversion',
         time enum('24','12') NOT NULL DEFAULT '24',
-        gap enum('5000','10000','20000','30000','60000') NOT NULL DEFAULT '5000',
         lang enum('en','ru','es','de') NOT NULL DEFAULT 'en',
         sessions_filter tinyint(1) NOT NULL DEFAULT 1,
         api_gps tinyint(1) NOT NULL DEFAULT 0,

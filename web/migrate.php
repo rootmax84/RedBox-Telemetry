@@ -1000,6 +1000,22 @@ function migrate_users_table(mysqli $db, bool $dry_run): void
         }
     }
 
+    // The obsolete configurable gap threshold is replaced by adaptive stitching.
+    if (column_exists($db, $users_table, 'gap')) {
+        if ($dry_run) {
+            out("[users] [dry] would DROP COLUMN gap");
+        } else {
+            try {
+                $db->query("ALTER TABLE `$users_table` DROP COLUMN gap");
+                info("[users] dropped column: gap");
+                $removed++;
+            } catch (mysqli_sql_exception $e) {
+                err("[users] DROP COLUMN gap failed: " . $e->getMessage());
+                throw $e;
+            }
+        }
+    }
+
     $migrations = [
         'sessions_filter' => "ALTER TABLE `$users_table` ADD COLUMN sessions_filter TINYINT(1) NOT NULL DEFAULT 1",
         'share_secret'    => "ALTER TABLE `$users_table` ADD COLUMN share_secret CHAR(32)",
@@ -1008,7 +1024,7 @@ function migrate_users_table(mysqli $db, bool $dry_run): void
         'last_attempt'    => "ALTER TABLE `$users_table` ADD COLUMN last_attempt DATETIME",
         'api_gps'         => "ALTER TABLE `$users_table` ADD COLUMN api_gps TINYINT(1) NOT NULL DEFAULT 0",
         'mcp_enabled'     => "ALTER TABLE `$users_table` ADD COLUMN mcp_enabled TINYINT(1) NOT NULL DEFAULT 0",
-        'lang'            => "ALTER TABLE `$users_table` ADD COLUMN lang ENUM('en','ru','es','de') NOT NULL DEFAULT 'en' AFTER gap",
+        'lang'            => "ALTER TABLE `$users_table` ADD COLUMN lang ENUM('en','ru','es','de') NOT NULL DEFAULT 'en' AFTER time",
         'mcu_data'        => "ALTER TABLE `$users_table` ADD COLUMN mcu_data VARCHAR(2048) NULL AFTER sessions_filter",
     ];
 

@@ -1356,7 +1356,7 @@ function share_lookup_user(mysqli $db, $share_id): ?array
     }
 
     $row = $db->execute_query(
-        "SELECT id, user, sessions_filter, time, gap, share_secret, s
+        "SELECT id, user, sessions_filter, time, share_secret, s
            FROM users
           WHERE share_id = ?
           LIMIT 1",

@@ -2,9 +2,9 @@
     require_once __DIR__ . '/src/db.php';
     require_once __DIR__ . '/src/db_limits.php';
 
-    //Conversion and gap settings etc
-    $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,gap,sessions_filter,api_gps FROM users WHERE user=?", [$username])->fetch_row();
-    [$token, $chatid, $speed, $temp, $pressure, $boost, $time, $gap, $sessions_filter, $api_gps] = $setqry;
+    // User conversion and display settings
+    $setqry = $db->execute_query("SELECT tg_token,tg_chatid,speed,temp,pressure,boost,time,sessions_filter,api_gps FROM users WHERE user=?", [$username])->fetch_row();
+    [$token, $chatid, $speed, $temp, $pressure, $boost, $time, $sessions_filter, $api_gps] = $setqry;
 
     $db->close();
 
@@ -159,16 +159,6 @@
 		        <select id="time" class="form-control" name="time">
 		            <option value="1"<?php if ($time == "24") echo ' selected'; ?> l10n="user.conv.time.24"></option>
 		            <option value="2"<?php if ($time == "12") echo ' selected'; ?> l10n="user.conv.time.12"></option>
-		        </select>
-		      </div>
-		      <div>
-		        <label for="gap" l10n="user.set.gap"></label>
-		        <select id="gap" class="form-control" name="gap">
-		            <option value="5000"<?php if ($gap == "5000") echo ' selected'; ?> l10n="user.conv.gap.5"></option>
-		            <option value="10000"<?php if ($gap == "10000") echo ' selected'; ?> l10n="user.conv.gap.10"></option>
-		            <option value="20000"<?php if ($gap == "20000") echo ' selected'; ?> l10n="user.conv.gap.20"></option>
-		            <option value="30000"<?php if ($gap == "30000") echo ' selected'; ?> l10n="user.conv.gap.30"></option>
-		            <option value="60000"<?php if ($gap == "60000") echo ' selected'; ?> l10n="user.conv.gap.60"></option>
 		        </select>
 		      </div>
 		      <div>

@@ -69,7 +69,8 @@ $remote = $db->execute_query(
 $token    = $remote['token']    ?? null;
 $mcu_data = (string)($remote['mcu_data'] ?? '');
 
-setcookie('timeformat', $user_time);
+// Keep shared-device formatting isolated from the viewer's account.
+setcookie('timeformat', $user_time, 0, '/share');
 $_COOKIE['timeformat'] = $user_time;
 
 // Validate mcu_data (404 bytes + '~' + 13-digit ms timestamp)
