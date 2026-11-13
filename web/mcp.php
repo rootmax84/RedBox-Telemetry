@@ -94,15 +94,7 @@ function mcp_initialize(string $protocol, bool $modern, mixed $id): array
         mcp_error($id, -32601, 'initialize removed in MCP 2026-07-28');
     }
 
-    return [
-        'protocolVersion' => $protocol,
-        'capabilities' => [
-            'tools' => ['listChanged' => false],
-            'resources' => ['listChanged' => false],
-            'prompts' => ['listChanged' => false],
-        ],
-        'serverInfo' => McpProtocol::serverInfo(),
-    ];
+    return McpProtocol::initializeResult($protocol);
 }
 
 function mcp_discover(bool $modern, mixed $id): array
@@ -111,18 +103,7 @@ function mcp_discover(bool $modern, mixed $id): array
         mcp_error($id, -32601, 'server/discover requires MCP 2026-07-28');
     }
 
-    return [
-        'resultType' => 'complete',
-        'supportedVersions' => McpTransport::SUPPORTED_VERSIONS,
-        'capabilities' => [
-            'tools' => ['listChanged' => false],
-            'resources' => ['listChanged' => false],
-            'prompts' => ['listChanged' => false],
-        ],
-        '_meta' => ['io.modelcontextprotocol/serverInfo' => McpProtocol::serverInfo()],
-        'ttlMs' => 300000,
-        'cacheScope' => 'private',
-    ];
+    return McpProtocol::discoveryResult(McpTransport::SUPPORTED_VERSIONS);
 }
 
 function mcp_ping(bool $modern, mixed $id): stdClass
@@ -207,9 +188,11 @@ function mcp_dispatch(
         'tools/list' => ['tools' => McpTools::available($auth)],
         'tools/call' => mcp_call_tool($db, $auth, $params, $redis, $id),
         'resources/list' => ['resources' => McpTools::resources($auth)],
+        'resources/templates/list' => ['resourceTemplates' => McpTools::resourceTemplates($auth)],
         'resources/read' => mcp_read_resource($db, $auth, $params, $redis, $id),
         'prompts/list' => ['prompts' => McpTools::prompts($auth)],
         'prompts/get' => mcp_get_prompt($auth, $params, $id),
+        'completion/complete' => McpTools::complete($db, $auth, $params),
         default => mcp_error($id, -32601, 'Method not found'),
     };
 }

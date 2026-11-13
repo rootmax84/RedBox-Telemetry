@@ -34,9 +34,11 @@ final class McpTransport
         'tools/list',
         'tools/call',
         'resources/list',
+        'resources/templates/list',
         'resources/read',
         'prompts/list',
         'prompts/get',
+        'completion/complete',
     ];
 
     public static function supportsModernMethod(string $method): bool

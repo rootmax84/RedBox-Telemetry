@@ -13,7 +13,7 @@ final class McpAccessException extends RuntimeException
 final class McpSecurity
 {
     /** Prevent previously issued, ignored remote:read grants from becoming active unexpectedly. */
-    private const REMOTE_GRANT = 'remote:read:granted-26.5.0';
+    private const REMOTE_GRANT = 'remote:read:granted';
     public const SCOPES = [
         'telemetry:read', 'telemetry:live', 'location:read', 'remote:read',
     ];

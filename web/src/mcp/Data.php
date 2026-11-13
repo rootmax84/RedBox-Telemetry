@@ -1,11 +1,14 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/Sampling.php';
 
 /** All data queries are scoped to the token owner's user_id; never trust client uid. */
 final class McpData
 {
     public const GPS_PIDS = ['kff1005', 'kff1006', 'kff1007'];
-    private const MAX_SCANNED_ROWS = 250000;
+    public const MAX_SCANNED_ROWS = 120000;
+    public const MAX_FULL_SCAN_ROWS = 250000;
+    public const SCAN_CHUNK = 10000;
 
     public function __construct(private readonly mysqli $db, private readonly array $auth)
     {
@@ -146,31 +149,52 @@ final class McpData
         return [$session, $start, $finish];
     }
 
-    /** Read logs via an unbuffered prepared statement, with an explicit scan limit. */
-    public function scan(int $sid, int $start, int $end, callable $callback): array
+    /** Keyset-paginated, unbuffered scan. logs has PRIMARY KEY (user_id, time).
+     *  Default is 120k; explicitly requested full scans are capped at 250k rows. Pages are 10k.
+     */
+    public function scan(int $sid, int $start, int $end, callable $callback, bool $full = false): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT time, data FROM logs WHERE user_id=? AND session=? AND time>=? AND time<=? ORDER BY time ASC'
-        );
-        $uid = $this->uid();
-        $stmt->bind_param('iiii', $uid, $sid, $start, $end);
-        $stmt->execute();
-        $stmt->bind_result($time, $raw);
+        $limit = $full ? self::MAX_FULL_SCAN_ROWS : self::MAX_SCANNED_ROWS;
+        $cursor = $start;
         $scanned = 0;
         $truncated = false;
-        try {
-            while ($stmt->fetch()) {
-                if ($scanned >= self::MAX_SCANNED_ROWS) {
-                    $truncated = true;
-                    break;
+        $uid = $this->uid();
+        while (true) {
+            $page = min(self::SCAN_CHUNK, $limit - $scanned + 1);
+            $stmt = $this->db->prepare(
+                'SELECT time, data FROM logs WHERE user_id=? AND session=? AND time>=? AND time<=? '
+                . 'AND time>=? ORDER BY time ASC LIMIT ?'
+            );
+            $stmt->bind_param('iiiiii', $uid, $sid, $start, $end, $cursor, $page);
+            $stmt->execute();
+            $stmt->bind_result($time, $raw);
+            $fetched = 0;
+            try {
+                while ($stmt->fetch()) {
+                    if ($scanned >= $limit) {
+                        $truncated = true;
+                        break;
+                    }
+                    $fetched++;
+                    $scanned++;
+                    $cursor = (int)$time + 1; // Unique (user_id, time), no duplicate rows.
+                    $callback((int)$time, decode_log_data((string)$raw));
                 }
-                $scanned++;
-                $callback((int)$time, decode_log_data((string)$raw));
+            } finally {
+                $stmt->close();
             }
-        } finally {
-            $stmt->close();
+            if ($truncated || $fetched < $page) break;
         }
-        return ['scanned' => $scanned, 'scan_truncated' => $truncated];
+        return ['scanned' => $scanned, 'scan_truncated' => $truncated,
+            'scan_limit' => $limit, 'full_scan_requested' => $full];
+    }
+
+    public static function fullScan(array $args): bool
+    {
+        if (isset($args['full_scan']) && !is_bool($args['full_scan'])) {
+            throw new InvalidArgumentException('full_scan must be boolean');
+        }
+        return $args['full_scan'] ?? false;
     }
 
     public static function numeric(array $row, string $pid) : ?float
@@ -223,7 +247,7 @@ final class McpData
                         $buckets[$bucket]['max'] = [$time, $value];
                     }
                 }
-            });
+            }, self::fullScan($args));
         $points = [];
         foreach ($buckets as $b) {
             $points[] = $b['min'];
@@ -236,41 +260,49 @@ final class McpData
             $points = array_map(static fn($i) => $points[(int)round($i * $stride)], range(0, $maxPoints - 1));
         }
         return ['session_id' => $session['session_id'], 'pid' => $pid, 'start_ms' => $start, 'end_ms' => $end,
-            'points' => $points, 'valid_samples' => $available, 'returned_points' => count($points)] + $scan;
+            'points' => $points, 'valid_samples' => $available, 'returned_points' => count($points),
+            'incomplete' => $scan['scan_truncated']] + $scan;
     }
 
     public function metricStats(array $args): array
     {
         $pid = $this->metric($args);
         [$session, $start, $end] = $this->bounds($args);
-        $n = 0;
-        $mean = 0.0;
-        $m2 = 0.0;
-        $min = null;
-        $max = null;
-        $first = null;
-        $last = null;
+        $agg = new McpMetricAggregate($pid);
         $scan = $this->scan((int)$session['session_id'], $start, $end,
-            static function (int $time, array $row) use ($pid, &$n, &$mean, &$m2, &$min, &$max, &$first, &$last): void {
-                $v = self::numeric($row, $pid['id']); if ($v === null) {
-                    return ;
+            static function (int $time, array $row) use ($pid, $agg): void {
+                $agg->observe($time, self::numeric($row, $pid['id']));
+            }, self::fullScan($args));
+        return $agg->result($session['session_id'], $scan, $start, $end);
+    }
+
+    /** Read each row once, irrespective of number of requested metrics. */
+    public function multiStats(array $args): array
+    {
+        $ids = $args['pids'] ?? null;
+        if (!is_array($ids) || count($ids) < 1 || count($ids) > 6) {
+            throw new InvalidArgumentException('Provide 1–6 PIDs');
+        }
+        $accumulators = [];
+        foreach (array_unique($ids) as $id) {
+            if (!is_string($id)) throw new InvalidArgumentException('Invalid PID');
+            $pid = $this->metric(['pid' => $id]);
+            $accumulators[$id] = new McpMetricAggregate($pid);
+        }
+        [$session, $start, $end] = $this->bounds($args);
+        $scan = $this->scan((int)$session['session_id'], $start, $end,
+            static function (int $time, array $row) use ($accumulators): void {
+                foreach ($accumulators as $id => $agg) {
+                    $agg->observe($time, self::numeric($row, $id));
                 }
-                if ($first === null) {
-                    $first = ['time_ms' => $time, 'value' => $v];
-                }
-                $last = ['time_ms' => $time, 'value' => $v];
-                if ($min === null || $v < $min['value']) {
-                    $min = ['time_ms' => $time, 'value' => $v];
-                }
-                if ($max === null || $v > $max['value']) {
-                    $max = ['time_ms' => $time, 'value' => $v];
-                }
-                ++$n; $d = $v - $mean; $mean += $d / $n; $m2 += $d * ($v - $mean);
-            });
-        return ['session_id' => $session['session_id'], 'pid' => $pid, 'valid_samples' => $n,
-            'min' => $min, 'max' => $max, 'first' => $first, 'last' => $last,
-            'mean' => $n ? round($mean, 6): null,
-            'stddev' => $n > 1 ? round(sqrt(max(0, $m2 / ($n - 1))), 6): null] + $scan;
+            }, self::fullScan($args));
+        return ['session' => $session,
+            'metrics' => array_values(array_map(
+                static fn(McpMetricAggregate $agg) => $agg->result($session['session_id'], $scan, $start, $end),
+                $accumulators)),
+            'scan' => $scan, 'incomplete' => $scan['scan_truncated'],
+            'caution' => $scan['scan_truncated'] ? 'Partial session: scan limit reached' :
+                'Time-weighted means exclude detected gaps; PIDs can have different sampling rates.'];
     }
 
     public function compareSessions(array $args): array
@@ -282,7 +314,8 @@ final class McpData
         $pid = $this->metric($args);
         $result = [];
         foreach (array_unique($ids) as $id) {
-            $result[] = $this->metricStats(['session_id' => $id, 'pid' => $pid['id']]);
+            $result[] = $this->metricStats(['session_id' => $id, 'pid' => $pid['id'],
+                'full_scan' => self::fullScan($args)]);
         }
         if (count($result) < 2) {
             throw new InvalidArgumentException('Require distinct session ids');
@@ -373,12 +406,20 @@ final class McpData
         $events = [];
         $active = null;
         $total = 0;
+        $sampling = new McpSampling();
         $scan = $this->scan((int)$session['session_id'], $start, $end,
-            static function (int $time, array $row) use ($pid, $fn, $operator, $limit, $withGps, &$events, &$active, &$total): void {
+            static function (int $time, array $row) use ($pid, $fn, $operator, $limit, $withGps, $sampling, &$events, &$active, &$total): void {
+                $gap = $sampling->observe($time)['gap'];
+                if ($gap && $active !== null) {
+                    $active['duration_ms'] = $active['end_ms'] - $active['start_ms'];
+                    ++$total;
+                    if (count($events) < $limit) $events[] = $active;
+                    $active = null;
+                }
                 $v = self::numeric($row, $pid['id']);
                 if ($v !== null && $fn($v)) {
                     if ($active === null) {
-                        $active = ['start_ms' => $time, 'end_ms' => $time, 'peak_value' => $v, 'peak_time_ms' => $time];
+                        $active = ['start_ms' => $time, 'end_ms' => $time, 'peak_value' => $v, 'peak_time_ms' => $time, 'samples' => 0];
                         if ($withGps) {
                             $lat = self::numeric($row, 'kff1006'); $lon = self::numeric($row, 'kff1005');
                             if ($lat !== null && $lon !== null && abs($lat) <= 90 && abs($lon) <= 180 && ($lat != 0 || $lon != 0)) {
@@ -387,27 +428,31 @@ final class McpData
                         }
                     }
                     $active['end_ms'] = $time;
+                    $active['samples']++;
                     // Furthest excursion in the threshold direction.
                     if ((in_array($operator, ['gt', 'gte'], true) && $v > $active['peak_value']) ||
                         (in_array($operator, ['lt', 'lte'], true) && $v < $active['peak_value'])) {
                         $active['peak_value'] = $v; $active['peak_time_ms'] = $time;
                     }
                 } elseif ($active !== null) {
+                    $active['duration_ms'] = $active['end_ms'] - $active['start_ms'];
                     ++$total;
                     if (count($events) < $limit) {
                         $events[] = $active;
                     }
                     $active = null;
                 }
-            });
+            }, self::fullScan($args));
         if ($active !== null) {
+            $active['duration_ms'] = $active['end_ms'] - $active['start_ms'];
             ++$total;
             if (count($events) < $limit) {
                 $events[] = $active;
             }
         }
         return ['session_id' => $session['session_id'], 'pid' => $pid, 'operator' => $operator,
-            'threshold' => (float)$threshold, 'event_count' => $total, 'events' => $events, 'events_truncated' => $total > $limit] + $scan;
+            'threshold' => (float)$threshold, 'event_count' => $total, 'events' => $events, 'events_truncated' => $total > $limit,
+            'segmentation' => $sampling->summary(), 'incomplete' => $scan['scan_truncated']] + $scan;
     }
 
     public function anomalies(array $args): array
@@ -438,10 +483,14 @@ final class McpData
                         $events[] = ['time_ms' => $time, 'value' => $v, 'z_score' => round($z, 2)];
                     }
                 }
-            });
+            }, self::fullScan($args));
         return ['session_id' => $session['session_id'], 'pid' => $pid, 'baseline_mean' => $mean,
             'baseline_stddev' => $sd, 'sigma' => (float)$sigma, 'outliers' => $total,
-            'events' => $events, 'events_truncated' => $total > $max, 'method' => 'Univariate sample z-score; diagnostic hint, not a confirmed fault'] + $scan;
+            'events' => $events, 'events_truncated' => $total > $max,
+            'baseline_incomplete' => $stats['scan_truncated'],
+            'incomplete' => $scan['scan_truncated'] || $stats['scan_truncated'],
+            'caution' => $stats['scan_truncated'] ? 'Partial baseline: z-scores are from an incomplete subset' : null,
+            'method' => 'Univariate sample z-score; diagnostic hint, not a confirmed fault'] + $scan;
     }
 
     public function route(array $args): array
@@ -460,12 +509,13 @@ final class McpData
                 $valid++;
                 $key = intdiv($time - $start, $bucketMs);
                 $selected[$key] = ['time_ms' => $time, 'lat' => $lat, 'lon' => $lon, 'bearing' => self::numeric($row, 'kff1007')];
-            });
+            }, self::fullScan($args));
         $points = array_values($selected);
         if (count($points) > $maxPoints) {
             $points = array_slice($points, 0, $maxPoints);
         }
-        return ['session_id' => $session['session_id'], 'valid_gps_samples' => $valid, 'points' => $points] + $scan;
+        return ['session_id' => $session['session_id'], 'valid_gps_samples' => $valid, 'points' => $points,
+            'incomplete' => $scan['scan_truncated']] + $scan;
     }
 
 

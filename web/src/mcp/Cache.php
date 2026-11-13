@@ -18,11 +18,13 @@ final class McpCache
     public static function ttl(string $name): int
     {
         $config = match ($name) {
-            'list_metrics', 'res:pids' => 'mcp_cache_catalog_ttl',
-            'list_sessions', 'get_session_info', 'res:sessions' => 'mcp_cache_sessions_ttl',
+            'list_metrics', 'res:pids', 'res:diagnostics', 'res:remote-schema', 'res:remote-architecture' => 'mcp_cache_catalog_ttl',
+            'list_sessions', 'get_session_info', 'res:sessions', 'res:session-summary' => 'mcp_cache_sessions_ttl',
             'get_live_metrics', 'get_device_status', 'check_thresholds' => 'mcp_cache_live_ttl',
             'get_metric_data', 'get_metric_stats', 'compare_sessions',
             'get_session_events', 'find_anomalies', 'analyze_session',
+            'get_session_quality', 'get_session_segments', 'res:session-quality',
+            'analyze_metric_relationship', 'get_rollback_events', 'compare_operating_conditions',
             'generate_diagnostic_report', 'diagnose_behavior',
             'get_session_route', 'find_route_events',
             'analyze_boost_behavior', 'analyze_pid_response' => 'mcp_cache_analytics_ttl',
@@ -53,12 +55,20 @@ final class McpCache
         $sessionNames = ['get_session_info', 'get_metric_data', 'get_metric_stats',
             'compare_sessions', 'get_session_events', 'find_anomalies',
             'analyze_session', 'generate_diagnostic_report', 'diagnose_behavior',
+            'get_session_quality', 'get_session_segments', 'analyze_metric_relationship',
+            'get_rollback_events', 'compare_operating_conditions', 'res:session-summary', 'res:session-quality',
             'get_session_route', 'find_route_events',
             'analyze_boost_behavior', 'analyze_pid_response'];
         if (!in_array($name, $sessionNames, true)) {
             return [];
         }
-        $ids = $name === 'compare_sessions' ? ($args['session_ids'] ?? null) : [$args['session_id'] ?? null];
+        $ids = in_array($name, ['compare_sessions', 'compare_operating_conditions'], true)
+            ? ($args['session_ids'] ?? null) : [$args['session_id'] ?? null];
+        if (in_array($name, ['res:session-summary', 'res:session-quality'], true)) {
+            $uri = $args['uri'] ?? '';
+            if (!is_string($uri) || !preg_match('#^redbox://sessions/([1-9][0-9]{0,18})/(summary|quality)$#D', $uri, $match)) return null;
+            $ids = [$match[1]];
+        }
         // Invalid parameters must reach the original validation, not the cache.
         if (!is_array($ids) || count($ids) > 5) {
             return null;
@@ -129,16 +139,16 @@ final class McpCache
             $remoteRevision = $this->remoteSignature($name);
             $scopes = $this->auth['scopes'] ?? [];
             sort($scopes, SORT_STRING);
-            $identity = [5, (int)$this->auth['user_id'], (string)($this->auth['cache_identity'] ?? ('manual:' . $this->auth['token_id'])),
+            $identity = [7, (int)$this->auth['user_id'], (string)($this->auth['cache_identity'] ?? ('manual:' . $this->auth['token_id'])),
                 $scopes, $name, $args, $revision, $remoteRevision,
                 // Live sampling needs its own short TTL, not the constantly changing dataset epoch.
                 $ttl <= 2 ? null : $this->epoch()];
-            $key = 'mcp_cached_v5_' . hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
+            $key = 'mcp_cached_v7_' . hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
             $cached = $this->redis->get($key);
             if (is_array($cached) && is_array($cached['payload'] ?? null)) {
                 return $cached['payload'];
             }
-            $lockKey = 'mcp_lock_' . substr($key, strlen('mcp_cached_v5_'));
+            $lockKey = 'mcp_lock_' . substr($key, strlen('mcp_cached_v7_'));
             $owner = $this->redis->acquireLock($lockKey,
                 max(1, min(60, (int)($GLOBALS['mcp_cache_lock_ttl'] ?? 15))));
         } catch (Throwable $error) {

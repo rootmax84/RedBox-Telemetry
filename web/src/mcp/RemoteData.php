@@ -152,7 +152,7 @@ final class McpRemoteData
                         $duty[] = $sampleDuty;
                     }
                 }
-            }
+            }, McpData::fullScan($args)
         );
         $stored = $this->settings('boost');
         return [
@@ -163,6 +163,7 @@ final class McpRemoteData
             'rpm_pid' => $rpmPid,
             'duty_pid' => $dutyPid,
             'paired_samples' => $matches,
+            'incomplete' => $scan['scan_truncated'],
             'observed_pressure' => self::summary($pressure),
             'observed_duty' => self::summary($duty),
             'all_observed_rpm' => self::summary($allRpm),
@@ -191,14 +192,21 @@ final class McpRemoteData
         $errors = [];
         $targetSteps = 0;
         $previousTarget = null;
+        $cadence = new McpSampling();
         $dutyValues = [];
         $scan = $data->scan((int)$session['session_id'], $start, $end,
-            static function (int $time, array $row) use ($pressurePid, $rpmPid, $targetPid, $dutyPid, &$values, &$intervals, &$rises, &$falls, &$previous, &$errors, &$targetSteps, &$previousTarget, &$dutyValues): void {
+            static function (int $time, array $row) use ($pressurePid, $rpmPid, $targetPid, $dutyPid, &$values, &$intervals, &$rises, &$falls, &$previous, &$errors, &$targetSteps, &$previousTarget, &$dutyValues, $cadence): void {
+                $gap = $cadence->observe($time)['gap'];
+                if ($gap) { $previous = null; $previousTarget = null; }
                 $value = McpData::numeric($row, $pressurePid['id']);
                 if ($value === null) {
+                    $previous = null;
+                    $previousTarget = null;
                     return;
                 }
                 if ($rpmPid !== null && McpData::numeric($row, $rpmPid['id']) === null) {
+                    $previous = null;
+                    $previousTarget = null;
                     return;
                 }
                 $values[] = $value;
@@ -210,6 +218,8 @@ final class McpRemoteData
                             $targetSteps++;
                         }
                         $previousTarget = $target;
+                    } else {
+                        $previousTarget = null;
                     }
                 }
                 if ($dutyPid !== null) {
@@ -229,7 +239,7 @@ final class McpRemoteData
                     }
                 }
                 $previous = [$time, $value];
-            }
+            }, McpData::fullScan($args)
         );
         return [
             'session_id' => $session['session_id'],
@@ -240,12 +250,14 @@ final class McpRemoteData
             'observed_target_error' => self::summary($errors),
             'observed_duty' => self::summary($dutyValues),
             'target_value_changes' => $targetSteps,
+            'segmentation' => $cadence->summary(),
+            'incomplete' => $scan['scan_truncated'],
             'sampling_interval_seconds' => self::summary($intervals),
             'positive_slope_per_second' => self::summary($rises),
             'negative_slope_per_second' => self::summary($falls),
             'stored_pid_settings' => $this->settings('pid'),
             'limitations' => [
-                'Observed derivative extrema alone do not prove controller response speed or safe gain direction.',
+                'Slopes and target changes are calculated only within uninterrupted acquisition segments; sampling gaps never establish a transient.',
                 'Absolute overshoot and settling time are not derived here. Such conclusions require validated target step events, stable windows and time-aligned actuator telemetry.',
                 'No numerical PID coefficient changes are suggested without suitable measurements and hardware-specific validation.',
             ],
