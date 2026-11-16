@@ -12,7 +12,6 @@ services:
         volumes:
             - ./db:/var/lib/mysql
             - ./docker/mariadb/config/rocksdb.cnf:/etc/mysql/mariadb.conf.d/rocksdb.cnf:ro
-            - /etc/timezone:/etc/timezone:ro
             - /etc/localtime:/etc/localtime:ro
             - /sys/fs/cgroup:/sys/fs/cgroup
         environment:
@@ -20,6 +19,7 @@ services:
             MYSQL_DATABASE: ratel
             MYSQL_USER: ratel
             MYSQL_PASSWORD: ratel
+            TZ: "UTC"
         restart: always
         healthcheck:
             test: mariadb-admin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
