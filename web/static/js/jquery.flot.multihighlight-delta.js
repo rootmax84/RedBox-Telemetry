@@ -90,6 +90,8 @@ function convertToRealTime(processedTime) {
       this.plot = plot;
       this._rafId = null;
       this._pendingData = null;
+      this._tooltipSide = null;
+      this._tooltipFlipAnimation = null;
     }
 
     static compileTemplate(str) {
@@ -367,10 +369,56 @@ function convertToRealTime(processedTime) {
 
       css[xPositionProperty] = xPosition;
       css[yPositionProperty] = yPosition;
+
+      // Keep the original cursor-following behavior. Animate only when the
+      // tooltip switches sides (left/right or top/bottom), never every hover.
+      const nextSide = `${xPositionProperty}:${yPositionProperty}`;
+      const sideChanged = this._tooltipSide !== null && this._tooltipSide !== nextSide;
+      const tipElement = $tooltip[0];
+      const reduceMotion = sideChanged && window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const useFlip = sideChanged && !reduceMotion &&
+        tipElement && typeof tipElement.animate === 'function';
+
+      // Reading the current visual rectangle also handles an interrupted FLIP:
+      // a second switch starts exactly where the first animation currently is.
+      const firstRect = useFlip ? tipElement.getBoundingClientRect() : null;
+      if (sideChanged && this._tooltipFlipAnimation) {
+        this._tooltipFlipAnimation.cancel();
+        this._tooltipFlipAnimation = null;
+      }
+
       $tooltip.css(css).show();
+      this._tooltipSide = nextSide;
+
+      if (useFlip) {
+        const lastRect = tipElement.getBoundingClientRect();
+        const dx = firstRect.left - lastRect.left;
+        const dy = firstRect.top - lastRect.top;
+        if (Number.isFinite(dx) && Number.isFinite(dy) &&
+            (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)) {
+          // transform is compositor-friendly, and no layout is measured on
+          // ordinary hover updates. Normal cursor tracking remains immediate.
+          const animation = tipElement.animate([
+            { transform: `translate3d(${dx}px, ${dy}px, 0)` },
+            { transform: 'translate3d(0, 0, 0)' }
+          ], { duration: 200, easing: 'ease-out' });
+          this._tooltipFlipAnimation = animation;
+          animation.onfinish = () => {
+            if (this._tooltipFlipAnimation === animation) {
+              this._tooltipFlipAnimation = null;
+            }
+          };
+        }
+      }
     }
 
     _handleMouseOut() {
+      if (this._tooltipFlipAnimation) {
+        this._tooltipFlipAnimation.cancel();
+        this._tooltipFlipAnimation = null;
+      }
+      this._tooltipSide = null;
       if (this._rafId) {
         cancelAnimationFrame(this._rafId);
         this._rafId = null;
