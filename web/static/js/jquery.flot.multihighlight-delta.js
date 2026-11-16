@@ -144,7 +144,33 @@ function convertToRealTime(processedTime) {
       return this;
     }
 
+    static installCompactStyles() {
+      if (document.getElementById('flotMultihighlightCompactStyles')) return;
+      const style = document.createElement('style');
+      style.id = 'flotMultihighlightCompactStyles';
+      style.textContent = `
+        #flotMultihighlightTip {
+          box-sizing: border-box;
+        }
+        #flotMultihighlightTip .flot-tooltip-table {
+          margin: 0 !important;
+          font-size: 11px;
+          line-height: 14px;
+          border-collapse: collapse;
+        }
+        #flotMultihighlightTip .flot-tooltip-table th,
+        #flotMultihighlightTip .flot-tooltip-table td {
+          padding: 1px 5px !important;
+          line-height: 14px !important;
+          height: auto !important;
+          vertical-align: middle;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     findOrCreateTooltip(tooltipStyles) {
+      MultiHighlightDeltaPlugin.installCompactStyles();
       let $tip = $('#flotMultihighlightTip');
       if ($tip.length === 0) {
         $tip = $('<div />')
