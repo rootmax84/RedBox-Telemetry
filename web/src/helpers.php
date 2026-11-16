@@ -118,11 +118,15 @@ function getFilteredGpsQuery(int $user_id, int $filterRate): string
         COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.kff1007')) AS DECIMAL(20,10)), 0) AS kff1007,
         time
     ";
+    // PID kd is Speed (OBD) in km/h. NULL means unavailable; zero is valid.
+    $obdSpeed = "CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.kd')) AS DECIMAL(12,3)) AS obd_speed";
+    // PID kff1001 is the receiver-reported GPS speed, independently of km/h OBD.
+    $gpsSpeed = "CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.kff1001')) AS DECIMAL(12,3)) AS gps_speed";
 
     $base = "FROM logs WHERE user_id = {$user_id} AND session = ?";
 
     if ($filterRate === 1) {
-        return "SELECT {$cols} {$base} ORDER BY time DESC";
+        return "SELECT {$cols}, NULL AS gps_missing_count, {$obdSpeed}, {$gpsSpeed} {$base} ORDER BY time DESC";
     }
 
     // остальные проценты — через ROW_NUMBER, как было
@@ -134,11 +138,20 @@ function getFilteredGpsQuery(int $user_id, int $filterRate): string
         default => "1=1",
     };
 
-    return "SELECT kff1006, kff1005, kff1007, time
+    // Calculate GPS outages *before* thinning. Otherwise a 25%-sampled
+    // session can omit every invalid GPS reading and falsely join the track.
+    // Reuse the same time order as ROW_NUMBER; no extra table scan is needed.
+    return "SELECT kff1006, kff1005, kff1007, time, gps_missing_count, obd_speed, gps_speed
             FROM (
-                SELECT {$cols}, ROW_NUMBER() OVER (ORDER BY time DESC) as row_num
-                {$base}
-            ) as filtered_data
+                SELECT gps_source.*,
+                    ROW_NUMBER() OVER (ORDER BY time DESC) AS row_num,
+                    SUM(CASE WHEN kff1006 = 0 OR kff1005 = 0
+                             OR ABS(kff1006) > 90 OR ABS(kff1005) > 180
+                        THEN 1 ELSE 0 END)
+                        OVER (ORDER BY time DESC ROWS UNBOUNDED PRECEDING)
+                        AS gps_missing_count
+                FROM (SELECT {$cols}, {$obdSpeed}, {$gpsSpeed} {$base}) AS gps_source
+            ) AS filtered_data
             WHERE {$mod}
             ORDER BY time DESC";
 }

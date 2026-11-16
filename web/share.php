@@ -97,9 +97,29 @@ if ($gps_data === false || $cached_timestamp !== $current_timestamp) {
     $geolocs = [];
     $timearray = [];
     $i = 0;
+    $segmentId = 0;
+    $gpsMissing = false;
+    $previousMissingCount = null;
     while ($row = $gps_time_data->fetch_row()) {
-        if (($row[0] != 0) && ($row[1] != 0)) {
-            $geolocs[] = ["lat" => $row[0], "lon" => $row[1], "heading" => $row[2]];
+        $lat = (float)$row[0];
+        $lon = (float)$row[1];
+        $valid = is_finite($lat) && is_finite($lon)
+            && $lat != 0 && $lon != 0 && abs($lat) <= 90 && abs($lon) <= 180;
+        if ($valid) {
+            $missingCount = isset($row[4]) ? (int)$row[4] : null;
+            if ($gpsMissing || ($previousMissingCount !== null &&
+                $missingCount !== null && $missingCount > $previousMissingCount)) {
+                ++$segmentId;
+            }
+            $gpsMissing = false;
+            $previousMissingCount = $missingCount;
+            $geolocs[] = ['lat' => $lat, 'lon' => $lon,
+                'heading' => (float)$row[2], 'time' => (int)$row[3],
+                'segment' => $segmentId,
+                    'obd_speed' => (isset($row[5]) && is_numeric($row[5])) ? (float)$row[5] : null,
+                    'gps_speed' => (isset($row[6]) && is_numeric($row[6])) ? (float)$row[6] : null];
+        } else {
+            $gpsMissing = true;
         }
         $timearray[$i] = $row[3];
         $i++;
@@ -122,9 +142,9 @@ $imapdata = '';
 if ($gps_flag === '1') {
     $mapdata = [];
     foreach ($geolocs as $d) {
-        $mapdata[] = "[" . sprintf("%.14f", $d['lat']) . ","
-                   . sprintf("%.14f", $d['lon']) . ","
-                   . sprintf("%.14f", $d['heading']) . "]";
+        $mapdata[] = json_encode([(float)$d['lat'], (float)$d['lon'],
+            (float)$d['heading'], (int)$d['time'], (int)$d['segment'],
+            $d['obd_speed'], $d['gps_speed']], JSON_THROW_ON_ERROR);
     }
     $imapdata = implode(",", $mapdata);
 }

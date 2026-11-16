@@ -124,6 +124,7 @@ class Localization {
             }
         });
         l10n_loaded = true;
+        if (typeof window.syncGpsFilterControl === 'function') window.syncGpsFilterControl();
     }
 
     clearCache() {

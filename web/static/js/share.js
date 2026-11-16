@@ -140,52 +140,8 @@ window.rawPath = SHARE_CONFIG.imapdata
 if (!window.rawPath.length) {
     $('#map-div').hide();
 } else {
-    const coordsOnly = window.rawPath.map(p => [p[0], p[1]]);
-    let validSegmentsWithIndices = extractValidSegmentsWithIndices(coordsOnly, {
-        minPoints: Math.trunc(window.rawPath.length * 0.05)
-    });
-
-    if (!validSegmentsWithIndices.length) {
-        const fallbackPoints = window.rawPath
-            .map((p, idx) => ({
-                coord: [p[0], p[1]],
-                index: idx
-            }))
-            .filter(item => item.coord[0] !== 0 || item.coord[1] !== 0);
-
-        if (fallbackPoints.length) {
-            validSegmentsWithIndices = [fallbackPoints];
-        }
-    }
-
-    const segmentsCoords = validSegmentsWithIndices.map(seg => seg.map(p => p.coord));
-    const flatCoords = segmentsCoords.flat();
-    const flatIndices = validSegmentsWithIndices.flat().map(p => p.index);
-
-    window.MapData = {
-        segmentsCoords,
-        segmentsIndices: validSegmentsWithIndices,
-        flatCoords,
-        flatIndices
-    };
-
-    window.MapData.rawPathLength = window.rawPath.length;
-
-    const origHeading = {};
-    window.rawPath.forEach((point, idx) => {
-        if (point.length >= 3) {
-            origHeading[idx] = point[2];
-        }
-    });
-    window.MapData.origHeading = origHeading;
-
-    const origToFlat = {};
-    window.MapData.segmentsIndices.flat().forEach(({ index }) => {
-        if (index >= 0 && !(index in origToFlat)) {
-            origToFlat[index] = window.MapData.flatIndices.indexOf(index);
-        }
-    });
-    window.MapData.origToFlat = origToFlat;
+    // Identical GPS segmentation/time index on /index, /share and Stream reset.
+    window.MapData = buildGpsDisplayMapData(window.rawPath);
 
     window.chartRangeStart = 0;
     window.chartRangeEnd = 0;

@@ -180,6 +180,7 @@ function syncStreamControls() {
             button.title = streamText(stream ? 'stream.stop' : 'stream.start');
         }
     }
+    if (typeof window.syncGpsFilterControl === 'function') window.syncGpsFilterControl();
 }
 
 // Allow resizing the stream column without coupling it to the GPS map splitter.
@@ -448,6 +449,14 @@ function dataToggleCore() {
     // Use the same full-range reset as double-click/long tap, before stream
     // becomes true (the reset handler deliberately ignores stream mode).
     handleSliderInit();
+
+    // Live updates append to the raw route. Temporarily display raw GPS so
+    // streaming indices and heading arrays stay consistent with rawPath.
+    // The persisted filter is restored by rebuildMapFromRawPath() on stop.
+    if (typeof window.refreshGpsFilterView === 'function' &&
+        typeof gpsFilterEnabled !== 'undefined' && gpsFilterEnabled) {
+        window.refreshGpsFilterView(true);
+    }
 
     // Set state synchronously so rapid clicks cannot create duplicate connections.
     const connection = new EventSource('/sessions/stream?id=' + encodeURIComponent(APP_CONFIG.sessionId));
@@ -1321,52 +1330,8 @@ window.rawPath = APP_CONFIG.imapdata
 if (!rawPath.length) {
     $('#map-div').hide();
 } else {
-    const coordsOnly = rawPath.map(p => [p[0], p[1]]);
-    let validSegmentsWithIndices = extractValidSegmentsWithIndices(coordsOnly, {
-        minPoints: Math.trunc(rawPath.length * 0.05)
-    });
-
-    if (!validSegmentsWithIndices.length) {
-        const fallbackPoints = rawPath
-            .map((p, idx) => ({
-                coord: [p[0], p[1]],
-                index: idx
-            }))
-            .filter(item => item.coord[0] !== 0 || item.coord[1] !== 0);
-
-        if (fallbackPoints.length) {
-            validSegmentsWithIndices = [fallbackPoints];
-        }
-    }
-
-    const segmentsCoords = validSegmentsWithIndices.map(seg => seg.map(p => p.coord));
-    const flatCoords = segmentsCoords.flat();
-    const flatIndices = validSegmentsWithIndices.flat().map(p => p.index);
-
-    window.MapData = {
-        segmentsCoords,
-        segmentsIndices: validSegmentsWithIndices,
-        flatCoords,
-        flatIndices
-    };
-
-    window.MapData.rawPathLength = rawPath.length;
-
-    const origHeading = {};
-    rawPath.forEach((point, idx) => {
-        if (point.length >= 3) {
-            origHeading[idx] = point[2];
-        }
-    });
-    window.MapData.origHeading = origHeading;
-
-    const origToFlat = {};
-    window.MapData.segmentsIndices.flat().forEach(({ index }) => {
-        if (index >= 0 && !(index in origToFlat)) {
-            origToFlat[index] = window.MapData.flatIndices.indexOf(index);
-        }
-    });
-    window.MapData.origToFlat = origToFlat;
+    // Identical GPS segmentation/time index on /index, /share and Stream reset.
+    window.MapData = buildGpsDisplayMapData(window.rawPath);
 
     window.chartRangeStart = 0;
     window.chartRangeEnd = 0;

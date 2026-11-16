@@ -88,8 +88,7 @@ const handleSliderInit = () => {
     cutStart = null;
     cutEnd = null;
     mapIndexStart = 0;
-    // GPS indices refer to rawPath, which need not match the chart's sample count.
-    mapIndexEnd = window.rawPath?.length ? window.rawPath.length - 1 : jsTimeMap.length - 1;
+    mapIndexEnd = jsTimeMap.length - 1;
     initSlider(jsTimeMap, jsTimeMap[0], jsTimeMap.at(-1));
 
     if (plot && typeof chartUpdRange === 'function' && flotData.length) {
@@ -103,7 +102,7 @@ const handleSliderInit = () => {
 
     if (window.rawPath?.length && window.MapData?.flatCoords?.length &&
         typeof mapUpdRange === 'function') {
-        updateMapWithRangePreservingHeatline(0, window.rawPath.length - 1);
+        updateMapWithRangePreservingHeatline(0, jsTimeMap.length - 1);
     }
 };
 
@@ -1045,6 +1044,1198 @@ function extractValidSegmentsWithIndices(coords, options = {}) {
     return validSegments; // array of segments [{coord, index}]
 }
 
+// GPS data model. All times are ORIGINAL log times (milliseconds), not Flot's
+// compressed X values. Points arrive newest-first from the SQL query.
+// No distance-based merging is allowed across an invalid fix or a time gap.
+function gpsMedianInterval(points) {
+    const diffs = [];
+    for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1], b = points[i];
+        if (Number(a[4]) !== Number(b[4])) continue;
+        const dt = Math.abs(Number(a[3]) - Number(b[3]));
+        if (Number.isFinite(dt) && dt > 0) diffs.push(dt);
+    }
+    if (!diffs.length) return 1000;
+    diffs.sort((a, b) => a - b);
+    return diffs[Math.floor(diffs.length / 2)];
+}
+
+function gpsDistanceMeters(a, b) {
+    const rad = Math.PI / 180;
+    const lat = (a[0] + b[0]) / 2 * rad;
+    const x = (a[1] - b[1]) * rad * Math.cos(lat);
+    const y = (a[0] - b[0]) * rad;
+    return 6371000 * Math.hypot(x, y);
+}
+
+// Optional, non-destructive GPS anomaly filter. Never edit rawPath or chart data.
+// The ECU PID `kd` is the raw OBD vehicle speed in km/h, not GPS speed.
+const GPS_FILTER_MAX_MPS = 105;   // hard physical ceiling, with position jitter tolerance
+const GPS_FILTER_JITTER_M = 55;
+// Stage 1: uncertain relocated tracks stay quarantined until supported by a
+// short, coherent series. A long blackout is *not* negative evidence: a brief
+// track after one can still be the start of a genuine new journey.
+const GPS_FILTER_CONFIRM_FIXES = 8;
+const GPS_FILTER_CONFIRM_MS = 20000;
+const GPS_FILTER_UNCERTAIN_BLACKOUT_MS = 180000;
+const GPS_FILTER_REMOTE_ISLAND_M = 800;
+const GPS_FILTER_ISOLATED_FIXES = 8;
+const GPS_FILTER_ISOLATED_MS = 20000;
+const GPS_FILTER_SHORT_RELOCATION_GAP_MS = 60000;
+const GPS_FILTER_BOOMERANG_WINDOW_MS = 600000;
+// Validation-only grouping: GPS-source breaks are NEVER merged in the map.
+// Consecutive components at almost the same location may form one false island.
+const GPS_FILTER_GROUP_GAP_MS = 120000;
+const GPS_FILTER_GROUP_DISTANCE_M = 250;
+// Stage 2: Off / Smart / Strict. Migrate the old boolean preference once,
+// without accidentally enabling a stricter filter for existing users.
+const GPS_FILTER_MODES = ['off', 'smart', 'strict'];
+let gpsFilterMode = (() => {
+    try {
+        const stored = localStorage.getItem(`${username}-gps_filter_mode`);
+        if (GPS_FILTER_MODES.includes(stored)) return stored;
+        return localStorage.getItem(`${username}-gps_hybrid_filter`) === 'true'
+            ? 'smart' : 'off';
+    } catch (_) { return 'off'; }
+})();
+let gpsFilterEnabled = gpsFilterMode !== 'off';
+let gpsFilterCache = null;
+let gpsFilterDiagnostics = null;
+
+function gpsObdSpeed(point) {
+    const v = point?.[5];
+    if (v === null || v === undefined || v === '' || !Number.isFinite(Number(v))) return null;
+    const speed = Number(v);
+    return speed >= 0 && speed <= 400 ? speed : null;
+}
+
+// GPS receiver Speed (GPS) kff1001, same timestamp as Speed (OBD) kd.
+// Missing GPS speed must NOT be interpreted as zero and does not change
+// behaviour of existing recordings until their SQL cache is refreshed.
+function gpsReportedSpeed(point) {
+    const v = point?.[6];
+    if (v === null || v === undefined || v === '' || !Number.isFinite(Number(v))) return null;
+    const speed = Number(v);
+    // Retain extreme but finite receiver readings as anomaly evidence;
+    // they are NEVER used as a permitted vehicle speed.
+    return speed >= 0 ? speed : null;
+}
+
+// Compare independent instruments, never use GPS-reported speed as truth for
+// vehicle motion. Acceleration is km/h per second, so 25%-sampled sessions
+// and variable recording intervals are assessed on the actual time delta.
+const GPS_SPEED_TOLERANCE_KMH = 10;
+const GPS_SPEED_ACCEL_KMH_PER_S = 40;
+function gpsSpeedEvidence(points, maxGapMs) {
+    let mismatches = 0, jumps = 0, frozen = 0, samples = 0;
+    const suspicious = new Set();
+    // Mark individual receiver values as suspicious only when OBD exists.
+    // GPS and OBD may lag during an authentic acceleration; such a flag is
+    // *evidence*, never sufficient reason to delete a coordinate.
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        if (!p.valid || p.speed === null || p.gpsSpeed === null) continue;
+        samples++;
+        // Accept a brief receiver/ECU sampling lag at genuine acceleration:
+        // compare with adjacent OBD samples only when their timestamps are
+        // within 1.5 sec. Missing samples are never extrapolated over gaps.
+        let agrees = Math.abs(p.gpsSpeed - p.speed) <= GPS_SPEED_TOLERANCE_KMH;
+        if (!agrees) {
+            for (const n of [i - 1, i + 1]) {
+                const near = points[n];
+                if (near && near.valid && near.speed !== null &&
+                    Math.abs(near.time - p.time) <= 1500 &&
+                    Math.abs(p.gpsSpeed - near.speed) <= GPS_SPEED_TOLERANCE_KMH) {
+                    agrees = true;
+                    break;
+                }
+            }
+        }
+        if (!agrees) {
+            mismatches++;
+            suspicious.add(p.originalIndex);
+        }
+        if (!i) continue;
+        const prev = points[i - 1];
+        const dt = (p.time - prev.time) / 1000;
+        if (!prev.valid || prev.gpsSpeed === null || prev.speed === null ||
+            !(dt > 0 && dt * 1000 <= maxGapMs) || p.segment !== prev.segment) continue;
+        const gpsAccel = Math.abs(p.gpsSpeed - prev.gpsSpeed) / dt;
+        const obdAccel = Math.abs(p.speed - prev.speed) / dt;
+        if (gpsAccel > GPS_SPEED_ACCEL_KMH_PER_S &&
+            gpsAccel > obdAccel * 2 + 15) {
+            jumps++;
+            suspicious.add(p.originalIndex);
+            suspicious.add(prev.originalIndex);
+        }
+    }
+    // A truly frozen GPS speed must remain flat for the *entire* window.
+    // OBD must vary by >=20 km/h while GPS varies by <=0.5 km/h over >=8s.
+    // Four monotonic deques keep this O(N), including high-rate recordings.
+    let start = 0;
+    const makeDeque = () => ({ data: [], head: 0 });
+    const minObd = makeDeque(), maxObd = makeDeque();
+    const minGps = makeDeque(), maxGps = makeDeque();
+    const all = [minObd, maxObd, minGps, maxGps];
+    const add = (deque, index, read, min) => {
+        const value = read(points[index]);
+        while (deque.data.length > deque.head &&
+            (min ? read(points[deque.data[deque.data.length - 1]]) >= value :
+                read(points[deque.data[deque.data.length - 1]]) <= value)) {
+            deque.data.pop();
+        }
+        deque.data.push(index);
+    };
+    const expire = deque => {
+        while (deque.head < deque.data.length && deque.data[deque.head] < start) deque.head++;
+        if (deque.head >= 1024 && deque.head * 2 >= deque.data.length) {
+            deque.data = deque.data.slice(deque.head);
+            deque.head = 0;
+        }
+    };
+    const reset = () => {
+        for (const d of all) { d.data.length = 0; d.head = 0; }
+    };
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        const prior = i ? points[i - 1] : null;
+        const consecutive = prior && p.valid && prior.valid &&
+            p.segment === prior.segment && p.time > prior.time &&
+            p.time - prior.time <= maxGapMs &&
+            p.speed !== null && prior.speed !== null &&
+            p.gpsSpeed !== null && prior.gpsSpeed !== null;
+        if (!consecutive) { start = i; reset(); }
+        if (!p.valid || p.speed === null || p.gpsSpeed === null) continue;
+        add(minObd, i, q => q.speed, true);
+        add(maxObd, i, q => q.speed, false);
+        add(minGps, i, q => q.gpsSpeed, true);
+        add(maxGps, i, q => q.gpsSpeed, false);
+        while (p.time - points[start].time > 20000) start++;
+        for (const d of all) expire(d);
+        if (i - start + 1 < 6 || p.time - points[start].time < 8000) continue;
+        const obdRange = points[maxObd.data[maxObd.head]].speed -
+            points[minObd.data[minObd.head]].speed;
+        const gpsRange = points[maxGps.data[maxGps.head]].gpsSpeed -
+            points[minGps.data[minGps.head]].gpsSpeed;
+        const gpsLow = points[minGps.data[minGps.head]].gpsSpeed;
+        const obdLow = points[minObd.data[minObd.head]].speed;
+        // Also catch a receiver stuck at 0 while OBD steadily reports
+        // motion. A genuinely constant non-zero GPS speed during cruise
+        // remains valid unless OBD speed itself changes substantially.
+        // A frozen *high* receiver speed while the ECU reports a sustained
+        // standstill is also a frozen sensor. The previous test considered
+        // only GPS stuck near zero, missing the GPS=96 / OBD=0 case.
+        const obdHigh = points[maxObd.data[maxObd.head]].speed;
+        if (gpsRange <= 0.5 && (obdRange >= 20 ||
+            (gpsLow <= 2 && obdLow >= 15) ||
+            (gpsLow >= 20 && obdHigh <= 2))) {
+            frozen++;
+            suspicious.add(p.originalIndex);
+        }
+    }
+    return { suspicious, stats: { gpsSpeedSamples: samples,
+        gpsSpeedMismatch: mismatches, gpsSpeedJumps: jumps,
+        gpsSpeedFrozen: frozen, gpsSpeedRejected: 0 } };
+}
+
+// An isolated middle GPS coordinate may look plausible to the conservative
+// 55m jitter floor in Stage 1, even when it is far beyond the distance the
+// ECU recorded. Remove it ONLY if both incoming and outgoing edges are
+// impossible by OBD, the surrounding fixes reconnect, and GPS speed itself
+// also contradicts OBD. In all other cases, keep the genuine coordinate.
+function gpsRejectSpeedInconsistentSpikes(points, accepted, evidence, maxGapMs, mode) {
+    const strict = mode === 'strict';
+    let removed = 0;
+    const edgeLimit = (a, b) => {
+        const dt = (b.time - a.time) / 1000;
+        if (!(dt > 0 && dt * 1000 <= Math.min(maxGapMs, 12000)) ||
+            a.segment !== b.segment || a.speed === null || b.speed === null) return null;
+        return (strict ? 12 : 20) +
+            dt * (Math.max(a.speed, b.speed) + (strict ? 15 : 25)) / 3.6;
+    };
+    for (let i = 1; i + 1 < points.length; i++) {
+        const a = points[i - 1], b = points[i], c = points[i + 1];
+        if (!accepted.has(a.originalIndex) || !accepted.has(b.originalIndex) ||
+            !accepted.has(c.originalIndex) ||
+            !evidence.suspicious.has(b.originalIndex) ||
+            a.segment !== b.segment || b.segment !== c.segment) continue;
+        const left = edgeLimit(a, b), right = edgeLimit(b, c);
+        const through = edgeLimit(a, c);
+        if (left === null || right === null || through === null) continue;
+        const ab = gpsDistanceMeters(a.coord, b.coord);
+        const bc = gpsDistanceMeters(b.coord, c.coord);
+        const ac = gpsDistanceMeters(a.coord, c.coord);
+        if (ab > left && bc > right && ac <= through &&
+            ac < Math.min(ab, bc) * (strict ? 0.85 : 0.7)) {
+            accepted.delete(b.originalIndex);
+            removed++;
+        }
+    }
+    return removed;
+}
+
+// Second-pass cluster validation. The first pass catches single teleports
+// within a continuous track. This pass looks at small independent GPS islands
+// that slipped through after missing fixes/source-segment changes. All tests
+// use original time and coordinates; none infer roads or edit rawPath.
+function gpsRejectIsolatedIslands(chronological, accepted, maxGapMs) {
+    const blocks = [];
+    let block = null;
+    for (const point of chronological) {
+        if (!point.valid || !accepted.has(point.originalIndex)) {
+            block = null;
+            continue;
+        }
+        const prev = block?.last;
+        const dt = prev ? point.time - prev.time : 0;
+        const linked = prev && prev.segment === point.segment &&
+            point.originalIndex === prev.originalIndex - 1 &&
+            dt > 0 && dt <= maxGapMs &&
+            gpsDistanceMeters(prev.coord, point.coord) <=
+                GPS_FILTER_JITTER_M + GPS_FILTER_MAX_MPS * dt / 1000;
+        if (!linked) {
+            block = { first: point, last: point, count: 0, durationMs: 0,
+                distanceM: 0, points: [] };
+            blocks.push(block);
+        } else {
+            block.distanceM += gpsDistanceMeters(prev.coord, point.coord);
+        }
+        block.points.push(point);
+        ++block.count;
+        block.last = point;
+        block.durationMs = point.time - block.first.time;
+    }
+    // Breaks in the rendered route must remain breaks, but two short source
+    // segments near the same erroneous location form one *validation* island.
+    // Without this, two separate 'forest' glitches can protect each other
+    // from a boomerang test because neither is adjacent to the real road.
+    const groups = [];
+    const close = (a, b) => gpsDistanceMeters(a.coord, b.coord);
+    for (const b of blocks) {
+        const lastGroup = groups[groups.length - 1];
+        const dt = lastGroup ? b.first.time - lastGroup.last.time : Infinity;
+        const gapMeters = lastGroup ? close(lastGroup.last, b.first) : Infinity;
+        if (dt > 0 && dt <= GPS_FILTER_GROUP_GAP_MS &&
+            gapMeters <= GPS_FILTER_GROUP_DISTANCE_M) {
+            lastGroup.parts.push(b);
+            lastGroup.last = b.last;
+            lastGroup.count += b.count;
+            lastGroup.distanceM += gapMeters + b.distanceM;
+            lastGroup.durationMs = b.last.time - lastGroup.first.time;
+        } else {
+            groups.push({ first: b.first, last: b.last, count: b.count,
+                durationMs: b.durationMs, distanceM: b.distanceM, parts: [b] });
+        }
+    }
+    let islandsRemoved = 0;
+    let boomerangsRemoved = 0;
+    let quarantinedRemoved = 0;
+    const discarded = new Set();
+    const compact = b => b.distanceM <= 200 && b.durationMs <= 120000;
+    // No-return end-of-session clusters have less evidence than boomerangs:
+    // retain a long stable track when we cannot know which side was correct.
+    const terminalCompact = b => compact(b) && b.count <= 40 &&
+        b.durationMs <= 60000;
+    // A short-duration high-rate cluster can have many fixes; count alone
+    // cannot make it trustworthy. Equally, never discard a long moving track
+    // merely because it contains relatively few GPS samples.
+    const small = b => (b.count < GPS_FILTER_ISOLATED_FIXES ||
+        b.durationMs < GPS_FILTER_ISOLATED_MS) && b.distanceM <= 300;
+    for (let i = 0; i < groups.length; i++) {
+        const candidate = groups[i];
+        const before = i ? groups[i - 1] : null;
+        const after = i + 1 < groups.length ? groups[i + 1] : null;
+        const beforeGap = before ? candidate.first.time - before.last.time : Infinity;
+        const afterGap = after ? after.first.time - candidate.last.time : Infinity;
+        const fromBefore = before ? close(before.last, candidate.first) : Infinity;
+        const toAfter = after ? close(candidate.last, after.first) : Infinity;
+        const baseline = before && after ? close(before.last, after.first) : Infinity;
+        const remote = fromBefore > GPS_FILTER_REMOTE_ISLAND_M &&
+            toAfter > GPS_FILTER_REMOTE_ISLAND_M;
+        // A boomerang can last much longer than a minisegment: a GPS receiver
+        // can report a stable wrong location for minutes. Reject only if the
+        // surroundings return near each other, the false location is very far
+        // from BOTH sides and the excursion is almost stationary (or tiny).
+        // A real road excursion generally contains measurable route travel.
+        const boomerang = before && after && before.count >= 2 && after.count >= 2 &&
+            remote && baseline <= 350 &&
+            fromBefore > Math.max(900, baseline * 4) &&
+            toAfter > Math.max(900, baseline * 4) &&
+            after.first.time - before.last.time <= GPS_FILTER_BOOMERANG_WINDOW_MS &&
+            (small(candidate) || compact(candidate));
+        // A short island stranded at the beginning/end of the session is
+        // rejected ONLY if the relocation is impossible in a short time.
+        // If satellite reception was absent for minutes, keep it: it might
+        // be an authentic, unobserved journey. Small local GPS stops stay.
+        const orphanBefore = before && !after && before.count >= 2 &&
+            (small(candidate) || terminalCompact(candidate)) &&
+            fromBefore > GPS_FILTER_REMOTE_ISLAND_M &&
+            beforeGap > 0 && beforeGap <= GPS_FILTER_SHORT_RELOCATION_GAP_MS &&
+            fromBefore > GPS_FILTER_JITTER_M + GPS_FILTER_MAX_MPS * beforeGap / 1000;
+        const orphanAfter = !before && after && after.count >= 2 &&
+            candidate.count === 1 && small(candidate) &&
+            toAfter > GPS_FILTER_REMOTE_ISLAND_M &&
+            afterGap > 0 && afterGap <= GPS_FILTER_SHORT_RELOCATION_GAP_MS &&
+            toAfter > GPS_FILTER_JITTER_M + GPS_FILTER_MAX_MPS * afterGap / 1000;
+        // If an isolated short component has two implausible boundaries, it
+        // is not a coherent continuation, even if the trustworthy route moved
+        // between those boundaries. Preserve it if either transition could
+        // actually have occurred or if one side is a long GPS blackout.
+        const twoBadEdges = before && after && before.count >= 2 && after.count >= 2 &&
+            (small(candidate) || compact(candidate)) && remote &&
+            beforeGap > 0 && afterGap > 0 &&
+            beforeGap <= GPS_FILTER_SHORT_RELOCATION_GAP_MS &&
+            afterGap <= GPS_FILTER_SHORT_RELOCATION_GAP_MS &&
+            fromBefore > GPS_FILTER_JITTER_M + GPS_FILTER_MAX_MPS * beforeGap / 1000 &&
+            toAfter > GPS_FILTER_JITTER_M + GPS_FILTER_MAX_MPS * afterGap / 1000;
+        if (boomerang || orphanBefore || orphanAfter || twoBadEdges) {
+            for (const part of candidate.parts) {
+                for (const p of part.points) discarded.add(p.originalIndex);
+            }
+            ++islandsRemoved;
+            if (boomerang) ++boomerangsRemoved;
+            else ++quarantinedRemoved;
+        }
+    }
+    for (const index of discarded) accepted.delete(index);
+    return { islandsRemoved, boomerangsRemoved, quarantinedRemoved };
+}
+
+// Strict-only: a receiver can freeze *coordinates* while the independent ECU
+// still records motion. Fix counts or apparently stable position alone must
+// never promote this interval into a trusted route. Detect these stretches
+// BEFORE detached-island validation, so their small leading/trailing pieces
+// can be rejected as ordinary unconfirmed fragments. No synthetic coordinates.
+function gpsRejectStrictFrozenCoordinates(points, accepted, maxGapMs) {
+    // Require an effectively identical receiver fix, not merely a slowly
+    // moving path: a real low-speed route must survive even if its derived
+    // distance looks inconsistent with a noisy speed PID.
+    const STALE_RADIUS_M = 0.05;
+    const STALE_MIN_MS = 8000;
+    const STALE_OBD_DISTANCE_M = 30;
+    let staleRuns = 0, staleFixes = 0;
+    let first = -1, previous = -1;
+    const finish = end => {
+        if (first < 0 || end <= first) return;
+        const duration = points[end].time - points[first].time;
+        if (duration < STALE_MIN_MS) return;
+        let obdDistanceM = 0, obdCoverageMs = 0;
+        let movingFixes = 0, gpsMovingFixes = 0;
+        for (let j = first; j <= end; j++) {
+            const p = points[j];
+            if (p.speed !== null && p.speed >= 8) movingFixes++;
+            if (p.gpsSpeed !== null && p.gpsSpeed >= 8) gpsMovingFixes++;
+            if (j === first) continue;
+            const a = points[j - 1], b = p;
+            const dt = b.time - a.time;
+            if (dt > 0 && dt <= maxGapMs &&
+                a.speed !== null && b.speed !== null) {
+                obdCoverageMs += dt;
+                obdDistanceM += (a.speed + b.speed) / 7.2 * (dt / 1000);
+            }
+        }
+        // A short, transient zero-speed PID or a sparse sensor should not
+        // erase a real parking position. Only act on well-covered, sustained
+        // independent travel, strengthened by the receiver's own moving-speed
+        // claim. Without GPS speed demand a larger ECU distance margin.
+        if (obdCoverageMs < duration * 0.8 || movingFixes < 3 ||
+            obdDistanceM < (gpsMovingFixes >= 3 ? STALE_OBD_DISTANCE_M : 60)) return;
+        let removed = 0;
+        for (let j = first; j <= end; j++) {
+            if (accepted.delete(points[j].originalIndex)) removed++;
+        }
+        if (removed) { staleRuns++; staleFixes += removed; }
+    };
+    for (let i = 0; i <= points.length; i++) {
+        const p = points[i];
+        const prev = previous >= 0 ? points[previous] : null;
+        const continuation = p && p.valid && accepted.has(p.originalIndex) && prev &&
+            p.segment === prev.segment && p.time > prev.time &&
+            p.time - prev.time <= maxGapMs &&
+            gpsDistanceMeters(p.coord, points[first].coord) <= STALE_RADIUS_M;
+        if (!continuation) {
+            finish(previous);
+            first = p && p.valid && accepted.has(p.originalIndex) ? i : -1;
+        }
+        previous = p && p.valid && accepted.has(p.originalIndex) ? i : -1;
+    }
+    return { strictStaleRuns: staleRuns, strictStaleFixes: staleFixes };
+}
+
+// Strict-only final pass: a detached speck can survive the ordinary boomerang
+// detector because it never returns to the known route (or the log ends).
+// Use independently supported *moving* route fragments as spatial references.
+// The raw data/Smart mode remain untouched. Do not use OSM or assume the
+// vehicle always stays on mapped roads.
+function gpsRejectStrictDetachedFragments(points, accepted, maxGapMs) {
+    const empty = { strictIslandsRemoved: 0, strictFixesRemoved: 0 };
+    if (points.length < 3 || accepted.size < 3) return empty;
+
+    // Build disconnected rendered fragments. GPS-source boundaries, rejected
+    // fixes, real time gaps and impossible jumps must stay separate here.
+    const fragments = [];
+    let active = null, previous = null;
+    for (const p of points) {
+        if (!p.valid || !accepted.has(p.originalIndex)) {
+            previous = null;
+            continue;
+        }
+        const dt = previous ? p.time - previous.time : 0;
+        const joins = previous && previous.segment === p.segment &&
+            previous.originalIndex === p.originalIndex + 1 &&
+            dt > 0 && dt <= maxGapMs &&
+            gpsDistanceMeters(previous.coord, p.coord) <=
+                GPS_FILTER_JITTER_M + GPS_FILTER_MAX_MPS * dt / 1000;
+        if (!joins) {
+            active = { first: p, last: p, points: [], distanceM: 0,
+                minLat: p.coord[0], maxLat: p.coord[0],
+                minLon: p.coord[1], maxLon: p.coord[1],
+                obdSamples: 0, obdMoving: 0, compared: 0, mismatches: 0 };
+            fragments.push(active);
+        } else {
+            active.distanceM += gpsDistanceMeters(previous.coord, p.coord);
+        }
+        active.points.push(p);
+        active.last = p;
+        active.minLat = Math.min(active.minLat, p.coord[0]);
+        active.maxLat = Math.max(active.maxLat, p.coord[0]);
+        active.minLon = Math.min(active.minLon, p.coord[1]);
+        active.maxLon = Math.max(active.maxLon, p.coord[1]);
+        if (p.speed !== null) {
+            ++active.obdSamples;
+            if (p.speed >= 8) ++active.obdMoving;
+        }
+        if (p.speed !== null && p.gpsSpeed !== null) {
+            ++active.compared;
+            if (Math.abs(p.speed - p.gpsSpeed) > GPS_SPEED_TOLERANCE_KMH)
+                ++active.mismatches;
+        }
+        previous = p;
+    }
+    if (fragments.length < 2) return empty;
+
+    // Adjacent GPS-source fragments from the same small location are one
+    // validation candidate, but NEVER one drawn polyline. This catches a
+    // forest ghost split into several short GPS-fix bursts.
+    const groups = [];
+    for (const part of fragments) {
+        const prior = groups[groups.length - 1];
+        const dt = prior ? part.first.time - prior.last.time : Infinity;
+        if (prior && dt > 0 && dt <= GPS_FILTER_GROUP_GAP_MS &&
+            gpsDistanceMeters(prior.last.coord, part.first.coord) <=
+                GPS_FILTER_GROUP_DISTANCE_M) {
+            prior.parts.push(part);
+            prior.last = part.last;
+            prior.distanceM += part.distanceM;
+            prior.minLat = Math.min(prior.minLat, part.minLat);
+            prior.maxLat = Math.max(prior.maxLat, part.maxLat);
+            prior.minLon = Math.min(prior.minLon, part.minLon);
+            prior.maxLon = Math.max(prior.maxLon, part.maxLon);
+            prior.obdSamples += part.obdSamples;
+            prior.obdMoving += part.obdMoving;
+            prior.compared += part.compared;
+            prior.mismatches += part.mismatches;
+            prior.count += part.points.length;
+        } else {
+            groups.push({ ...part, parts: [part], count: part.points.length });
+        }
+    }
+    // A receiver drifting in a small patch of forest can emit many GPS
+    // fixes. High fix count does not establish independent vehicle motion.
+    const features = groups.map(g => {
+        const durationMs = g.last.time - g.first.time;
+        const spreadM = gpsDistanceMeters([g.minLat, g.minLon],
+            [g.maxLat, g.maxLon]);
+        const netM = gpsDistanceMeters(g.first.coord, g.last.coord);
+        const mismatched = g.compared >= 5 &&
+            g.mismatches / g.compared >= 0.6;
+        const obdMoving = g.obdSamples >= 2 &&
+            g.obdMoving / g.obdSamples >= 0.6;
+        // Stationary ECU readings are independent evidence even when the GPS
+        // receiver speed is broken. A wandering remote patch must NEVER
+        // certify itself as a moving anchor solely through its coordinates.
+        const obdStationary = g.obdSamples >= 4 &&
+            g.obdMoving / g.obdSamples <= 0.15;
+        // A real short relocation after a blackout can be accepted when
+        // OBD reports motion and the receiver agrees with it.
+        const speedSupported = obdMoving && g.count >= 2 &&
+            g.distanceM >= 8 && (g.compared === 0 ||
+                g.mismatches / g.compared <= 0.35);
+        // OBD-supported motion is independent of GPS and may be short.
+        // Without OBD, demand substantially more consistent GPS travel to
+        // avoid treating a compact but fast-moving *ghost* as its own anchor.
+        // Even one GPS-only fragment with reported OBD=0 is NOT an anchor.
+        const stableParked = obdStationary && g.count >= 20 &&
+            durationMs >= 15000 && spreadM <= 100 && netM <= 80;
+        const gpsOnlyMoving = g.obdSamples < 3 && g.count >= 25 &&
+            durationMs >= 45000 && g.distanceM >= 220 && netM >= 120 &&
+            netM / Math.max(1, g.distanceM) >= 0.25;
+        const trustedMoving =
+            (speedSupported && g.count >= 3 && durationMs >= 2000 &&
+                (g.distanceM >= 20 || netM >= 20)) ||
+            (gpsOnlyMoving && !obdStationary && !mismatched);
+        return { g, durationMs, spreadM, netM, mismatched,
+            speedSupported, trustedMoving, obdStationary, stableParked };
+    });
+    let anchors = features.filter(f => f.trustedMoving);
+    if (!anchors.length) {
+        // A sufficiently long, compact standstill with consistent OBD=0
+        // also gives a strong positional reference. Prefer it only if one
+        // location clearly dominates; two equally plausible parked locations
+        // cannot be distinguished after an outage.
+        const parked = features.filter(f => f.stableParked)
+            .sort((a, b) => b.g.count - a.g.count);
+        if (parked.length && (!parked[1] ||
+            parked[0].g.count >= 3 * parked[1].g.count)) {
+            anchors = [parked[0]];
+        }
+    }
+    if (!anchors.length) {
+        // Sparse logs often fragment the *real* urban track into short
+        // snippets below the ordinary anchor thresholds. In Strict only,
+        // use the clearly dominant continuous cluster as a weak reference,
+        // but never invent a reference when the geography is ambiguous.
+        // The weak reference only permits pruning very short remote ghosts.
+        const candidates = features.filter(f => f.g.count >= 8 &&
+            f.durationMs >= 8000 && !f.obdStationary);
+        candidates.sort((a, b) => b.g.count - a.g.count);
+        if (candidates.length && candidates[0].g.count >= 12 &&
+            (!candidates[1] || candidates[0].g.count >= 3 * candidates[1].g.count)) {
+            anchors = [candidates[0]];
+        }
+    }
+    // Without a defensible route reference, we cannot identify which
+    // independent location was genuine. Preserve raw evidence in that case.
+    if (!anchors.length) return empty;
+    // Membership must remain O(1) when a long session has many independent
+    // confirmed moving fragments.
+    const anchorSet = new Set(anchors);
+
+    // Spatial grid avoids scanning a 100k-point reference track for every
+    // candidate. Store at most 6 representatives per ~250-metre cell.
+    const cellSizeM = 250;
+    // Use a valid trusted position: the earliest raw fix can be invalid.
+    const cosLat = Math.max(0.15,
+        Math.cos(anchors[0].g.first.coord[0] * Math.PI / 180));
+    const cell = coord => [Math.floor(coord[0] * 111195 / cellSizeM),
+        Math.floor(coord[1] * 111195 * cosLat / cellSizeM)];
+    const grid = new Map();
+    for (const a of anchors) {
+        for (const part of a.g.parts) {
+            for (const p of part.points) {
+                const [y, x] = cell(p.coord), key = y + ':' + x;
+                let bucket = grid.get(key);
+                if (!bucket) { bucket = []; grid.set(key, bucket); }
+                // Multiple points in one cell offer negligible extra spatial
+                // information; cap memory and proximity-search complexity.
+                if (bucket.length < 6 && (bucket.length === 0 ||
+                    bucket.every(other => gpsDistanceMeters(other, p.coord) > 55)))
+                    bucket.push(p.coord);
+            }
+        }
+    }
+    const nearTrustedRoute = candidate => {
+        const center = [(candidate.g.minLat + candidate.g.maxLat) / 2,
+            (candidate.g.minLon + candidate.g.maxLon) / 2];
+        const [y, x] = cell(center);
+        for (let dy = -4; dy <= 4; dy++) {
+            for (let dx = -4; dx <= 4; dx++) {
+                for (const ref of grid.get((y + dy) + ':' + (x + dx)) || []) {
+                    if (gpsDistanceMeters(center, ref) <= 650 + candidate.spreadM / 2)
+                        return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    let strictIslandsRemoved = 0, strictFixesRemoved = 0;
+    for (const candidate of features) {
+        if (anchorSet.has(candidate) ||
+            candidate.trustedMoving || nearTrustedRoute(candidate)) continue;
+        const { g, durationMs, spreadM, netM, mismatched,
+            speedSupported, obdStationary } = candidate;
+        // Keep corroborated relocated travel, even after long GPS blackouts.
+        // For GPS-only recordings, an extended coherent journey is also
+        // preserved unless ECU readings explicitly contradict its motion.
+        if (speedSupported || (!obdStationary &&
+            (durationMs > 120000 && netM > 350))) continue;
+        const lacksDriveEvidence = g.obdSamples === 0 ||
+            g.obdMoving / g.obdSamples < 0.4 || mismatched;
+        // A tiny orphan is of little route value (one marker/heading arrow).
+        // A longer compact ghost needs corroboration from low/stationary OBD
+        // or a persistently erroneous GPS-speed channel.
+        const shortOrphan = g.count <= 5 && durationMs <= 30000;
+        const compactGhost = durationMs <= 120000 &&
+            g.distanceM <= 900 && lacksDriveEvidence;
+        const frozenWrongSpeed = durationMs <= 300000 &&
+            g.distanceM <= 1400 && mismatched &&
+            g.obdSamples >= 5 && g.obdMoving / g.obdSamples <= 0.2;
+        // Position-channel drift may cross hundreds of metres while the ECU
+        // reports a standstill, even when Speed (GPS) is absent or frozen at
+        // zero. Previous checks discarded this strong evidence whenever the
+        // geographic spread exceeded 450m.
+        const stationaryDrift = obdStationary && durationMs <= 300000 &&
+            spreadM <= 2500 && g.distanceM <= 5000;
+        // A remote endpoint with a handful of fixes is not a reliable second
+        // trip, even when the long blackout makes its arrival plausible.
+        // Strict deliberately hides this *unconfirmed* island; Off/Smart keep it.
+        const tinyDetached = !candidate.trustedMoving &&
+            g.count <= 8 && durationMs <= 45000 &&
+            g.distanceM <= 1200 && lacksDriveEvidence;
+        const unsupportedCompact = !candidate.trustedMoving &&
+            lacksDriveEvidence && durationMs <= 90000 &&
+            spreadM <= 700 && g.distanceM <= 2200;
+        if (!(shortOrphan || compactGhost || frozenWrongSpeed ||
+            stationaryDrift || tinyDetached || unsupportedCompact)) continue;
+        for (const part of g.parts) {
+            for (const p of part.points) {
+                if (accepted.delete(p.originalIndex)) ++strictFixesRemoved;
+            }
+        }
+        ++strictIslandsRemoved;
+    }
+    return { strictIslandsRemoved, strictFixesRemoved };
+}
+
+// Stage 2: analyse *accepted* fixes only. Do not change the recorded route or
+// the accepted-fix set in storage. Stationary corrections use the nearest real
+// fix (medoid), not a synthetic road-snapped coordinate.
+function gpsBearingDegrees(a, b) {
+    const rad = Math.PI / 180;
+    const east = (b[1] - a[1]) * Math.cos((a[0] + b[0]) / 2 * rad);
+    const north = b[0] - a[0];
+    return (Math.atan2(east, north) / rad + 360) % 360;
+}
+
+function gpsAngularDifference(a, b) {
+    return Math.abs(((a - b + 540) % 360) - 180);
+}
+
+function gpsApplyStage2(points, accepted, maxGapMs, mode) {
+    const overrides = new Map();
+    let parkedFixes = 0;
+    let headingOutliers = 0;
+    if (mode !== 'smart' && mode !== 'strict') {
+        return { overrides, parkedFixes, headingOutliers, headingTrusted: false };
+    }
+    const strict = mode === 'strict';
+    // Group consecutive zero/near-zero OBD samples within one valid GPS run.
+    // We only consolidate a compact, net-stationary location. This intentionally
+    // declines to act if a faulty zero-speed sensor accompanies real travel.
+    const minDuration = strict ? 10000 : 15000;
+    const minFixes = strict ? 6 : 10;
+    const maxRadiusM = strict ? 50 : 25;
+    const maxNetM = strict ? 22 : 13;
+    let parked = [];
+    const finalizeParked = () => {
+        if (parked.length < minFixes ||
+            parked[parked.length - 1].time - parked[0].time < minDuration) {
+            parked = [];
+            return;
+        }
+        let sumLat = 0, sumLon = 0, travelled = 0;
+        let movingHeadingSamples = 0, movingHeadingMatches = 0;
+        for (let i = 0; i < parked.length; i++) {
+            sumLat += parked[i].coord[0]; sumLon += parked[i].coord[1];
+            if (!i) continue;
+            const prev = parked[i - 1], cur = parked[i];
+            const d = gpsDistanceMeters(prev.coord, cur.coord);
+            travelled += d;
+            const hdg = Number(prev.p?.[2]);
+            if (d >= 4 && Number.isFinite(hdg) && hdg > 0 && hdg <= 360) {
+                movingHeadingSamples++;
+                if (gpsAngularDifference(hdg % 360,
+                    gpsBearingDegrees(prev.coord, cur.coord)) <= 45) {
+                    movingHeadingMatches++;
+                }
+            }
+        }
+        // Do not erase a true short loop when OBD is stale but the receiver
+        // independently provides a coherent travelling heading.
+        if (travelled > 50 && movingHeadingSamples >= 6 &&
+            movingHeadingMatches / movingHeadingSamples >= 0.7) {
+            parked = []; return;
+        }
+        if (travelled > (strict ? 320 : 60)) { parked = []; return; }
+        const center = [sumLat / parked.length, sumLon / parked.length];
+        const net = gpsDistanceMeters(parked[0].coord, parked[parked.length - 1].coord);
+        if (net > maxNetM) { parked = []; return; }
+        let closest = parked[0], best = Infinity;
+        for (const p of parked) {
+            const distance = gpsDistanceMeters(p.coord, center);
+            if (distance > maxRadiusM) { parked = []; return; }
+            if (distance < best) { closest = p; best = distance; }
+        }
+        // Keep the original sampling timestamps, source segments and OBD
+        // values so hover, slider and heatmap remain time-consistent.
+        for (const p of parked) {
+            overrides.set(p.originalIndex, closest.coord);
+            if (gpsDistanceMeters(p.coord, closest.coord) >= 0.5) parkedFixes++;
+        }
+        parked = [];
+    };
+    for (const point of points) {
+        const prev = parked[parked.length - 1];
+        const joins = prev && point.segment === prev.segment &&
+            point.time > prev.time && point.time - prev.time <= maxGapMs;
+        if (!point.valid || !accepted.has(point.originalIndex) ||
+            point.speed === null || point.speed > 2 || (prev && !joins)) {
+            finalizeParked();
+        }
+        if (point.valid && accepted.has(point.originalIndex) &&
+            point.speed !== null && point.speed <= 2) parked.push(point);
+    }
+    finalizeParked();
+
+    // Heading is optional and sometimes absent, stale or GPS-derived. Trust it
+    // only after many independently plausible fixes have agreed with travel
+    // bearing. Never classify a legitimate hairpin from an angle alone.
+    let headingMatches = 0, headingSamples = 0;
+    const heading = p => {
+        const h = Number(p?.p?.[2]);
+        return Number.isFinite(h) && h > 0 && h <= 360 ? h % 360 : null;
+    };
+    for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1], b = points[i];
+        const dt = b.time - a.time;
+        if (!accepted.has(a.originalIndex) || !accepted.has(b.originalIndex) ||
+            a.segment !== b.segment || !(dt > 0 && dt <= maxGapMs) ||
+            gpsDistanceMeters(a.coord, b.coord) < 12 || heading(a) === null) continue;
+        headingSamples++;
+        if (gpsAngularDifference(heading(a), gpsBearingDegrees(a.coord, b.coord)) <= 55)
+            headingMatches++;
+    }
+    const headingTrusted = headingSamples >= 8 &&
+        headingMatches / headingSamples >= 0.7;
+    if (headingTrusted) {
+        // Both edges of an isolated one-fix spike must be large, nearly undo
+        // each other, contradict the surrounding heading and be short in time.
+        // Use original GPS positions to avoid feedback from parked smoothing.
+        for (let i = 1; i + 1 < points.length; i++) {
+            const a = points[i - 1], b = points[i], c = points[i + 1];
+            if (!accepted.has(a.originalIndex) || !accepted.has(b.originalIndex) ||
+                !accepted.has(c.originalIndex) ||
+                a.segment !== b.segment || b.segment !== c.segment) continue;
+            const dt1 = b.time - a.time, dt2 = c.time - b.time;
+            if (!(dt1 > 0 && dt2 > 0 &&
+                dt1 <= Math.min(maxGapMs, 6000) && dt2 <= Math.min(maxGapMs, 6000))) continue;
+            const ab = gpsDistanceMeters(a.coord, b.coord);
+            const bc = gpsDistanceMeters(b.coord, c.coord);
+            const ac = gpsDistanceMeters(a.coord, c.coord);
+            if (ab < (strict ? 35 : 55) || bc < (strict ? 35 : 55) ||
+                ac > Math.min(ab, bc) * (strict ? 0.6 : 0.4)) continue;
+            const bearing1 = gpsBearingDegrees(a.coord, b.coord);
+            const bearing2 = gpsBearingDegrees(b.coord, c.coord);
+            const turn = gpsAngularDifference(bearing1, bearing2);
+            if (turn < (strict ? 115 : 145)) continue;
+            const ah = heading(a), ch = heading(c);
+            if (ah === null || ch === null) continue;
+            // A real hairpin has a genuine heading reversal, unlike a
+            // transient GPS spur whose surrounding headings still agree.
+            if (gpsAngularDifference(ah, ch) > (strict ? 65 : 40)) continue;
+            const incomingError = gpsAngularDifference(ah, bearing1);
+            const outgoingError = gpsAngularDifference(ch, bearing2);
+            if (Math.max(incomingError, outgoingError) <= (strict ? 95 : 110))
+                continue;
+            accepted.delete(b.originalIndex);
+            overrides.delete(b.originalIndex);
+            headingOutliers++;
+        }
+    }
+    return { overrides, parkedFixes, headingOutliers, headingTrusted };
+}
+
+// This is a conservative, retrospective filter: a suspicious excursion is
+// quarantined until a plausible return or enough evidence for a new segment.
+// Time and distance calculations run on full original GPS records, *before*
+// rendering/route simplification. The OBD speed is never required.
+function filterGpsAnomalies(rawPath, mode = 'smart') {
+    if (!Array.isArray(rawPath) || !rawPath.length) {
+        return { path: [], stats: { total: 0, removed: 0, obdUsed: false,
+            suspectRuns: 0, islandsRemoved: 0, boomerangsRemoved: 0,
+            quarantinedRemoved: 0, strictIslandsRemoved: 0, strictFixesRemoved: 0,
+            strictStaleRuns: 0, strictStaleFixes: 0, parkedFixes: 0,
+            headingOutliers: 0, headingTrusted: false,
+            gpsSpeedSamples: 0, gpsSpeedMismatch: 0, gpsSpeedJumps: 0,
+            gpsSpeedFrozen: 0, gpsSpeedRejected: 0 } };
+    }
+    const median = gpsMedianInterval(rawPath);
+    const maxGapMs = Math.max(3000, Math.min(120000, median * 4));
+    const good = new Set();
+    let obdUsed = false;
+    let suspectRuns = 0;
+    const points = rawPath.map((p, originalIndex) => ({
+        p, originalIndex,
+        coord: [Number(p?.[0]), Number(p?.[1])],
+        time: Number(p?.[3]), segment: Number(p?.[4] || 0),
+        speed: gpsObdSpeed(p), gpsSpeed: gpsReportedSpeed(p),
+        valid: Array.isArray(p) && Number.isFinite(Number(p[0])) &&
+            Number.isFinite(Number(p[1])) && Number(p[0]) !== 0 &&
+            Number(p[1]) !== 0 && Math.abs(Number(p[0])) <= 90 &&
+            Math.abs(Number(p[1])) <= 180 && Number.isFinite(Number(p[3]))
+    })).reverse();
+
+    const speedEvidence = gpsSpeedEvidence(points, maxGapMs);
+
+    function processRun(run) {
+        if (!run.length) return;
+        // Prefix sums support O(1) conservative ECU-distance bounds, even
+        // when the suspect interval contains thousands of fixes.
+        const meters = new Float64Array(run.length);
+        const coverage = new Float64Array(run.length);
+        let conservativeGpsTravel = 0;
+        for (let i = 1; i < run.length; i++) {
+            const a = run[i - 1], b = run[i];
+            const dt = b.time - a.time;
+            meters[i] = meters[i - 1];
+            coverage[i] = coverage[i - 1];
+            if (dt > 0 && dt <= maxGapMs && a.segment === b.segment) {
+                const gpsDist = gpsDistanceMeters(a.coord, b.coord);
+                if (gpsDist <= GPS_FILTER_JITTER_M + (dt / 1000) * GPS_FILTER_MAX_MPS)
+                    conservativeGpsTravel += gpsDist;
+            }
+            // Do not extrapolate an OBD reading through a missing-GPS interval.
+            if (dt > 0 && dt <= maxGapMs && a.segment === b.segment &&
+                a.speed !== null && b.speed !== null) {
+                meters[i] += ((a.speed + b.speed) / 2 / 3.6) * (dt / 1000);
+                coverage[i] += dt;
+            }
+        }
+        // Some devices expose an unchanging or incorrectly encoded kd field.
+        // If well-behaved GPS proves substantial motion while OBD reports
+        // almost nothing, ignore OBD rather than deleting a real trip.
+        // Never decide OBD is stale *solely* because GPS positions imply
+        // movement. That trusts the very GPS channel being diagnosed.
+        // Retain the old protection for recordings without an independently
+        // contradictory receiver-speed channel: it prevents wiping real
+        // routes from devices where kd is stuck at zero. If GPS speed itself
+        // strongly contradicts OBD on a sustained set of fixes, keep ECU
+        // distance evidence enabled. Still reject coordinates only on an
+        // independently implausible displacement, not on speed mismatch alone.
+        let compared = 0, discordant = 0;
+        for (const point of run) {
+            if (point.speed === null || point.gpsSpeed === null) continue;
+            compared++;
+            if (Math.abs(point.speed - point.gpsSpeed) > GPS_SPEED_TOLERANCE_KMH)
+                discordant++;
+        }
+        const speedContradiction = compared >= 6 && discordant >= 6 &&
+            discordant / compared >= 0.6;
+        const obdReliable = speedContradiction || !(conservativeGpsTravel > 300 &&
+            meters[run.length - 1] < conservativeGpsTravel * 0.2);
+        if (obdReliable && coverage[run.length - 1] > 0) obdUsed = true;
+        const plausible = (aIndex, bIndex) => {
+            const a = run[aIndex], b = run[bIndex];
+            const dt = (b.time - a.time) / 1000;
+            if (!(dt > 0)) return false;
+            const dist = gpsDistanceMeters(a.coord, b.coord);
+            let limit = GPS_FILTER_JITTER_M + dt * GPS_FILTER_MAX_MPS;
+            const covered = coverage[bIndex] - coverage[aIndex];
+            if (obdReliable && covered >= (dt * 1000 * 0.8)) {
+                const travelled = meters[bIndex] - meters[aIndex];
+                // Generous tolerance: some non-RedManage logs record kd in
+                // miles/hour although its PID is labelled km/h. Keep the
+                // bounds conservative rather than rejecting a genuine trip.
+                limit = Math.min(limit, Math.max(85, GPS_FILTER_JITTER_M + 5 * travelled));
+                // Suspicious GPS speed + valid OBD is a strong indicator that
+                // an apparent high-speed displacement may be a teleport.
+                // Keep ample tolerance for jitter, logging skew and corners.
+                if (speedEvidence.suspicious.has(a.originalIndex) ||
+                    speedEvidence.suspicious.has(b.originalIndex)) {
+                    limit = Math.min(limit, Math.max(30, 25 + 2.2 * travelled));
+                }
+            }
+            return dist <= limit;
+        };
+        good.add(run[0].originalIndex);
+        let anchor = 0;
+        let suspectStart = -1;
+        for (let i = 1; i < run.length; i++) {
+            if (suspectStart === -1) {
+                if (plausible(anchor, i)) {
+                    good.add(run[i].originalIndex);
+                    anchor = i;
+                } else {
+                    suspectStart = i;
+                    ++suspectRuns;
+                }
+            } else if (plausible(anchor, i) && !plausible(i - 1, i)) {
+                // Teleported away, then returned to a physically reachable
+                // position: discard the full false cluster. The skipped raw
+                // indices force a route split, including for heatlines/hover.
+                good.add(run[i].originalIndex);
+                anchor = i;
+                suspectStart = -1;
+            }
+        }
+        if (suspectStart !== -1) {
+            const count = run.length - suspectStart;
+            const last = run.length - 1;
+            const elapsedMs = run[last].time - run[suspectStart].time;
+            // A few fixes are not sufficient to confirm a newly relocated
+            // track. Require both spatial continuity and temporal evidence;
+            // the long-blackout exception avoids suppressing genuine trips
+            // that resume recording only briefly at a distant location.
+            let coherent = true;
+            for (let i = suspectStart + 1; i < run.length; i++) {
+                if (run[i].segment === run[i - 1].segment &&
+                    run[i].time - run[i - 1].time <= maxGapMs &&
+                    !plausible(i - 1, i)) {
+                    coherent = false;
+                    break;
+                }
+            }
+            const confirmed = coherent && count >= GPS_FILTER_CONFIRM_FIXES &&
+                elapsedMs >= GPS_FILTER_CONFIRM_MS;
+            const newSourceSegment = run[suspectStart].segment !== run[anchor].segment;
+            const blackoutMs = run[suspectStart].time - run[anchor].time;
+            const inconclusiveLongBlackout = newSourceSegment &&
+                blackoutMs >= GPS_FILTER_UNCERTAIN_BLACKOUT_MS &&
+                coherent && count >= 2;
+            if ((confirmed && (plausible(anchor, last) || newSourceSegment)) ||
+                inconclusiveLongBlackout) {
+                for (let i = suspectStart; i < run.length; i++) {
+                    good.add(run[i].originalIndex);
+                }
+            }
+        }
+    }
+
+    let run = [];
+    for (const point of points) {
+        const previous = run[run.length - 1];
+        // Retain an anomaly-detection anchor across shorter signal outages;
+        // *rendering* still splits on original segment IDs and maxGapMs.
+        // A genuinely long break remains inconclusive and starts a new run.
+        const continues = point.valid && previous &&
+            point.time > previous.time &&
+            point.time - previous.time <= 600000;
+        if (!point.valid || (run.length && !continues)) {
+            processRun(run);
+            run = [];
+        }
+        if (point.valid) run.push(point);
+    }
+    processRun(run);
+    const islandStats = gpsRejectIsolatedIslands(points, good, maxGapMs);
+    speedEvidence.stats.gpsSpeedRejected = gpsRejectSpeedInconsistentSpikes(
+        points, good, speedEvidence, maxGapMs, mode);
+    const staleStats = mode === 'strict' ?
+        gpsRejectStrictFrozenCoordinates(points, good, maxGapMs) :
+        { strictStaleRuns: 0, strictStaleFixes: 0 };
+    const strictStats = mode === 'strict' ?
+        gpsRejectStrictDetachedFragments(points, good, maxGapMs) :
+        { strictIslandsRemoved: 0, strictFixesRemoved: 0 };
+    const stage2 = gpsApplyStage2(points, good, maxGapMs, mode);
+
+    // Output stays newest-first, preserves source timestamps/headings/speed,
+    // and adds a break whenever any intervening fix was removed.
+    const path = [];
+    let previousIndex = -2;
+    let previousSegment = null;
+    let segment = 0;
+    for (let i = 0; i < rawPath.length; i++) {
+        if (!good.has(i)) continue;
+        const p = rawPath[i];
+        const sourceSegment = Number(p[4] || 0);
+        if (path.length && (i !== previousIndex + 1 || sourceSegment !== previousSegment)) segment++;
+        const coord = stage2.overrides.get(i);
+        path.push([coord ? coord[0] : p[0], coord ? coord[1] : p[1],
+            coord ? 0 : p[2], p[3], segment, p[5] ?? null, p[6] ?? null]);
+        previousIndex = i;
+        previousSegment = sourceSegment;
+    }
+    // Expose *diagnostic* timestamps for the chart hover. These are NOT
+    // deleted telemetry values; GPS speed can be wrong with a correct fix.
+    const speedWarningTimes = new Set();
+    for (const index of speedEvidence.suspicious) {
+        const time = Number(rawPath[index]?.[3]);
+        if (Number.isFinite(time)) speedWarningTimes.add(time);
+    }
+    return { path, speedWarningTimes,
+        stats: { total: rawPath.length, removed: rawPath.length - path.length,
+        obdUsed, suspectRuns, ...islandStats, ...staleStats, ...strictStats, ...speedEvidence.stats,
+        parkedFixes: stage2.parkedFixes,
+        headingOutliers: stage2.headingOutliers,
+        headingTrusted: stage2.headingTrusted } };
+}
+
+function buildGpsDisplayMapData(rawPath, enabled = gpsFilterMode) {
+    // Retain compatibility with callers/tests that pass a boolean.
+    const mode = enabled === true ? 'smart' : enabled === false ? 'off' : enabled;
+    if (mode === 'off' || !GPS_FILTER_MODES.includes(mode)) {
+        gpsFilterDiagnostics = null;
+        window.gpsSpeedWarningTimes = null;
+        return buildMapData(rawPath);
+    }
+    // Stream mutates rawPath in place, so length and first/last time must be
+    // included in the cache identity. Never keep stale filtered GPS fixes.
+    const first = rawPath?.[0]?.[3], last = rawPath?.[rawPath.length - 1]?.[3];
+    if (!gpsFilterCache || gpsFilterCache.source !== rawPath ||
+        gpsFilterCache.length !== rawPath.length || gpsFilterCache.first !== first ||
+        gpsFilterCache.last !== last || gpsFilterCache.mode !== mode) {
+        const result = filterGpsAnomalies(rawPath, mode);
+        gpsFilterCache = { source: rawPath, length: rawPath.length, first, last, mode, result };
+    }
+    gpsFilterDiagnostics = gpsFilterCache.result.stats;
+    window.gpsSpeedWarningTimes = gpsFilterCache.result.speedWarningTimes;
+    return buildMapData(gpsFilterCache.result.path);
+}
+
+function buildMapData(rawPath) {
+    const points = rawPath.filter(p => Array.isArray(p) &&
+        Number.isFinite(Number(p[0])) && Number.isFinite(Number(p[1])) &&
+        Number(p[0]) !== 0 && Number(p[1]) !== 0 &&
+        Math.abs(Number(p[0])) <= 90 && Math.abs(Number(p[1])) <= 180);
+    const median = gpsMedianInterval(points);
+    const maxGapMs = Math.max(3000, Math.min(120000, median * 4));
+    const segmentsIndices = [];
+    const origHeading = {};
+    const origToFlat = {};
+    let previous = null;
+    let currentSegment = null;
+    let flatIndex = 0;
+    let segmentNumber = -1;
+
+    // Use original raw indices; do not silently reindex when filtering fixes.
+    rawPath.forEach((p, index) => {
+        if (!Array.isArray(p)) return;
+        const lat = Number(p[0]), lon = Number(p[1]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat === 0 || lon === 0 ||
+            Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+            previous = null;
+            return;
+        }
+        const coord = [lat, lon];
+        const time = p.length > 3 && Number.isFinite(Number(p[3])) ? Number(p[3]) : null;
+        const gpsSegment = p.length > 4 ? Number(p[4]) : 0;
+        let startsSegment = !previous || gpsSegment !== previous.gpsSegment;
+        if (!startsSegment && time !== null && previous.time !== null) {
+            const dt = previous.time - time;  // SQL and rawPath: newest first
+            if (dt <= 0 || dt > maxGapMs ||
+                gpsDistanceMeters(coord, previous.coord) / (dt / 1000) > 120) {
+                startsSegment = true;
+            }
+        }
+        if (startsSegment) {
+            currentSegment = [];
+            segmentsIndices.push(currentSegment);
+            ++segmentNumber;
+        }
+        const item = { coord, index, time, segmentNumber };
+        currentSegment.push(item);
+        origHeading[index] = Number(p[2]) || 0;
+        origToFlat[index] = flatIndex++;
+        previous = { coord, time, gpsSegment };
+    });
+
+    const segmentsCoords = segmentsIndices.map(seg => seg.map(item => item.coord));
+    const flattened = segmentsIndices.flat();
+    return {
+        segmentsCoords, segmentsIndices,
+        flatCoords: flattened.map(item => item.coord),
+        flatIndices: flattened.map(item => item.index),
+        gpsChronological: flattened.filter(item => item.time !== null)
+            .slice().sort((a, b) => a.time - b.time),
+        maxGapMs, medianIntervalMs: median,
+        rawPathLength: rawPath.length, nextIndex: rawPath.length,
+        origHeading, origToFlat
+    };
+}
+
+// Lower-bound search on timestamps; used for every hover (O(log N)).
+function gpsLowerBound(items, time) {
+    let lo = 0, hi = items.length;
+    while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        if (items[mid].time < time) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo;
+}
+
+function gpsPositionAtTime(mapData, time) {
+    if (!mapData || !Number.isFinite(time)) return null;
+    const items = mapData.gpsChronological;
+    if (!items?.length) return null;
+    const at = gpsLowerBound(items, time);
+    if (at < items.length && items[at].time === time) return items[at].coord;
+    const prev = items[at - 1], next = items[at];
+    if (prev && next && prev.segmentNumber === next.segmentNumber &&
+        next.time > prev.time && next.time - prev.time <= mapData.maxGapMs) {
+        const t = (time - prev.time) / (next.time - prev.time);
+        return [prev.coord[0] + (next.coord[0] - prev.coord[0]) * t,
+                prev.coord[1] + (next.coord[1] - prev.coord[1]) * t];
+    }
+    // Only snap very close to an isolated sample. Never extend a marker
+    // through an outage simply because no newer fix is available.
+    // A tiny timestamp-jitter allowance, never a whole missing chart sample.
+    const tolerance = Math.min(100, Math.max(0, mapData.medianIntervalMs / 10));
+    if (prev && time - prev.time <= tolerance) return prev.coord;
+    if (next && next.time - time <= tolerance) return next.coord;
+    return null;
+}
+
+function gpsSegmentsForTimeRange(mapData, start, end) {
+    if (!mapData) return [];
+    return mapData.segmentsIndices.map(seg => seg.filter(p => p.time !== null &&
+        p.time >= start && p.time <= end)).filter(seg => seg.length);
+}
+
+// A PID and GPS fix can have different sampling frequencies. Match by
+// original time, never by proportional array position or dataIndex.
+function gpsMetricLookup(sourceData) {
+    const mapping = window.realTimeInfo?.timeMapping;
+    const samples = [];
+    for (const point of sourceData || []) {
+        if (!Array.isArray(point) || point.length < 2 || point[1] === null ||
+            point[1] === undefined || !Number.isFinite(Number(point[1]))) continue;
+        const processed = Number(point[0]);
+        const time = mapping?.[processed] ?? processed;
+        if (Number.isFinite(Number(time))) samples.push({ time: Number(time), value: Number(point[1]) });
+    }
+    samples.sort((a, b) => a.time - b.time);
+    const intervals = [];
+    for (let i = 1; i < samples.length; i++) {
+        const dt = samples[i].time - samples[i - 1].time;
+        if (dt > 0) intervals.push(dt);
+    }
+    intervals.sort((a, b) => a - b);
+    const cadence = intervals.length ? intervals[Math.floor(intervals.length / 2)] : 1000;
+    return { samples, toleranceMs: Math.max(500, Math.min(30000, cadence * 1.5)) };
+}
+
+function gpsMetricAtTime(lookup, time) {
+    if (!lookup || !Number.isFinite(time)) return null;
+    const items = lookup.samples;
+    const idx = gpsLowerBound(items, time);
+    const a = items[idx - 1], b = items[idx];
+    const selected = !a ? b : !b ? a :
+        (time - a.time <= b.time - time ? a : b);
+    return selected && Math.abs(selected.time - time) <= lookup.toleranceMs
+        ? selected.value : null;
+}
+
+// A lone GPS fix produces no visible polyline but the heading renderer used
+// to put a conspicuous floating arrow on it. For Strict only, require a
+// short real trajectory within the *visible* segment before drawing arrows.
+// Does not change GPS data, hover, heatlines or Off/Smart behavior.
+function gpsStrictHeadingSegmentVisible(segment) {
+    if (!Array.isArray(segment) || segment.length < 3) return false;
+    let distance = 0;
+    const start = segment[0].coord;
+    let maxFromStart = 0;
+    for (let i = 1; i < segment.length; i++) {
+        distance += gpsDistanceMeters(segment[i - 1].coord, segment[i].coord);
+        maxFromStart = Math.max(maxFromStart,
+            gpsDistanceMeters(start, segment[i].coord));
+    }
+    const duration = Math.abs(segment[0].time - segment[segment.length - 1].time);
+    return duration >= 2000 && distance >= 25 &&
+        (maxFromStart >= 15 || distance >= 100);
+}
+
 // ======================= Map initialization =======================
 let map = null;
 let polyline = null;
@@ -1179,6 +2370,76 @@ let initMapLeaflet = () => {
         }
     })();
 
+    // One map control cycles Off -> Smart -> Strict. Same control is available
+    // in ordinary and shared sessions, with no extra handlers when switched.
+    (function addGpsHybridFilterControl() {
+        const zoomControl = document.querySelector('.leaflet-control-zoom');
+        if (!zoomControl) return;
+        const btn = L.DomUtil.create('a', 'leaflet-control-gps-hybrid');
+        btn.href = '#';
+        btn.setAttribute('role', 'button');
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" '
+            + 'viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            + 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+            + '<path d="M3 18l6-6 4 4 8-9"/><path d="M15 7h6v6"/>'
+            + '<path d="M4 5h7"/></svg>';
+        const refreshButton = () => {
+            const translated = (key, fallback) => {
+                if (typeof localization !== 'undefined' && localization &&
+                    localization.key && typeof localization.key[key] === 'string') {
+                    return localization.key[key];
+                }
+                // Translations load asynchronously; use an English fallback
+                // until the dictionary is ready, then update via updateContent.
+                return fallback;
+            };
+            const title = translated('gps.filter.title', 'GPS filter');
+            const label = gpsFilterMode === 'off' ? 'Off' :
+                gpsFilterMode === 'smart' ? 'Smart' : 'Strict';
+            const stats = gpsFilterDiagnostics;
+            const summary = gpsFilterEnabled && stats ?
+                ` · ${stats.removed} ${translated('gps.filter.removed', 'removed')}` +
+                (stats.parkedFixes ? ` · ${stats.parkedFixes} ${translated('gps.filter.parked', 'stationary fixes')}` : '') +
+                (stats.headingOutliers ? ` · ${stats.headingOutliers} ${translated('gps.filter.heading', 'heading outliers')}` : '') +
+                (stats.gpsSpeedMismatch ? ` · ${stats.gpsSpeedMismatch} ${translated('gps.filter.speed', 'GPS/OBD disagreement')}` : '') +
+                (stats.gpsSpeedJumps ? ` · ${stats.gpsSpeedJumps} ${translated('gps.filter.jumps', 'speed jumps')}` : '') +
+                (stats.gpsSpeedFrozen ? ` · ${stats.gpsSpeedFrozen} ${translated('gps.filter.frozen', 'GPS speed frozen')}` : '') +
+                (stats.strictStaleFixes ? ` · ${stats.strictStaleFixes} ${translated('gps.filter.stale.coordinates', 'stale GPS coordinates')}` : '') +
+                (stats.gpsSpeedRejected ? ` · ${stats.gpsSpeedRejected} ${translated('gps.filter.speed.rejected', 'speed-confirmed outliers')}` : '') +
+                (stats.strictFixesRemoved ? ` · ${stats.strictFixesRemoved} ${translated('gps.filter.strict.removed', 'remote GPS fixes')}` : '') : '';
+            const hint = stream ? translated('gps.filter.stream', 'disabled in Stream') :
+                translated('gps.filter.next', 'click for next mode');
+            btn.title = `${title}: ${label}${summary} · ${hint}`;
+            btn.setAttribute('aria-label', btn.title);
+            btn.setAttribute('aria-pressed', String(gpsFilterEnabled));
+            btn.setAttribute('aria-disabled', String(!!stream));
+            btn.dataset.mode = gpsFilterMode;
+            btn.classList.toggle('gps-hybrid-on', gpsFilterEnabled);
+            btn.classList.toggle('gps-hybrid-strict', gpsFilterMode === 'strict');
+            btn.classList.toggle('gps-hybrid-disabled', !!stream);
+        };
+        window.syncGpsFilterControl = refreshButton;
+        L.DomEvent.on(btn, 'click', e => {
+            L.DomEvent.preventDefault(e);
+            L.DomEvent.stopPropagation(e);
+            if (stream) return;
+            const index = GPS_FILTER_MODES.indexOf(gpsFilterMode);
+            gpsFilterMode = GPS_FILTER_MODES[(index + 1) % GPS_FILTER_MODES.length];
+            gpsFilterEnabled = gpsFilterMode !== 'off';
+            try {
+                localStorage.setItem(`${username}-gps_filter_mode`, gpsFilterMode);
+                // Preserve old callers that inspect the boolean preference.
+                localStorage.setItem(`${username}-gps_hybrid_filter`, String(gpsFilterEnabled));
+            } catch (_) {}
+            if (typeof window.refreshGpsFilterView === 'function') window.refreshGpsFilterView();
+            refreshButton();
+        });
+        const streamBtn = zoomControl.querySelector('.leaflet-control-zoom-stream');
+        if (streamBtn) zoomControl.insertBefore(btn, streamBtn);
+        else zoomControl.appendChild(btn);
+        refreshButton();
+    })();
+
     // ---------------------- Hotline layer group ----------------------
     let hotlineLayers = L.layerGroup().addTo(map); // will contain hotline for each segment
     window.currentDataSource = null;
@@ -1240,6 +2501,11 @@ let initMapLeaflet = () => {
     // Full track on load
     window.currentMapSlicedCoords = window.MapData.flatCoords;
     window.currentMapSlicedIndices = window.MapData.flatIndices;
+    window.currentMapSlicedSegments = window.MapData.segmentsIndices;
+    window.currentMapSegmentsForHotline = window.MapData.segmentsIndices;
+    window.visibleGpsMapData = window.MapData;
+    window.visibleGpsStart = -Infinity;
+    window.visibleGpsEnd = Infinity;
 
     // ---------------------- Heading arrows layer ----------------------
     headingArrowsLayer = L.layerGroup().addTo(map);
@@ -1304,11 +2570,25 @@ let initMapLeaflet = () => {
 
         // --- Calculate total length of the visible polyline segment ---
         let totalDistance = 0;
-        const distances = [0];   // cumulative distance from the first point
+        const distances = [0];
+        const segmentStarts = new Set();
+        // Stream intentionally displays raw GPS even when Strict is saved.
+        const eligible = gpsFilterMode === 'strict' && !stream ?
+            new Uint8Array(coords.length) : null;
+        let offset = 0;
+        for (const seg of window.currentMapSlicedSegments || []) {
+            segmentStarts.add(offset);
+            if (eligible && gpsStrictHeadingSegmentVisible(seg)) {
+                eligible.fill(1, offset, offset + seg.length);
+            }
+            offset += seg.length;
+        }
         for (let i = 1; i < coords.length; i++) {
-            const d = L.latLng(coords[i-1][0], coords[i-1][1])
-                        .distanceTo(L.latLng(coords[i][0], coords[i][1]));
-            totalDistance += d;
+            // No travelled distance may be measured through a GPS outage.
+            if (!segmentStarts.has(i)) {
+                totalDistance += L.latLng(coords[i-1][0], coords[i-1][1])
+                    .distanceTo(L.latLng(coords[i][0], coords[i][1]));
+            }
             distances.push(totalDistance);
         }
 
@@ -1333,12 +2613,13 @@ let initMapLeaflet = () => {
         let firstArrow = true;
 
         for (let i = 0; i < coords.length; i++) {
+            if (eligible && !eligible[i]) continue;  // Strict: no floating arrows on GPS specks
             const origIdx = indices[i];
             if (origIdx < 0) continue;                // streaming point without a valid index
             const hdg = origHeading[origIdx];
             if (hdg === undefined || hdg === null || hdg === 0) continue; // skip missing or zero headings
 
-            if (firstArrow) {
+            if (firstArrow || segmentStarts.has(i)) {
                 addArrow(coords[i], hdg);
                 lastDist = distances[i];
                 firstArrow = false;
@@ -1393,76 +2674,51 @@ let initMapLeaflet = () => {
     });
 
     // ---------------------- Range update function (slider) ----------------------
-    mapUpdRange = (origStartIdx, origEndIdx) => {
-        const origToFlat = window.MapData.origToFlat;
-        if (!origToFlat) return;
+    mapUpdRange = (chartStartIdx, chartEndIdx) => {
+        // Chart indices are newest-first; jsTimeMap is oldest-first.
+        // They are not GPS point indices, even when the sample counts match.
+        if (!jsTimeMap.length) return;
+        const max = jsTimeMap.length - 1;
+        const lo = Math.max(0, Math.min(max, Math.min(chartStartIdx, chartEndIdx)));
+        const hi = Math.max(0, Math.min(max, Math.max(chartStartIdx, chartEndIdx)));
+        const start = jsTimeMap[max - hi];
+        const end = jsTimeMap[max - lo];
+        window.visibleGpsStart = start;
+        window.visibleGpsEnd = end;
+        const slicedSegments = gpsSegmentsForTimeRange(window.MapData, start, end);
+        window.currentMapSegmentsForHotline = slicedSegments;
+        window.currentMapSlicedSegments = slicedSegments;
+        const items = slicedSegments.flat();
+        window.visibleGpsMapData = {
+            gpsChronological: items.filter(item => item.time !== null).reverse(),
+            maxGapMs: window.MapData.maxGapMs,
+            medianIntervalMs: window.MapData.medianIntervalMs
+        };
+        window.currentMapSlicedCoords = items.map(p => p.coord);
+        window.currentMapSlicedIndices = items.map(p => p.index);
+        polyline.setLatLngs(slicedSegments.map(seg => seg.map(p => p.coord)));
 
-        // Ensure indices are in correct order (start ≤ end)
-        let s = Math.min(origStartIdx, origEndIdx);
-        let e = Math.max(origStartIdx, origEndIdx);
-
-        // Find the nearest valid indices in the flat array
-        let flatStart = origToFlat[s];
-        let flatEnd = origToFlat[e];
-        while (flatStart === undefined && s <= e) { s++; flatStart = origToFlat[s]; }
-        while (flatEnd === undefined && e >= s) { e--; flatEnd = origToFlat[e]; }
-        if (flatStart === undefined || flatEnd === undefined) return;
-
-        const flat = window.MapData.flatCoords;
-        const sliced = flat.slice(flatStart, flatEnd + 1).filter(([lat, lng]) => lat !== 0 || lng !== 0);
-        if (!sliced.length) return;
-
-        // Rebuild segments for display (without short segment filtering)
-        const slicedSegmentsWithIndices = extractValidSegmentsWithIndices(sliced, {
-            maxStep: 0.003,
-            minPoints: 1,
-            minDistance: 0
-        });
-        const slicedSegmentsCoords = slicedSegmentsWithIndices.map(seg => seg.map(p => p.coord));
-        window.currentMapSegmentsForHotline = slicedSegmentsWithIndices;
-
-        // Save the current slice of coordinates and indices for markerUpd and other needs
-        if (!slicedSegmentsCoords.length) {
-            // No visible segments after filtering – clear polyline and markers
-            polyline.setLatLngs([]);
-            startcir.setLatLng([0,0]);
-            endcir.setLatLng([0,0]);
+        // An empty range MUST clear the previous route and start/end markers.
+        if (!items.length) {
+            map.removeLayer(startcir);
+            map.removeLayer(endcir);
             map.removeLayer(markerPnt);
             headingArrowsLayer.clearLayers();
+            if (currentDataSource !== null) updateHotline(currentDataSource);
             return;
         }
+        startcir.setLatLng(items[items.length - 1].coord);
+        endcir.setLatLng(items[0].coord);
+        if (!map.hasLayer(startcir)) startcir.addTo(map);
+        if (!map.hasLayer(endcir)) endcir.addTo(map);
+        map.removeLayer(markerPnt);
 
-        const slicedIndices = window.MapData.flatIndices
-            .slice(flatStart, flatEnd + 1)
-            .filter((_, i) => {
-                const coord = flat[flatStart + i];
-                return coord[0] !== 0 || coord[1] !== 0;
-            });
-        window.currentMapSlicedCoords = sliced;
-        window.currentMapSlicedIndices = slicedIndices;
-
-        // Update polyline and markers
-        polyline.setLatLngs(slicedSegmentsCoords);
-        startcir.setLatLng(sliced[sliced.length - 1]);
-        endcir.setLatLng(sliced[0]);
-
-        // If Hotline/Heatmap is active
-        if (currentDataSource !== null) {
-            updateHotline(currentDataSource, [flatStart, flatEnd], s, e);
-        } else {
-            if (!map.hasLayer(polyline)) polyline.addTo(map);
-        }
-
-        // Update heading arrows to match the new visible segment
+        if (currentDataSource !== null) updateHotline(currentDataSource);
+        else if (!map.hasLayer(polyline)) polyline.addTo(map);
         updateHeadingArrows();
-
-        // Safe bounds fitting
         const bounds = polyline.getBounds();
-        if (bounds.isValid()) {
-            map.fitBounds(bounds, { maxZoom: 15 });
-        } else if (sliced.length > 0) {
-            map.setView(sliced[0], 13);
-        }
+        if (bounds.isValid()) map.fitBounds(bounds, { maxZoom: 15 });
+        else map.setView(items[0].coord, 13);
     };
 
     // ---------------------- Hotline / Heatmap ----------------------
@@ -1511,8 +2767,7 @@ let initMapLeaflet = () => {
 
         let timeDisplay = '';
         if (point.time) {
-            const realTimeValue = findNearestRealTime(point.time);
-            const realTime = new Date(realTimeValue);
+            const realTime = new Date(point.time);
             const use12HourFormat = Cookies.get('timeformat') === '12';
             timeDisplay = realTime.toLocaleTimeString('en-US', {
                 hour: '2-digit',
@@ -1548,6 +2803,7 @@ let initMapLeaflet = () => {
         }
     }
 
+    let activeMetricLookup = null;
     globalThis.updateHotline = function(sourceIndex, rangeFlatIndices, origRangeStart = null, origRangeEnd = null) {
         hotlineLayers.clearLayers();
 
@@ -1562,6 +2818,7 @@ let initMapLeaflet = () => {
 
         if (sourceIndex === null || sourceIndex === "" || !heatData || !heatData[sourceIndex]) {
             currentDataSource = null;
+            activeMetricLookup = null;
             if (!map.hasLayer(polyline)) polyline.addTo(map);
             if (hotlineLegend) {
                 map.removeControl(hotlineLegend);
@@ -1581,7 +2838,10 @@ let initMapLeaflet = () => {
 
         const sourceData = heatData[sourceIndex].data;
         if (!sourceData || sourceData.length === 0) {
-            currentDataSource = null;
+            // Preserve the selection when the chosen time range has no PID
+            // samples; restoring the range must restore its heatline too.
+            currentDataSource = sourceIndex;
+            activeMetricLookup = null;
             if (!map.hasLayer(polyline)) polyline.addTo(map);
             if (hotlineLegend) {
                 map.removeControl(hotlineLegend);
@@ -1590,48 +2850,39 @@ let initMapLeaflet = () => {
             return;
         }
 
-        let currentDataIndex = 0;
+        activeMetricLookup = gpsMetricLookup(sourceData);
+        const pointSegments = [];
         let globalMin = Infinity;
         let globalMax = -Infinity;
-        let anyLayer = false;
-
-        targetSegmentsIndices.forEach(segWithIdx => {
-            const points = [];
-            segWithIdx.forEach(({ coord }) => {
-                if (currentDataIndex >= sourceData.length) return;
-                const dataIdx = currentDataIndex++;
-
-                let value = null;
-                let timestamp = null;
-                const raw = sourceData[dataIdx];
-                if (Array.isArray(raw) && raw.length >= 2) {
-                    timestamp = raw[0];
-                    value = raw[1];
-                } else {
-                    value = raw;
-                    if (window.timeData && window.timeData[dataIdx]) {
-                        timestamp = window.timeData[dataIdx];
-                    }
+        // Split again where the selected PID has no contemporaneous reading.
+        // One heatline per contiguous valid run, never across GPS/PID gaps.
+        for (const segment of targetSegmentsIndices) {
+            let points = [];
+            for (const { coord, time } of segment) {
+                const value = gpsMetricAtTime(activeMetricLookup, time);
+                if (value === null) {
+                    if (points.length) pointSegments.push(points);
+                    points = [];
+                    continue;
                 }
-
-                if (value === null || value === undefined || isNaN(value)) return;
-
-                const latLng = L.latLng(coord[0], coord[1], value);
-                latLng.alt = value;
-                if (timestamp) latLng.time = timestamp;
-                points.push(latLng);
-
-                if (value < globalMin) globalMin = value;
-                if (value > globalMax) globalMax = value;
-            });
-
-            if (points.length === 0) return;
-
-            if (globalMin === globalMax) {
-                globalMin -= 0.1;
-                globalMax += 0.1;
+                const point = L.latLng(coord[0], coord[1]);
+                point.alt = value;
+                point.time = time;
+                points.push(point);
+                globalMin = Math.min(globalMin, value);
+                globalMax = Math.max(globalMax, value);
             }
+            if (points.length) pointSegments.push(points);
+        }
 
+        let anyLayer = false;
+        if (globalMin === globalMax && Number.isFinite(globalMin)) {
+            globalMin -= 0.1;
+            globalMax += 0.1;
+        }
+        for (const points of pointSegments) {
+            // A single GPS fix is valid but does not form a colored line.
+            if (points.length < 2) continue;
             const hotline = L.hotline(points, {
                 min: globalMin,
                 max: globalMax,
@@ -1640,15 +2891,12 @@ let initMapLeaflet = () => {
                 outlineColor: '#444',
                 outlineWidth: 1
             });
-
             hotline.sourceIndex = sourceIndex;
             hotline.hotlineData = { points, min: globalMin, max: globalMax };
-
             hotline.on('mousemove click', function(e) {
                 const closest = findClosestPoint(e.latlng, this.hotlineData.points);
                 if (closest) showTooltipAtPoint(closest, this.sourceIndex);
             });
-
             hotline.on('mouseout', function() {
                 if (!('ontouchstart' in window)) {
                     map.eachLayer(layer => {
@@ -1658,10 +2906,9 @@ let initMapLeaflet = () => {
                     });
                 }
             });
-
             hotlineLayers.addLayer(hotline);
             anyLayer = true;
-        });
+        }
 
         if (anyLayer) {
             currentDataSource = sourceIndex;
@@ -1673,7 +2920,7 @@ let initMapLeaflet = () => {
                 lastHeatCoord = L.latLng(firstPoint[0], firstPoint[1]);
             }
         } else {
-            currentDataSource = null;
+            currentDataSource = sourceIndex;
             if (!map.hasLayer(polyline)) polyline.addTo(map);
             if (hotlineLegend) {
                 map.removeControl(hotlineLegend);
@@ -1784,6 +3031,7 @@ let initMapLeaflet = () => {
     }, 1000);
 
     // ---------------------- Dynamic update while streaming ----------------------
+    let streamGpsWasMissing = false;
     const rate = Number(Cookies.get('tracking-rate')) || 1000;
     setInterval(() => {
         let marker = null;
@@ -1792,7 +3040,11 @@ let initMapLeaflet = () => {
         let spd = stream ? ($('#spd').length != 0 ? $('#spd').html() : localization.key['nospd']) : null;
         let spd_unit = stream ? ($('#spd-unit').length != 0 ? $('#spd-unit').html() : "") : null;
         const hdg = stream ? parseFloat($('#hdg').html()) : 0;
-        if (lat == null || lon == null || isNaN(lat) || isNaN(lon) || (lat == 0 && lon == 0)) return;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat === 0 || lon === 0 ||
+            Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+            if (stream) streamGpsWasMissing = true;
+            return;
+        }
 
         if (stream) {
             let cleanSpd = stripHtml(spd);
@@ -1824,35 +3076,50 @@ let initMapLeaflet = () => {
                     window.MapData.nextIndex = flatIndices.length > 0 ? Math.max(...flatIndices) + 1 : 0;
                 }
                 const newIndex = window.MapData.nextIndex++;
-                window.rawPath.unshift([newPoint[0], newPoint[1], hdg || 0]);
-                const STREAM_SEGMENT_THRESHOLD = 0.005;
-
-                if (firstSeg && distToFirst <= STREAM_SEGMENT_THRESHOLD) {
+                const now = Date.now();
+                const latest = window.rawPath[0];
+                const previousTime = Number(latest?.[3]);
+                const delta = now - previousTime;
+                // Respect invalid stream readings and long pauses even when
+                // the car stayed at almost the same geographic coordinate.
+                const continuous = !!firstSeg && !streamGpsWasMissing &&
+                    distToFirst <= 0.005 && Number.isFinite(delta) && delta > 0 &&
+                    delta <= Math.max(rate * 4, window.MapData.maxGapMs);
+                const segmentId = continuous ? Number(latest?.[4] || 0) :
+                    Number(latest?.[4] || 0) + 1;
+                window.rawPath.unshift([newPoint[0], newPoint[1], hdg || 0, now, segmentId]);
+                const item = { coord: newPoint, index: newIndex, time: now,
+                    segmentNumber: continuous ? firstSegIdx[0].segmentNumber :
+                        (firstSegIdx?.[0]?.segmentNumber ?? 0) + 1 };
+                if (continuous) {
                     firstSeg.unshift(newPoint);
-                    firstSegIdx.unshift({ coord: newPoint, index: newIndex });
+                    firstSegIdx.unshift(item);
                 } else {
                     segs.unshift([newPoint]);
-                    segsIdx.unshift([{ coord: newPoint, index: newIndex }]);
+                    segsIdx.unshift([item]);
                 }
-
+                streamGpsWasMissing = false;
+                window.MapData.origHeading[newIndex] = hdg || 0;
                 window.MapData.flatCoords = segs.flat();
                 window.MapData.flatIndices = segsIdx.flat().map(p => p.index);
+                window.MapData.gpsChronological.push(item);
+                window.currentMapSlicedSegments = segsIdx;
+                window.currentMapSegmentsForHotline = segsIdx;
 
                 polyline.setLatLngs(segs);
                 polyline.redraw();
 
                 endcir.setLatLng(newPoint);
 
-                if (mapIndexStart !== null && mapIndexEnd !== null) {
-                    window.currentMapSlicedCoords.unshift(newPoint);
-                    window.currentMapSlicedIndices.unshift(newIndex);
-                } else {
-                    window.currentMapSlicedCoords = window.MapData.flatCoords.slice();
-                    window.currentMapSlicedIndices = window.MapData.flatIndices.slice();
-                }
+                window.currentMapSlicedCoords = window.MapData.flatCoords.slice();
+                window.currentMapSlicedIndices = window.MapData.flatIndices.slice();
 
                 updateHeadingArrows();
 
+                if (!continuous) {
+                    pendingHeatPoints = [];
+                    lastHeatCoord = null;
+                }
                 if (currentDataSource !== null && pendingHeatlinePolyline) {
                     pendingHeatPoints.push(newPoint);
 
@@ -1962,50 +3229,84 @@ let initMapLeaflet = () => {
             map.removeLayer(markerPnt);
             return;
         }
-
-        // Remove previous tooltips
         map.eachLayer(layer => {
             if (layer instanceof L.Tooltip && layer.options.className === 'heat-data-tooltip') {
                 map.removeLayer(layer);
             }
         });
-
-        if (itm && itm.datapoint && window.currentMapSlicedCoords && window.currentMapSlicedCoords.length > 0) {
-            const chartLen = window.chartRangeEnd - window.chartRangeStart;
-            if (chartLen > 0) {
-                const frac = itm.dataIndex / chartLen;
-
-                const idx = Math.min(
-                    window.currentMapSlicedCoords.length - 1,
-                    Math.floor(frac * window.currentMapSlicedCoords.length)
-                );
-
-                const pos = window.currentMapSlicedCoords[idx];
-                markerPnt.setLatLng(pos).addTo(map);
-
-                if (currentDataSource !== null && heatData && heatData[currentDataSource]) {
-                    const sourceData = heatData[currentDataSource].data;
-                    const heatIdx = Math.min(sourceData.length - 1, Math.floor(frac * sourceData.length));
-                    const dataPoint = sourceData[heatIdx];
-                    if (dataPoint) {
-                        const value = Array.isArray(dataPoint) ? dataPoint[1] : dataPoint;
-                        const label = heatData[currentDataSource].label;
-                        L.tooltip({
-                            permanent: false,
-                            direction: 'top',
-                            className: 'heat-data-tooltip'
-                        })
-                        .setLatLng(pos)
-                        .setContent(`${label}: ${value}`)
-                        .addTo(map);
-                    }
-                }
-            } else {
-                map.removeLayer(markerPnt);
-            }
-        } else {
+        if (!itm?.datapoint || !window.MapData) {
             map.removeLayer(markerPnt);
+            return;
         }
+        // item.datapoint[0] is the compressed Flot X coordinate.
+        // Its corresponding *original* log time is the shared join key.
+        const processedTime = Number(itm.datapoint[0]);
+        const realTime = window.realTimeInfo?.timeMapping?.[processedTime] ??
+            findNearestRealTime(processedTime);
+        if (!Number.isFinite(Number(realTime))) {
+            map.removeLayer(markerPnt);
+            return;
+        }
+        const time = Number(realTime);
+        if (window.visibleGpsStart !== undefined &&
+            (time < window.visibleGpsStart || time > window.visibleGpsEnd)) {
+            map.removeLayer(markerPnt);
+            return;
+        }
+        const pos = gpsPositionAtTime(window.visibleGpsMapData, time);
+        if (!pos) {
+            map.removeLayer(markerPnt);
+            return;
+        }
+        markerPnt.setLatLng(pos).addTo(map);
+
+        if (currentDataSource !== null && heatData?.[currentDataSource]) {
+            const value = gpsMetricAtTime(activeMetricLookup, time);
+            if (value !== null) {
+                const label = heatData[currentDataSource].label;
+                L.tooltip({
+                    permanent: false,
+                    direction: 'top',
+                    className: 'heat-data-tooltip'
+                }).setLatLng(pos).setContent(`${label}: ${value}`).addTo(map);
+            }
+        }
+    };
+
+    // Recompute all GPS consumers in place. No new Leaflet map, timers,
+    // event listeners, or loss of heatline/range selection on every toggle.
+    window.refreshGpsFilterView = (forceRawForStream = false) => {
+        if (stream) return;
+        window.MapData = buildGpsDisplayMapData(window.rawPath, forceRawForStream ? 'off' : gpsFilterMode);
+        const count = jsTimeMap?.length || 0;
+        if (count) {
+            const from = mapIndexStart === null ? 0 : mapIndexStart;
+            const to = mapIndexEnd === null ? count - 1 : mapIndexEnd;
+            mapUpdRange(from, to);
+        } else {
+            const segments = window.MapData.segmentsIndices;
+            window.currentMapSegmentsForHotline = segments;
+            window.currentMapSlicedSegments = segments;
+            window.currentMapSlicedCoords = window.MapData.flatCoords;
+            window.currentMapSlicedIndices = window.MapData.flatIndices;
+            window.visibleGpsMapData = window.MapData;
+            window.visibleGpsStart = -Infinity;
+            window.visibleGpsEnd = Infinity;
+            polyline.setLatLngs(window.MapData.segmentsCoords);
+            map.removeLayer(markerPnt);
+            if (window.MapData.flatCoords.length) {
+                startcir.setLatLng(getStartCoord()).addTo(map);
+                endcir.setLatLng(getEndCoord()).addTo(map);
+                const bounds = polyline.getBounds();
+                if (bounds.isValid()) map.fitBounds(bounds, { maxZoom: 15 });
+            } else {
+                map.removeLayer(startcir);
+                map.removeLayer(endcir);
+            }
+            updateHeadingArrows();
+            if (currentDataSource !== null) updateHotline(currentDataSource);
+        }
+        if (typeof window.syncGpsFilterControl === 'function') window.syncGpsFilterControl();
     };
 };
 //End of Leaflet Map Providers js code
@@ -2209,34 +3510,10 @@ let initSlider = (jsTimeMap, start, end) => {
 //End slider js code
 
 function updateMapWithRangePreservingHeatline(startIndex = null, endIndex = null) {
-    // Если индексы не заданы – ничего не делаем
-    if (startIndex === null || endIndex === null) {
-        return;
-    }
-
-    const dataSourceSelect = document.getElementById('heat-dataSourceSelect');
-
-    if (dataSourceSelect) {
-        const prevValue = dataSourceSelect.value;
-
-        if (prevValue !== "") {
-            dataSourceSelect.value = "";
-
-            const changeEvent = new Event('change');
-            dataSourceSelect.dispatchEvent(changeEvent);
-
-            mapUpdRange(startIndex, endIndex);
-
-            setTimeout(() => {
-                dataSourceSelect.value = prevValue;
-                dataSourceSelect.dispatchEvent(changeEvent);
-            }, 300);
-        } else {
-            mapUpdRange(startIndex, endIndex);
-        }
-    } else {
-        mapUpdRange(startIndex, endIndex);
-    }
+    if (startIndex === null || endIndex === null || typeof mapUpdRange !== 'function') return;
+    // mapUpdRange now rebuilds the selected heatline without resetting the
+    // selector or waiting 300 ms (which used to race with slider changes).
+    mapUpdRange(startIndex, endIndex);
 }
 
 if ('serviceWorker' in navigator) {
@@ -2978,49 +4255,14 @@ function rebuildMapFromRawPath() {
     const rawPath = window.rawPath;
     if (!rawPath.length) return;
 
-    const coordsOnly = rawPath.map(p => [p[0], p[1]]);
-    let validSegmentsWithIndices = extractValidSegmentsWithIndices(coordsOnly, {
-        minPoints: Math.trunc(rawPath.length * 0.05)
-    });
-
-    if (!validSegmentsWithIndices.length) {
-        const fallbackPoints = rawPath
-            .map((p, idx) => ({ coord: [p[0], p[1]], index: idx }))
-            .filter(item => item.coord[0] !== 0 || item.coord[1] !== 0);
-        if (fallbackPoints.length) {
-            validSegmentsWithIndices = [fallbackPoints];
-        }
-    }
-
-    const segmentsCoords = validSegmentsWithIndices.map(seg => seg.map(p => p.coord));
-    const flatCoords = segmentsCoords.flat();
-    const flatIndices = validSegmentsWithIndices.flat().map(p => p.index);
-
-    window.MapData = {
-        segmentsCoords,
-        segmentsIndices: validSegmentsWithIndices,
-        flatCoords,
-        flatIndices,
-        nextIndex: rawPath.length
-    };
-
-    const origHeading = {};
-    rawPath.forEach((point, idx) => {
-        if (point.length >= 3) {
-            origHeading[idx] = point[2];
-        }
-    });
-    window.MapData.origHeading = origHeading;
-
-    const origToFlat = {};
-    window.MapData.segmentsIndices.flat().forEach(({ index }) => {
-        if (index >= 0 && !(index in origToFlat)) {
-            origToFlat[index] = window.MapData.flatIndices.indexOf(index);
-        }
-    });
-    window.MapData.origToFlat = origToFlat;
+    window.MapData = buildGpsDisplayMapData(rawPath);
+    // Active slider bounds must be reapplied after the Leaflet rebuild.
+    window.currentMapSegmentsForHotline = window.MapData.segmentsIndices;
 
     initMapLeaflet();
+    if (mapIndexStart !== null && mapIndexEnd !== null && !stream) {
+        mapUpdRange(mapIndexStart, mapIndexEnd);
+    }
     if (restorePseudoFullscreen && map?.fullscreenControl) {
         map.toggleFullscreen();
     }
