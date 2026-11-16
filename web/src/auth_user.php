@@ -9,6 +9,13 @@ require_once __DIR__ . '/helpers.php';
 $api_request = defined('RATEL_API_REQUEST') && RATEL_API_REQUEST;
 $cli_request = (PHP_SAPI === 'cli');
 
+// Share controllers verify access using a resource-specific HMAC.
+// They may load the database and render public pages, but they must never
+// enter the account-login flow or persist a login flag for their viewer.
+if (defined('RATEL_PUBLIC_SHARE_REQUEST') && RATEL_PUBLIC_SHARE_REQUEST) {
+    return;
+}
+
 if (!$api_request && !$cli_request && session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -16,9 +23,19 @@ if (!$api_request && !$cli_request && session_status() === PHP_SESSION_NONE) {
 $current_script = basename($_SERVER['SCRIPT_FILENAME']);
 $csrf_exempt_scripts = ['get_token.php', 'ul.php', 'adminer.php', 'remote.php', 'mcp.php', 'mcp_oauth_token.php'];
 
+// Old versions of /share left torque_logged_in=true in guest sessions.
+// Discard it unless it is backed by a real authenticated account identity.
+if (!$api_request && !$cli_request) {
+    if (!has_authenticated_browser_identity($_SESSION)) {
+        unset($_SESSION['torque_logged_in']);
+    }
+    // Public-share state is request-scoped, never part of a login session.
+    unset($_SESSION['share'], $_SESSION['remote_token']);
+}
+
 $logged_in = $api_request
     || $cli_request
-    || (isset($_SESSION['torque_logged_in']) && $_SESSION['torque_logged_in']);
+    || has_authenticated_browser_identity($_SESSION);
 
 /* Определяем AJAX/JSON-запрос один раз — чтобы различать HTML-редирект и API-ответ */
 $is_ajax = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest')

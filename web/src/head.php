@@ -47,7 +47,7 @@ document.documentElement.classList.add('session-initial-loading');
 <link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/main.css')); ?>">
 <link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/remote.css')); ?>">
 <link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/Control.FullScreen.css')); ?>">
-<?php if (isset($_SESSION['torque_user']) || isset($_SESSION['share']) || isset($_SESSION['admin'])) {?>
+<?php if (isset($_SESSION['torque_user']) || (defined('RATEL_PUBLIC_SHARE_REQUEST') && RATEL_PUBLIC_SHARE_REQUEST) || isset($_SESSION['admin'])) {?>
 <script>let darkCssUrl = <?php echo js_string(version_url('/static/css/dark.css')); ?>;</script>
 <script src="<?php echo version_url('/static/js/theme.js'); ?>"></script>
 <?php } if (isset($_SESSION['admin'])) {?>

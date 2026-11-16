@@ -1917,12 +1917,23 @@
     </div>
 
     <script>
-    window.REMOTE_CONFIG = <?php echo json_encode([
-        'dataStr'  => $data ?? '',
-        'token'    => $token ?? '',
-        'hasUid'   => isset($uid),
-        'shareUid' => $_SESSION['uid'] ?? null,
-    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    window.REMOTE_CONFIG = <?php
+    // Shared pages get only their existing remote-scoped HMAC capability.
+    // The primary device API token is present ONLY on the authenticated owner page.
+    $remoteConfig = [
+        'dataStr' => $data ?? '',
+        'hasUid'  => isset($uid),
+    ];
+    if (isset($uid)) {
+        $remoteConfig['shareAccess'] = [
+            'u'   => $uid,
+            'sig' => $sig,
+        ];
+    } else {
+        $remoteConfig['token'] = $token ?? '';
+    }
+    echo json_encode($remoteConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    ?>;
     </script>
     <script src="<?php echo version_url('/static/js/remote_inc.js'); ?>"></script>
 <?php } else { ?>

@@ -90,6 +90,21 @@ function update_login_attempts($user, $success) {
     }
 }
 
+/**
+ * Only password-authenticated users have a browser login session.
+ * A signed public /share link is authorization for that one resource,
+ * never a substitute for this account identity.
+ */
+function has_authenticated_browser_identity(array $session): bool
+{
+    return !empty($session['torque_logged_in'])
+        && isset($session['torque_user'])
+        && is_string($session['torque_user'])
+        && trim($session['torque_user']) !== ''
+        && isset($session['uid'])
+        && (filter_var($session['uid'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false);
+}
+
 //Auth user by user/pass
 /** Admin account is identified by the configured login, never by its session quota (s=0). */
 function is_admin_account(string $authenticatedUser, string $configuredAdmin): bool

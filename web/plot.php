@@ -13,16 +13,17 @@ if (isset($_GET['id'], $_GET['sig'])
     && is_string($_GET['id']) && $_GET['id'] !== ''
     && is_string($_GET['sig']) && $_GET['sig'] !== ''
 ) {
-    $_SESSION['torque_logged_in'] = true;
+    // An HMAC-signed plot request is public access to this resource only.
+    // Do not create or mutate browser authentication state.
+    if (!defined('RATEL_PUBLIC_SHARE_REQUEST')) {
+        define('RATEL_PUBLIC_SHARE_REQUEST', true);
+    }
     require_once __DIR__ . '/src/db.php';
 
     $sid = $_GET['id'];
     $sig = $_GET['sig'];
 
     if (!checkRateLimit(5)) {
-        if (!isset($_SESSION['torque_user'])) {
-            unset($_SESSION['torque_logged_in'], $_SESSION['share']);
-        }
         header('Location: /catch?c=block');
         exit;
     }
@@ -73,7 +74,7 @@ if (isset($_GET["id"])) {
     $cached_timestamp = null;
     $current_timestamp = getLastUpdateTimestamp($db, (int)$user_id, $session_id);
 
-    if ($current_timestamp === null && empty($_SESSION['share'])) {
+    if ($current_timestamp === null) {
         $db->close();
         header('Location: /');
         exit;

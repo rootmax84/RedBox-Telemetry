@@ -61,6 +61,7 @@ $router->post('/sign',         'sign.php');
 $router->any('/api/upload', 'ul.php');
 $router->any('/upload', 'ul.php'); // Legacy path
 $router->any('/api/remote', 'remote.php');
+$router->post('/api/share/remote', 'share_remote_api.php');
 $router->any('/api/stream', 'stream_json.php');
 $router->any('/api/token',  'get_token.php');
 

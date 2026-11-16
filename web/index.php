@@ -5,7 +5,7 @@ require_once __DIR__ . '/src/router.php';
 
 // MCP must never create a browser session or run browser-CSRF middleware.
 if (in_array(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), [
-    '/mcp', '/oauth/token', '/.well-known/oauth-protected-resource',
+    '/mcp', '/oauth/token', '/api/share/remote', '/.well-known/oauth-protected-resource',
     '/.well-known/oauth-protected-resource/mcp', '/.well-known/oauth-authorization-server',
 ], true)) {
     define('RATEL_API_REQUEST', true);

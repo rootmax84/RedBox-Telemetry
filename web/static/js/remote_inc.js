@@ -14,7 +14,8 @@ if (JSON.stringify(data) !== JSON.stringify(stor_data)) {
     stor_data = JSON.parse(JSON.stringify(data));
 }
 
-const token = REMOTE_CONFIG.token;
+// Shared viewers have no device API token; only owner pages receive it.
+const token = REMOTE_CONFIG.hasUid ? undefined : REMOTE_CONFIG.token;
 
 // --------------------------------------------------------------
 // Tabs, lang-switch, drag-n-drop (was: DOMContentLoaded block)

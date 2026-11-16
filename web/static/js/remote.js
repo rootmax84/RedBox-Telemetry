@@ -352,6 +352,39 @@ function setDataValue(data, address, value, type = 'auto') {
 let saveInFlight = false;
 let saveDesired  = false;
 
+/**
+ * Route trusted-viewer requests to the remote-only capability endpoint.
+ * Never send the owner's device API token from a signed /share/remote page.
+ * All other Remote pages retain the original /api/remote Authorization flow.
+ */
+function remoteConfigRequest(value) {
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    const body = new URLSearchParams({ data: value, lang: lang });
+    let endpoint = '/api/remote';
+
+    if (REMOTE_CONFIG.hasUid) {
+        const capability = REMOTE_CONFIG.shareAccess;
+        if (!capability || !capability.u || !capability.sig) {
+            return Promise.reject(new Error('Missing remote share authorization'));
+        }
+        endpoint = '/api/share/remote';
+        body.set('u', capability.u);
+        body.set('sig', capability.sig);
+        // Non-simple request: cross-origin HTML forms cannot forge this header.
+        headers['X-Requested-With'] = 'XMLHttpRequest';
+    } else if (typeof token !== 'undefined') {
+        headers['Authorization'] = token;
+    }
+
+    return fetch(endpoint, {
+        method: 'POST',
+        credentials: REMOTE_CONFIG.hasUid ? 'omit' : 'same-origin',
+        cache: 'no-store',
+        headers,
+        body
+    });
+}
+
 function saveData() {
     if (!isValidByteArray(data, MCU_LOCAL_LENGTH)) {
         xhrResponse('Invalid data array (length/range)');
@@ -388,17 +421,7 @@ async function flushSave() {
                     continue;
                 }
 
-                const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-                if (typeof token !== 'undefined') headers['Authorization'] = token;
-
-                const response = await fetch('/api/remote', {
-                    method: 'POST',
-                    headers,
-                    body: new URLSearchParams({
-                        data: dataToSend.join(','),
-                        lang: lang
-                    })
-                });
+                const response = await remoteConfigRequest(dataToSend.join(','));
 
                 if (response.status === 200) {
                     xhrResponse(localization.key['set.common.updated']);
@@ -423,14 +446,7 @@ async function flushSave() {
 
 async function fetchData() {
     try {
-        const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-        if (typeof token !== 'undefined') headers['Authorization'] = token;
-
-        const response = await fetch('/api/remote', {
-            method: 'POST',
-            headers: headers,
-            body: new URLSearchParams({ data: 'fetch', lang: lang })
-        });
+        const response = await remoteConfigRequest('fetch');
 
         if (response.status === 200) {
             const result = await response.text();

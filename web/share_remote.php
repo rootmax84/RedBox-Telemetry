@@ -1,14 +1,16 @@
 <?php
-$_SESSION['torque_logged_in'] = true;
+// Public links grant access to one signed resource, not a browser account.
+// Do not cache the capability-bearing URL or reveal it in Referer headers.
+header('Cache-Control: no-store, private, max-age=0');
+header('Referrer-Policy: no-referrer');
+header('X-Content-Type-Options: nosniff');
+define('RATEL_PUBLIC_SHARE_REQUEST', true);
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/helpers.php';
 include_once __DIR__ . '/translations.php';
 $lang = $_COOKIE['lang'] ?? 'en';
 
 if (!checkRateLimit(5)) {
-    if (!isset($_SESSION['torque_user'])) {
-        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
-    }
     header('Location: /catch?c=block');
     exit;
 }
@@ -20,26 +22,17 @@ $sig      = $_GET['sig'] ?? null;
 
 if (!is_string($share_id) || $share_id === ''
     || !is_string($sig) || $sig === '') {
-    if (!isset($_SESSION['torque_user'])) {
-        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
-    }
     header('Location: /');
     exit;
 }
 
 $user_data = share_lookup_user($db, $share_id);
 if (!$user_data) {
-    if (!isset($_SESSION['torque_user'])) {
-        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
-    }
     header('Location: /catch?c=noshare');
     exit;
 }
 
 if ((int)$user_data['s'] === 0) {
-    if (!isset($_SESSION['torque_user'])) {
-        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
-    }
     header('Location: /catch?c=noshare');
     exit;
 }
@@ -53,20 +46,17 @@ $payload      = share_payload_remote($share_id);
 $expected_sig = hash_hmac('sha256', $payload, $share_secret);
 
 if (!hash_equals($expected_sig, $sig)) {
-    if (!isset($_SESSION['torque_user'])) {
-        unset($_SESSION['torque_logged_in'], $_SESSION['share']);
-    }
     header('Location: /catch?c=noshare');
     exit;
 }
 
-// token + mcu_data — отдельный запрос (не тащим их в share_lookup_user)
+// Only the remote configuration is needed to render a shared page.
+// Never fetch or expose users.token: that credential authorizes other device APIs.
 $remote = $db->execute_query(
-    "SELECT token, mcu_data FROM users WHERE id = ?",
+    "SELECT mcu_data FROM users WHERE id = ?",
     [$user_id]
 )->fetch_assoc();
 
-$token    = $remote['token']    ?? null;
 $mcu_data = (string)($remote['mcu_data'] ?? '');
 
 // Keep shared-device formatting isolated from the viewer's account.
@@ -107,9 +97,7 @@ if ($isValid) {
     $data      = implode(",", $dataArray);
 }
 
-$_SESSION['remote_token'] = $token;
 checkRateLimit(5, 3600, true);
-$_SESSION['share'] = true;
 
 include_once __DIR__ . '/src/head.php';
 include_once __DIR__ . '/src/remote_inc.php';
