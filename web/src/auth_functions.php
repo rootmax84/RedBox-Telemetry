@@ -241,7 +241,14 @@ function check_table_exists($db, $table_name) {
 
 function logout_user()
 {
-    session_destroy();
-    header("Location: /");
-    die;
+    // An obsolete tab may still request /logout after the user signed out.
+    // Do not destroy the new anonymous session (and its login-form CSRF).
+    if (session_status() === PHP_SESSION_ACTIVE
+        && has_authenticated_browser_identity($_SESSION)) {
+        $_SESSION = [];
+        session_destroy();
+        setcookie('stream', '', time() - 3600, '/');
+    }
+    header('Location: /');
+    exit;
 }

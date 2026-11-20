@@ -4,7 +4,9 @@
 header('Cache-Control: no-store, private, max-age=0');
 header('Referrer-Policy: no-referrer');
 header('X-Content-Type-Options: nosniff');
-define('RATEL_PUBLIC_SHARE_REQUEST', true);
+if (!defined('RATEL_PUBLIC_SHARE_REQUEST')) {
+    define('RATEL_PUBLIC_SHARE_REQUEST', true);
+}
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/helpers.php';
 include_once __DIR__ . '/translations.php';

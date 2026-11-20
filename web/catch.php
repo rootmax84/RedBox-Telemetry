@@ -53,7 +53,7 @@ include_once __DIR__ . '/src/head.php';
         <?php
         }
         elseif ($c == "noshare") { ?>
-            <script>setTimeout(()=>{location.href='/logout'}, 5000);</script>
+            <script>setTimeout(()=>{location.href='/'}, 5000);</script>
             <h4 l10n='catch.noshare'></h4>
         <?php
         }

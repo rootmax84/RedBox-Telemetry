@@ -5,7 +5,7 @@
         <div class="fetch-data" style="display:block"></div>
         <div class="timestamp" id="timestamp"></div>
     <?php } ?>
-    <?php if (!isset($_SESSION['admin']) && $limit > 0) {?>
+    <?php if (!isset($uid) && !isset($_SESSION['admin']) && ($limit ?? 0) > 0) {?>
         <div class="new-session"><a href='/' l10n='sess.new'></a></div>
     <?php } ?>
     <?php if (!isset($uid) && $isValid) { ?>

@@ -24,7 +24,7 @@ $head_host = htmlspecialchars($_SERVER['HTTP_HOST'] ?? '', ENT_QUOTES, 'UTF-8');
 <head>
 <script>
 document.documentElement.classList.add('choices-pending');
-<?php if (!isset($_SESSION['admin']) && !empty($session_id) ) { ?>
+<?php if (!empty($session_id) && ($is_public_share || !isset($_SESSION['admin']))) { ?>
 document.documentElement.classList.add('session-initial-loading');
 <?php } ?>
 </script>
@@ -39,8 +39,10 @@ document.documentElement.classList.add('session-initial-loading');
 <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
 <link rel="manifest" href="/static/img/manifest.json">
 <link rel="mask-icon" href="/static/img/safari-pinned-tab.svg" color="#5bbad5">
+<?php if (!$is_public_share): // Public pages do not require or rotate account CSRF tokens. ?>
 <meta name="csrf-token" content="<?php echo generate_csrf_token(); ?>">
 <meta name="csrf-token-expiry" content="<?php echo $_SESSION['csrf_token_time'] + 3300; ?>">
+<?php endif; ?>
 <meta name="theme-color" content="#1a1a1a">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=0.8">
@@ -54,7 +56,7 @@ document.documentElement.classList.add('session-initial-loading');
 <?php if (isset($_SESSION['torque_user']) || (defined('RATEL_PUBLIC_SHARE_REQUEST') && RATEL_PUBLIC_SHARE_REQUEST) || isset($_SESSION['admin'])) {?>
 <script>let darkCssUrl = <?php echo js_string(version_url('/static/css/dark.css')); ?>;</script>
 <script src="<?php echo version_url('/static/js/theme.js'); ?>"></script>
-<?php } if (isset($_SESSION['admin'])) {?>
+<?php } if (isset($_SESSION['admin']) && !$is_public_share) {?>
 <link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/admin.css')); ?>">
 <script src="<?php echo version_url('/static/js/admin.js'); ?>"></script>
 <?php } ?>
@@ -75,14 +77,14 @@ window.HEAD_CONFIG = <?php echo json_encode([
     'username'   => $head_username,
     'themeUsername' => $head_theme_username,
     'publicShare' => $is_public_share,
-    'torqueUser' => isset($_SESSION['torque_user']),
-    'authPoll'   => !is_maintenance()
+    'torqueUser' => !$is_public_share && isset($_SESSION['torque_user']),
+    'authPoll'   => !$is_public_share && !is_maintenance()
                     && isset($_SESSION['torque_user']),
 ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 </script>
 <script src="<?php echo version_url('/static/js/head.js'); ?>"></script>
 <script src="<?php echo version_url('/static/js/helpers.js'); ?>"></script>
-<?php if (isset($_SESSION['torque_user']) && empty($mcp_page_body_overlays)) {
+<?php if (!$is_public_share && isset($_SESSION['torque_user']) && empty($mcp_page_body_overlays)) {
     require __DIR__ . '/templates/loading_overlays.php';
 } ?>
 <?php if (!empty($settings_unified_page)): ?>

@@ -43,7 +43,7 @@ $(document).ready(function () {
 
     $("#wait_layout").hide();
 
-    if (HEAD_CONFIG.authPoll) auth();
+    if (!HEAD_CONFIG.publicShare && HEAD_CONFIG.authPoll) auth();
 });
 
 // --------------------------------------------------------------
@@ -103,7 +103,7 @@ function addCsrfTokenToForms() {
     };
 })();
 
-if (HEAD_CONFIG.torqueUser) {
+if (!HEAD_CONFIG.publicShare && HEAD_CONFIG.torqueUser) {
     const checkCSRFToken = function () {
         const tokenMeta  = document.querySelector('meta[name="csrf-token"]');
         const expiryMeta = document.querySelector('meta[name="csrf-token-expiry"]');
@@ -122,7 +122,7 @@ if (HEAD_CONFIG.torqueUser) {
                 .then(response => {
                     if (response.status === 401) {
                         // сессия мертва — уходим на логин
-                        location.href = '/logout';
+                        location.href = '/';
                         return null;
                     }
                     return response.json();
@@ -157,7 +157,7 @@ function auth() {
                     }
                     break;
                 case 401:
-                    location.href = '/logout';
+                    location.href = '/';
                     break;
                 case 307:
                     location.href = '/maintenance';

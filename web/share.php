@@ -1,6 +1,8 @@
 <?php
 // Public links grant access to one signed resource, not a browser account.
-define('RATEL_PUBLIC_SHARE_REQUEST', true);
+if (!defined('RATEL_PUBLIC_SHARE_REQUEST')) {
+    define('RATEL_PUBLIC_SHARE_REQUEST', true);
+}
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/helpers.php';
 include_once __DIR__ . '/translations.php';
@@ -181,7 +183,8 @@ include_once __DIR__ . '/src/head.php';
     </div>
 
     <div id="right-container" class="col-md-auto col-xs-12">
-        <?php if (!isset($_SESSION['admin']) && isset($session_id) && !empty($session_id)) { ?>
+        <?php // A signed public share is independent of the viewer's login role. ?>
+        <?php if (!empty($session_id)) { ?>
             <!-- Variable Select Block -->
             <div class="row center-block" style="padding-bottom:10px;">
                 <select multiple id="plot_data">

@@ -3925,7 +3925,7 @@ function xhrResponse(text) {
     const s = String(text ?? '').trim();
     if (/^<!DOCTYPE/i.test(s) || /^<html[\s>]/i.test(s)) {
         $("#wait_layout").hide();
-        location.href = '/logout';
+        location.href = '/';
         return;
     }
 
@@ -4523,7 +4523,7 @@ function pollHeavyTask(taskId, options) {
         .then(r => {
             const ct = r.headers.get('content-type') || '';
             if (!ct.includes('application/json')) {
-                location.href = '/logout';
+                location.href = '/';
                 throw new Error('unexpected response');
             }
             return r.json().then(data => ({ status: r.status, data }));
