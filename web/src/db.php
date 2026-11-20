@@ -101,12 +101,19 @@ if (isset($_GET['logout'])) {
     logout_user();
 }
 
-if (PHP_SAPI !== 'cli'
-    && is_maintenance()
-    && !isset($_SESSION['admin'])
-) {
-    header("Refresh:0; url=/maintenance");
-    exit;
+if (PHP_SAPI !== 'cli' && is_maintenance()) {
+    // A signed public share must never enter the account login/maintenance
+    // flow, regardless of any admin session in the viewer's browser.
+    if (defined('RATEL_PUBLIC_SHARE_REQUEST') && RATEL_PUBLIC_SHARE_REQUEST) {
+        header('Location: /catch?c=maintenance', true, 302);
+        exit;
+    }
+
+    // Preserve the regular maintenance page and the administrator bypass.
+    if (!isset($_SESSION['admin'])) {
+        header("Refresh:0; url=/maintenance");
+        exit;
+    }
 }
 
 // Cache layer — Memcached-совместимая обёртка над Redis.

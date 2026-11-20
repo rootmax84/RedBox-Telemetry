@@ -48,7 +48,6 @@ include_once __DIR__ . '/src/head.php';
         <?php
         }
         elseif ($c == "maintenance") { ?>
-            <script>setTimeout(()=>{location.href='/'}, 10000);</script>
             <h4 style="line-height:1.5" l10n='catch.maintenance'></h4>
         <?php
         }
