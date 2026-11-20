@@ -16,7 +16,7 @@ $head_theme_username = isset($_SESSION['admin'])
 $head_host = htmlspecialchars($_SERVER['HTTP_HOST'] ?? '', ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
-<html>
+<html<?php if (!empty($settings_unified_page)) echo ' class="settings-document"'; ?>>
 <head>
 <script>
 document.documentElement.classList.add('choices-pending');
@@ -80,4 +80,8 @@ window.HEAD_CONFIG = <?php echo json_encode([
 <?php if (isset($_SESSION['torque_user']) && empty($mcp_page_body_overlays)) {
     require __DIR__ . '/templates/loading_overlays.php';
 } ?>
+<?php if (!empty($settings_unified_page)): ?>
+<link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/mcp.css')); ?>">
+<link rel="stylesheet" href="<?php echo escapeHtml(version_url('/static/css/settings.css')); ?>">
+<?php endif; ?>
 </head>

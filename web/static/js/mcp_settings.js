@@ -38,51 +38,61 @@ function confirmMcp(event, key) {
     return false;
 }
 
+/** Show the check mark only if the clipboard API confirms copying succeeded. */
 async function copyMcpToken() {
     const el = document.getElementById('mcp-new-token');
-    if (!el) return;
+    const button = document.querySelector('.mcp-secret .mcp-copy-token');
+    if (!el || !button) return false;
+
+    button.classList.remove('is-copied');
+    const copyLabel = button.dataset.copyLabel;
+    if (copyLabel) {
+        button.setAttribute('aria-label', copyLabel);
+        button.setAttribute('title', copyLabel);
+    }
+
+    let copied = false;
     try {
         if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.writeText(el.value);
+            copied = true;
         } else {
-            el.focus(); el.select();
-            document.execCommand('copy');
+            // Legacy browsers: execCommand explicitly reports whether copying succeeded.
+            el.focus();
+            el.select();
+            copied = document.execCommand('copy') === true;
         }
     } catch (error) {
-        el.focus(); el.select();
+        // Do not show a success icon for a rejected clipboard write.
+        copied = false;
     }
+
+    if (copied) {
+        button.classList.add('is-copied');
+        const successLabel = button.dataset.copiedLabel;
+        if (successLabel) {
+            button.setAttribute('aria-label', successLabel);
+            button.setAttribute('title', successLabel);
+        }
+    } else {
+        // Allow manual copying if the clipboard API is unavailable or denied.
+        el.focus();
+        el.select();
+    }
+    return copied;
 }
 
-/** Apply the same Choices select styling and behavior as /settings. */
-function initMcpChoices() {
-    const selects = document.querySelectorAll('.mcp-settings select');
-
-    if (typeof Choices !== 'function') {
-        if (typeof choicesReady === 'function') {
-            choicesReady();
-        }
-        return;
-    }
-
-    selects.forEach(select => {
-        if (select._choices) {
-            return;
-        }
-
-        select._choices = new Choices(select, {
-            itemSelectText: null,
-            shouldSort: false,
-            searchEnabled: false,
-            classNames: {
-                containerInner: ['choices__inner', 'choices__settings__text'],
-            },
-        });
+/** MCP status is transient; the one-time secret card must remain visible. */
+function initializeMcpNoticeTimeout() {
+    document.querySelectorAll('.settings-page .mcp-alert.settings-notice').forEach(notice => {
+        window.setTimeout(() => {
+            notice.hidden = true;
+        }, 5000);
     });
-
-    if (typeof choicesReady === 'function') {
-        choicesReady();
-    }
 }
 
-document.addEventListener('DOMContentLoaded', initMcpChoices);
-
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeMcpNoticeTimeout, { once: true });
+} else {
+    initializeMcpNoticeTimeout();
+}

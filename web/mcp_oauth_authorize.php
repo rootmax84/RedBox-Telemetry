@@ -74,7 +74,7 @@ try {
     $message = $e instanceof InvalidArgumentException ? $e->getMessage() : 'Authorization unavailable';
     error_log('MCP OAuth consent error: ' . get_class($e));
     echo '<!doctype html><html><head><meta charset="utf-8"><title>RedBox OAuth</title></head><body><p>'
-        . $h($message) . '</p><a href="/settings/mcp">MCP Settings</a></body></html>';
+        . $h($message) . '</p><a href="/settings?tab=mcp">MCP Settings</a></body></html>';
     exit;
 }
 

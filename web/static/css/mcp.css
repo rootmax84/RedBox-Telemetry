@@ -71,7 +71,7 @@
 }
 .mcp-settings .mcp-endpoint-link { overflow-wrap: anywhere; }
 .mcp-settings .mcp-endpoint-link:hover code { text-decoration: underline; }
-.mcp-settings legend { font-size: 15px; font-weight: bold; padding: 6px 0; }
+.mcp-settings legend { font-size: 15px; padding: 6px 0; }
 .mcp-settings .mcp-scope { display: block; padding: 7px 0; font-weight: normal; }
 .mcp-settings .mcp-scope input { vertical-align: middle; margin: 0 8px 0 0; }
 .mcp-settings .mcp-table-wrap { overflow-x: auto; }

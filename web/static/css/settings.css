@@ -1,0 +1,173 @@
+/* Account settings follows Device Settings' width, typography and table design.
+   Keep overrides scoped to this page; device settings are left untouched. */
+html.settings-document,
+html.settings-document body { min-width: 0; }
+.settings-page .navbar { min-width: 0; }
+.settings-page .settings-shell {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1200px;
+    min-width: 0;
+    /* The same outer offset as .container-remote on Device Settings. */
+    padding: 65px 20px 20px;
+}
+/* Use the stock .tabs/.tab sizes from remote.css (including the 930px switch).
+   Only center the label in the vertical layout. */
+.settings-page .settings-tabs { margin: 0; }
+.settings-page .settings-tabs .tab:focus-visible {
+    outline: 2px solid #961911;
+    outline-offset: -3px;
+    z-index: 1;
+}
+@media screen and (max-width: 930px) {
+    .settings-page .settings-tabs .tab {
+        position: relative;
+        justify-content: center;
+        text-align: center;
+        padding: 5px 35px;
+        gap: 0;
+    }
+    .settings-page .settings-tabs .tab::before {
+        position: absolute;
+        left: 13px;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0;
+    }
+}
+/* Identical 16px masked glyph treatment to the Device Settings tab bar. */
+.settings-page .settings-tabs .tab[data-tab="settings-general"]::before {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M3 4h18v3H3zm0 6h18v3H3zm0 6h18v3H3zM6 3h3v5H6zm8 6h3v5h-3zm-5 6h3v5H9z'/%3E%3C/svg%3E");
+}
+.settings-page .settings-tabs .tab[data-tab="settings-notifications"]::before {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a2 2 0 0 0-2 2c-3 1-4 3.5-4 7v4l-2 3v1h16v-1l-2-3v-4c0-3.5-1-6-4-7a2 2 0 0 0-2-2zm-2 19a2 2 0 0 0 4 0z'/%3E%3C/svg%3E");
+}
+.settings-page .settings-tabs .tab[data-tab="settings-security"]::before {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2 3 6v6c0 6 4 9 9 11 5-2 9-5 9-11V6L12 2zm0 3 6 3v4c0 4-2 6.5-6 8-4-1.5-6-4-6-8V8l6-3zm0 3a3 3 0 0 0-2 5v3h4v-3a3 3 0 0 0-2-5z'/%3E%3C/svg%3E");
+}
+.settings-page .settings-tabs .tab[data-tab="settings-mcp"]::before {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a3 3 0 0 0-2.81 4.04L5.85 9.25a3 3 0 1 0 1.42 1.41l3.33-3.2a3.1 3.1 0 0 0 2.8 0l3.33 3.2a3 3 0 1 0 1.42-1.41l-3.34-3.21A3 3 0 0 0 12 2m-6 9a1 1 0 1 1 0 2a1 1 0 0 1 0-2m12 0a1 1 0 1 1 0 2a1 1 0 0 1 0-2M12 16a3 3 0 0 0-2.83 2H7a3 3 0 1 0 0 2h2.17a3 3 0 0 0 5.66 0H17a3 3 0 1 0 0-2h-2.17A3 3 0 0 0 12 16m0 2a1 1 0 1 1 0 2a1 1 0 0 1 0-2'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a3 3 0 0 0-2.81 4.04L5.85 9.25a3 3 0 1 0 1.42 1.41l3.33-3.2a3.1 3.1 0 0 0 2.8 0l3.33 3.2a3 3 0 1 0 1.42-1.41l-3.34-3.21A3 3 0 0 0 12 2m-6 9a1 1 0 1 1 0 2a1 1 0 0 1 0-2m12 0a1 1 0 1 1 0 2a1 1 0 0 1 0-2M12 16a3 3 0 0 0-2.83 2H7a3 3 0 1 0 0 2h2.17a3 3 0 0 0 5.66 0H17a3 3 0 1 0 0-2h-2.17A3 3 0 0 0 12 16m0 2a1 1 0 1 1 0 2a1 1 0 0 1 0-2'/%3E%3C/svg%3E");
+}
+
+.settings-page .settings-panel {
+    background: transparent;
+    /* Device Settings places content 20px below .tabs. */
+    margin: 20px 0 0;
+    min-width: 0;
+}
+.settings-page .settings-group,
+.settings-page .mcp-settings { width: 100%; min-width: 0; }
+.settings-page .settings-card {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    /* Match .card-remote from Device Settings rather than narrow centered cards. */
+    padding: 5px 15px 0;
+}
+.settings-page .settings-card h4 {
+    margin: 20px 0 15px;
+    padding: 0 0 10px;
+    color: #333;
+    font-size: 16px;
+    border-bottom: 1px solid #eee;
+}
+.settings-page .settings-card h6 {
+    margin: 0 0 16px;
+    line-height: 1.5;
+}
+.settings-page .settings-card p { line-height: 1.5; }
+.settings-page .settings-card form { min-width: 0; width: 100%; }
+.settings-page .settings-form-table {
+    width: 100%;
+    table-layout: fixed;
+    margin: 0;
+}
+.settings-page .settings-form-table td.setting-name {
+    width: 42%;
+    overflow-wrap: anywhere;
+}
+.settings-page .settings-form-table td.setting-value {
+    width: 58%;
+    overflow-wrap: anywhere;
+}
+.settings-page .settings-form-table .form-control,
+.settings-page .settings-form-table .password-toggle {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+.settings-page .settings-form-table label {
+    display: block;
+    margin-bottom: 0;
+    font-weight: normal;
+}
+.settings-page .settings-form-table .password-toggle__btn {
+    /* Keep eye buttons fixed to their corresponding password field. */
+    display: flex;
+}
+.settings-page .settings-card .cntr {
+    padding: 16px 0 16px;
+    margin: 0;
+}
+.settings-page .mcp-settings .mcp-wide { width: 100%; }
+.settings-page .mcp-settings .settings-card { margin-bottom: 20px; }
+.settings-page .mcp-settings .mcp-description { margin-bottom: 12px; }
+.settings-page .mcp-settings .mcp-token-field {
+    max-width: 100%;
+    margin: 12px 0;
+}
+.settings-page .mcp-settings .mcp-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.settings-page .mcp-settings .mcp-table-wrap table { margin: 0; }
+.settings-page .mcp-settings fieldset { min-width: 0; }
+.settings-page .mcp-settings .settings-form-table fieldset {
+    margin: 0;
+    padding: 8px 12px;
+}
+.settings-page .settings-form-help { margin: 10px 0 0; }
+.settings-page .settings-notice {
+    margin: 20px 0 0;
+    padding: 12px 15px;
+    background: #f4f4f4;
+    border-left: 3px solid #3993c1;
+    border-radius: 10px;
+    line-height: 1.45;
+}
+.settings-page .mcp-alert.settings-notice[hidden] { display: none; }
+.settings-page .mcp-secret .mcp-copy-token .mcp-copied-icon { display: none; }
+.settings-page .mcp-secret .mcp-copy-token.is-copied .mcp-copy-icon { display: none; }
+.settings-page .mcp-secret .mcp-copy-token.is-copied .mcp-copied-icon { display: block; }
+.settings-page .mcp-secret { border-left-color: #3993c1; }
+/* Narrow screens: maintain a single table row per setting but put the label
+   above its control, preventing long translations from crushing selects. */
+@media screen and (max-width: 560px) {
+    .settings-page .settings-shell { padding: 55px 10px 20px; }
+    .settings-page .settings-card { padding: 5px 10px 0; }
+    .settings-page .settings-form-table,
+    .settings-page .settings-form-table tbody,
+    .settings-page .settings-form-table tr,
+    .settings-page .settings-form-table td { display: block; width: 100%; }
+    .settings-page .settings-form-table td.setting-name,
+    .settings-page .settings-form-table td.setting-value { width: 100%; }
+    .settings-page .settings-form-table td.setting-name {
+        padding: 9px 10px 3px;
+        border-bottom: 0;
+    }
+    .settings-page .settings-form-table td.setting-value {
+        padding: 3px 10px 9px;
+        border-bottom: 1px solid #cbcbcb;
+    }
+    .settings-page .settings-form-table tr:last-child td.setting-value { border-bottom: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .settings-page .settings-tabs .tab,
+    .settings-page .settings-panel { transition: none; }
+}

@@ -106,5 +106,5 @@ try {
 }
 
 $_SESSION['mcp_notice'] = $notice;
-header('Location: /settings/mcp', true, 303);
+header('Location: /settings?tab=mcp', true, 303);
 exit;
