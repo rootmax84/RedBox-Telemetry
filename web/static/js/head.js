@@ -76,6 +76,7 @@ function addCsrfTokenToForms() {
     window.__csrfFetchPatched = true;
 
     const _fetch = window.fetch.bind(window);
+    let shareMaintenanceRedirecting = false;
 
     window.fetch = function (input, init) {
         init = init || {};
@@ -99,7 +100,24 @@ function addCsrfTokenToForms() {
             }
         }
 
-        return _fetch(input, init);
+        const request = _fetch(input, init);
+        if (!HEAD_CONFIG.publicShare) return request;
+
+        // Signed share pages can stay open when maintenance is enabled later.
+        // PHP redirects their /plot and /api/share/remote requests to /catch,
+        // which fetch() follows and exposes as an HTTP 423 response. Redirect
+        // the whole tab before a caller tries to parse the HTML as JSON or
+        // displays a misleading 'No data' / 'Server error' message.
+        return request.then(response => {
+            if (response.status !== 423) return response;
+            if (!shareMaintenanceRedirecting) {
+                shareMaintenanceRedirecting = true;
+                window.location.replace('/catch?c=maintenance');
+            }
+            // Never let the old page process a maintenance response during
+            // navigation. A rejected promise would trigger error dialogs.
+            return new Promise(() => {});
+        });
     };
 })();
 
