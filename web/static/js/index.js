@@ -194,7 +194,7 @@ const streamColumn = (() => {
     const SCROLLBAR_GUTTER = 8;
     // Reserve room for both chart and map where GPS exists; without GPS
     // only the chart needs a minimum width.
-    const MIN_MAIN_WIDTH = document.getElementById('map') ? 820 : 500;
+    const MIN_MAIN_WIDTH = document.getElementById('map') ? 824 : 500;
     const DEFAULT_WIDTH = 380;
     const STORAGE_KEY = `${username}-stream_panel_width`;
     let workspace, handle;

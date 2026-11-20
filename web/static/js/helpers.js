@@ -3705,43 +3705,100 @@ const mapResize = (() => {
 })();
 
 function resizeSplitter() {
-
   if (nogps) {
-    $(".resizer").css("display","none");
+    $(".resizer").css("display", "none");
     return;
   }
 
   const container = document.querySelector('.split-container');
-  const resizer = document.querySelector('.resizer');
-  const leftPane = document.querySelector('.left');
-  const rightPane = document.querySelector('.right');
-  const STORAGE_KEY = `${username}-splitter_left_width`;
+  const resizer = container?.querySelector('.resizer');
+  const leftPane = container?.querySelector('.left');
+  const rightPane = container?.querySelector('.right');
+  if (!container || !resizer || !leftPane || !rightPane) return;
 
+  const workspace = container.closest('.session-workspace');
+  const STORAGE_KEY = `${username}-splitter_left_width`;
+  const MIN_CHART_WIDTH = 500;
+  const MIN_MAP_WIDTH = 300;
   let isResizing = false;
+  let preferredPercent = 50;
+  let priorStreamEnabled = !!workspace?.classList.contains('stream-enabled');
+  // The width outside Stream is a snapshot. Temporary clamping while Stream
+  // is open must never replace it with the narrower workspace's map width.
+  let mapWidthBeforeStream = null;
+  let lastContainerWidth = 0;
+  let priorHorizontal = false;
 
   function isHorizontal() {
     return getComputedStyle(container).flexDirection === 'row';
   }
 
-  let wasHorizontal = isHorizontal();
+  function availablePaneWidth() {
+    const style = getComputedStyle(container);
+    const handleStyle = getComputedStyle(resizer);
+    const gap = parseFloat(style.columnGap) || 0;
+    const marginLeft = parseFloat(handleStyle.marginLeft) || 0;
+    const marginRight = parseFloat(handleStyle.marginRight) || 0;
+    // The handle can be hidden in the responsive (vertical) layout.
+    const handleWidth = parseFloat(handleStyle.width) || 12;
+    return Math.max(0, container.clientWidth - 2 * gap - handleWidth - marginLeft - marginRight);
+  }
 
-  function handleResize() {
-    const isNowHorizontal = isHorizontal();
-    if (isNowHorizontal !== wasHorizontal) {
-        restoreSplitterPosition()
-        mapResize();
-        wasHorizontal = isNowHorizontal;
+  function applySplitterPosition(restoreMapWidth = null) {
+    if (!isHorizontal()) {
+      // Let the existing <=55em media query stack chart and map.
+      leftPane.style.width = '';
+      rightPane.style.width = '';
+      return;
+    }
+
+    const paneWidth = availablePaneWidth();
+    // When Stream reduces available space, the chart may become smaller than
+    // 500px; otherwise the two flex children wrap and the map drops below it.
+    // Never let the map shrink below 300px in horizontal mode.
+    const maxLeft = Math.max(0, paneWidth - MIN_MAP_WIDTH);
+    const minLeft = Math.min(MIN_CHART_WIDTH, maxLeft);
+    const requested = restoreMapWidth === null
+      ? container.clientWidth * preferredPercent / 100
+      : paneWidth - restoreMapWidth;
+    const leftWidth = Math.min(maxLeft, Math.max(minLeft, requested));
+    leftPane.style.width = `${leftWidth}px`;
+    rightPane.style.width = ''; // Right flex pane fills the remainder.
+
+    if (restoreMapWidth !== null) {
+      // Update the preference only on exit, not while Stream is active.
+      preferredPercent = 100 * leftWidth / container.clientWidth;
     }
   }
 
-  const resizeObserver = new ResizeObserver(() => {
-    handleResize();
-  });
+  function handleResize() {
+    const streamEnabled = !!workspace?.classList.contains('stream-enabled');
+    const horizontal = isHorizontal();
+    const width = container.clientWidth;
+    const leavingStream = priorStreamEnabled && !streamEnabled;
+    const wasHorizontal = priorHorizontal;
 
+    applySplitterPosition(leavingStream ? mapWidthBeforeStream : null);
+
+    // Capture the actual visible size only outside Stream. It is intentionally
+    // not changed by the reduced width of the main column while streaming.
+    if (!streamEnabled && horizontal) {
+      mapWidthBeforeStream = rightPane.getBoundingClientRect().width;
+    }
+    priorStreamEnabled = streamEnabled;
+    priorHorizontal = horizontal;
+    if (width !== lastContainerWidth || horizontal !== wasHorizontal || leavingStream) {
+      lastContainerWidth = width;
+      if (typeof map !== 'undefined' && map) map.invalidateSize();
+    }
+  }
+
+  const resizeObserver = new ResizeObserver(handleResize);
   resizeObserver.observe(container);
 
-  function startResize() {
+  function startResize(event) {
     if (!isHorizontal()) return;
+    if (event?.type === 'mousedown' && event.button !== 0) return;
     isResizing = true;
     document.body.style.cursor = 'col-resize';
   }
@@ -3749,6 +3806,7 @@ function resizeSplitter() {
   function stopResize() {
     if (isResizing) {
       saveSplitterPosition();
+      mapResize();
     }
     isResizing = false;
     document.body.style.cursor = 'default';
@@ -3756,88 +3814,60 @@ function resizeSplitter() {
 
   function resize(x) {
     if (!isResizing || !isHorizontal()) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-    const pointerRelativeX = x - containerRect.left;
-
-    const leftMin = 500;
-    const rightMin = 300;
-    const maxLeft = containerWidth - rightMin;
-    const minLeft = leftMin;
-
-    if (pointerRelativeX <= minLeft) {
-            leftPane.style.width = `${(minLeft / containerWidth) * 100}%`;
-            rightPane.style.width = `${(rightMin / containerWidth) * 100}%`;
-        } else if (pointerRelativeX >= maxLeft) {
-            leftPane.style.width = `${(maxLeft / containerWidth) * 100}%`;
-            rightPane.style.width = `${(rightMin / containerWidth) * 100}%`;
-        } else {
-            const leftWidthPercent = (pointerRelativeX / containerWidth) * 100;
-            const rightWidthPercent = 100 - leftWidthPercent;
-            leftPane.style.width = `${leftWidthPercent}%`;
-            rightPane.style.width = `${rightWidthPercent}%`;
-        }
-
+    const paneWidth = availablePaneWidth();
+    const maxLeft = Math.max(0, paneWidth - MIN_MAP_WIDTH);
+    const minLeft = Math.min(MIN_CHART_WIDTH, maxLeft);
+    const desiredWidth = x - container.getBoundingClientRect().left;
+    const leftWidth = Math.min(maxLeft, Math.max(minLeft, desiredWidth));
+    preferredPercent = 100 * leftWidth / container.clientWidth;
+    applySplitterPosition();
+    if (!workspace?.classList.contains('stream-enabled')) {
+      mapWidthBeforeStream = rightPane.getBoundingClientRect().width;
+    }
     mapResize();
   }
 
   function saveSplitterPosition() {
-    if (!isHorizontal()) return;
-    const width = leftPane.getBoundingClientRect().width;
-    const containerWidth = container.offsetWidth;
-    const percent = (width / containerWidth) * 100;
-    localStorage.setItem(STORAGE_KEY, percent.toFixed(2));
+    // Keep compatibility with saved percentage positions from earlier versions.
+    // A stream-only adjustment is temporary and is not persisted.
+    if (workspace?.classList.contains('stream-enabled')) return;
+    try { localStorage.setItem(STORAGE_KEY, preferredPercent.toFixed(2)); }
+    catch (_) { /* Resizing also works when storage is disabled. */ }
   }
 
   function restoreSplitterPosition() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-        const percent = parseFloat(saved);
-        requestAnimationFrame(() => {
-            if (isHorizontal() && percent > 10 && percent < 90) {
-                leftPane.style.width = `${percent}%`;
-                rightPane.style.width = `${100 - percent}%`;
-            }
-            mapResize();
-        });
-    }
-  }
-
-  function resetSplitterPosition() {
-    localStorage.removeItem(STORAGE_KEY);
-    leftPane.style.width = '50%';
-    rightPane.style.width = '50%';
+    try {
+      const saved = Number(localStorage.getItem(STORAGE_KEY));
+      if (Number.isFinite(saved) && saved > 10 && saved < 90) preferredPercent = saved;
+    } catch (_) { /* Optional. */ }
+    handleResize();
     mapResize();
   }
 
-  // Mouse
+  function resetSplitterPosition() {
+    preferredPercent = 50;
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) { /* Optional. */ }
+    applySplitterPosition();
+    if (!workspace?.classList.contains('stream-enabled') && isHorizontal()) {
+      mapWidthBeforeStream = rightPane.getBoundingClientRect().width;
+    }
+    mapResize();
+  }
+
   resizer.addEventListener('mousedown', e => {
     e.preventDefault();
-    startResize();
+    startResize(e);
   });
-
   document.addEventListener('mousemove', e => resize(e.clientX));
   document.addEventListener('mouseup', stopResize);
-
-  // Touch
-  resizer.addEventListener('touchstart', e => startResize());
+  resizer.addEventListener('touchstart', e => startResize(e), { passive: true });
   document.addEventListener('touchmove', e => {
-    if (e.touches.length > 0) {
-      resize(e.touches[0].clientX);
-    }
+    if (e.touches.length > 0) resize(e.touches[0].clientX);
   });
   document.addEventListener('touchend', stopResize);
-
-  // Double click to reset
-  resizer.addEventListener('dblclick', () => {
-    resetSplitterPosition();
-  });
-
-  // Long tap to reset
+  resizer.addEventListener('dblclick', resetSplitterPosition);
   longTap('.resizer', resetSplitterPosition);
 
-  // Restore on load
   restoreSplitterPosition();
 }
 

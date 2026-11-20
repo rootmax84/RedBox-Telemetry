@@ -910,6 +910,9 @@ input[type="checkbox"]:disabled:checked::after {
 }
 
 #heat-dataSourceSelect {
+  width: 210px;
+  max-width: 100%;
+  box-sizing: border-box;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
@@ -1061,6 +1064,14 @@ input[type="checkbox"]:disabled:checked::after {
 
 .right {
   flex: 1;
+}
+
+/* Keep the map alongside the chart on desktop, including when Stream
+   narrows the workspace. The responsive breakpoint alone controls stacking. */
+@media screen and (min-width: 55.001em) {
+  .split-container { flex-wrap: nowrap; }
+  .split-container > .left { flex: 0 0 auto; min-width: 0; }
+  .split-container > .right { flex: 1 1 0; min-width: 300px; }
 }
 
 .resizer {
@@ -1853,7 +1864,7 @@ html.session-initial-loading .fetch-data {
   .stream-bottom-heading { display: none; }
   .session-workspace.stream-enabled {
     /* The 8px scrollbar gutter is outside the user-adjustable table width. */
-    grid-template-columns: minmax(0, 1fr) 12px clamp(328px, calc(var(--stream-panel-width, 380px) + 8px), 428px);
+    grid-template-columns: minmax(0, 1fr) 12px clamp(338px, calc(var(--stream-panel-width, 380px) + 8px), 438px);
     column-gap: 8px;
   }
   .session-main { grid-column: 1; grid-row: 1; }
