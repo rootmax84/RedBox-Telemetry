@@ -196,7 +196,7 @@ const streamColumn = (() => {
     // only the chart needs a minimum width.
     const MIN_MAIN_WIDTH = document.getElementById('map') ? 824 : 500;
     const DEFAULT_WIDTH = 380;
-    const STORAGE_KEY = `${username}-stream_panel_width`;
+    const STORAGE_KEY = `${storageUserPrefix}-stream_panel_width`;
     let workspace, handle;
     let preferredWidth = DEFAULT_WIDTH;
     let activePointer = null;

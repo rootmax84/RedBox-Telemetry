@@ -58,14 +58,14 @@ let mapIndexEnd = null;
 let plotDataChoices = null;
 let seshidtagChoices = null;
 
-let chart_fill = localStorage.getItem(`${username}-chart_fill`) === "true";
-let chart_fillGradient = localStorage.getItem(`${username}-chart_fillGradient`) === "true";
-let chart_lineWidth = localStorage.getItem(`${username}-chart_lineWidth`) || 2;
+let chart_fill = localStorage.getItem(`${storageUserPrefix}-chart_fill`) === "true";
+let chart_fillGradient = localStorage.getItem(`${storageUserPrefix}-chart_fillGradient`) === "true";
+let chart_lineWidth = localStorage.getItem(`${storageUserPrefix}-chart_lineWidth`) || 2;
 
 // Heading arrows toggle (persisted per-user)
 let headingArrowsEnabled = (() => {
     try {
-        const saved = localStorage.getItem(`${username}-heading_arrows`);
+        const saved = localStorage.getItem(`${storageUserPrefix}-heading_arrows`);
         return saved === null ? true : saved !== 'false';
     } catch (e) {
         return true;
@@ -1092,9 +1092,9 @@ const GPS_FILTER_GROUP_DISTANCE_M = 250;
 const GPS_FILTER_MODES = ['off', 'smart', 'strict'];
 let gpsFilterMode = (() => {
     try {
-        const stored = localStorage.getItem(`${username}-gps_filter_mode`);
+        const stored = localStorage.getItem(`${storageUserPrefix}-gps_filter_mode`);
         if (GPS_FILTER_MODES.includes(stored)) return stored;
-        return localStorage.getItem(`${username}-gps_hybrid_filter`) === 'true'
+        return localStorage.getItem(`${storageUserPrefix}-gps_hybrid_filter`) === 'true'
             ? 'smart' : 'off';
     } catch (_) { return 'off'; }
 })();
@@ -2355,7 +2355,7 @@ let initMapLeaflet = () => {
 
             headingArrowsEnabled = !headingArrowsEnabled;
             try {
-                localStorage.setItem(`${username}-heading_arrows`, String(headingArrowsEnabled));
+                localStorage.setItem(`${storageUserPrefix}-heading_arrows`, String(headingArrowsEnabled));
             } catch (_) {}
 
             btn.classList.toggle('heading-toggle-off', !headingArrowsEnabled);
@@ -2427,9 +2427,9 @@ let initMapLeaflet = () => {
             gpsFilterMode = GPS_FILTER_MODES[(index + 1) % GPS_FILTER_MODES.length];
             gpsFilterEnabled = gpsFilterMode !== 'off';
             try {
-                localStorage.setItem(`${username}-gps_filter_mode`, gpsFilterMode);
+                localStorage.setItem(`${storageUserPrefix}-gps_filter_mode`, gpsFilterMode);
                 // Preserve old callers that inspect the boolean preference.
-                localStorage.setItem(`${username}-gps_hybrid_filter`, String(gpsFilterEnabled));
+                localStorage.setItem(`${storageUserPrefix}-gps_hybrid_filter`, String(gpsFilterEnabled));
             } catch (_) {}
             if (typeof window.refreshGpsFilterView === 'function') window.refreshGpsFilterView();
             refreshButton();
@@ -3524,7 +3524,9 @@ if ('serviceWorker' in navigator) {
 
 function toggle_dark() {
  const themeUser = (typeof HEAD_CONFIG !== 'undefined' && HEAD_CONFIG.themeUsername)
-   ? HEAD_CONFIG.themeUsername : (typeof username !== 'undefined' ? username : '');
+   ? HEAD_CONFIG.themeUsername
+   : ((typeof HEAD_CONFIG !== 'undefined' && HEAD_CONFIG.publicShare)
+      ? 'ratel-public-share' : (typeof username !== 'undefined' ? username : ''));
  if (typeof themeUser !== 'string' || !themeUser.trim()) return;
  document.querySelector('html').style.transition = ".2s";
  switch (localStorage.getItem(`${themeUser}-theme`)) {
@@ -3717,7 +3719,7 @@ function resizeSplitter() {
   if (!container || !resizer || !leftPane || !rightPane) return;
 
   const workspace = container.closest('.session-workspace');
-  const STORAGE_KEY = `${username}-splitter_left_width`;
+  const STORAGE_KEY = `${storageUserPrefix}-splitter_left_width`;
   const MIN_CHART_WIDTH = 500;
   const MIN_MAP_WIDTH = 300;
   let isResizing = false;
@@ -3944,9 +3946,9 @@ function chartToggle() {
 
     isToggleInProgress = true;
 
-    const fillKey = `${username}-chart_fill`;
-    const gradientKey = `${username}-chart_fillGradient`;
-    const widthKey = `${username}-chart_lineWidth`;
+    const fillKey = `${storageUserPrefix}-chart_fill`;
+    const gradientKey = `${storageUserPrefix}-chart_fillGradient`;
+    const widthKey = `${storageUserPrefix}-chart_lineWidth`;
 
     const isFill = localStorage.getItem(fillKey) === 'true';
     const isGradient = localStorage.getItem(gradientKey) === 'true';

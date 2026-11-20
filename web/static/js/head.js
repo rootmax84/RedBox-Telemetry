@@ -177,6 +177,9 @@ function auth() {
 // Username in document.title
 // --------------------------------------------------------------
 const username = HEAD_CONFIG.username || '';
+// Browser preferences on signed share links must not use the owner's login.
+// Keep existing storage keys unchanged for regular signed-in users.
+const storageUserPrefix = HEAD_CONFIG.publicShare ? 'ratel-public-share' : username;
 if (username.trim() !== '') {
     document.title += ` - ${username}`;
 }

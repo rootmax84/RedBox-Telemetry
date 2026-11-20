@@ -5,14 +5,18 @@ require_once __DIR__ . '/helpers.php';
 preg_match('/\d+/', version_url('translations.php'), $l10n_match);
 $l10n_time = $l10n_match[0] ?? '';
 
-// Username for document.title (skip admin)
-$head_username = (isset($username) && isset($admin) && $username != $admin)
+// A public share exposes only the signed resource, never the account name.
+// Keep $username for server-side queries; do not include it in the page HTML.
+$is_public_share = defined('RATEL_PUBLIC_SHARE_REQUEST') && RATEL_PUBLIC_SHARE_REQUEST;
+$head_username = (!$is_public_share && isset($username) && isset($admin) && $username != $admin)
     ? $username
     : '';
-// The admin page keeps the visible username blank, but still needs its own theme key.
-$head_theme_username = isset($_SESSION['admin'])
-    ? (string)($_SESSION['torque_user'] ?? ($admin ?? ''))
-    : $head_username;
+// Admin pages still need their own theme key, but public shares must not reveal it.
+$head_theme_username = $is_public_share
+    ? ''
+    : (isset($_SESSION['admin'])
+        ? (string)($_SESSION['torque_user'] ?? ($admin ?? ''))
+        : $head_username);
 $head_host = htmlspecialchars($_SERVER['HTTP_HOST'] ?? '', ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
@@ -70,6 +74,7 @@ window.HEAD_CONFIG = <?php echo json_encode([
     'l10nTime'   => $l10n_time,
     'username'   => $head_username,
     'themeUsername' => $head_theme_username,
+    'publicShare' => $is_public_share,
     'torqueUser' => isset($_SESSION['torque_user']),
     'authPoll'   => !is_maintenance()
                     && isset($_SESSION['torque_user']),

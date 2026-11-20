@@ -9,7 +9,8 @@ window.APP_CONFIG = <?php echo json_encode([
     'lang'              => $lang ?? 'en',
     'itime'             => $itime ?? '',
     'imapdata'          => $imapdata ?? '',
-    'version' => RATEL_VERSION,
+    // Application version is exposed to administrators only.
+    ...(isset($_SESSION['admin']) ? ['version' => RATEL_VERSION] : []),
 ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 </script>
 <script src="<?php echo version_url('static/js/index.js'); ?>"></script>

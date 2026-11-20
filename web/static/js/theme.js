@@ -10,7 +10,8 @@ waitForUsername(() => {
   // Admin HEAD_CONFIG.username is intentionally blank (page title), so use a
   // separate account key for theme preferences without changing other scripts.
   const themeUser = (typeof HEAD_CONFIG !== 'undefined' && HEAD_CONFIG.themeUsername)
-    ? HEAD_CONFIG.themeUsername : username;
+    ? HEAD_CONFIG.themeUsername
+    : ((typeof HEAD_CONFIG !== 'undefined' && HEAD_CONFIG.publicShare) ? 'ratel-public-share' : username);
   if (typeof themeUser !== 'string' || !themeUser.trim()) return;
 
   if (!localStorage.getItem(`${themeUser}-theme`)) {
