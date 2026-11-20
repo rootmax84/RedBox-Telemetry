@@ -31,7 +31,7 @@ final class McpTools
                         'from_ms' => $int('Start time lower bound'), 'to_ms' => $int('Start time upper bound'),
                         'favorites_only' => ['type' => 'boolean']], [])],
             ['get_session_info', 'Get metadata for one session: start/end Unix milliseconds, profile, source and reported record count. Use to confirm the selected session; metadata alone does not establish telemetry quality.', self::READ, $s($sid, ['session_id'])],
-            ['list_metrics', 'Discover exact PID IDs, names, raw units, live flags and availability before requesting data or comparing sensors. Do not guess PID codes or compare incompatible units. GPS PIDs require location:read.', self::READ, $s()],
+            ['list_metrics', 'Discover exact PID IDs, names, raw units, live flags and availability before requesting data or comparing sensors. PID k2120 (Boost solenoid duty): -1 means controller disabled (not -1% or ordinary missing data), while 0 means zero duty. GPS PIDs require location:read.', self::READ, $s()],
             ['get_metric_data', 'Get a bounded, min/max-downsampled time series (at most 1000 points) for visual trends or an interval. Uses original Unix-ms timestamps and raw units; not suitable for computing exact whole-session statistics.', self::READ,
                 $s($sid + $pid + $range + $full + ['max_points' => $int('10–1000')], ['session_id', 'pid'])],
             ['get_metric_stats', 'Compute exact scanned-sample min/max, sample mean, time-weighted mean, standard deviation and temporal coverage for one PID. First check session quality; distinguish sample mean from time mean and report scan_truncated/incomplete.', self::READ,
@@ -263,7 +263,15 @@ final class McpTools
                 . ', coverage_ratio=' . ($m['coverage_ratio'] ?? 'n/a');
         }
         if ($result['incomplete']) $lines[] = '**WARNING: PARTIAL REPORT — scan limit reached; not whole-session statistics.**';
-        $lines[] = 'This is a factual telemetry summary in raw sensor units; not a diagnosis. Missing/-1 samples are excluded.';
+        foreach ($result['metrics'] as $m) {
+            if ($m['pid']['id'] === McpData::BOOST_DUTY_PID) {
+                $lines[] = '- Boost solenoid duty (`k2120`): controller disabled (-1) observed in '
+                    . $m['boost_controller_disabled_samples'] . ' scanned samples; '
+                    . $m['other_missing_samples'] . ' other missing/excluded samples. '
+                    . 'Disabled-state samples are excluded from numerical duty statistics; 0% is valid duty.';
+            }
+        }
+        $lines[] = 'This is a factual telemetry summary in raw sensor units; not a diagnosis. Non-GPS -1 samples are excluded from numeric calculations; k2120 -1 is a disabled-controller state.';
         return ['session' => $s, 'report_markdown' => implode("\n", $lines), 'statistics' => $result['metrics'],
             'incomplete' => $result['incomplete']];
     }
@@ -272,6 +280,7 @@ final class McpTools
     {
         $result = self::snapshot($d, $args);
         return $result + ['interpretation_guidance' => [
+                'For Boost solenoid duty (k2120), -1 means disabled controller, not -1% duty; 0% duty is different. Count -1 separately and exclude it from numerical averages.',
                 'Compare sensor ranges with the vehicle/ECU-specific specifications.',
                 'Correlations and outliers alone do not identify a defective component.',
                 'Confirm a suspected issue using independent testing and the relevant operating conditions.',
@@ -308,7 +317,11 @@ final class McpTools
                 'gt' => $v > (float)$n, 'gte' => $v >= (float)$n,
                 'lt' => $v < (float)$n, 'lte' => $v <= (float)$n
             };
-            $results[] = ['pid' => $check['pid'], 'value' => $v, 'operator' => $op, 'threshold' => (float)$n, 'triggered' => $triggered];
+            $checkResult = ['pid' => $check['pid'], 'value' => $v, 'operator' => $op, 'threshold' => (float)$n, 'triggered' => $triggered];
+            if (McpData::boostControllerDisabled($live['values'], $check['pid'])) {
+                $checkResult['controller_state'] = 'disabled';
+            }
+            $results[] = $checkResult;
         }
         return ['time_ms' => $live['time_ms'], 'stale' => $live['stale'], 'checks' => $results];
     }
@@ -355,7 +368,8 @@ final class McpTools
             $cacheName = 'res:sessions';
         } elseif ($uri === 'redbox://diagnostics/definitions') {
             $resource = static fn() => [
-                'missing_sentinel' => '-1 for non-GPS PIDs; do not treat it as a physical reading',
+                'missing_sentinel' => '-1 for non-GPS PIDs except k2120, where it specifically means boost controller disabled',
+                'boost_solenoid_duty' => ['pid' => McpData::BOOST_DUTY_PID] + McpData::boostDutySemantics(),
                 'units' => 'Raw sensor units from PID catalog; no web display unit conversion',
                 'time_basis' => 'Unix milliseconds from original session logs, not compressed chart time',
                 'gap_model' => 'Adaptive median-based sampling intervals; no interpolation through offline periods',

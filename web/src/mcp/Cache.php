@@ -139,16 +139,16 @@ final class McpCache
             $remoteRevision = $this->remoteSignature($name);
             $scopes = $this->auth['scopes'] ?? [];
             sort($scopes, SORT_STRING);
-            $identity = [7, (int)$this->auth['user_id'], (string)($this->auth['cache_identity'] ?? ('manual:' . $this->auth['token_id'])),
+            $identity = [8, (int)$this->auth['user_id'], (string)($this->auth['cache_identity'] ?? ('manual:' . $this->auth['token_id'])),
                 $scopes, $name, $args, $revision, $remoteRevision,
                 // Live sampling needs its own short TTL, not the constantly changing dataset epoch.
                 $ttl <= 2 ? null : $this->epoch()];
-            $key = 'mcp_cached_v7_' . hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
+            $key = 'mcp_cached_v8_' . hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
             $cached = $this->redis->get($key);
             if (is_array($cached) && is_array($cached['payload'] ?? null)) {
                 return $cached['payload'];
             }
-            $lockKey = 'mcp_lock_' . substr($key, strlen('mcp_cached_v7_'));
+            $lockKey = 'mcp_lock_' . substr($key, strlen('mcp_cached_v8_'));
             $owner = $this->redis->acquireLock($lockKey,
                 max(1, min(60, (int)($GLOBALS['mcp_cache_lock_ttl'] ?? 15))));
         } catch (Throwable $error) {

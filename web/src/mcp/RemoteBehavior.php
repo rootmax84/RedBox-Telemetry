@@ -67,6 +67,12 @@ final class McpRemoteBehavior
     {
         return [
             'summary' => 'Normal boost output requires the controller enabled, a positive selected target and duty, and ALL three minimum-temperature gates (coolant AND oil AND transmission). Actual MAP and protection state determine the subsequent output mode.',
+            'telemetry_state_interpretation' => [
+                'pid' => McpData::BOOST_DUTY_PID,
+                'minus_one' => 'Controller disabled (state marker, not a PWM percentage)',
+                'zero' => 'Reported 0% duty, not proof controller is disabled',
+                'statistics' => 'Exclude -1 from numeric duty statistics; count controller-disabled samples independently',
+            ],
             'temperature_prerequisites' => [
                 'operator' => 'AND',
                 'checks' => [

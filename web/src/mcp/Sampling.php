@@ -93,13 +93,17 @@ final class McpMetricAggregate
     private float $integral = 0.0;
     private int $coveredMs = 0;
     private int $missing = 0;
+    private int $boostDisabled = 0;
     private McpSampling $sampling;
     public function __construct(private readonly array $pid)
     {
         $this->sampling = new McpSampling();
     }
-    public function observe(int $time, ?float $value): void
+    public function observe(int $time, ?float $value, bool $boostControllerDisabled = false): void
     {
+        if ($boostControllerDisabled && $this->pid['id'] === McpData::BOOST_DUTY_PID) {
+            ++$this->boostDisabled;
+        }
         if ($value === null) {
             $this->missing++;
             $this->previous = null;
@@ -125,7 +129,7 @@ final class McpMetricAggregate
     public function result(string $sessionId, array $scan, int $rangeStart, int $rangeEnd): array
     {
         $span = $this->first && $this->last ? max(0, $this->last['time_ms'] - $this->first['time_ms']) : 0;
-        return ['session_id' => $sessionId, 'pid' => $this->pid,
+        $result = ['session_id' => $sessionId, 'pid' => $this->pid,
             'valid_samples' => $this->count, 'missing_samples' => $this->missing,
             'min' => $this->min, 'max' => $this->max, 'first' => $this->first, 'last' => $this->last,
             'mean' => $this->count ? round($this->mean, 6) : null,
@@ -141,5 +145,13 @@ final class McpMetricAggregate
             'incomplete' => $scan['scan_truncated'],
             'caution' => $scan['scan_truncated'] ? 'Partial result: the row scan limit was reached; this is NOT whole-session statistics' : null,
         ] + $scan;
+        if ($this->pid['id'] === McpData::BOOST_DUTY_PID) {
+            $result['boost_controller_disabled_samples'] = $this->boostDisabled;
+            // Preserve the existing 'missing_samples' count for API compatibility;
+            // it includes state sentinels, which are broken out below.
+            $result['other_missing_samples'] = $this->missing - $this->boostDisabled;
+            $result['missing_samples_note'] = 'missing_samples includes -1 disabled-state samples; other_missing_samples excludes them';
+        }
+        return $result;
     }
 }

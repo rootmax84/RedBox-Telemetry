@@ -37,6 +37,8 @@ final class McpProtocol
             . 'Use raw Unix-millisecond timestamps, not compressed graph time. '
             . 'Check incomplete/scan_truncated and coverage_ratio; never treat partial results as complete. '
             . 'get_metric_stats offers sample mean and time-weighted mean; distinguish them. '
+            . 'Boost solenoid duty PID k2120: -1 means controller disabled, not missing or negative PWM; '
+            . '0 means zero duty. Do not include -1 in duty averages; report disabled samples separately. '
             . 'analyze_metric_relationship is observational, not proof of causality. '
             . 'For Rollback use get_rollback_events and related sensors; decode independent warning bits. '
             . 'For live data start with get_device_status; uploads do not prove connection. '

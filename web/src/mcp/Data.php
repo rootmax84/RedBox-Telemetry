@@ -6,6 +6,26 @@ require_once __DIR__ . '/Sampling.php';
 final class McpData
 {
     public const GPS_PIDS = ['kff1005', 'kff1006', 'kff1007'];
+    public const BOOST_DUTY_PID = 'k2120';
+
+    /** -1 is a controller state for this PID, not a -1% PWM command. */
+    public static function boostDutySemantics(): array
+    {
+        return [
+            'minus_one' => 'Boost controller disabled (state sentinel, NOT -1% duty)',
+            'zero' => 'Commanded duty is 0%; this alone does NOT prove the controller is disabled',
+            'positive' => 'Reported commanded duty in percent (nominally 1–100)',
+            'statistics' => 'Exclude -1 from numeric duty statistics, but count it separately as a disabled-controller sample',
+            'provenance' => 'MCU Output variable; not a physical solenoid-state measurement',
+        ];
+    }
+
+    public static function boostControllerDisabled(array $row, string $pid): bool
+    {
+        if ($pid !== self::BOOST_DUTY_PID) return false;
+        $value = $row[$pid] ?? null;
+        return is_numeric($value) && is_finite((float)$value) && (float)$value === -1.0;
+    }
     public const MAX_SCANNED_ROWS = 120000;
     public const MAX_FULL_SCAN_ROWS = 250000;
     public const SCAN_CHUNK = 10000;
@@ -109,11 +129,15 @@ final class McpData
             if (in_array($row['id'], self::GPS_PIDS, true) && !McpSecurity::can($this->auth, ['location:read'])) {
                 continue;
             }
-            $rows[] = [
+            $metric = [
                 'id' => $row['id'], 'name' => $row['description'], 'unit' => $row['units'],
                 'populated' => (bool)$row['populated'], 'live' => (bool)$row['stream'],
                 'favorite' => (bool)$row['favorite'],
             ];
+            if ($row['id'] === self::BOOST_DUTY_PID) {
+                $metric['value_semantics'] = self::boostDutySemantics();
+            }
+            $rows[] = $metric;
         }
         return ['metrics' => $rows, 'unit_system' => 'raw sensor units; user display conversions are not applied'];
     }
@@ -134,6 +158,9 @@ final class McpData
         }
         if (!$row) {
             throw new InvalidArgumentException('PID not found for user');
+        }
+        if ($pid === self::BOOST_DUTY_PID) {
+            $row['value_semantics'] = self::boostDutySemantics();
         }
         return $row;
     }
@@ -203,9 +230,10 @@ final class McpData
         if (!is_numeric($v) || !is_finite((float)$v)) {
             return null;
         }
-        // Non-GPS PID value -1 is an application missing-data sentinel.
-        // Geographic coordinates such as longitude -1.0 are valid.
-        if (!in_array($pid, self::GPS_PIDS, true) && (float)$v === - 1.0) {
+        // For k2120, -1 means controller disabled; for other non-GPS PIDs
+        // -1 is the generic missing-value sentinel. Neither is a numeric reading.
+        // GPS coordinates including longitude -1.0 remain valid.
+        if (!in_array($pid, self::GPS_PIDS, true) && (float)$v === -1.0) {
             return null;
         }
         return (float)$v;
@@ -229,8 +257,10 @@ final class McpData
         $bucketMs = max(1, (int)ceil(($end - $start + 1) / max(1, intdiv($maxPoints, 2))));
         $buckets = [];
         $available = 0;
+        $controllerDisabled = 0;
         $scan = $this->scan((int)$session['session_id'], $start, $end,
-            static function (int $time, array $row) use ($pid, $start, $bucketMs, &$buckets, &$available): void {
+            static function (int $time, array $row) use ($pid, $start, $bucketMs, &$buckets, &$available, &$controllerDisabled): void {
+                if (self::boostControllerDisabled($row, $pid['id'])) ++$controllerDisabled;
                 $value = self::numeric($row, $pid['id']);
                 if ($value === null) {
                     return ;
@@ -259,9 +289,13 @@ final class McpData
             $stride = (count($points) - 1) / ($maxPoints - 1);
             $points = array_map(static fn($i) => $points[(int)round($i * $stride)], range(0, $maxPoints - 1));
         }
-        return ['session_id' => $session['session_id'], 'pid' => $pid, 'start_ms' => $start, 'end_ms' => $end,
+        $result = ['session_id' => $session['session_id'], 'pid' => $pid, 'start_ms' => $start, 'end_ms' => $end,
             'points' => $points, 'valid_samples' => $available, 'returned_points' => count($points),
             'incomplete' => $scan['scan_truncated']] + $scan;
+        if ($pid['id'] === self::BOOST_DUTY_PID) {
+            $result['boost_controller_disabled_samples'] = $controllerDisabled;
+        }
+        return $result;
     }
 
     public function metricStats(array $args): array
@@ -271,7 +305,8 @@ final class McpData
         $agg = new McpMetricAggregate($pid);
         $scan = $this->scan((int)$session['session_id'], $start, $end,
             static function (int $time, array $row) use ($pid, $agg): void {
-                $agg->observe($time, self::numeric($row, $pid['id']));
+                $agg->observe($time, self::numeric($row, $pid['id']),
+                    self::boostControllerDisabled($row, $pid['id']));
             }, self::fullScan($args));
         return $agg->result($session['session_id'], $scan, $start, $end);
     }
@@ -293,7 +328,8 @@ final class McpData
         $scan = $this->scan((int)$session['session_id'], $start, $end,
             static function (int $time, array $row) use ($accumulators): void {
                 foreach ($accumulators as $id => $agg) {
-                    $agg->observe($time, self::numeric($row, $id));
+                    $agg->observe($time, self::numeric($row, $id),
+                        self::boostControllerDisabled($row, $id));
                 }
             }, self::fullScan($args));
         return ['session' => $session,
@@ -359,10 +395,17 @@ final class McpData
             $metrics = array_slice($metrics, 0, 100, true);
         }
         $time = (int)$row['time'];
-        return ['available' => true, 'session_id' => (string)$row['session'], 'time_ms' => $time,
+        $result = ['available' => true, 'session_id' => (string)$row['session'], 'time_ms' => $time,
             'age_seconds' => max(0, round((microtime(true) * 1000 - $time) / 1000, 1)),
             'stale' => ($time < ((int)(microtime(true) * 1000) - 60000)), 'values' => $metrics,
             'units' => 'raw sensor units'];
+        if (array_key_exists(self::BOOST_DUTY_PID, $metrics)) {
+            $duty = self::numeric($metrics, self::BOOST_DUTY_PID);
+            $result['boost_controller_state'] = self::boostControllerDisabled($metrics, self::BOOST_DUTY_PID)
+                ? 'disabled' : ($duty === null ? 'unavailable' : ($duty == 0.0 ? 'zero_duty' : 'duty_reported'));
+            $result['boost_controller_state_note'] = 'Raw -1 means controller disabled; 0% duty does not mean disabled';
+        }
+        return $result;
     }
 
     public function deviceStatus(): array

@@ -15,11 +15,13 @@ final class McpAnalytics
         $segments = []; $count = 0; $gaps = []; $gapCount = 0;
         $segment = null; $first = null; $last = null; $valid = 0; $missing = 0; $covered = 0;
         $pendingMissing = false;
+        $boostDisabled = 0;
         $scan = $data->scan((int)$session['session_id'], $start, $end,
             static function (int $time, array $row) use ($pid, $sampling, $limit,
-                &$segments, &$count, &$gaps, &$gapCount, &$segment, &$first, &$last, &$valid, &$missing, &$covered, &$pendingMissing): void {
+                &$segments, &$count, &$gaps, &$gapCount, &$segment, &$first, &$last, &$valid, &$missing, &$covered, &$pendingMissing, &$boostDisabled): void {
                 if ($pid !== null && McpData::numeric($row, $pid['id']) === null) {
                     ++$missing;
+                    if (McpData::boostControllerDisabled($row, $pid['id'])) ++$boostDisabled;
                     $pendingMissing = true;
                     return;
                 }
@@ -53,7 +55,7 @@ final class McpAnalytics
             if (count($segments) < $limit) $segments[] = $segment;
         }
         $window = $first !== null && $last !== null ? max(0, $last - $first) : 0;
-        return [
+        $result = [
             'session_id' => $session['session_id'], 'pid' => $pid,
             'sample_count' => $valid, 'missing_samples' => $missing,
             'first_ms' => $first, 'last_ms' => $last,
@@ -67,6 +69,11 @@ final class McpAnalytics
             'caution' => $scan['scan_truncated'] ? 'Incomplete scan; segment and coverage statistics are partial' :
                 'Gaps are inferred from observed cadence. No values are interpolated across gaps.',
         ] + $scan;
+        if ($pid !== null && $pid['id'] === McpData::BOOST_DUTY_PID) {
+            $result['boost_controller_disabled_samples'] = $boostDisabled;
+            $result['other_missing_samples'] = $missing - $boostDisabled;
+        }
+        return $result;
     }
 
     public static function quality(McpData $data, array $args): array

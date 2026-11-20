@@ -138,10 +138,11 @@ final class McpRemoteData
         [$session, $start, $end] = $data->bounds($args);
         $pressure = [];
         $duty = [];
+        $boostDisabled = 0;
         $allRpm = [];
         $matches = 0;
         $scan = $data->scan((int)$session['session_id'], $start, $end,
-            static function (int $time, array $row) use ($rpmPid, $pressurePid, $dutyPid, $center, $window, &$pressure, &$duty, &$allRpm, &$matches): void {
+            static function (int $time, array $row) use ($rpmPid, $pressurePid, $dutyPid, $center, $window, &$pressure, &$duty, &$boostDisabled, &$allRpm, &$matches): void {
                 $rpm = McpData::numeric($row, $rpmPid['id']);
                 $boost = McpData::numeric($row, $pressurePid['id']);
                 if ($rpm === null || $boost === null) {
@@ -154,6 +155,7 @@ final class McpRemoteData
                 $matches++;
                 $pressure[] = $boost;
                 if ($dutyPid !== null) {
+                    if (McpData::boostControllerDisabled($row, $dutyPid['id'])) ++$boostDisabled;
                     $sampleDuty = McpData::numeric($row, $dutyPid['id']);
                     if ($sampleDuty !== null) {
                         $duty[] = $sampleDuty;
@@ -162,7 +164,7 @@ final class McpRemoteData
             }, McpData::fullScan($args)
         );
         $stored = $this->settings('boost');
-        return [
+        $result = [
             'session_id' => $session['session_id'],
             'rpm_center' => $center,
             'rpm_window' => $window,
@@ -182,6 +184,11 @@ final class McpRemoteData
                 'No actuator recommendations or numerical tuning values are generated.',
             ],
         ] + $scan;
+        if ($dutyPid !== null && $dutyPid['id'] === McpData::BOOST_DUTY_PID) {
+            $result['boost_controller_disabled_samples'] = $boostDisabled;
+            $result['duty_state_note'] = 'In the selected RPM band, -1 indicates disabled boost controller; excluded from duty statistics (0% is a distinct state).';
+        }
+        return $result;
     }
 
     public function analyzePid(McpData $data, array $args): array
@@ -201,8 +208,9 @@ final class McpRemoteData
         $previousTarget = null;
         $cadence = new McpSampling();
         $dutyValues = [];
+        $boostDisabled = 0;
         $scan = $data->scan((int)$session['session_id'], $start, $end,
-            static function (int $time, array $row) use ($pressurePid, $rpmPid, $targetPid, $dutyPid, &$values, &$intervals, &$rises, &$falls, &$previous, &$errors, &$targetSteps, &$previousTarget, &$dutyValues, $cadence): void {
+            static function (int $time, array $row) use ($pressurePid, $rpmPid, $targetPid, $dutyPid, &$values, &$intervals, &$rises, &$falls, &$previous, &$errors, &$targetSteps, &$previousTarget, &$dutyValues, &$boostDisabled, $cadence): void {
                 $gap = $cadence->observe($time)['gap'];
                 if ($gap) { $previous = null; $previousTarget = null; }
                 $value = McpData::numeric($row, $pressurePid['id']);
@@ -230,6 +238,7 @@ final class McpRemoteData
                     }
                 }
                 if ($dutyPid !== null) {
+                    if (McpData::boostControllerDisabled($row, $dutyPid['id'])) ++$boostDisabled;
                     $duty = McpData::numeric($row, $dutyPid['id']);
                     if ($duty !== null) {
                         $dutyValues[] = $duty;
@@ -248,7 +257,7 @@ final class McpRemoteData
                 $previous = [$time, $value];
             }, McpData::fullScan($args)
         );
-        return [
+        $result = [
             'session_id' => $session['session_id'],
             'pressure_pid' => $pressurePid,
             'target_pid' => $targetPid,
@@ -269,5 +278,10 @@ final class McpRemoteData
                 'No numerical PID coefficient changes are suggested without suitable measurements and hardware-specific validation.',
             ],
         ] + $scan;
+        if ($dutyPid !== null && $dutyPid['id'] === McpData::BOOST_DUTY_PID) {
+            $result['boost_controller_disabled_samples'] = $boostDisabled;
+            $result['duty_state_note'] = 'In analyzed pressure samples, -1 indicates disabled boost controller; excluded from duty statistics (0% is distinct).';
+        }
+        return $result;
     }
 }
