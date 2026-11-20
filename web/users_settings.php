@@ -156,7 +156,7 @@
              <h4 l10n="user.set.title"></h4>
              <h6 style="color:#777" l10n="user.set.label"></h6>
 		<form method="POST" action="/settings/save" onsubmit="return submitForm(this);">
-		    <table class="remote-table remote-table-horizontal settings-form-table">
+		    <table class="remote-table remote-table-horizontal settings-form-table" role="none">
                 <tbody>
                     <tr>
                         <td class="setting-name"><label for="speed" l10n="user.set.spd"></label></td>
@@ -239,7 +239,7 @@
              <h4 l10n="user.tg.title"></h4>
              <h6 style="color:#777" l10n="user.tg.label"></h6>
 		<form method="POST" action="/settings/save" onsubmit="return submitForm(this);">
-		<table class="remote-table remote-table-horizontal settings-form-table">
+		<table class="remote-table remote-table-horizontal settings-form-table" role="none">
                 <tbody>
                     <tr><td class="setting-name"><label for="settings-tg-token" l10n="user.tg.token"></label></td>
                         <td class="setting-value"><div class="password-toggle">
@@ -273,7 +273,7 @@
              <h4 l10n="user.pwd.title"></h4>
              <h6 style="color:#777" l10n="user.pwd.label"></h6>
 		<form method="POST" action="/settings/save" onsubmit="return submitForm(this);">
-		<table class="remote-table remote-table-horizontal settings-form-table">
+		<table class="remote-table remote-table-horizontal settings-form-table" role="none">
                 <tbody>
                     <tr><td class="setting-name"><label for="settings-old_p" l10n="user.pwd.curr"></label></td>
                         <td class="setting-value"><div class="password-toggle">
@@ -341,7 +341,7 @@
         <form method="post" action="/settings/mcp/tokens">
             <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
             <input type="hidden" name="action" value="toggle">
-            <table class="remote-table remote-table-horizontal settings-form-table">
+            <table class="remote-table remote-table-horizontal settings-form-table" role="none">
                 <tbody>
                     <tr>
                         <td class="setting-name"><span l10n="mcp.endpoint"><?= $h($t('mcp.endpoint')) ?></span></td>
@@ -369,7 +369,7 @@
         <form method="post" action="/settings/mcp/tokens">
             <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
             <input type="hidden" name="action" value="create">
-            <table class="remote-table remote-table-horizontal settings-form-table">
+            <table class="remote-table remote-table-horizontal settings-form-table" role="none">
                 <tbody>
                     <tr>
                         <td class="setting-name"><label for="settings-mcp-token-label" l10n="mcp.token.name"><?= $h($t('mcp.token.name')) ?></label></td>
