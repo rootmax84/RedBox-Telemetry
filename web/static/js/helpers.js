@@ -3564,7 +3564,8 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         const dialogOverlay = document.querySelector('#redDialogOverLay');
         if (dialogOverlay) {
-            redDialog.doReset(redDialog.options);
+            event.preventDefault();
+            redDialog.reject();
         }
 
         const menuToggle = document.querySelector('.menu-toggle');
@@ -4806,7 +4807,7 @@ let redDialog = {
 
         const titleElement = document.getElementById("redDialog_title");
         titleElement.addEventListener("click", () => {
-            this.doReset(options);
+            this.reject();
         });
 
         setTimeout(() => {
