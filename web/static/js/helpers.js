@@ -3565,7 +3565,7 @@ document.addEventListener('keydown', (event) => {
         const dialogOverlay = document.querySelector('#redDialogOverLay');
         if (dialogOverlay) {
             event.preventDefault();
-            redDialog.reject();
+            redDialog.dismiss();
         }
 
         const menuToggle = document.querySelector('.menu-toggle');
@@ -4231,6 +4231,7 @@ function showToken() {
                 btnClassSuccessText: localization.key['btn.copy'],
                 btnClassFail: "btn btn-info btn-sm",
                 btnClassFailText: localization.key['btn.renew'],
+                rejectOnDismiss: false,
                 message: token,
                 onResolve: function() {
                     copyToClipboard(token);
@@ -4712,7 +4713,8 @@ let redDialog = {
         title: 'Confirmation',
         message: 'Confirmation',
         onResolve: () => {},
-        onReject: () => {}
+        onReject: () => {},
+        rejectOnDismiss: true
     },
     confirmPromiseVal: null,
     activeElement: null,
@@ -4807,7 +4809,7 @@ let redDialog = {
 
         const titleElement = document.getElementById("redDialog_title");
         titleElement.addEventListener("click", () => {
-            this.reject();
+            this.dismiss();
         });
 
         setTimeout(() => {
@@ -4844,6 +4846,15 @@ let redDialog = {
         this.confirmPromiseVal = false;
     },
 
+    dismiss() {
+        // Closing a dialog need not execute its secondary button action.
+        if (this.rejectOnDismiss) {
+            this.reject();
+        } else {
+            this.confirmPromiseVal = false;
+        }
+    },
+
     doReset(options) {
         const overlay = document.querySelector('#redDialogOverLay');
         if (overlay) overlay.remove();
@@ -4861,6 +4872,7 @@ let redDialog = {
         this.activeButton = null;
         this.onResolve = options.onResolve;
         this.onReject = options.onReject;
+        this.rejectOnDismiss = options.rejectOnDismiss;
 
         clearInterval(this.confirmPromiseInterval);
     },
